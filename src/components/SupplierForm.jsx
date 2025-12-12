@@ -14,9 +14,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+const SUPPLIER_CATEGORIES = [
+  { value: 'fabric', label: 'Fabric', color: 'category-fabric' },
+  { value: 'accessories', label: 'Accessories', color: 'category-accessories' },
+  { value: 'premium', label: 'Premium', color: 'category-premium' },
+  { value: 'regular', label: 'Regular', color: 'category-regular' },
+];
 
 export function SupplierForm({
   open,
@@ -28,6 +42,22 @@ export function SupplierForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
+  const [category, setCategory] = useState(initialData?.category || '');
+
+  const defaultFormValues = {
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    companyName: "",
+    gstNumber: "",
+    upiId: "",
+    bankDetails: {
+      bankName: "",
+      accountNumber: "",
+      ifscCode: "",
+    },
+  };
 
   const {
     register,
@@ -35,28 +65,38 @@ export function SupplierForm({
     reset,
     formState: { errors },
   } = useForm({
-    defaultValues: initialData || {
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
-      companyName: "",
-      gstNumber: "",
-      upiId: "",
-      bankDetails: {
-        bankName: "",
-        accountNumber: "",
-        ifscCode: "",
-      },
-    },
+    defaultValues: defaultFormValues,
   });
 
-  // Update state when initialData changes
+  // Update form when dialog opens
   useEffect(() => {
-    if (open && initialData) {
-      setProfilePicture(initialData.profilePicture || null);
-      setUpiQrCode(initialData.upiQrCode || null);
-      reset(initialData);
+    if (open) {
+      if (initialData) {
+        // Editing - populate with existing data
+        setProfilePicture(initialData.profilePicture || null);
+        setUpiQrCode(initialData.upiQrCode || null);
+        setCategory(initialData.category || '');
+        reset({
+          name: initialData.name || "",
+          phone: initialData.phone || "",
+          email: initialData.email || "",
+          address: initialData.address || "",
+          companyName: initialData.companyName || "",
+          gstNumber: initialData.gstNumber || "",
+          upiId: initialData.upiId || "",
+          bankDetails: {
+            bankName: initialData.bankDetails?.bankName || "",
+            accountNumber: initialData.bankDetails?.accountNumber || "",
+            ifscCode: initialData.bankDetails?.ifscCode || "",
+          },
+        });
+      } else {
+        // Adding new - reset to empty
+        setProfilePicture(null);
+        setUpiQrCode(null);
+        setCategory('');
+        reset(defaultFormValues);
+      }
     }
   }, [open, initialData, reset]);
 
@@ -67,10 +107,12 @@ export function SupplierForm({
         ...data,
         profilePicture,
         upiQrCode,
+        category,
       });
       reset();
       setProfilePicture(null);
       setUpiQrCode(null);
+      setCategory('');
       onOpenChange(false);
     } catch (error) {
       console.error("Submit failed:", error);
@@ -84,6 +126,7 @@ export function SupplierForm({
       reset();
       setProfilePicture(initialData?.profilePicture || null);
       setUpiQrCode(initialData?.upiQrCode || null);
+      setCategory(initialData?.category || '');
       onOpenChange(false);
     }
   };
@@ -161,6 +204,30 @@ export function SupplierForm({
                 <Label htmlFor="gstNumber">GST Number</Label>
                 <Input id="gstNumber" {...register("gstNumber")} placeholder="GST number" />
               </div>
+
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPLIER_CATEGORIES.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        <span className={`inline-flex items-center gap-2`}>
+                          <span className={`w-2 h-2 rounded-full ${cat.color.replace('category-', 'bg-')}`} 
+                                style={{
+                                  backgroundColor: cat.value === 'fabric' ? '#60a5fa' :
+                                                  cat.value === 'accessories' ? '#a78bfa' :
+                                                  cat.value === 'premium' ? '#fbbf24' : '#4ade80'
+                                }} />
+                          {cat.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Separator />
@@ -206,11 +273,7 @@ export function SupplierForm({
 
               <div className="space-y-2">
                 <Label htmlFor="upiId">UPI ID</Label>
-                <Input
-                  id="upiId"
-                  {...register("upiId")}
-                  placeholder="example@upi or phone@paytm"
-                />
+                <Input id="upiId" {...register("upiId")} placeholder="example@upi or phone@paytm" />
               </div>
 
               <div className="space-y-2">

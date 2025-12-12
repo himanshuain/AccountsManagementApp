@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Receipt, Filter, Image, List, Camera } from 'lucide-react';
+import { Plus, Receipt, Filter, Image, List, Camera, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +19,7 @@ import { TransactionTable } from '@/components/TransactionTable';
 import { BillGallery } from '@/components/BillGallery';
 import { QuickBillCapture } from '@/components/QuickBillCapture';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { exportTransactions } from '@/lib/export';
 import { toast } from 'sonner';
 
 export default function TransactionsPage() {
@@ -107,6 +108,15 @@ export default function TransactionsPage() {
     toast.success(`${images.length} bill(s) captured for ${supplierName}`);
   };
 
+  const handleExport = () => {
+    try {
+      exportTransactions(filteredTransactions, suppliers);
+      toast.success('Transactions exported successfully');
+    } catch (error) {
+      toast.error('Failed to export transactions');
+    }
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
@@ -115,6 +125,12 @@ export default function TransactionsPage() {
           <h1 className="text-2xl font-bold">Transactions</h1>
           <p className="text-muted-foreground">Manage all your transactions</p>
         </div>
+        {transactions.length > 0 && (
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        )}
       </div>
 
       {/* Quick Action Tiles */}

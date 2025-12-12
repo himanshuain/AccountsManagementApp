@@ -1,14 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   LayoutDashboard, 
   Users, 
   Receipt,
   Menu,
   Store,
-  LogOut
+  LogOut,
+  RefreshCw,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -18,25 +22,42 @@ import { GlobalSearch } from './GlobalSearch';
 import { SyncStatus } from './SyncStatus';
 import { ThemeToggle } from './ThemeToggle';
 import { logout } from '@/lib/auth';
+import { toast } from 'sonner';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/suppliers', label: 'Suppliers', icon: Users },
   { href: '/transactions', label: 'Transactions', icon: Receipt },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogout = () => {
     logout();
     window.location.href = '/login';
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Invalidate all queries to force refetch
+      await queryClient.invalidateQueries();
+      toast.success('Data refreshed!');
+    } catch (error) {
+      toast.error('Failed to refresh');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <>
       {/* Top bar with search */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-b">
         {/* Header row */}
         <div className="h-14 flex items-center px-3 gap-2">
           <Sheet>
@@ -106,6 +127,17 @@ export function MobileNav() {
           
           {/* Full width search bar */}
           <GlobalSearch className="flex-1" />
+          
+          {/* Refresh button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="shrink-0"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+          </Button>
         </div>
       </div>
 

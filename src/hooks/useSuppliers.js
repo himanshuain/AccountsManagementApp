@@ -1,141 +1,157 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supplierDB, bulkOperations } from '@/lib/db';
 import { syncManager } from '@/lib/sync';
 
+const SUPPLIERS_KEY = ['suppliers'];
+
 export function useSuppliers() {
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const hasFetchedCloud = useRef(false);
+  const queryClient = useQueryClient();
 
-  // Re-fetch local data (used after sync completes to get updated syncStatus)
-  const refreshLocalData = useCallback(async () => {
-    const data = await supplierDB.getAll();
-    setSuppliers(data);
-  }, []);
-
-  const fetchSuppliers = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      // First, get local data
+  // Fetch suppliers - uses React Query caching
+  const { 
+    data: suppliers = [], 
+    isLoading: loading, 
+    error,
+    refetch 
+  } = useQuery({
+    queryKey: SUPPLIERS_KEY,
+    queryFn: async () => {
+      // Get local data first
       let data = await supplierDB.getAll();
-      setSuppliers(data);
-      setLoading(false); // Show local data immediately, don't wait for cloud
       
-      // Only fetch from cloud once per mount (not on every re-render)
-      if (!hasFetchedCloud.current) {
-        hasFetchedCloud.current = true;
+      // Try to fetch from cloud and merge
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        // Then, try to fetch from cloud and merge (with timeout)
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-          
-          const response = await fetch('/api/suppliers', { signal: controller.signal });
-          clearTimeout(timeoutId);
-          
-          if (response.ok) {
-            const result = await response.json();
-            const cloudData = result.data;
-            if (cloudData && cloudData.length > 0) {
-              // Merge cloud data into local DB
-              await bulkOperations.mergeSuppliers(cloudData);
-              // Re-fetch from local DB to get merged data
-              data = await supplierDB.getAll();
-              setSuppliers(data);
-            }
+        const response = await fetch('/api/suppliers', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const result = await response.json();
+          const cloudData = result.data;
+          if (cloudData && cloudData.length > 0) {
+            await bulkOperations.mergeSuppliers(cloudData);
+            data = await supplierDB.getAll();
           }
-        } catch (cloudError) {
-          console.warn('Cloud fetch failed, using local data:', cloudError.message);
         }
+      } catch (cloudError) {
+        console.warn('Cloud fetch failed, using local data:', cloudError.message);
       }
       
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+  });
 
-  useEffect(() => {
-    fetchSuppliers();
-    
-    // Subscribe to sync completion to refresh data with updated syncStatus
-    const unsubscribe = syncManager.subscribe((status) => {
-      if (status.status === 'synced') {
-        // Refresh local data to get updated syncStatus
-        refreshLocalData();
-      }
-    });
-    
-    return () => unsubscribe();
-  }, [fetchSuppliers, refreshLocalData]);
+  // Add supplier mutation
+  const addMutation = useMutation({
+    mutationFn: async (supplierData) => {
+      const newSupplier = await supplierDB.add(supplierData);
+      return newSupplier;
+    },
+    onSuccess: (newSupplier) => {
+      queryClient.setQueryData(SUPPLIERS_KEY, (old = []) => [...old, newSupplier]);
+    },
+  });
+
+  // Update supplier mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }) => {
+      const updated = await supplierDB.update(id, updates);
+      return updated;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(SUPPLIERS_KEY, (old = []) => 
+        old.map(s => s.id === updated.id ? updated : s)
+      );
+    },
+  });
+
+  // Delete supplier mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await supplierDB.delete(id);
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.setQueryData(SUPPLIERS_KEY, (old = []) => 
+        old.filter(s => s.id !== id)
+      );
+    },
+  });
 
   const addSupplier = useCallback(async (supplierData) => {
     try {
-      const newSupplier = await supplierDB.add(supplierData);
-      setSuppliers(prev => [...prev, newSupplier]);
+      const newSupplier = await addMutation.mutateAsync(supplierData);
       return { success: true, data: newSupplier };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, []);
+  }, [addMutation]);
 
   const updateSupplier = useCallback(async (id, updates) => {
     try {
-      const updated = await supplierDB.update(id, updates);
-      setSuppliers(prev => prev.map(s => s.id === id ? updated : s));
+      const updated = await updateMutation.mutateAsync({ id, updates });
       return { success: true, data: updated };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, []);
+  }, [updateMutation]);
 
   const deleteSupplier = useCallback(async (id) => {
     try {
-      await supplierDB.delete(id);
-      setSuppliers(prev => prev.filter(s => s.id !== id));
+      await deleteMutation.mutateAsync(id);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
     }
-  }, []);
+  }, [deleteMutation]);
 
   const searchSuppliers = useCallback(async (query) => {
     if (!query.trim()) {
-      await fetchSuppliers();
+      refetch();
       return;
     }
     try {
       const results = await supplierDB.search(query);
-      setSuppliers(results);
+      queryClient.setQueryData(SUPPLIERS_KEY, results);
     } catch (err) {
-      setError(err.message);
+      console.error('Search failed:', err);
     }
-  }, [fetchSuppliers]);
+  }, [refetch, queryClient]);
 
   const getSupplierById = useCallback(async (id) => {
+    // First check cache
+    const cached = queryClient.getQueryData(SUPPLIERS_KEY);
+    const fromCache = cached?.find(s => s.id === id);
+    if (fromCache) return fromCache;
+    
+    // Otherwise fetch from DB
     try {
       return await supplierDB.getById(id);
     } catch (err) {
       return null;
     }
-  }, []);
+  }, [queryClient]);
+
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
+  }, [queryClient]);
 
   return {
     suppliers,
     loading,
-    error,
+    error: error?.message || null,
     addSupplier,
     updateSupplier,
     deleteSupplier,
     searchSuppliers,
     getSupplierById,
-    refresh: fetchSuppliers
+    refresh
   };
 }
 

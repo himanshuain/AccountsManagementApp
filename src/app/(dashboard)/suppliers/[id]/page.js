@@ -176,11 +176,29 @@ export default function SupplierDetailPage({ params }) {
     }
   };
 
-  const handleUpiClick = () => {
+  const handleUpiClick = (app = 'gpay') => {
     if (supplier?.upiId) {
-      // Create UPI deep link for payment apps
-      const upiLink = `upi://pay?pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(supplier.name || 'Supplier')}`;
-      window.location.href = upiLink;
+      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(supplier.name || 'Supplier')}&cu=INR`;
+      
+      // Google Pay specific intent for Android
+      if (app === 'gpay') {
+        // Try Google Pay intent first (Android)
+        const gpayIntent = `intent://pay?${upiParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+        // For iOS, use tez:// scheme
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          window.location.href = `gpay://upi/pay?${upiParams}`;
+        } else {
+          window.location.href = gpayIntent;
+        }
+      } else if (app === 'phonepe') {
+        window.location.href = `phonepe://pay?${upiParams}`;
+      } else if (app === 'paytm') {
+        window.location.href = `paytmmp://pay?${upiParams}`;
+      } else {
+        // Generic UPI link - opens app chooser
+        window.location.href = `upi://pay?${upiParams}`;
+      }
     }
   };
 
@@ -249,31 +267,53 @@ export default function SupplierDetailPage({ params }) {
                 </div>
                 
                 {supplier.upiId && (
-                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                    <button
-                      onClick={handleUpiClick}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700 transition-colors"
-                    >
-                      <span>{supplier.upiId}</span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyUpi}
-                      className="h-8"
-                    >
-                      {upiCopied ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <code className="px-2 py-1 bg-muted rounded text-sm">{supplier.upiId}</code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyUpi}
+                        className="h-7 px-2"
+                      >
+                        {upiCopied ? (
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                      <button
+                        onClick={() => handleUpiClick('gpay')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        GPay
+                      </button>
+                      <button
+                        onClick={() => handleUpiClick('phonepe')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-full text-xs font-medium hover:bg-purple-700 transition-colors"
+                      >
+                        PhonePe
+                      </button>
+                      <button
+                        onClick={() => handleUpiClick('paytm')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 text-white rounded-full text-xs font-medium hover:bg-sky-700 transition-colors"
+                      >
+                        Paytm
+                      </button>
+                      <button
+                        onClick={() => handleUpiClick('other')}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-muted text-foreground rounded-full text-xs font-medium hover:bg-accent transition-colors"
+                      >
+                        Other <ExternalLink className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
                 )}
                 
                 <p className="text-xs text-muted-foreground mt-2">
-                  Tap to pay via GPay, PhonePe, Paytm or any UPI app
+                  Choose your preferred UPI app to pay
                 </p>
               </div>
             </div>

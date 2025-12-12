@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, Users } from 'lucide-react';
+import { Search, Plus, Users, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import useSuppliers from '@/hooks/useSuppliers';
@@ -9,6 +9,7 @@ import useTransactions from '@/hooks/useTransactions';
 import { SupplierCard, SupplierCardSkeleton } from '@/components/SupplierCard';
 import { SupplierForm } from '@/components/SupplierForm';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { exportSuppliers } from '@/lib/export';
 import { toast } from 'sonner';
 
 export default function SuppliersPage() {
@@ -58,6 +59,15 @@ export default function SuppliersPage() {
     return transactions.filter(t => t.supplierId === supplierId).length;
   };
 
+  const handleExport = () => {
+    try {
+      exportSuppliers(suppliers);
+      toast.success('Suppliers exported successfully');
+    } catch (error) {
+      toast.error('Failed to export suppliers');
+    }
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
@@ -66,10 +76,18 @@ export default function SuppliersPage() {
           <h1 className="text-2xl font-bold">Suppliers</h1>
           <p className="text-muted-foreground">Manage your supplier information</p>
         </div>
-        <Button onClick={() => setSupplierFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Supplier
-        </Button>
+        <div className="flex items-center gap-2">
+          {suppliers.length > 0 && (
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          )}
+          <Button onClick={() => setSupplierFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Supplier
+          </Button>
+        </div>
       </div>
 
       {/* Search */}

@@ -1,11 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Phone, Mail, MapPin, FileText, ChevronRight } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, FileText, ChevronRight, Tag } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+const CATEGORY_STYLES = {
+  fabric: { bg: 'bg-blue-500/10', text: 'text-blue-600', label: 'Fabric' },
+  accessories: { bg: 'bg-purple-500/10', text: 'text-purple-600', label: 'Accessories' },
+  premium: { bg: 'bg-amber-500/10', text: 'text-amber-600', label: 'Premium' },
+  regular: { bg: 'bg-green-500/10', text: 'text-green-600', label: 'Regular' },
+};
 
 export function SupplierCard({ supplier, transactionCount = 0 }) {
   const initials = supplier.name
@@ -15,9 +22,11 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
     .toUpperCase()
     .slice(0, 2) || '??';
 
+  const categoryStyle = supplier.category ? CATEGORY_STYLES[supplier.category] : null;
+
   return (
     <Link href={`/suppliers/${supplier.id}`}>
-      <Card className="group hover:shadow-md transition-all hover:border-primary/50 cursor-pointer">
+      <Card className="group hover:shadow-md transition-all hover:border-primary/50 cursor-pointer card-lift">
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
             {/* Avatar */}
@@ -59,12 +68,23 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
                 )}
               </div>
 
-              {/* Transaction badge */}
-              {transactionCount > 0 && (
-                <Badge variant="secondary" className="mt-2 text-xs">
-                  {transactionCount} transaction{transactionCount !== 1 ? 's' : ''}
-                </Badge>
-              )}
+              {/* Category and Transaction badges */}
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {categoryStyle && (
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+                    categoryStyle.bg, categoryStyle.text
+                  )}>
+                    <Tag className="h-3 w-3" />
+                    {categoryStyle.label}
+                  </span>
+                )}
+                {transactionCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {transactionCount} transaction{transactionCount !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
@@ -86,11 +106,11 @@ export function SupplierCardSkeleton() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          <div className="h-14 w-14 rounded-full bg-muted animate-pulse" />
+          <div className="h-14 w-14 rounded-full skeleton-shimmer" />
           <div className="flex-1 space-y-2">
-            <div className="h-5 w-32 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-32 rounded skeleton-shimmer" />
+            <div className="h-4 w-24 rounded skeleton-shimmer" />
+            <div className="h-3 w-20 rounded skeleton-shimmer" />
           </div>
         </div>
       </CardContent>
