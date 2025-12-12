@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { transactionDB, bulkOperations } from '@/lib/db';
+import { syncManager } from '@/lib/sync';
 
 export function useTransactions(supplierId = null) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const hasFetchedCloud = useRef(false);
+
+  // Re-fetch local data (used after sync completes to get updated syncStatus)
+  const refreshLocalData = useCallback(async () => {
+    let data;
+    if (supplierId) {
+      data = await transactionDB.getBySupplier(supplierId);
+    } else {
+      data = await transactionDB.getAll();
+    }
+    setTransactions(data);
+  }, [supplierId]);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -22,30 +35,35 @@ export function useTransactions(supplierId = null) {
       setTransactions(data);
       setLoading(false); // Show local data immediately, don't wait for cloud
       
-      // Then, try to fetch from cloud and merge (with timeout)
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      // Only fetch from cloud once per mount
+      if (!hasFetchedCloud.current) {
+        hasFetchedCloud.current = true;
         
-        const response = await fetch('/api/transactions', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          const { data: cloudData } = await response.json();
-          if (cloudData && cloudData.length > 0) {
-            // Merge cloud data into local DB
-            await bulkOperations.mergeTransactions(cloudData);
-            // Re-fetch from local DB to get merged data
-            if (supplierId) {
-              data = await transactionDB.getBySupplier(supplierId);
-            } else {
-              data = await transactionDB.getAll();
+        // Then, try to fetch from cloud and merge (with timeout)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
+          const response = await fetch('/api/transactions', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const { data: cloudData } = await response.json();
+            if (cloudData && cloudData.length > 0) {
+              // Merge cloud data into local DB
+              await bulkOperations.mergeTransactions(cloudData);
+              // Re-fetch from local DB to get merged data
+              if (supplierId) {
+                data = await transactionDB.getBySupplier(supplierId);
+              } else {
+                data = await transactionDB.getAll();
+              }
+              setTransactions(data);
             }
-            setTransactions(data);
           }
+        } catch (cloudError) {
+          console.warn('Cloud fetch failed, using local data:', cloudError.message);
         }
-      } catch (cloudError) {
-        console.warn('Cloud fetch failed, using local data:', cloudError.message);
       }
       
       setError(null);
@@ -58,7 +76,17 @@ export function useTransactions(supplierId = null) {
 
   useEffect(() => {
     fetchTransactions();
-  }, [fetchTransactions]);
+    
+    // Subscribe to sync completion to refresh data with updated syncStatus
+    const unsubscribe = syncManager.subscribe((status) => {
+      if (status.status === 'synced') {
+        // Refresh local data to get updated syncStatus
+        refreshLocalData();
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [fetchTransactions, refreshLocalData]);
 
   const addTransaction = useCallback(async (transactionData) => {
     try {

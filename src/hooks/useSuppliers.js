@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supplierDB, bulkOperations } from '@/lib/db';
+import { syncManager } from '@/lib/sync';
 
 export function useSuppliers() {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const hasFetchedCloud = useRef(false);
+
+  // Re-fetch local data (used after sync completes to get updated syncStatus)
+  const refreshLocalData = useCallback(async () => {
+    const data = await supplierDB.getAll();
+    setSuppliers(data);
+  }, []);
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -17,27 +25,32 @@ export function useSuppliers() {
       setSuppliers(data);
       setLoading(false); // Show local data immediately, don't wait for cloud
       
-      // Then, try to fetch from cloud and merge (with timeout)
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      // Only fetch from cloud once per mount (not on every re-render)
+      if (!hasFetchedCloud.current) {
+        hasFetchedCloud.current = true;
         
-        const response = await fetch('/api/suppliers', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          const result = await response.json();
-          const cloudData = result.data;
-          if (cloudData && cloudData.length > 0) {
-            // Merge cloud data into local DB
-            await bulkOperations.mergeSuppliers(cloudData);
-            // Re-fetch from local DB to get merged data
-            data = await supplierDB.getAll();
-            setSuppliers(data);
+        // Then, try to fetch from cloud and merge (with timeout)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+          
+          const response = await fetch('/api/suppliers', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const result = await response.json();
+            const cloudData = result.data;
+            if (cloudData && cloudData.length > 0) {
+              // Merge cloud data into local DB
+              await bulkOperations.mergeSuppliers(cloudData);
+              // Re-fetch from local DB to get merged data
+              data = await supplierDB.getAll();
+              setSuppliers(data);
+            }
           }
+        } catch (cloudError) {
+          console.warn('Cloud fetch failed, using local data:', cloudError.message);
         }
-      } catch (cloudError) {
-        console.warn('Cloud fetch failed, using local data:', cloudError.message);
       }
       
       setError(null);
@@ -50,7 +63,17 @@ export function useSuppliers() {
 
   useEffect(() => {
     fetchSuppliers();
-  }, [fetchSuppliers]);
+    
+    // Subscribe to sync completion to refresh data with updated syncStatus
+    const unsubscribe = syncManager.subscribe((status) => {
+      if (status.status === 'synced') {
+        // Refresh local data to get updated syncStatus
+        refreshLocalData();
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [fetchSuppliers, refreshLocalData]);
 
   const addSupplier = useCallback(async (supplierData) => {
     try {

@@ -92,61 +92,69 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Users className="h-5 w-5 text-blue-600" />
+        <Link href="/suppliers">
+          <Card className="cursor-pointer hover:border-blue-500/50 hover:shadow-md transition-all">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{totalSuppliers}</p>
+                  <p className="text-xs text-muted-foreground">Total Suppliers</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{totalSuppliers}</p>
-                <p className="text-xs text-muted-foreground">Total Suppliers</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <Receipt className="h-5 w-5 text-green-600" />
+        <Link href="/transactions">
+          <Card className="cursor-pointer hover:border-green-500/50 hover:shadow-md transition-all">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <Receipt className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{totalTransactions}</p>
+                  <p className="text-xs text-muted-foreground">Transactions</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{totalTransactions}</p>
-                <p className="text-xs text-muted-foreground">Transactions</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-600" />
+        <Link href="/transactions?status=pending">
+          <Card className="cursor-pointer hover:border-amber-500/50 hover:shadow-md transition-all">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-primary" />
+        <Link href="/transactions">
+          <Card className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Total Amount</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Total Amount</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Main Content Grid */}

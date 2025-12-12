@@ -14,7 +14,11 @@ import {
   FileText,
   CreditCard,
   Plus,
-  IndianRupee
+  IndianRupee,
+  QrCode,
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +26,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import useSuppliers from '@/hooks/useSuppliers';
 import useTransactions from '@/hooks/useTransactions';
 import { SupplierForm } from '@/components/SupplierForm';
@@ -45,6 +55,8 @@ export default function SupplierDetailPage({ params }) {
   const [transactionToEdit, setTransactionToEdit] = useState(null);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [deleteTransactionDialogOpen, setDeleteTransactionDialogOpen] = useState(false);
+  const [upiCopied, setUpiCopied] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadSupplier = async () => {
@@ -53,7 +65,17 @@ export default function SupplierDetailPage({ params }) {
       setLoading(false);
     };
     loadSupplier();
-  }, [id, getSupplierById, suppliers]);
+  }, [id, getSupplierById]);
+
+  // Update local supplier when suppliers array changes (e.g., after sync completes)
+  useEffect(() => {
+    if (!loading) {
+      const updatedSupplier = suppliers.find(s => s.id === id);
+      if (updatedSupplier) {
+        setSupplier(updatedSupplier);
+      }
+    }
+  }, [suppliers, id, loading]);
 
   if (loading) {
     return (
@@ -154,6 +176,27 @@ export default function SupplierDetailPage({ params }) {
     }
   };
 
+  const handleUpiClick = () => {
+    if (supplier?.upiId) {
+      // Create UPI deep link for payment apps
+      const upiLink = `upi://pay?pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(supplier.name || 'Supplier')}`;
+      window.location.href = upiLink;
+    }
+  };
+
+  const handleCopyUpi = async () => {
+    if (supplier?.upiId) {
+      try {
+        await navigator.clipboard.writeText(supplier.upiId);
+        setUpiCopied(true);
+        toast.success('UPI ID copied!');
+        setTimeout(() => setUpiCopied(false), 2000);
+      } catch (err) {
+        toast.error('Failed to copy');
+      }
+    }
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
@@ -178,6 +221,65 @@ export default function SupplierDetailPage({ params }) {
           </Button>
         </div>
       </div>
+
+      {/* UPI Payment Section - Prominent at top */}
+      {(supplier.upiId || supplier.upiQrCode) && (
+        <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {/* QR Code */}
+              {supplier.upiQrCode && (
+                <div 
+                  className="w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform"
+                  onClick={() => setQrDialogOpen(true)}
+                >
+                  <img 
+                    src={supplier.upiQrCode} 
+                    alt="UPI QR Code" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              
+              {/* UPI Details */}
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+                  <QrCode className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-700">UPI Payment</span>
+                </div>
+                
+                {supplier.upiId && (
+                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                    <button
+                      onClick={handleUpiClick}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      <span>{supplier.upiId}</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyUpi}
+                      className="h-8"
+                    >
+                      {upiCopied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground mt-2">
+                  Tap to pay via GPay, PhonePe, Paytm or any UPI app
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profile Card */}
       <Card>
@@ -366,6 +468,36 @@ export default function SupplierDetailPage({ params }) {
         description="Are you sure you want to delete this transaction? This action cannot be undone."
         itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ''}
       />
+
+      {/* QR Code Full View Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">Scan to Pay</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            {supplier?.upiQrCode && (
+              <div className="w-64 h-64 rounded-lg overflow-hidden border-2 border-muted">
+                <img 
+                  src={supplier.upiQrCode} 
+                  alt="UPI QR Code" 
+                  className="w-full h-full object-contain bg-white"
+                />
+              </div>
+            )}
+            {supplier?.upiId && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">UPI ID</p>
+                <p className="font-medium">{supplier.upiId}</p>
+              </div>
+            )}
+            <Button onClick={handleUpiClick} className="w-full">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in UPI App
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
