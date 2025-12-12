@@ -94,25 +94,20 @@
 
 /* Gradient backgrounds */
 .gradient-primary {
-  background: linear-gradient(135deg, 
-    hsl(24 100% 50%) 0%, 
-    hsl(38 92% 50%) 100%
-  );
+  background: linear-gradient(135deg, hsl(24 100% 50%) 0%, hsl(38 92% 50%) 100%);
 }
 
 .gradient-card {
-  background: linear-gradient(135deg, 
-    hsl(var(--card)) 0%, 
-    hsl(var(--accent)) 100%
-  );
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--accent)) 100%);
 }
 
 /* Animated gradient background */
 .animated-gradient {
-  background: linear-gradient(-45deg, 
-    hsl(var(--primary)), 
-    hsl(24 100% 60%), 
-    hsl(38 92% 50%), 
+  background: linear-gradient(
+    -45deg,
+    hsl(var(--primary)),
+    hsl(24 100% 60%),
+    hsl(38 92% 50%),
     hsl(var(--primary))
   );
   background-size: 400% 400%;
@@ -120,9 +115,15 @@
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Card hover effects */
@@ -149,9 +150,10 @@
 
 /* Shimmer skeleton loading effect */
 .skeleton-shimmer {
-  background: linear-gradient(90deg, 
-    hsl(var(--muted)) 25%, 
-    hsl(var(--accent)) 50%, 
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--accent)) 50%,
     hsl(var(--muted)) 75%
   );
   background-size: 200% 100%;
@@ -159,14 +161,24 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Fade in animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -174,16 +186,32 @@
 }
 
 /* Staggered animation delays */
-.animate-delay-1 { animation-delay: 0.1s; }
-.animate-delay-2 { animation-delay: 0.2s; }
-.animate-delay-3 { animation-delay: 0.3s; }
-.animate-delay-4 { animation-delay: 0.4s; }
-.animate-delay-5 { animation-delay: 0.5s; }
+.animate-delay-1 {
+  animation-delay: 0.1s;
+}
+.animate-delay-2 {
+  animation-delay: 0.2s;
+}
+.animate-delay-3 {
+  animation-delay: 0.3s;
+}
+.animate-delay-4 {
+  animation-delay: 0.4s;
+}
+.animate-delay-5 {
+  animation-delay: 0.5s;
+}
 
 /* Scale in animation */
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .animate-scale-in {
@@ -196,14 +224,11 @@
 }
 
 .glow-effect::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, 
-    hsl(var(--primary) / 0.3), 
-    transparent 50%
-  );
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.3), transparent 50%);
   z-index: -1;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -215,10 +240,7 @@
 
 /* Dark mode specific glow */
 .dark .glow-effect:hover::before {
-  background: linear-gradient(135deg, 
-    hsl(var(--primary) / 0.2), 
-    transparent 50%
-  );
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.2), transparent 50%);
 }
 
 /* Custom scrollbar */
@@ -272,16 +294,19 @@
 .pin-input::-webkit-outer-spin-button,
 .pin-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 
-.pin-input[type=number] {
+.pin-input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Sync pulse animation */
 @keyframes syncPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -443,15 +468,39 @@
 }
 
 /* Category colors */
-.category-fabric { background: hsl(200 80% 90%); color: hsl(200 80% 30%); }
-.category-accessories { background: hsl(280 80% 90%); color: hsl(280 80% 30%); }
-.category-premium { background: hsl(45 90% 85%); color: hsl(45 90% 25%); }
-.category-regular { background: hsl(150 60% 90%); color: hsl(150 60% 25%); }
+.category-fabric {
+  background: hsl(200 80% 90%);
+  color: hsl(200 80% 30%);
+}
+.category-accessories {
+  background: hsl(280 80% 90%);
+  color: hsl(280 80% 30%);
+}
+.category-premium {
+  background: hsl(45 90% 85%);
+  color: hsl(45 90% 25%);
+}
+.category-regular {
+  background: hsl(150 60% 90%);
+  color: hsl(150 60% 25%);
+}
 
-.dark .category-fabric { background: hsl(200 60% 20%); color: hsl(200 80% 70%); }
-.dark .category-accessories { background: hsl(280 60% 20%); color: hsl(280 80% 70%); }
-.dark .category-premium { background: hsl(45 70% 20%); color: hsl(45 90% 70%); }
-.dark .category-regular { background: hsl(150 40% 20%); color: hsl(150 60% 70%); }
+.dark .category-fabric {
+  background: hsl(200 60% 20%);
+  color: hsl(200 80% 70%);
+}
+.dark .category-accessories {
+  background: hsl(280 60% 20%);
+  color: hsl(280 80% 70%);
+}
+.dark .category-premium {
+  background: hsl(45 70% 20%);
+  color: hsl(45 90% 70%);
+}
+.dark .category-regular {
+  background: hsl(150 40% 20%);
+  color: hsl(150 60% 70%);
+}
 
 /* ============================================
    SELECTION CHECKBOX ANIMATION
@@ -461,9 +510,15 @@
 }
 
 @keyframes checkBounce {
-  0% { transform: scale(0.8); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ============================================
@@ -475,7 +530,7 @@
 }
 
 .haptic-tap::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: hsl(var(--primary) / 0.2);

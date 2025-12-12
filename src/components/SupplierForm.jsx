@@ -26,10 +26,10 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SUPPLIER_CATEGORIES = [
-  { value: 'fabric', label: 'Fabric', color: 'category-fabric' },
-  { value: 'accessories', label: 'Accessories', color: 'category-accessories' },
-  { value: 'premium', label: 'Premium', color: 'category-premium' },
-  { value: 'regular', label: 'Regular', color: 'category-regular' },
+  { value: "fabric", label: "Fabric", color: "category-fabric" },
+  { value: "accessories", label: "Accessories", color: "category-accessories" },
+  { value: "premium", label: "Premium", color: "category-premium" },
+  { value: "regular", label: "Regular", color: "category-regular" },
 ];
 
 export function SupplierForm({
@@ -42,7 +42,7 @@ export function SupplierForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
-  const [category, setCategory] = useState(initialData?.category || '');
+  const [category, setCategory] = useState(initialData?.category || "");
 
   const defaultFormValues = {
     name: "",
@@ -75,7 +75,7 @@ export function SupplierForm({
         // Editing - populate with existing data
         setProfilePicture(initialData.profilePicture || null);
         setUpiQrCode(initialData.upiQrCode || null);
-        setCategory(initialData.category || '');
+        setCategory(initialData.category || "");
         reset({
           name: initialData.name || "",
           phone: initialData.phone || "",
@@ -94,7 +94,7 @@ export function SupplierForm({
         // Adding new - reset to empty
         setProfilePicture(null);
         setUpiQrCode(null);
-        setCategory('');
+        setCategory("");
         reset(defaultFormValues);
       }
     }
@@ -112,7 +112,7 @@ export function SupplierForm({
       reset();
       setProfilePicture(null);
       setUpiQrCode(null);
-      setCategory('');
+      setCategory("");
       onOpenChange(false);
     } catch (error) {
       console.error("Submit failed:", error);
@@ -126,7 +126,7 @@ export function SupplierForm({
       reset();
       setProfilePicture(initialData?.profilePicture || null);
       setUpiQrCode(initialData?.upiQrCode || null);
-      setCategory(initialData?.category || '');
+      setCategory(initialData?.category || "");
       onOpenChange(false);
     }
   };
@@ -215,12 +215,22 @@ export function SupplierForm({
                     {SUPPLIER_CATEGORIES.map(cat => (
                       <SelectItem key={cat.value} value={cat.value}>
                         <span className={`inline-flex items-center gap-2`}>
-                          <span className={`w-2 h-2 rounded-full ${cat.color.replace('category-', 'bg-')}`} 
-                                style={{
-                                  backgroundColor: cat.value === 'fabric' ? '#60a5fa' :
-                                                  cat.value === 'accessories' ? '#a78bfa' :
-                                                  cat.value === 'premium' ? '#fbbf24' : '#4ade80'
-                                }} />
+                          <span
+                            className={`w-2 h-2 rounded-full ${cat.color.replace(
+                              "category-",
+                              "bg-"
+                            )}`}
+                            style={{
+                              backgroundColor:
+                                cat.value === "fabric"
+                                  ? "#60a5fa"
+                                  : cat.value === "accessories"
+                                  ? "#a78bfa"
+                                  : cat.value === "premium"
+                                  ? "#fbbf24"
+                                  : "#4ade80",
+                            }}
+                          />
                           {cat.label}
                         </span>
                       </SelectItem>

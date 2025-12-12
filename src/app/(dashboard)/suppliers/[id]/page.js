@@ -251,6 +251,7 @@ export default function SupplierDetailPage({ params }) {
                   className="w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform"
                   onClick={() => setQrDialogOpen(true)}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={supplier.upiQrCode} 
                     alt="UPI QR Code" 
@@ -518,6 +519,7 @@ export default function SupplierDetailPage({ params }) {
           <div className="flex flex-col items-center gap-4">
             {supplier?.upiQrCode && (
               <div className="w-64 h-64 rounded-lg overflow-hidden border-2 border-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={supplier.upiQrCode} 
                   alt="UPI QR Code" 
