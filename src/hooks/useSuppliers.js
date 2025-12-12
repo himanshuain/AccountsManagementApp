@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supplierDB } from '@/lib/db';
+import { supplierDB, bulkOperations } from '@/lib/db';
 
 export function useSuppliers() {
   const [suppliers, setSuppliers] = useState([]);
@@ -11,8 +11,28 @@ export function useSuppliers() {
   const fetchSuppliers = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await supplierDB.getAll();
+      
+      // First, get local data
+      let data = await supplierDB.getAll();
       setSuppliers(data);
+      
+      // Then, try to fetch from cloud and merge
+      try {
+        const response = await fetch('/api/suppliers');
+        if (response.ok) {
+          const { data: cloudData } = await response.json();
+          if (cloudData && cloudData.length > 0) {
+            // Merge cloud data into local DB
+            await bulkOperations.mergeSuppliers(cloudData);
+            // Re-fetch from local DB to get merged data
+            data = await supplierDB.getAll();
+            setSuppliers(data);
+          }
+        }
+      } catch (cloudError) {
+        console.warn('Cloud fetch failed, using local data:', cloudError.message);
+      }
+      
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -90,4 +110,3 @@ export function useSuppliers() {
 }
 
 export default useSuppliers;
-

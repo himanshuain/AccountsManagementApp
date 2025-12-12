@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { transactionDB } from '@/lib/db';
+import { transactionDB, bulkOperations } from '@/lib/db';
 
 export function useTransactions(supplierId = null) {
   const [transactions, setTransactions] = useState([]);
@@ -11,6 +11,8 @@ export function useTransactions(supplierId = null) {
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // First, get local data
       let data;
       if (supplierId) {
         data = await transactionDB.getBySupplier(supplierId);
@@ -18,6 +20,28 @@ export function useTransactions(supplierId = null) {
         data = await transactionDB.getAll();
       }
       setTransactions(data);
+      
+      // Then, try to fetch from cloud and merge
+      try {
+        const response = await fetch('/api/transactions');
+        if (response.ok) {
+          const { data: cloudData } = await response.json();
+          if (cloudData && cloudData.length > 0) {
+            // Merge cloud data into local DB
+            await bulkOperations.mergeTransactions(cloudData);
+            // Re-fetch from local DB to get merged data
+            if (supplierId) {
+              data = await transactionDB.getBySupplier(supplierId);
+            } else {
+              data = await transactionDB.getAll();
+            }
+            setTransactions(data);
+          }
+        }
+      } catch (cloudError) {
+        console.warn('Cloud fetch failed, using local data:', cloudError.message);
+      }
+      
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -82,4 +106,3 @@ export function useTransactions(supplierId = null) {
 }
 
 export default useTransactions;
-
