@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Edit,
   Trash2,
   Image as ImageIcon,
   Calendar,
@@ -66,6 +65,10 @@ export function TransactionTable({
     e.stopPropagation();
     setTransactionToDelete(transaction);
     setDeleteDialogOpen(true);
+  };
+
+  const handleCardClick = (transaction) => {
+    onEdit?.(transaction);
   };
 
   const confirmDelete = () => {
@@ -165,8 +168,9 @@ export function TransactionTable({
         {sortedTransactions.map((transaction) => (
           <Card
             key={transaction.id}
+            onClick={() => handleCardClick(transaction)}
             className={cn(
-              "overflow-hidden transition-all hover:shadow-md",
+              "overflow-hidden transition-all hover:shadow-md cursor-pointer active:scale-[0.99]",
               transaction.paymentStatus === "paid"
                 ? "border-l-4 border-l-green-500"
                 : "border-l-4 border-l-amber-500",
@@ -262,19 +266,6 @@ export function TransactionTable({
                     </Button>
                   )}
 
-                  {/* Edit */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit?.(transaction);
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-
                   {/* Delete */}
                   <Button
                     variant="ghost"
@@ -284,6 +275,9 @@ export function TransactionTable({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+
+                  {/* Chevron to indicate clickable */}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
             </CardContent>

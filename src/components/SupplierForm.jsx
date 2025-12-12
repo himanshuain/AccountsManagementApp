@@ -154,7 +154,20 @@ export function SupplierForm({
               </div>
             )}
 
-            {/* Supplier Name - First */}
+            {/* Profile Picture - At Top */}
+            <div className="flex justify-center">
+              <div className="w-28">
+                <ImageUpload
+                  value={profilePicture}
+                  onChange={setProfilePicture}
+                  placeholder="Add Photo"
+                  aspectRatio="square"
+                  disabled={!isOnline}
+                />
+              </div>
+            </div>
+
+            {/* Supplier Name */}
             <div className="space-y-2">
               <Label htmlFor="companyName">Supplier Name *</Label>
               <Input
@@ -197,7 +210,7 @@ export function SupplierForm({
 
             <Separator />
 
-            {/* UPI Details - Moved up */}
+            {/* UPI Details */}
             <div className="space-y-4">
               <h4 className="font-medium text-sm">UPI Payment</h4>
 
@@ -247,24 +260,6 @@ export function SupplierForm({
                       Take photo of QR code
                     </p>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Profile Picture */}
-            <div className="space-y-2">
-              <Label>Profile Photo (Optional)</Label>
-              <div className="flex justify-center">
-                <div className="w-24">
-                  <ImageUpload
-                    value={profilePicture}
-                    onChange={setProfilePicture}
-                    placeholder="Photo"
-                    aspectRatio="square"
-                    disabled={!isOnline}
-                  />
                 </div>
               </div>
             </div>
