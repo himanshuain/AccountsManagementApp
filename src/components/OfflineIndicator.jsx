@@ -9,12 +9,10 @@ export function OfflineIndicator() {
   if (isOnline) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-amber-950 px-4 py-2 animate-slide-down">
-      <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-sm font-medium">
-        <WifiOff className="h-4 w-4" />
-        <span>
-          You&apos;re offline. Changes will sync when you&apos;re back online.
-        </span>
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-800 text-white px-4 py-1.5">
+      <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-xs">
+        <WifiOff className="h-3 w-3" />
+        <span>No internet connection</span>
       </div>
     </div>
   );

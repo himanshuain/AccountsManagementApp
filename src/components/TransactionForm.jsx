@@ -24,6 +24,7 @@ import {
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 export function TransactionForm({
   open,
@@ -35,6 +36,7 @@ export function TransactionForm({
   quickCaptureData = null,
   title = "Add Transaction",
 }) {
+  const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billImages, setBillImages] = useState(initialData?.billImages || []);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -74,7 +76,7 @@ export function TransactionForm({
   });
 
   const handleFormSubmit = async (data) => {
-    if (!selectedSupplierId) {
+    if (!selectedSupplierId || !isOnline) {
       return;
     }
 
@@ -170,6 +172,13 @@ export function TransactionForm({
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
           >
+            {/* Offline warning */}
+            {!isOnline && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
+                You&apos;re offline. Saving is disabled.
+              </div>
+            )}
+
             {/* Supplier Selection */}
             <div className="space-y-2">
               <Label>Supplier *</Label>
@@ -178,7 +187,7 @@ export function TransactionForm({
                 onValueChange={setSelectedSupplierId}
                 disabled={!!defaultSupplierId}
               >
-                <SelectTrigger className="text-base">
+                <SelectTrigger className="text-base h-11">
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -226,6 +235,7 @@ export function TransactionForm({
                   value={billImages}
                   onChange={setBillImages}
                   maxImages={5}
+                  disabled={!isOnline}
                 />
               )}
             </div>
@@ -237,7 +247,9 @@ export function TransactionForm({
               <Label htmlFor="amount">Amount (₹) *</Label>
               <Input
                 id="amount"
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 {...register("amount", { required: "Amount is required" })}
                 placeholder="Enter amount"
                 className="text-2xl h-14 font-semibold"
@@ -300,8 +312,8 @@ export function TransactionForm({
               </div>
             </div>
 
-            {/* Due Date & Notes */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Due Date & Notes - Stacked vertically */}
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
                 <Input id="dueDate" type="date" {...register("dueDate")} />
@@ -330,7 +342,7 @@ export function TransactionForm({
             </Button>
             <Button
               onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !selectedSupplierId}
+              disabled={isSubmitting || !selectedSupplierId || !isOnline}
               className="flex-1"
             >
               {isSubmitting && (

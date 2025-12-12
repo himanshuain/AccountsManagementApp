@@ -17,6 +17,7 @@ import {
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 export function SupplierForm({
   open,
@@ -25,6 +26,7 @@ export function SupplierForm({
   initialData = null,
   title = "Add Supplier",
 }) {
+  const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(
     initialData?.profilePicture || null,
@@ -75,6 +77,8 @@ export function SupplierForm({
   }, [open, initialData, reset]);
 
   const handleFormSubmit = async (data) => {
+    if (!isOnline) return;
+
     setIsSubmitting(true);
     try {
       await onSubmit({
@@ -143,6 +147,13 @@ export function SupplierForm({
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
           >
+            {/* Offline warning */}
+            {!isOnline && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
+                You&apos;re offline. Saving is disabled.
+              </div>
+            )}
+
             {/* Supplier Name - First */}
             <div className="space-y-2">
               <Label htmlFor="companyName">Supplier Name *</Label>
@@ -152,7 +163,7 @@ export function SupplierForm({
                   required: "Supplier name is required",
                 })}
                 placeholder="Enter supplier/shop name"
-                className="text-base"
+                className="text-base h-11"
               />
               {errors.companyName && (
                 <p className="text-xs text-destructive">
@@ -178,6 +189,8 @@ export function SupplierForm({
                   {...register("phone")}
                   placeholder="Phone number"
                   type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               </div>
             </div>
@@ -207,6 +220,7 @@ export function SupplierForm({
                       onChange={setUpiQrCode}
                       placeholder="Add QR"
                       aspectRatio="square"
+                      disabled={!isOnline}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -224,6 +238,7 @@ export function SupplierForm({
                       size="sm"
                       onClick={() => cameraInputRef.current?.click()}
                       className="gap-2"
+                      disabled={!isOnline}
                     >
                       <Camera className="h-4 w-4" />
                       Camera
@@ -248,6 +263,7 @@ export function SupplierForm({
                     onChange={setProfilePicture}
                     placeholder="Photo"
                     aspectRatio="square"
+                    disabled={!isOnline}
                   />
                 </div>
               </div>
@@ -292,7 +308,7 @@ export function SupplierForm({
             </Button>
             <Button
               onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isOnline}
               className="flex-1"
             >
               {isSubmitting && (

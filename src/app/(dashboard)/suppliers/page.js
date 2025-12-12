@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { SupplierCard, SupplierCardSkeleton } from "@/components/SupplierCard";
 import { SupplierForm } from "@/components/SupplierForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -13,6 +14,7 @@ import { exportSuppliers } from "@/lib/export";
 import { toast } from "sonner";
 
 export default function SuppliersPage() {
+  const isOnline = useOnlineStatus();
   const { suppliers, loading, addSupplier, deleteSupplier, searchSuppliers } =
     useSuppliers();
   const { transactions } = useTransactions();
@@ -29,6 +31,10 @@ export default function SuppliersPage() {
   };
 
   const handleAddSupplier = async (data) => {
+    if (!isOnline) {
+      toast.error("Cannot add supplier while offline");
+      return;
+    }
     const result = await addSupplier(data);
     if (result.success) {
       toast.success("Supplier added successfully");
@@ -40,11 +46,19 @@ export default function SuppliersPage() {
   const handleDeleteClick = (supplier, e) => {
     e?.preventDefault();
     e?.stopPropagation();
+    if (!isOnline) {
+      toast.error("Cannot delete while offline");
+      return;
+    }
     setSupplierToDelete(supplier);
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
+    if (!isOnline) {
+      toast.error("Cannot delete while offline");
+      return;
+    }
     if (supplierToDelete) {
       const result = await deleteSupplier(supplierToDelete.id);
       if (result.success) {
@@ -69,6 +83,14 @@ export default function SuppliersPage() {
     }
   };
 
+  const openAddForm = () => {
+    if (!isOnline) {
+      toast.error("Cannot add supplier while offline");
+      return;
+    }
+    setSupplierFormOpen(true);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
@@ -86,7 +108,7 @@ export default function SuppliersPage() {
               Export
             </Button>
           )}
-          <Button onClick={() => setSupplierFormOpen(true)}>
+          <Button onClick={openAddForm} disabled={!isOnline}>
             <Plus className="h-4 w-4 mr-2" />
             Add Supplier
           </Button>
@@ -123,7 +145,7 @@ export default function SuppliersPage() {
               : "Add your first supplier to get started"}
           </p>
           {!searchQuery && (
-            <Button onClick={() => setSupplierFormOpen(true)}>
+            <Button onClick={openAddForm} disabled={!isOnline}>
               <Plus className="h-4 w-4 mr-2" />
               Add Supplier
             </Button>

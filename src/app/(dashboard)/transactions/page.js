@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Receipt, Filter, Image, List, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionTable } from "@/components/TransactionTable";
 import { BillGallery } from "@/components/BillGallery";
@@ -23,6 +24,7 @@ import { exportTransactions } from "@/lib/export";
 import { toast } from "sonner";
 
 export default function TransactionsPage() {
+  const isOnline = useOnlineStatus();
   const { suppliers } = useSuppliers();
   const {
     transactions,
@@ -69,6 +71,10 @@ export default function TransactionsPage() {
   );
 
   const handleAddTransaction = async (data) => {
+    if (!isOnline) {
+      toast.error("Cannot add transaction while offline");
+      return;
+    }
     const result = await addTransaction(data);
     if (result.success) {
       toast.success("Transaction added");
@@ -78,11 +84,19 @@ export default function TransactionsPage() {
   };
 
   const handleEditTransaction = (transaction) => {
+    if (!isOnline) {
+      toast.error("Cannot edit while offline");
+      return;
+    }
     setTransactionToEdit(transaction);
     setTransactionFormOpen(true);
   };
 
   const handleUpdateTransaction = async (data) => {
+    if (!isOnline) {
+      toast.error("Cannot update while offline");
+      return;
+    }
     const result = await updateTransaction(transactionToEdit.id, data);
     if (result.success) {
       toast.success("Transaction updated");
@@ -93,11 +107,19 @@ export default function TransactionsPage() {
   };
 
   const handleDeleteClick = (transaction) => {
+    if (!isOnline) {
+      toast.error("Cannot delete while offline");
+      return;
+    }
     setTransactionToDelete(transaction);
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = async () => {
+    if (!isOnline) {
+      toast.error("Cannot delete while offline");
+      return;
+    }
     if (transactionToDelete) {
       const result = await deleteTransaction(transactionToDelete.id);
       if (result.success) {
@@ -110,6 +132,10 @@ export default function TransactionsPage() {
   };
 
   const handleQuickCapture = ({ supplierId, supplierName, images }) => {
+    if (!isOnline) {
+      toast.error("Cannot add transaction while offline");
+      return;
+    }
     setQuickCaptureData({ supplierId, images });
     setTransactionToEdit(null);
     setTransactionFormOpen(true);
@@ -123,6 +149,16 @@ export default function TransactionsPage() {
     } catch (error) {
       toast.error("Export failed");
     }
+  };
+
+  const openAddForm = () => {
+    if (!isOnline) {
+      toast.error("Cannot add transaction while offline");
+      return;
+    }
+    setQuickCaptureData(null);
+    setTransactionToEdit(null);
+    setTransactionFormOpen(true);
   };
 
   return (
@@ -143,16 +179,16 @@ export default function TransactionsPage() {
         <QuickBillCapture
           suppliers={suppliers}
           onCapture={handleQuickCapture}
-          disabled={suppliers.length === 0}
+          disabled={suppliers.length === 0 || !isOnline}
           variant="tile"
         />
         <Card
-          className="cursor-pointer hover:bg-accent/50 transition-colors border-dashed border-2 hover:border-primary/50"
-          onClick={() => {
-            setQuickCaptureData(null);
-            setTransactionToEdit(null);
-            setTransactionFormOpen(true);
-          }}
+          className={`cursor-pointer transition-colors border-dashed border-2 ${
+            isOnline
+              ? "hover:bg-accent/50 hover:border-primary/50"
+              : "opacity-50 cursor-not-allowed"
+          }`}
+          onClick={openAddForm}
         >
           <CardContent className="p-4 flex flex-col items-center justify-center gap-2 h-full min-h-[100px]">
             <div className="rounded-full bg-primary/10 p-3">
@@ -249,7 +285,8 @@ export default function TransactionsPage() {
                   <Button
                     variant="link"
                     className="mt-2"
-                    onClick={() => setTransactionFormOpen(true)}
+                    onClick={openAddForm}
+                    disabled={!isOnline}
                   >
                     Add your first transaction
                   </Button>

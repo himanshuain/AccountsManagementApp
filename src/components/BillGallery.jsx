@@ -14,6 +14,7 @@ export function BillGallery({ transactions, suppliers }) {
   const [zoom, setZoom] = useState(1);
   const [allBills, setAllBills] = useState([]);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [imageErrors, setImageErrors] = useState({});
 
   // Touch handling refs
   const touchStartRef = useRef({ x: 0, y: 0, distance: 0 });
@@ -26,12 +27,14 @@ export function BillGallery({ transactions, suppliers }) {
     transactions.forEach((transaction) => {
       if (transaction.billImages && transaction.billImages.length > 0) {
         transaction.billImages.forEach((imageUrl, index) => {
-          bills.push({
-            url: imageUrl,
-            transaction: transaction,
-            supplier: suppliers.find((s) => s.id === transaction.supplierId),
-            index: index,
-          });
+          if (imageUrl) {
+            bills.push({
+              url: imageUrl,
+              transaction: transaction,
+              supplier: suppliers.find((s) => s.id === transaction.supplierId),
+              index: index,
+            });
+          }
         });
       }
     });
@@ -158,6 +161,10 @@ export function BillGallery({ transactions, suppliers }) {
     partial: "bg-blue-500/20 text-blue-400",
   };
 
+  const handleImageError = (billId) => {
+    setImageErrors((prev) => ({ ...prev, [billId]: true }));
+  };
+
   if (allBills.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -172,43 +179,56 @@ export function BillGallery({ transactions, suppliers }) {
     <>
       {/* Gallery Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {allBills.map((bill) => (
-          <Card
-            key={`${bill.transaction.id}-${bill.index}`}
-            className="cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary transition-all"
-            onClick={() => openLightbox(bill)}
-          >
-            <div className="aspect-[4/3] relative bg-muted">
-              <img
-                src={bill.url}
-                alt={`Bill from ${getSupplierName(bill.transaction.supplierId)}`}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {/* Info always visible */}
-            <div className="p-2 bg-card border-t">
-              <p className="text-xs font-medium truncate">
-                {getSupplierName(bill.transaction.supplierId)}
-              </p>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-muted-foreground">
-                  ₹{bill.transaction.amount?.toLocaleString()}
-                </span>
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "text-[10px] px-1.5 py-0",
-                    bill.transaction.paymentStatus === "paid"
-                      ? "text-green-600"
-                      : "text-amber-600",
-                  )}
-                >
-                  {bill.transaction.paymentStatus}
-                </Badge>
+        {allBills.map((bill) => {
+          const billId = `${bill.transaction.id}-${bill.index}`;
+          const hasError = imageErrors[billId];
+
+          return (
+            <Card
+              key={billId}
+              className="cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary transition-all"
+              onClick={() => !hasError && openLightbox(bill)}
+            >
+              <div className="aspect-[4/3] relative bg-muted">
+                {hasError ? (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                ) : (
+                  <img
+                    src={bill.url}
+                    alt={`Bill from ${getSupplierName(bill.transaction.supplierId)}`}
+                    className="w-full h-full object-cover"
+                    onError={() => handleImageError(billId)}
+                    loading="lazy"
+                  />
+                )}
               </div>
-            </div>
-          </Card>
-        ))}
+              {/* Info always visible */}
+              <div className="p-2 bg-card border-t">
+                <p className="text-xs font-medium truncate">
+                  {getSupplierName(bill.transaction.supplierId)}
+                </p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-muted-foreground">
+                    ₹{bill.transaction.amount?.toLocaleString()}
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "text-[10px] px-1.5 py-0",
+                      bill.transaction.paymentStatus === "paid"
+                        ? "text-green-600"
+                        : "text-amber-600",
+                    )}
+                  >
+                    {bill.transaction.paymentStatus}
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Lightbox */}
@@ -224,14 +244,12 @@ export function BillGallery({ transactions, suppliers }) {
             <span className="text-white/70 text-sm">
               {currentIndex + 1} / {allBills.length}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={closeLightbox}
-              className="text-white hover:bg-white/10"
+              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
             >
-              <X className="h-6 w-6" />
-            </Button>
+              <X className="h-6 w-6 text-white" />
+            </button>
           </div>
 
           {/* Image container */}
