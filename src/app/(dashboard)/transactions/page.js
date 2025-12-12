@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Receipt, Filter, Image, List, Camera, Download } from 'lucide-react';
+import { Plus, Receipt, Filter, Image, List, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,7 +59,7 @@ export default function TransactionsPage() {
   const handleAddTransaction = async (data) => {
     const result = await addTransaction(data);
     if (result.success) {
-      toast.success('Transaction added successfully');
+      toast.success('Transaction added');
     } else {
       toast.error('Failed to add transaction');
     }
@@ -73,7 +73,7 @@ export default function TransactionsPage() {
   const handleUpdateTransaction = async (data) => {
     const result = await updateTransaction(transactionToEdit.id, data);
     if (result.success) {
-      toast.success('Transaction updated successfully');
+      toast.success('Transaction updated');
       setTransactionToEdit(null);
     } else {
       toast.error('Failed to update transaction');
@@ -89,7 +89,7 @@ export default function TransactionsPage() {
     if (transactionToDelete) {
       const result = await deleteTransaction(transactionToDelete.id);
       if (result.success) {
-        toast.success('Transaction deleted successfully');
+        toast.success('Transaction deleted');
       } else {
         toast.error('Failed to delete transaction');
       }
@@ -98,11 +98,7 @@ export default function TransactionsPage() {
   };
 
   const handleQuickCapture = ({ supplierId, supplierName, images }) => {
-    // Set the captured data and open the transaction form
-    setQuickCaptureData({
-      supplierId,
-      images
-    });
+    setQuickCaptureData({ supplierId, images });
     setTransactionToEdit(null);
     setTransactionFormOpen(true);
     toast.success(`${images.length} bill(s) captured for ${supplierName}`);
@@ -111,23 +107,20 @@ export default function TransactionsPage() {
   const handleExport = () => {
     try {
       exportTransactions(filteredTransactions, suppliers);
-      toast.success('Transactions exported successfully');
+      toast.success('Exported successfully');
     } catch (error) {
-      toast.error('Failed to export transactions');
+      toast.error('Export failed');
     }
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Transactions</h1>
-          <p className="text-muted-foreground">Manage all your transactions</p>
-        </div>
+        <h1 className="text-xl font-bold">Transactions</h1>
         {transactions.length > 0 && (
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-1" />
             Export
           </Button>
         )}
@@ -158,60 +151,28 @@ export default function TransactionsPage() {
         </Card>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Total Amount</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-green-500">₹{paidAmount.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Paid</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-amber-500">₹{pendingAmount.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Pending</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-primary">{totalBills}</p>
-            <p className="text-xs text-muted-foreground">Bill Photos</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Filters:</span>
-        </div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <Filter className="h-4 w-4 text-muted-foreground" />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[120px] h-9">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="partial">Partial</SelectItem>
           </SelectContent>
         </Select>
         <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[150px] h-9">
             <SelectValue placeholder="Supplier" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Suppliers</SelectItem>
             {suppliers.map(supplier => (
               <SelectItem key={supplier.id} value={supplier.id}>
-                {supplier.name}
+                {supplier.companyName || supplier.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -225,23 +186,23 @@ export default function TransactionsPage() {
               setSupplierFilter('all');
             }}
           >
-            Clear filters
+            Clear
           </Button>
         )}
       </div>
 
       {/* Tabs for List and Gallery view */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="list" className="gap-2">
+        <TabsList className="grid w-full max-w-xs grid-cols-2">
+          <TabsTrigger value="list" className="gap-1.5">
             <List className="h-4 w-4" />
-            Transactions
+            List
           </TabsTrigger>
-          <TabsTrigger value="gallery" className="gap-2">
-            <Image alt="Bill Gallery" className="h-4 w-4" />
-            Bill Gallery
+          <TabsTrigger value="gallery" className="gap-1.5">
+            <Image alt="Gallery" className="h-4 w-4" />
+            Bills
             {totalBills > 0 && (
-              <span className="ml-1 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+              <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
                 {totalBills}
               </span>
             )}
@@ -249,68 +210,51 @@ export default function TransactionsPage() {
         </TabsList>
 
         {/* Transactions List Tab */}
-        <TabsContent value="list" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">
-                {filteredTransactions.length} Transaction{filteredTransactions.length !== 1 ? 's' : ''}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {filteredTransactions.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No transactions found</p>
-                  {(statusFilter !== 'all' || supplierFilter !== 'all') ? (
-                    <Button 
-                      variant="link" 
-                      className="mt-2"
-                      onClick={() => {
-                        setStatusFilter('all');
-                        setSupplierFilter('all');
-                      }}
-                    >
-                      Clear filters
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="link" 
-                      className="mt-2"
-                      onClick={() => setTransactionFormOpen(true)}
-                    >
-                      Add your first transaction
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <TransactionTable
-                  transactions={filteredTransactions}
-                  suppliers={suppliers}
-                  onEdit={handleEditTransaction}
-                  onDelete={handleDeleteClick}
-                  loading={loading}
-                />
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="list" className="space-y-4 mt-0">
+          {filteredTransactions.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Receipt className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <p>No transactions found</p>
+                {(statusFilter !== 'all' || supplierFilter !== 'all') ? (
+                  <Button 
+                    variant="link" 
+                    className="mt-2"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setSupplierFilter('all');
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="link" 
+                    className="mt-2"
+                    onClick={() => setTransactionFormOpen(true)}
+                  >
+                    Add your first transaction
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <TransactionTable
+              transactions={filteredTransactions}
+              suppliers={suppliers}
+              onEdit={handleEditTransaction}
+              onDelete={handleDeleteClick}
+              loading={loading}
+            />
+          )}
         </TabsContent>
 
         {/* Bill Gallery Tab */}
-        <TabsContent value="gallery" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Image alt="All Bill Gallery" className="h-5 w-5" />
-                All Bill Photos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <BillGallery 
-                transactions={filteredTransactions} 
-                suppliers={suppliers} 
-              />
-            </CardContent>
-          </Card>
+        <TabsContent value="gallery" className="space-y-4 mt-0">
+          <BillGallery 
+            transactions={filteredTransactions} 
+            suppliers={suppliers} 
+          />
         </TabsContent>
       </Tabs>
 
@@ -337,7 +281,7 @@ export default function TransactionsPage() {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
         title="Delete Transaction"
-        description="Are you sure you want to delete this transaction? This action cannot be undone."
+        description="This action cannot be undone."
         itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ''}
       />
     </div>

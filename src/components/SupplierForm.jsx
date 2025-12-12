@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,23 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-const SUPPLIER_CATEGORIES = [
-  { value: "fabric", label: "Fabric", color: "category-fabric" },
-  { value: "accessories", label: "Accessories", color: "category-accessories" },
-  { value: "premium", label: "Premium", color: "category-premium" },
-  { value: "regular", label: "Regular", color: "category-regular" },
-];
 
 export function SupplierForm({
   open,
@@ -42,28 +28,22 @@ export function SupplierForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
-  const [category, setCategory] = useState(initialData?.category || "");
+  const cameraInputRef = useRef(null);
 
   const defaultFormValues = {
+    companyName: "",
     name: "",
     phone: "",
-    email: "",
     address: "",
-    companyName: "",
     gstNumber: "",
     upiId: "",
-    bankDetails: {
-      bankName: "",
-      accountNumber: "",
-      ifscCode: "",
-    },
   };
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm({
     defaultValues: defaultFormValues,
   });
@@ -75,26 +55,18 @@ export function SupplierForm({
         // Editing - populate with existing data
         setProfilePicture(initialData.profilePicture || null);
         setUpiQrCode(initialData.upiQrCode || null);
-        setCategory(initialData.category || "");
         reset({
+          companyName: initialData.companyName || "",
           name: initialData.name || "",
           phone: initialData.phone || "",
-          email: initialData.email || "",
           address: initialData.address || "",
-          companyName: initialData.companyName || "",
           gstNumber: initialData.gstNumber || "",
           upiId: initialData.upiId || "",
-          bankDetails: {
-            bankName: initialData.bankDetails?.bankName || "",
-            accountNumber: initialData.bankDetails?.accountNumber || "",
-            ifscCode: initialData.bankDetails?.ifscCode || "",
-          },
         });
       } else {
         // Adding new - reset to empty
         setProfilePicture(null);
         setUpiQrCode(null);
-        setCategory("");
         reset(defaultFormValues);
       }
     }
@@ -107,12 +79,10 @@ export function SupplierForm({
         ...data,
         profilePicture,
         upiQrCode,
-        category,
       });
       reset();
       setProfilePicture(null);
       setUpiQrCode(null);
-      setCategory("");
       onOpenChange(false);
     } catch (error) {
       console.error("Submit failed:", error);
@@ -123,11 +93,28 @@ export function SupplierForm({
 
   const handleClose = () => {
     if (!isSubmitting) {
+      // Check if form is dirty and show confirmation
+      if (isDirty || profilePicture !== (initialData?.profilePicture || null) || upiQrCode !== (initialData?.upiQrCode || null)) {
+        if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
+          return;
+        }
+      }
       reset();
       setProfilePicture(initialData?.profilePicture || null);
       setUpiQrCode(initialData?.upiQrCode || null);
-      setCategory(initialData?.category || "");
       onOpenChange(false);
+    }
+  };
+
+  // Handle camera capture for QR code
+  const handleCameraCapture = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUpiQrCode(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -142,58 +129,116 @@ export function SupplierForm({
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] px-6">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 py-4">
-            {/* Profile Picture */}
-            <div className="flex justify-center">
-              <div className="w-32">
-                <ImageUpload
-                  value={profilePicture}
-                  onChange={setProfilePicture}
-                  placeholder="Add Photo"
-                  aspectRatio="square"
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
+            {/* Supplier Name - First */}
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Supplier Name *</Label>
+              <Input 
+                id="companyName" 
+                {...register("companyName", { required: "Supplier name is required" })} 
+                placeholder="Enter supplier/shop name"
+                className="text-base"
+              />
+              {errors.companyName && <p className="text-xs text-destructive">{errors.companyName.message}</p>}
+            </div>
+
+            {/* Person Name & Phone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Contact Person</Label>
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="Person name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  {...register("phone")}
+                  placeholder="Phone number"
+                  type="tel"
                 />
               </div>
             </div>
 
-            {/* Basic Info */}
+            <Separator />
+
+            {/* UPI Details - Moved up */}
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Person Name *</Label>
-                  <Input
-                    id="name"
-                    {...register("name", { required: "Name is required" })}
-                    placeholder="Person name"
-                  />
-                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    {...register("phone", { required: "Phone is required" })}
-                    placeholder="Phone number"
-                  />
-                  {errors.phone && (
-                    <p className="text-xs text-destructive">{errors.phone.message}</p>
-                  )}
-                </div>
-              </div>
+              <h4 className="font-medium text-sm">UPI Payment</h4>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  {...register("email")}
-                  placeholder="email@example.com"
+                <Label htmlFor="upiId">UPI ID</Label>
+                <Input 
+                  id="upiId" 
+                  {...register("upiId")} 
+                  placeholder="example@upi or 9876543210@paytm"
+                  className="text-base"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="companyName">Supplier Name</Label>
-                <Input id="companyName" {...register("companyName")} placeholder="Supplier name" />
+                <Label>QR Code Photo</Label>
+                <div className="flex items-start gap-3">
+                  <div className="w-32">
+                    <ImageUpload
+                      value={upiQrCode}
+                      onChange={setUpiQrCode}
+                      placeholder="Add QR"
+                      aspectRatio="square"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      ref={cameraInputRef}
+                      onChange={handleCameraCapture}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="gap-2"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Camera
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Take photo of QR code
+                    </p>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Profile Picture */}
+            <div className="space-y-2">
+              <Label>Profile Photo (Optional)</Label>
+              <div className="flex justify-center">
+                <div className="w-24">
+                  <ImageUpload
+                    value={profilePicture}
+                    onChange={setProfilePicture}
+                    placeholder="Photo"
+                    aspectRatio="square"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Additional Info */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Additional Details</h4>
 
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
@@ -202,116 +247,31 @@ export function SupplierForm({
 
               <div className="space-y-2">
                 <Label htmlFor="gstNumber">GST Number</Label>
-                <Input id="gstNumber" {...register("gstNumber")} placeholder="GST number" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUPPLIER_CATEGORIES.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        <span className={`inline-flex items-center gap-2`}>
-                          <span
-                            className={`w-2 h-2 rounded-full ${cat.color.replace(
-                              "category-",
-                              "bg-"
-                            )}`}
-                            style={{
-                              backgroundColor:
-                                cat.value === "fabric"
-                                  ? "#60a5fa"
-                                  : cat.value === "accessories"
-                                  ? "#a78bfa"
-                                  : cat.value === "premium"
-                                  ? "#fbbf24"
-                                  : "#4ade80",
-                            }}
-                          />
-                          {cat.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Bank Details */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm">Bank Details</h4>
-
-              <div className="space-y-2">
-                <Label htmlFor="bankName">Bank Name</Label>
-                <Input
-                  id="bankName"
-                  {...register("bankDetails.bankName")}
-                  placeholder="Bank name"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="accountNumber">Account Number</Label>
-                  <Input
-                    id="accountNumber"
-                    {...register("bankDetails.accountNumber")}
-                    placeholder="Account number"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ifscCode">IFSC Code</Label>
-                  <Input
-                    id="ifscCode"
-                    {...register("bankDetails.ifscCode")}
-                    placeholder="IFSC code"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* UPI Details */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm">UPI Payment Details</h4>
-
-              <div className="space-y-2">
-                <Label htmlFor="upiId">UPI ID</Label>
-                <Input id="upiId" {...register("upiId")} placeholder="example@upi or phone@paytm" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>UPI QR Code / Scanner Photo</Label>
-                <div className="w-40">
-                  <ImageUpload
-                    value={upiQrCode}
-                    onChange={setUpiQrCode}
-                    placeholder="Add QR Code"
-                    aspectRatio="square"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Upload a photo of the supplier&apos;s UPI QR code for quick payments
-                </p>
+                <Input id="gstNumber" {...register("gstNumber")} placeholder="GST number (optional)" />
               </div>
             </div>
           </form>
         </ScrollArea>
 
         <DialogFooter className="px-6 pb-6">
-          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit(handleFormSubmit)} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData ? "Update" : "Add Supplier"}
-          </Button>
+          <div className="flex gap-3 w-full">
+            <Button 
+              variant="outline" 
+              onClick={handleClose} 
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmit(handleFormSubmit)} 
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {initialData ? "Update" : "Add Supplier"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

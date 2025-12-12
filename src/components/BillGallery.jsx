@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   X, 
-  ChevronLeft, 
-  ChevronRight, 
-  ZoomIn, 
-  ZoomOut, 
   User,
   Calendar,
   IndianRupee,
-  ExternalLink
+  ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +19,12 @@ export function BillGallery({ transactions, suppliers }) {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [zoom, setZoom] = useState(1);
   const [allBills, setAllBills] = useState([]);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  
+  // Touch handling refs
+  const touchStartRef = useRef({ x: 0, y: 0, distance: 0 });
+  const imageContainerRef = useRef(null);
+  const lastTapRef = useRef(0);
 
   // Flatten all bills from all transactions
   useEffect(() => {
@@ -48,38 +50,93 @@ export function BillGallery({ transactions, suppliers }) {
     setSelectedImage(bill.url);
     setSelectedTransaction(bill.transaction);
     setZoom(1);
+    setPosition({ x: 0, y: 0 });
   };
 
   const closeLightbox = () => {
     setSelectedImage(null);
     setSelectedTransaction(null);
     setZoom(1);
+    setPosition({ x: 0, y: 0 });
   };
 
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
       const prevBill = allBills[currentIndex - 1];
       setSelectedImage(prevBill.url);
       setSelectedTransaction(prevBill.transaction);
       setZoom(1);
+      setPosition({ x: 0, y: 0 });
     }
-  };
+  }, [currentIndex, allBills]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     if (currentIndex < allBills.length - 1) {
       const nextBill = allBills[currentIndex + 1];
       setSelectedImage(nextBill.url);
       setSelectedTransaction(nextBill.transaction);
       setZoom(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [currentIndex, allBills]);
+
+  // Touch handlers for swipe and pinch zoom
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        distance: 0
+      };
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchStartRef.current.distance = Math.sqrt(dx * dx + dy * dy);
     }
   };
 
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.5, 3));
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      // Pinch zoom
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const scale = distance / touchStartRef.current.distance;
+      
+      setZoom(prev => {
+        const newZoom = prev * scale;
+        return Math.min(Math.max(newZoom, 0.5), 4);
+      });
+      touchStartRef.current.distance = distance;
+    }
   };
 
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.5, 0.5));
+  const handleTouchEnd = (e) => {
+    if (e.changedTouches.length === 1 && zoom === 1) {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const diffX = endX - touchStartRef.current.x;
+      const diffY = endY - touchStartRef.current.y;
+
+      // Check for double tap to zoom
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        setZoom(prev => prev === 1 ? 2 : 1);
+        setPosition({ x: 0, y: 0 });
+        lastTapRef.current = 0;
+        return;
+      }
+      lastTapRef.current = now;
+
+      // Swipe detection (only if not zoomed)
+      if (Math.abs(diffX) > 50 && Math.abs(diffY) < 100) {
+        if (diffX > 0) {
+          goToPrevious();
+        } else {
+          goToNext();
+        }
+      }
+    }
   };
 
   // Keyboard navigation
@@ -90,17 +147,15 @@ export function BillGallery({ transactions, suppliers }) {
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowLeft') goToPrevious();
       if (e.key === 'ArrowRight') goToNext();
-      if (e.key === '+' || e.key === '=') handleZoomIn();
-      if (e.key === '-') handleZoomOut();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, currentIndex]);
+  }, [selectedImage, goToPrevious, goToNext]);
 
   const getSupplierName = (supplierId) => {
     const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier?.name || 'Unknown';
+    return supplier?.companyName || supplier?.name || 'Unknown';
   };
 
   const paymentStatusColors = {
@@ -112,7 +167,7 @@ export function BillGallery({ transactions, suppliers }) {
   if (allBills.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        <IndianRupee className="h-12 w-12 mx-auto mb-3 opacity-50" />
+        <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
         <p>No bill images uploaded yet</p>
         <p className="text-sm mt-1">Upload bills when adding transactions</p>
       </div>
@@ -123,34 +178,37 @@ export function BillGallery({ transactions, suppliers }) {
     <>
       {/* Gallery Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {allBills.map((bill, index) => (
+        {allBills.map((bill) => (
           <Card 
             key={`${bill.transaction.id}-${bill.index}`}
-            className="group cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary transition-all"
+            className="cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary transition-all"
             onClick={() => openLightbox(bill)}
           >
             <div className="aspect-[4/3] relative bg-muted">
               <img
                 src={bill.url}
                 alt={`Bill from ${getSupplierName(bill.transaction.supplierId)}`}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                className="w-full h-full object-cover"
               />
-              {/* Overlay with info */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute bottom-0 left-0 right-0 p-2">
-                  <p className="text-white text-xs font-medium truncate">
-                    {getSupplierName(bill.transaction.supplierId)}
-                  </p>
-                  <p className="text-white/70 text-[10px]">
-                    ₹{bill.transaction.amount?.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              {/* Zoom icon */}
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-black/50 rounded-full p-1.5">
-                  <ZoomIn className="h-3 w-3 text-white" />
-                </div>
+            </div>
+            {/* Info always visible */}
+            <div className="p-2 bg-card border-t">
+              <p className="text-xs font-medium truncate">
+                {getSupplierName(bill.transaction.supplierId)}
+              </p>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-muted-foreground">
+                  ₹{bill.transaction.amount?.toLocaleString()}
+                </span>
+                <Badge 
+                  variant="secondary" 
+                  className={cn(
+                    "text-[10px] px-1.5 py-0",
+                    bill.transaction.paymentStatus === 'paid' ? 'text-green-600' : 'text-amber-600'
+                  )}
+                >
+                  {bill.transaction.paymentStatus}
+                </Badge>
               </div>
             </div>
           </Card>
@@ -159,136 +217,106 @@ export function BillGallery({ transactions, suppliers }) {
 
       {/* Lightbox */}
       {selectedImage && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
-            <div className="flex items-center gap-4">
-              <span className="text-white/70 text-sm">
-                {currentIndex + 1} of {allBills.length}
-              </span>
-              {selectedTransaction && (
-                <Link href={`/suppliers/${selectedTransaction.supplierId}`}>
-                  <Button variant="outline" size="sm" className="gap-2 border-white/20 text-white hover:bg-white/10">
-                    <User className="h-4 w-4" />
-                    {getSupplierName(selectedTransaction.supplierId)}
-                    <ExternalLink className="h-3 w-3" />
-                  </Button>
-                </Link>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleZoomOut}
-                disabled={zoom <= 0.5}
-                className="text-white hover:bg-white/10"
-              >
-                <ZoomOut className="h-5 w-5" />
-              </Button>
-              <span className="text-white/70 text-sm w-16 text-center">{Math.round(zoom * 100)}%</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleZoomIn}
-                disabled={zoom >= 3}
-                className="text-white hover:bg-white/10"
-              >
-                <ZoomIn className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closeLightbox}
-                className="text-white hover:bg-white/10 ml-4"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+        <div 
+          className="fixed inset-0 z-50 bg-black flex flex-col touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Header - minimal */}
+          <div className="flex items-center justify-between p-3 bg-black/80">
+            <span className="text-white/70 text-sm">
+              {currentIndex + 1} / {allBills.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeLightbox}
+              className="text-white hover:bg-white/10"
+            >
+              <X className="h-6 w-6" />
+            </Button>
           </div>
 
           {/* Image container */}
-          <div className="flex-1 relative overflow-auto flex items-center justify-center p-4">
-            {/* Previous button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={goToPrevious}
-              disabled={currentIndex === 0}
-              className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 disabled:opacity-30 z-10"
-            >
-              <ChevronLeft className="h-8 w-8" />
-            </Button>
-
-            {/* Image */}
-            <div 
-              className="overflow-auto max-h-full max-w-full"
-              style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
-            >
-              <img
-                src={selectedImage}
-                alt="Bill"
-                className="max-h-[70vh] object-contain transition-transform duration-200"
-                style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}
-              />
-            </div>
-
-            {/* Next button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={goToNext}
-              disabled={currentIndex === allBills.length - 1}
-              className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-black/50 text-white hover:bg-black/70 disabled:opacity-30 z-10"
-            >
-              <ChevronRight className="h-8 w-8" />
-            </Button>
+          <div 
+            ref={imageContainerRef}
+            className="flex-1 relative overflow-hidden flex items-center justify-center"
+          >
+            <img
+              src={selectedImage}
+              alt="Bill"
+              className="max-h-full max-w-full object-contain select-none"
+              style={{ 
+                transform: `scale(${zoom}) translate(${position.x}px, ${position.y}px)`,
+                transition: zoom === 1 ? 'transform 0.2s' : 'none'
+              }}
+              draggable={false}
+            />
+            
+            {/* Swipe hint for mobile */}
+            {zoom === 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs flex items-center gap-2">
+                <span>← Swipe to navigate →</span>
+              </div>
+            )}
           </div>
 
-          {/* Footer with transaction details */}
+          {/* Transaction details */}
           {selectedTransaction && (
-            <div className="p-4 border-t border-white/10 bg-black/50">
-              <div className="max-w-2xl mx-auto flex flex-wrap items-center justify-center gap-4 text-sm">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(selectedTransaction.date).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  })}
+            <div className="p-4 bg-black/90 border-t border-white/10">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-white/70 text-sm">
+                      <Calendar className="h-4 w-4" />
+                      {new Date(selectedTransaction.date).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </div>
+                    <div className="flex items-center gap-1 text-white font-semibold">
+                      <IndianRupee className="h-4 w-4" />
+                      {selectedTransaction.amount?.toLocaleString()}
+                    </div>
+                    <Badge className={cn("text-xs", paymentStatusColors[selectedTransaction.paymentStatus])}>
+                      {selectedTransaction.paymentStatus?.charAt(0).toUpperCase() + selectedTransaction.paymentStatus?.slice(1)}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-white">
-                  <IndianRupee className="h-4 w-4" />
-                  <span className="font-semibold">₹{selectedTransaction.amount?.toLocaleString()}</span>
-                </div>
-                <Badge className={cn(paymentStatusColors[selectedTransaction.paymentStatus])}>
-                  {selectedTransaction.paymentStatus?.charAt(0).toUpperCase() + selectedTransaction.paymentStatus?.slice(1)}
-                </Badge>
-                {selectedTransaction.notes && (
-                  <span className="text-white/50 text-xs max-w-xs truncate">
-                    {selectedTransaction.notes}
-                  </span>
-                )}
+                
+                {/* Go to Supplier button - prominent at bottom */}
+                <Link 
+                  href={`/suppliers/${selectedTransaction.supplierId}`}
+                  className="w-full"
+                >
+                  <Button className="w-full gap-2" size="lg">
+                    <User className="h-5 w-5" />
+                    Go to {getSupplierName(selectedTransaction.supplierId)}
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
 
           {/* Thumbnail strip */}
-          <div className="p-3 border-t border-white/10 bg-black/80 overflow-x-auto">
-            <div className="flex gap-2 justify-center min-w-max">
-              {allBills.map((bill, index) => (
+          <div className="p-2 bg-black overflow-x-auto">
+            <div className="flex gap-2 justify-start">
+              {allBills.map((bill) => (
                 <button
                   key={`thumb-${bill.transaction.id}-${bill.index}`}
                   onClick={() => {
                     setSelectedImage(bill.url);
                     setSelectedTransaction(bill.transaction);
                     setZoom(1);
+                    setPosition({ x: 0, y: 0 });
                   }}
                   className={cn(
-                    'h-12 w-16 rounded overflow-hidden border-2 transition-all flex-shrink-0',
+                    'h-14 w-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0',
                     bill.url === selectedImage 
                       ? 'border-primary ring-2 ring-primary/50' 
-                      : 'border-transparent opacity-50 hover:opacity-100'
+                      : 'border-transparent opacity-60'
                   )}
                 >
                   <img
@@ -307,4 +335,3 @@ export function BillGallery({ transactions, suppliers }) {
 }
 
 export default BillGallery;
-

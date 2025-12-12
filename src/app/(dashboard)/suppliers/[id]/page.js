@@ -9,11 +9,8 @@ import {
   Edit, 
   Trash2, 
   Phone, 
-  Mail, 
   MapPin, 
-  Building2, 
   FileText,
-  CreditCard,
   Plus,
   IndianRupee,
   QrCode,
@@ -25,8 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -68,7 +63,6 @@ export default function SupplierDetailPage({ params }) {
     loadSupplier();
   }, [id, getSupplierById]);
 
-  // Update local supplier when suppliers array changes (e.g., after sync completes)
   useEffect(() => {
     if (!loading) {
       const updatedSupplier = suppliers.find(s => s.id === id);
@@ -104,7 +98,11 @@ export default function SupplierDetailPage({ params }) {
     );
   }
 
-  const initials = supplier.name
+  // Display company name prominently
+  const displayName = supplier.companyName || supplier.name;
+  const secondaryName = supplier.companyName ? supplier.name : null;
+  
+  const initials = displayName
     ?.split(' ')
     .map(n => n[0])
     .join('')
@@ -112,15 +110,16 @@ export default function SupplierDetailPage({ params }) {
     .slice(0, 2) || '??';
 
   const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-  const pendingAmount = transactions
-    .filter(t => t.paymentStatus !== 'paid')
+  const paidAmount = transactions
+    .filter(t => t.paymentStatus === 'paid')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
+  const pendingAmount = totalAmount - paidAmount;
 
   const handleUpdateSupplier = async (data) => {
     const result = await updateSupplier(id, data);
     if (result.success) {
       setSupplier(result.data);
-      toast.success('Supplier updated successfully');
+      toast.success('Supplier updated');
     } else {
       toast.error('Failed to update supplier');
     }
@@ -129,7 +128,7 @@ export default function SupplierDetailPage({ params }) {
   const handleDeleteSupplier = async () => {
     const result = await deleteSupplier(id);
     if (result.success) {
-      toast.success('Supplier deleted successfully');
+      toast.success('Supplier deleted');
       router.push('/suppliers');
     } else {
       toast.error('Failed to delete supplier');
@@ -139,7 +138,7 @@ export default function SupplierDetailPage({ params }) {
   const handleAddTransaction = async (data) => {
     const result = await addTransaction(data);
     if (result.success) {
-      toast.success('Transaction added successfully');
+      toast.success('Transaction added');
     } else {
       toast.error('Failed to add transaction');
     }
@@ -153,7 +152,7 @@ export default function SupplierDetailPage({ params }) {
   const handleUpdateTransaction = async (data) => {
     const result = await updateTransaction(transactionToEdit.id, data);
     if (result.success) {
-      toast.success('Transaction updated successfully');
+      toast.success('Transaction updated');
       setTransactionToEdit(null);
     } else {
       toast.error('Failed to update transaction');
@@ -169,7 +168,7 @@ export default function SupplierDetailPage({ params }) {
     if (transactionToDelete) {
       const result = await deleteTransaction(transactionToDelete.id);
       if (result.success) {
-        toast.success('Transaction deleted successfully');
+        toast.success('Transaction deleted');
       } else {
         toast.error('Failed to delete transaction');
       }
@@ -179,13 +178,10 @@ export default function SupplierDetailPage({ params }) {
 
   const handleUpiClick = (app = 'gpay') => {
     if (supplier?.upiId) {
-      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(supplier.name || 'Supplier')}&cu=INR`;
+      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(displayName || 'Supplier')}&cu=INR`;
       
-      // Google Pay specific intent for Android
       if (app === 'gpay') {
-        // Try Google Pay intent first (Android)
         const gpayIntent = `intent://pay?${upiParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
-        // For iOS, use tez:// scheme
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         if (isIOS) {
           window.location.href = `gpay://upi/pay?${upiParams}`;
@@ -197,7 +193,6 @@ export default function SupplierDetailPage({ params }) {
       } else if (app === 'paytm') {
         window.location.href = `paytmmp://pay?${upiParams}`;
       } else {
-        // Generic UPI link - opens app chooser
         window.location.href = `upi://pay?${upiParams}`;
       }
     }
@@ -217,21 +212,21 @@ export default function SupplierDetailPage({ params }) {
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Link href="/suppliers">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{supplier.name}</h1>
-          {supplier.companyName && (
-            <p className="text-muted-foreground">{supplier.companyName}</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold truncate">{displayName}</h1>
+          {secondaryName && (
+            <p className="text-sm text-muted-foreground truncate">{secondaryName}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="icon" onClick={() => setEditFormOpen(true)}>
             <Edit className="h-4 w-4" />
           </Button>
@@ -241,15 +236,60 @@ export default function SupplierDetailPage({ params }) {
         </div>
       </div>
 
-      {/* UPI Payment Section - Prominent at top */}
+      {/* Profile Card with UPI */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-4">
+            {/* Avatar */}
+            <Avatar className="h-16 w-16 border-2 border-primary/10 shrink-0">
+              <AvatarImage src={supplier.profilePicture} alt={displayName} />
+              <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+
+            {/* Details */}
+            <div className="flex-1 min-w-0 space-y-2">
+              {supplier.phone && (
+                <a href={`tel:${supplier.phone}`} className="flex items-center gap-2 text-sm hover:text-primary">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>{supplier.phone}</span>
+                </a>
+              )}
+              {supplier.address && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{supplier.address}</span>
+                </div>
+              )}
+              {supplier.gstNumber && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4 shrink-0" />
+                  <span>GST: {supplier.gstNumber}</span>
+                </div>
+              )}
+              
+              {/* Sync status */}
+              {supplier.syncStatus === 'pending' && (
+                <Badge variant="outline" className="text-amber-600 border-amber-500/30">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" />
+                  Syncing
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* UPI Payment Section */}
       {(supplier.upiId || supplier.upiQrCode) && (
-        <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex items-center gap-4">
               {/* QR Code */}
               {supplier.upiQrCode && (
                 <div 
-                  className="w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform relative"
+                  className="w-20 h-20 rounded-lg overflow-hidden border-2 border-background shadow-lg cursor-pointer hover:scale-105 transition-transform relative shrink-0"
                   onClick={() => setQrDialogOpen(true)}
                 >
                   <Image 
@@ -263,21 +303,21 @@ export default function SupplierDetailPage({ params }) {
               )}
               
               {/* UPI Details */}
-              <div className="flex-1 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
-                  <QrCode className="h-5 w-5 text-green-600" />
-                  <span className="font-semibold text-green-700">UPI Payment</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <QrCode className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-sm">UPI Payment</span>
                 </div>
                 
                 {supplier.upiId && (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-center sm:justify-start gap-2">
-                      <code className="px-2 py-1 bg-muted rounded text-sm">{supplier.upiId}</code>
+                    <div className="flex items-center gap-2">
+                      <code className="px-2 py-1 bg-muted rounded text-xs truncate max-w-[150px]">{supplier.upiId}</code>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={handleCopyUpi}
-                        className="h-7 px-2"
+                        className="h-7 w-7 p-0 shrink-0"
                       >
                         {upiCopied ? (
                           <Check className="h-3.5 w-3.5 text-green-600" />
@@ -286,168 +326,78 @@ export default function SupplierDetailPage({ params }) {
                         )}
                       </Button>
                     </div>
-                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => handleUpiClick('gpay')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
                       >
                         GPay
                       </button>
                       <button
                         onClick={() => handleUpiClick('phonepe')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-full text-xs font-medium hover:bg-purple-700 transition-colors"
+                        className="px-3 py-1.5 bg-purple-600 text-white rounded-full text-xs font-medium hover:bg-purple-700 transition-colors"
                       >
                         PhonePe
                       </button>
                       <button
-                        onClick={() => handleUpiClick('paytm')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 text-white rounded-full text-xs font-medium hover:bg-sky-700 transition-colors"
-                      >
-                        Paytm
-                      </button>
-                      <button
                         onClick={() => handleUpiClick('other')}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-muted text-foreground rounded-full text-xs font-medium hover:bg-accent transition-colors"
+                        className="px-3 py-1.5 bg-muted text-foreground rounded-full text-xs font-medium hover:bg-accent transition-colors"
                       >
-                        Other <ExternalLink className="h-3 w-3" />
+                        Other
                       </button>
                     </div>
                   </div>
                 )}
-                
-                <p className="text-xs text-muted-foreground mt-2">
-                  Choose your preferred UPI app to pay
-                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Profile Card */}
+      {/* Stats - Combined in one card */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-6">
-            {/* Avatar */}
-            <Avatar className="h-24 w-24 border-4 border-primary/10">
-              <AvatarImage src={supplier.profilePicture} alt={supplier.name} />
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-
-            {/* Details */}
-            <div className="flex-1 space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                {supplier.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{supplier.phone}</span>
-                  </div>
-                )}
-                {supplier.email && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{supplier.email}</span>
-                  </div>
-                )}
-                {supplier.address && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{supplier.address}</span>
-                  </div>
-                )}
-                {supplier.gstNumber && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span>GST: {supplier.gstNumber}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Bank Details */}
-              {supplier.bankDetails?.bankName && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Bank Details
-                    </h4>
-                    <div className="grid sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
-                      <div>
-                        <span className="block text-xs">Bank</span>
-                        <span className="text-foreground">{supplier.bankDetails.bankName}</span>
-                      </div>
-                      {supplier.bankDetails.accountNumber && (
-                        <div>
-                          <span className="block text-xs">Account</span>
-                          <span className="text-foreground">{supplier.bankDetails.accountNumber}</span>
-                        </div>
-                      )}
-                      {supplier.bankDetails.ifscCode && (
-                        <div>
-                          <span className="block text-xs">IFSC</span>
-                          <span className="text-foreground">{supplier.bankDetails.ifscCode}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Sync status */}
-              {supplier.syncStatus === 'pending' && (
-                <Badge variant="secondary" className="text-amber-600">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" />
-                  Pending sync
-                </Badge>
-              )}
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <p className="text-2xl font-bold">{transactions.length}</p>
+              <p className="text-xs text-muted-foreground">Transactions</p>
+            </div>
+            <div className="h-10 w-px bg-border" />
+            <div className="text-center flex-1">
+              <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+            <div className="h-10 w-px bg-border" />
+            <div className="text-center flex-1">
+              <p className="text-2xl font-bold text-green-600">₹{paidAmount.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Paid</p>
+            </div>
+            <div className="h-10 w-px bg-border" />
+            <div className="text-center flex-1">
+              <p className="text-2xl font-bold text-amber-600">₹{pendingAmount.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Pending</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{transactions.length}</p>
-            <p className="text-xs text-muted-foreground">Transactions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Total Amount</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-amber-600">₹{pendingAmount.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Pending</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Transactions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>Transactions</CardTitle>
-            <Button size="sm" onClick={() => {
-              setTransactionToEdit(null);
-              setTransactionFormOpen(true);
-            }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Transaction
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <IndianRupee className="h-12 w-12 mx-auto mb-3 opacity-50" />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Transactions</h2>
+          <Button size="sm" onClick={() => {
+            setTransactionToEdit(null);
+            setTransactionFormOpen(true);
+          }}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
+        
+        {transactions.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
               <p>No transactions yet</p>
               <Button 
                 variant="link" 
@@ -456,18 +406,18 @@ export default function SupplierDetailPage({ params }) {
               >
                 Add first transaction
               </Button>
-            </div>
-          ) : (
-            <TransactionTable
-              transactions={transactions}
-              suppliers={[supplier]}
-              onEdit={handleEditTransaction}
-              onDelete={handleDeleteTransactionClick}
-              showSupplier={false}
-            />
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <TransactionTable
+            transactions={transactions}
+            suppliers={[supplier]}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransactionClick}
+            showSupplier={false}
+          />
+        )}
+      </div>
 
       {/* Edit Supplier Form */}
       <SupplierForm
@@ -498,8 +448,8 @@ export default function SupplierDetailPage({ params }) {
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDeleteSupplier}
         title="Delete Supplier"
-        description="Are you sure you want to delete this supplier? All their transactions will also be deleted. This action cannot be undone."
-        itemName={supplier.name}
+        description="Are you sure? All transactions will also be deleted."
+        itemName={displayName}
       />
 
       {/* Delete Transaction Confirmation */}
@@ -508,19 +458,19 @@ export default function SupplierDetailPage({ params }) {
         onOpenChange={setDeleteTransactionDialogOpen}
         onConfirm={handleConfirmDeleteTransaction}
         title="Delete Transaction"
-        description="Are you sure you want to delete this transaction? This action cannot be undone."
+        description="This action cannot be undone."
         itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ''}
       />
 
       {/* QR Code Full View Dialog */}
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-xs">
           <DialogHeader>
             <DialogTitle className="text-center">Scan to Pay</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4">
             {supplier?.upiQrCode && (
-              <div className="w-64 h-64 rounded-lg overflow-hidden border-2 border-muted relative bg-white">
+              <div className="w-56 h-56 rounded-lg overflow-hidden border-2 border-muted relative bg-white">
                 <Image 
                   src={supplier.upiQrCode} 
                   alt="UPI QR Code" 
@@ -536,7 +486,7 @@ export default function SupplierDetailPage({ params }) {
                 <p className="font-medium">{supplier.upiId}</p>
               </div>
             )}
-            <Button onClick={handleUpiClick} className="w-full">
+            <Button onClick={() => handleUpiClick('other')} className="w-full">
               <ExternalLink className="h-4 w-4 mr-2" />
               Open in UPI App
             </Button>
@@ -546,4 +496,3 @@ export default function SupplierDetailPage({ params }) {
     </div>
   );
 }
-

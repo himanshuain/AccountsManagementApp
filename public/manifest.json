@@ -4,8 +4,8 @@
   "description": "Manage your clothes shop suppliers, transactions, and bills",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fffbf5",
-  "theme_color": "#f97316",
+  "background_color": "#f8fafc",
+  "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
   "icons": [
     {
