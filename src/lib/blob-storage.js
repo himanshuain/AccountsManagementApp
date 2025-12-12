@@ -2,6 +2,15 @@ import { put, del, list } from '@vercel/blob';
 
 const DATA_PREFIX = 'data/';
 const IMAGES_PREFIX = 'images/';
+const BLOB_TIMEOUT = 5000; // 5 second timeout for blob operations
+
+// Helper to add timeout to async operations
+async function withTimeout(promise, ms, operation) {
+  const timeout = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error(`${operation} timed out after ${ms}ms`)), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
 
 // Check if blob storage is configured
 function isBlobConfigured() {
@@ -16,26 +25,18 @@ export async function saveDataToBlob(key, data) {
   }
   
   try {
-    // #region agent log
-    console.log(`[DEBUG][HYP-D] saveDataToBlob ENTRY key=${key} dataLength=${Array.isArray(data)?data.length:'not-array'}`);
-    // #endregion
-    
     // First, delete existing blob if it exists (Vercel Blob doesn't overwrite)
     try {
-      const { blobs } = await list({ prefix: `${DATA_PREFIX}${key}` });
-      // #region agent log
-      console.log(`[DEBUG][HYP-E] saveDataToBlob LIST key=${key} blobCount=${blobs.length} urls=${JSON.stringify(blobs.map(b=>b.url))}`);
-      // #endregion
+      const { blobs } = await withTimeout(
+        list({ prefix: `${DATA_PREFIX}${key}` }),
+        BLOB_TIMEOUT,
+        'list'
+      );
       for (const blob of blobs) {
         await del(blob.url);
-        // #region agent log
-        console.log(`[DEBUG][HYP-A] saveDataToBlob DELETED url=${blob.url}`);
-        // #endregion
       }
     } catch (deleteError) {
-      // #region agent log
-      console.log(`[DEBUG][HYP-B] saveDataToBlob DELETE_ERROR key=${key} error=${deleteError.message}`);
-      // #endregion
+      // Ignore delete errors, proceed with creating new blob
     }
     
     // Now create new blob
@@ -43,14 +44,8 @@ export async function saveDataToBlob(key, data) {
       access: 'public',
       addRandomSuffix: false,
     });
-    // #region agent log
-    console.log(`[DEBUG][HYP-D] saveDataToBlob PUT key=${key} newUrl=${blob.url}`);
-    // #endregion
     return blob;
   } catch (error) {
-    // #region agent log
-    console.log(`[DEBUG][HYP-D] saveDataToBlob ERROR key=${key} error=${error.message}`);
-    // #endregion
     console.error(`[Blob] Error saving ${key}:`, error.message);
     return null;
   }
@@ -63,20 +58,13 @@ export async function loadDataFromBlob(key) {
   }
   
   try {
-    // #region agent log
-    console.log(`[DEBUG][HYP-A] loadDataFromBlob ENTRY key=${key}`);
-    // #endregion
-    
-    const { blobs } = await list({ prefix: `${DATA_PREFIX}${key}` });
-    
-    // #region agent log
-    console.log(`[DEBUG][HYP-A] loadDataFromBlob LIST key=${key} blobCount=${blobs.length} urls=${JSON.stringify(blobs.map(b=>b.url))}`);
-    // #endregion
+    const { blobs } = await withTimeout(
+      list({ prefix: `${DATA_PREFIX}${key}` }),
+      BLOB_TIMEOUT,
+      'list'
+    );
     
     if (blobs.length === 0) {
-      // #region agent log
-      console.log(`[DEBUG][HYP-A] loadDataFromBlob NO_BLOBS key=${key}`);
-      // #endregion
       return null;
     }
     
@@ -94,16 +82,8 @@ export async function loadDataFromBlob(key) {
     if (!response.ok) return null;
     
     const data = await response.json();
-    
-    // #region agent log
-    console.log(`[DEBUG][HYP-C] loadDataFromBlob RESULT key=${key} dataLength=${Array.isArray(data)?data.length:'not-array'}`);
-    // #endregion
-    
     return data;
   } catch (error) {
-    // #region agent log
-    console.log(`[DEBUG][HYP-C] loadDataFromBlob ERROR key=${key} error=${error.message}`);
-    // #endregion
     console.warn(`Error loading ${key} from blob:`, error.message);
     return null;
   }
@@ -282,4 +262,3 @@ function mergeData(cloudData, localData) {
 
   return Array.from(merged.values());
 }
-

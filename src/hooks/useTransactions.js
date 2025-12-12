@@ -20,10 +20,16 @@ export function useTransactions(supplierId = null) {
         data = await transactionDB.getAll();
       }
       setTransactions(data);
+      setLoading(false); // Show local data immediately, don't wait for cloud
       
-      // Then, try to fetch from cloud and merge
+      // Then, try to fetch from cloud and merge (with timeout)
       try {
-        const response = await fetch('/api/transactions');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch('/api/transactions', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           const { data: cloudData } = await response.json();
           if (cloudData && cloudData.length > 0) {

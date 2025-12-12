@@ -14,35 +14,29 @@ export function useSuppliers() {
       
       // First, get local data
       let data = await supplierDB.getAll();
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/a27a5c60-4ab9-4648-8ff3-b6b96bbdd86b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSuppliers.js:fetchSuppliers:localData',message:'Got local suppliers',data:{localCount:data.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'CLIENT'})}).catch(()=>{});
-      // #endregion
       setSuppliers(data);
+      setLoading(false); // Show local data immediately, don't wait for cloud
       
-      // Then, try to fetch from cloud and merge
+      // Then, try to fetch from cloud and merge (with timeout)
       try {
-        const response = await fetch('/api/suppliers');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        const response = await fetch('/api/suppliers', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           const result = await response.json();
           const cloudData = result.data;
-          // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/a27a5c60-4ab9-4648-8ff3-b6b96bbdd86b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSuppliers.js:fetchSuppliers:cloudData',message:'Got cloud suppliers',data:{cloudCount:cloudData?.length||0,cloudNames:cloudData?.map(s=>s.name)||[]},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'CLIENT'})}).catch(()=>{});
-          // #endregion
           if (cloudData && cloudData.length > 0) {
             // Merge cloud data into local DB
             await bulkOperations.mergeSuppliers(cloudData);
             // Re-fetch from local DB to get merged data
             data = await supplierDB.getAll();
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/a27a5c60-4ab9-4648-8ff3-b6b96bbdd86b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSuppliers.js:fetchSuppliers:merged',message:'After merge',data:{mergedCount:data.length,mergedNames:data.map(s=>s.name)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'CLIENT'})}).catch(()=>{});
-            // #endregion
             setSuppliers(data);
           }
         }
       } catch (cloudError) {
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/a27a5c60-4ab9-4648-8ff3-b6b96bbdd86b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useSuppliers.js:fetchSuppliers:cloudError',message:'Cloud fetch failed',data:{error:cloudError.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'CLIENT'})}).catch(()=>{});
-        // #endregion
         console.warn('Cloud fetch failed, using local data:', cloudError.message);
       }
       
