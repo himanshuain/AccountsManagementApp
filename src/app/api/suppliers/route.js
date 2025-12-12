@@ -8,7 +8,8 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const suppliers = await loadSuppliers();
-    return NextResponse.json({ success: true, data: suppliers });
+    // Return empty array if null (load failed or no data yet)
+    return NextResponse.json({ success: true, data: suppliers || [] });
   } catch (error) {
     console.error('Failed to load suppliers:', error);
     return NextResponse.json(

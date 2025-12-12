@@ -163,7 +163,9 @@ export async function saveSuppliers(suppliers) {
 }
 
 export async function loadSuppliers() {
-  return await loadDataFromBlob('suppliers') || [];
+  const data = await loadDataFromBlob('suppliers');
+  // Return null if load failed (timeout/error), empty array only if actually empty
+  return data;
 }
 
 // Transactions data
@@ -172,12 +174,21 @@ export async function saveTransactions(transactions) {
 }
 
 export async function loadTransactions() {
-  return await loadDataFromBlob('transactions') || [];
+  const data = await loadDataFromBlob('transactions');
+  // Return null if load failed (timeout/error), empty array only if actually empty
+  return data;
 }
 
-// Sync operations
+// Sync operations - ONLY save if we successfully loaded existing data
 export async function syncSuppliersToBlob(operations) {
   const existing = await loadSuppliers();
+  
+  // CRITICAL: If load failed (null), don't overwrite cloud data!
+  if (existing === null) {
+    console.warn('[Sync] Cannot sync suppliers - failed to load existing data from cloud');
+    throw new Error('Failed to load existing suppliers from cloud');
+  }
+  
   let updated = [...existing];
 
   for (const op of operations) {
@@ -204,6 +215,13 @@ export async function syncSuppliersToBlob(operations) {
 
 export async function syncTransactionsToBlob(operations) {
   const existing = await loadTransactions();
+  
+  // CRITICAL: If load failed (null), don't overwrite cloud data!
+  if (existing === null) {
+    console.warn('[Sync] Cannot sync transactions - failed to load existing data from cloud');
+    throw new Error('Failed to load existing transactions from cloud');
+  }
+  
   let updated = [...existing];
 
   for (const op of operations) {

@@ -10,7 +10,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const supplierId = searchParams.get('supplierId');
     
-    let transactions = await loadTransactions();
+    let transactions = await loadTransactions() || [];
     
     if (supplierId) {
       transactions = transactions.filter(t => t.supplierId === supplierId);
