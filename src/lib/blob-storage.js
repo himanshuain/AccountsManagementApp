@@ -16,13 +16,26 @@ export async function saveDataToBlob(key, data) {
   }
   
   try {
+    // First, delete existing blob if it exists (Vercel Blob doesn't overwrite)
+    try {
+      const { blobs } = await list({ prefix: `${DATA_PREFIX}${key}` });
+      for (const blob of blobs) {
+        await del(blob.url);
+      }
+    } catch (deleteError) {
+      // Ignore delete errors - file might not exist
+      console.log(`[Blob] No existing blob to delete for ${key}`);
+    }
+    
+    // Now create new blob
     const blob = await put(`${DATA_PREFIX}${key}.json`, JSON.stringify(data), {
       access: 'public',
       addRandomSuffix: false,
     });
+    console.log(`[Blob] Saved ${key}:`, blob.url);
     return blob;
   } catch (error) {
-    console.warn(`Error saving ${key} to blob:`, error.message);
+    console.error(`[Blob] Error saving ${key}:`, error.message);
     return null;
   }
 }
