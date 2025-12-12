@@ -133,7 +133,12 @@ class SyncManager {
         const result = await response.json();
         console.log('[Sync] Suppliers response:', result);
 
-        if (!response.ok) {
+        if (response.ok) {
+          // Mark local suppliers as synced
+          const supplierIds = supplierOps.map(op => op.entityId);
+          await bulkOperations.markAsSynced('supplier', supplierIds);
+          console.log('[Sync] Marked suppliers as synced:', supplierIds);
+        } else {
           console.error('[Sync] Failed to sync suppliers:', result);
           allSuccess = false;
         }
@@ -156,7 +161,12 @@ class SyncManager {
         const result = await response.json();
         console.log('[Sync] Transactions response:', result);
 
-        if (!response.ok) {
+        if (response.ok) {
+          // Mark local transactions as synced
+          const transactionIds = transactionOps.map(op => op.entityId);
+          await bulkOperations.markAsSynced('transaction', transactionIds);
+          console.log('[Sync] Marked transactions as synced:', transactionIds);
+        } else {
           console.error('[Sync] Failed to sync transactions:', result);
           allSuccess = false;
         }
@@ -172,28 +182,38 @@ class SyncManager {
   async pullChanges() {
     // Fetch latest suppliers
     try {
+      console.log('[Sync] Pulling suppliers from cloud...');
       const suppliersResponse = await fetch(`${API_BASE}/suppliers`);
       if (suppliersResponse.ok) {
         const { data: suppliers } = await suppliersResponse.json();
+        console.log('[Sync] Got', suppliers?.length || 0, 'suppliers from cloud');
         if (suppliers && suppliers.length > 0) {
           await bulkOperations.mergeSuppliers(suppliers);
+          // Mark pulled suppliers as synced
+          const ids = suppliers.map(s => s.id);
+          await bulkOperations.markAsSynced('supplier', ids);
         }
       }
     } catch (error) {
-      console.warn('Failed to pull suppliers:', error.message);
+      console.warn('[Sync] Failed to pull suppliers:', error.message);
     }
 
     // Fetch latest transactions
     try {
+      console.log('[Sync] Pulling transactions from cloud...');
       const transactionsResponse = await fetch(`${API_BASE}/transactions`);
       if (transactionsResponse.ok) {
         const { data: transactions } = await transactionsResponse.json();
+        console.log('[Sync] Got', transactions?.length || 0, 'transactions from cloud');
         if (transactions && transactions.length > 0) {
           await bulkOperations.mergeTransactions(transactions);
+          // Mark pulled transactions as synced
+          const ids = transactions.map(t => t.id);
+          await bulkOperations.markAsSynced('transaction', ids);
         }
       }
     } catch (error) {
-      console.warn('Failed to pull transactions:', error.message);
+      console.warn('[Sync] Failed to pull transactions:', error.message);
     }
   }
 
