@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Store } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -14,34 +14,88 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [isRehydrating, setIsRehydrating] = useState(false);
+
+  // Check authentication
+  const checkAuth = useCallback(() => {
+    const authed = isAuthenticated();
+    if (!authed) {
+      router.replace("/login");
+    } else {
+      setIsAuthed(true);
+      setIsChecking(false);
+      setIsRehydrating(false);
+    }
+  }, [router]);
 
   useEffect(() => {
-    // Check authentication status
-    const checkAuth = () => {
-      const authed = isAuthenticated();
-      if (!authed) {
-        router.replace("/login");
-      } else {
-        setIsAuthed(true);
-        setIsChecking(false);
+    // Initial auth check with small delay
+    const timer = setTimeout(checkAuth, 50);
+    return () => clearTimeout(timer);
+  }, [checkAuth]);
+
+  // Handle visibility change for PWA resume
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // App is now visible (resumed from background)
+        // Show brief rehydrating state to prevent freeze appearance
+        setIsRehydrating(true);
+
+        // Quick revalidation
+        requestAnimationFrame(() => {
+          // Allow React to update
+          setTimeout(() => {
+            setIsRehydrating(false);
+          }, 100);
+        });
       }
     };
 
-    // Small delay to ensure cookies are available after redirect
-    const timer = setTimeout(checkAuth, 50);
-    return () => clearTimeout(timer);
-  }, [router]);
+    // Handle page show event (for PWA back/forward cache)
+    const handlePageShow = (event) => {
+      if (event.persisted) {
+        // Page was restored from cache
+        setIsRehydrating(true);
+        setTimeout(() => {
+          checkAuth();
+        }, 50);
+      }
+    };
 
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [checkAuth]);
+
+  // Loading state during auth check
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+            <Store className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <span className="font-semibold text-lg">Shop Manager</span>
+        </div>
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Rehydration overlay - brief flash when resuming from background */}
+      {isRehydrating && (
+        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
+
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>

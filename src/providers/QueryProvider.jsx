@@ -13,6 +13,8 @@ export function QueryProvider({ children }) {
             gcTime: 1000 * 60 * 30, // 30 minutes - cache time
             refetchOnWindowFocus: false, // Don't refetch on tab focus
             refetchOnMount: false, // Don't refetch if data exists
+            refetchOnReconnect: false, // Don't refetch on network reconnect
+            refetchInterval: false, // No interval-based refetching
             retry: 1,
           },
         },

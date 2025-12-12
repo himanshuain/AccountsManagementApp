@@ -2,18 +2,31 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, User, Receipt, X, ArrowRight } from "lucide-react";
+import {
+  Search,
+  User,
+  Receipt,
+  X,
+  ArrowRight,
+  Users,
+  Banknote,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { supplierDB, transactionDB } from "@/lib/db";
+import { supplierDB, transactionDB, customerDB, udharDB } from "@/lib/db";
 
 export function GlobalSearch({ suppliers = [], className }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [results, setResults] = useState({ suppliers: [], transactions: [] });
+  const [results, setResults] = useState({
+    suppliers: [],
+    transactions: [],
+    customers: [],
+    udhar: [],
+  });
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
@@ -50,7 +63,12 @@ export function GlobalSearch({ suppliers = [], className }) {
   useEffect(() => {
     const searchData = async () => {
       if (!query.trim()) {
-        setResults({ suppliers: [], transactions: [] });
+        setResults({
+          suppliers: [],
+          transactions: [],
+          customers: [],
+          udhar: [],
+        });
         return;
       }
 
@@ -67,6 +85,17 @@ export function GlobalSearch({ suppliers = [], className }) {
               s.companyName?.toLowerCase().includes(lowerQuery) ||
               s.phone?.includes(query) ||
               s.gstNumber?.toLowerCase().includes(lowerQuery),
+          )
+          .slice(0, 5);
+
+        // Search customers
+        const allCustomers = await customerDB.getAll();
+        const matchedCustomers = allCustomers
+          .filter(
+            (c) =>
+              c.name?.toLowerCase().includes(lowerQuery) ||
+              c.phone?.includes(query) ||
+              c.address?.toLowerCase().includes(lowerQuery),
           )
           .slice(0, 5);
 
@@ -87,6 +116,24 @@ export function GlobalSearch({ suppliers = [], className }) {
           })
           .slice(0, 5);
 
+        // Search udhar
+        const allUdhar = await udharDB.getAll();
+        const matchedUdhar = allUdhar
+          .filter((u) => {
+            const customer = allCustomers.find((c) => c.id === u.customerId);
+            const customerName = customer?.name?.toLowerCase() || "";
+            const amount =
+              ((u.cashAmount || 0) + (u.onlineAmount || 0)).toString() || "";
+            const notes = u.notes?.toLowerCase() || "";
+
+            return (
+              customerName.includes(lowerQuery) ||
+              amount.includes(query) ||
+              notes.includes(lowerQuery)
+            );
+          })
+          .slice(0, 5);
+
         // Add supplier info to transactions
         const transactionsWithSupplier = matchedTransactions.map((t) => ({
           ...t,
@@ -94,9 +141,18 @@ export function GlobalSearch({ suppliers = [], className }) {
             allSuppliers.find((s) => s.id === t.supplierId)?.name || "Unknown",
         }));
 
+        // Add customer info to udhar
+        const udharWithCustomer = matchedUdhar.map((u) => ({
+          ...u,
+          customerName:
+            allCustomers.find((c) => c.id === u.customerId)?.name || "Unknown",
+        }));
+
         setResults({
           suppliers: matchedSuppliers,
           transactions: transactionsWithSupplier,
+          customers: matchedCustomers,
+          udhar: udharWithCustomer,
         });
       } catch (error) {
         console.error("Search error:", error);
@@ -121,6 +177,18 @@ export function GlobalSearch({ suppliers = [], className }) {
     router.push(`/suppliers/${transaction.supplierId}`);
   };
 
+  const handleCustomerClick = (customer) => {
+    setIsOpen(false);
+    setQuery("");
+    router.push(`/transactions?tab=customers&customer=${customer.id}`);
+  };
+
+  const handleUdharClick = (udhar) => {
+    setIsOpen(false);
+    setQuery("");
+    router.push(`/transactions?tab=customers&customer=${udhar.customerId}`);
+  };
+
   const getInitials = (name) => {
     return (
       name
@@ -133,7 +201,10 @@ export function GlobalSearch({ suppliers = [], className }) {
   };
 
   const hasResults =
-    results.suppliers.length > 0 || results.transactions.length > 0;
+    results.suppliers.length > 0 ||
+    results.transactions.length > 0 ||
+    results.customers.length > 0 ||
+    results.udhar.length > 0;
 
   const paymentStatusColors = {
     paid: "bg-green-100 text-green-700",
@@ -148,7 +219,7 @@ export function GlobalSearch({ suppliers = [], className }) {
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search suppliers, transactions... (⌘K)"
+          placeholder="Search... (⌘K)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
@@ -184,10 +255,98 @@ export function GlobalSearch({ suppliers = [], className }) {
             </div>
           ) : (
             <>
+              {/* Customers Section */}
+              {results.customers.length > 0 && (
+                <div>
+                  <div className="px-3 py-2 bg-amber-500/10 border-b">
+                    <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
+                      <Users className="h-3 w-3" />
+                      CUSTOMERS
+                    </div>
+                  </div>
+                  {results.customers.map((customer) => (
+                    <button
+                      key={customer.id}
+                      onClick={() => handleCustomerClick(customer)}
+                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={customer.profilePicture} />
+                        <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
+                          {getInitials(customer.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {customer.name}
+                        </p>
+                        {customer.phone && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {customer.phone}
+                          </p>
+                        )}
+                      </div>
+                      {customer.totalPending > 0 && (
+                        <Badge className="bg-amber-100 text-amber-700 text-[10px]">
+                          ₹{customer.totalPending?.toLocaleString()}
+                        </Badge>
+                      )}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Udhar Section */}
+              {results.udhar.length > 0 && (
+                <div>
+                  <div className="px-3 py-2 bg-amber-500/10 border-b border-t">
+                    <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
+                      <Banknote className="h-3 w-3" />
+                      UDHAR
+                    </div>
+                  </div>
+                  {results.udhar.map((udhar) => (
+                    <button
+                      key={udhar.id}
+                      onClick={() => handleUdharClick(udhar)}
+                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center">
+                        <Banknote className="h-4 w-4 text-amber-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">
+                          ₹
+                          {(
+                            (udhar.cashAmount || 0) + (udhar.onlineAmount || 0)
+                          ).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {udhar.customerName} •{" "}
+                          {new Date(udhar.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </p>
+                      </div>
+                      <Badge
+                        className={cn(
+                          "text-[10px]",
+                          paymentStatusColors[udhar.paymentStatus],
+                        )}
+                      >
+                        {udhar.paymentStatus}
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Suppliers Section */}
               {results.suppliers.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 bg-muted/50 border-b">
+                  <div className="px-3 py-2 bg-muted/50 border-b border-t">
                     <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                       <User className="h-3 w-3" />
                       SUPPLIERS
@@ -272,10 +431,6 @@ export function GlobalSearch({ suppliers = [], className }) {
                 <div className="px-3 py-2 border-t bg-muted/30">
                   <p className="text-xs text-muted-foreground text-center">
                     Press{" "}
-                    <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
-                      Enter
-                    </kbd>{" "}
-                    to search or{" "}
                     <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
                       Esc
                     </kbd>{" "}

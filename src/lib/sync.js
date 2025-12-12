@@ -9,6 +9,7 @@ import {
 const API_BASE = "/api";
 const SYNC_INTERVAL = 30000; // 30 seconds periodic sync
 const DEBOUNCE_DELAY = 2000; // 2 seconds debounce for auto-sync after CRUD
+const IDLE_TIMEOUT = 20000; // 20 seconds - stop syncing if idle
 
 class SyncManager {
   constructor() {
@@ -17,6 +18,9 @@ class SyncManager {
     this.syncTimer = null;
     this.debounceTimer = null;
     this.periodicSyncInterval = null;
+    this.isPageVisible = true;
+    this.lastActivityTime = Date.now();
+    this.idleCheckInterval = null;
   }
 
   subscribe(listener) {
@@ -28,18 +32,36 @@ class SyncManager {
     this.listeners.forEach((listener) => listener(status));
   }
 
+  // Update last activity time
+  updateActivity() {
+    this.lastActivityTime = Date.now();
+  }
+
+  // Check if user is idle (no activity for IDLE_TIMEOUT)
+  isUserIdle() {
+    return Date.now() - this.lastActivityTime > IDLE_TIMEOUT;
+  }
+
   // Start periodic background sync
   startPeriodicSync() {
     if (this.periodicSyncInterval) return;
 
     this.periodicSyncInterval = setInterval(() => {
-      if (navigator.onLine && !this.isSyncing) {
+      // Only sync if online, not already syncing, page is visible, and user is active
+      if (
+        navigator.onLine &&
+        !this.isSyncing &&
+        this.isPageVisible &&
+        !this.isUserIdle()
+      ) {
         console.log("Periodic sync triggered");
         this.sync();
+      } else if (this.isUserIdle()) {
+        console.log("Skipping periodic sync - user idle");
       }
     }, SYNC_INTERVAL);
 
-    console.log("Periodic sync started (every 30s)");
+    console.log("Periodic sync started (every 30s, pauses when idle)");
   }
 
   // Stop periodic sync
@@ -50,6 +72,18 @@ class SyncManager {
     }
   }
 
+  // Handle visibility change
+  handleVisibilityChange(isVisible) {
+    this.isPageVisible = isVisible;
+    if (isVisible) {
+      // Reset activity when page becomes visible
+      this.updateActivity();
+      console.log("[Sync] Page visible - activity reset");
+    } else {
+      console.log("[Sync] Page hidden - syncing paused");
+    }
+  }
+
   // Debounced sync - called after CRUD operations
   debouncedSync() {
     if (this.debounceTimer) {
@@ -57,7 +91,7 @@ class SyncManager {
     }
 
     this.debounceTimer = setTimeout(() => {
-      if (navigator.onLine && !this.isSyncing) {
+      if (navigator.onLine && !this.isSyncing && this.isPageVisible) {
         console.log("Auto-sync after CRUD operation");
         this.sync();
       }
@@ -66,6 +100,8 @@ class SyncManager {
 
   // Trigger sync immediately (for manual sync)
   triggerSync() {
+    // Manual sync should always work, update activity
+    this.updateActivity();
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
@@ -78,6 +114,8 @@ class SyncManager {
       navigator.onLine,
       "Already syncing:",
       this.isSyncing,
+      "Visible:",
+      this.isPageVisible,
     );
 
     if (this.isSyncing || !navigator.onLine) {
@@ -256,6 +294,9 @@ class SyncManager {
       return { success: false, reason: "offline" };
     }
 
+    // Manual sync - update activity
+    this.updateActivity();
+
     this.isSyncing = true;
     this.notify({ status: "syncing" });
 
@@ -300,13 +341,33 @@ if (typeof window !== "undefined") {
   // Set up callback for auto-sync after CRUD operations
   setOnDataChangeCallback(() => {
     console.log("[Sync] Data changed, triggering debounced sync...");
+    syncManager.updateActivity(); // User did something
     syncManager.debouncedSync();
   });
 
-  // Auto-sync when coming online
+  // Track user activity
+  const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"];
+  activityEvents.forEach((event) => {
+    document.addEventListener(
+      event,
+      () => {
+        syncManager.updateActivity();
+      },
+      { passive: true },
+    );
+  });
+
+  // Handle page visibility changes
+  document.addEventListener("visibilitychange", () => {
+    syncManager.handleVisibilityChange(!document.hidden);
+  });
+
+  // Auto-sync when coming online (only if page is visible and user active)
   window.addEventListener("online", () => {
-    console.log("[Sync] Back online, triggering sync...");
-    syncManager.sync();
+    if (!syncManager.isUserIdle() && !document.hidden) {
+      console.log("[Sync] Back online, triggering sync...");
+      syncManager.sync();
+    }
   });
 
   // Stop periodic sync when going offline

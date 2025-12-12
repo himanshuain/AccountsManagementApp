@@ -26,7 +26,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/suppliers", label: "Suppliers", icon: Users },
   { href: "/transactions", label: "Transactions", icon: Receipt },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/reports", label: "Revenue", icon: BarChart3 },
 ];
 
 export function Sidebar() {

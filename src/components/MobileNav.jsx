@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
@@ -15,13 +15,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { GlobalSearch } from "./GlobalSearch";
@@ -57,7 +51,7 @@ const navItems = [
   },
   {
     href: "/reports",
-    label: "Reports",
+    label: "Revenue",
     icon: BarChart3,
     color: "bg-amber-500",
     activeColor: "bg-amber-600",
@@ -67,11 +61,9 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const scrollRef = useRef(null);
-  const [touchStart, setTouchStart] = useState(null);
 
   const handleLogout = () => {
     logout();
@@ -89,37 +81,6 @@ export function MobileNav() {
     } finally {
       setIsRefreshing(false);
     }
-  };
-
-  // Get current tab index
-  const currentIndex = navItems.findIndex(
-    (item) =>
-      pathname === item.href ||
-      (item.href !== "/" && pathname.startsWith(item.href)),
-  );
-
-  // Handle swipe navigation
-  const handleTouchStart = (e) => {
-    setTouchStart(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!touchStart) return;
-
-    const touchEnd = e.changedTouches[0].clientX;
-    const diff = touchStart - touchEnd;
-    const threshold = 50;
-
-    if (Math.abs(diff) > threshold) {
-      if (diff > 0 && currentIndex < navItems.length - 1) {
-        // Swipe left - go to next
-        router.push(navItems[currentIndex + 1].href);
-      } else if (diff < 0 && currentIndex > 0) {
-        // Swipe right - go to previous
-        router.push(navItems[currentIndex - 1].href);
-      }
-    }
-    setTouchStart(null);
   };
 
   return (
@@ -151,7 +112,7 @@ export function MobileNav() {
 
                 {/* Navigation */}
                 <nav className="flex-1 px-4 py-4 space-y-1">
-                  {navItems.map((item) => {
+                  {navItems.map(item => {
                     const isActive =
                       pathname === item.href ||
                       (item.href !== "/" && pathname.startsWith(item.href));
@@ -163,7 +124,7 @@ export function MobileNav() {
                             "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                             isActive
                               ? `${item.color} text-white`
-                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                           )}
                         >
                           <item.icon className="h-5 w-5" />
@@ -205,28 +166,17 @@ export function MobileNav() {
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw
-              className={cn("h-5 w-5", isRefreshing && "animate-spin")}
-            />
+            <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
           </Button>
         </div>
       </div>
 
-      {/* Swipe area for navigation */}
-      <div
-        className="lg:hidden fixed inset-0 z-30 pointer-events-none"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        style={{ pointerEvents: "auto", top: "3.5rem", bottom: "4rem" }}
-      />
-
       {/* Bottom navigation - Colorful tiles */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t safe-area-bottom">
         <div ref={scrollRef} className="flex items-stretch h-16 px-1">
-          {navItems.map((item, index) => {
+          {navItems.map(item => {
             const isActive =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+              pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
             return (
               <Link key={item.href} href={item.href} className="flex-1 p-1">
@@ -235,20 +185,12 @@ export function MobileNav() {
                     "flex flex-col items-center justify-center h-full rounded-xl transition-all",
                     isActive
                       ? `${item.color} text-white shadow-lg scale-105`
-                      : "text-muted-foreground hover:bg-accent/50",
+                      : "text-muted-foreground hover:bg-accent/50"
                   )}
                 >
-                  <item.icon
-                    className={cn(
-                      "h-5 w-5 mb-0.5",
-                      !isActive && item.iconColor,
-                    )}
-                  />
+                  <item.icon className={cn("h-5 w-5 mb-0.5", !isActive && item.iconColor)} />
                   <span
-                    className={cn(
-                      "text-[10px] font-medium",
-                      !isActive && "text-muted-foreground",
-                    )}
+                    className={cn("text-[10px] font-medium", !isActive && "text-muted-foreground")}
                   >
                     {item.label}
                   </span>
