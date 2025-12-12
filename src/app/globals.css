@@ -81,12 +81,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   /* Prevent flickering on mobile */
   html {
     -webkit-tap-highlight-color: transparent;
   }
-  
+
   /* Hardware acceleration for smoother animations */
   .hw-accelerate {
     transform: translateZ(0);
@@ -110,11 +110,19 @@
 
 /* Gradient backgrounds */
 .gradient-primary {
-  background: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(199 89% 48%) 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(217 91% 60%) 0%,
+    hsl(199 89% 48%) 100%
+  );
 }
 
 .gradient-card {
-  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--accent)) 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--accent)) 100%
+  );
 }
 
 /* Animated gradient background */
@@ -144,7 +152,9 @@
 
 /* Card hover effects */
 .card-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card-lift:hover {
@@ -244,7 +254,11 @@
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.3), transparent 50%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.3),
+    transparent 50%
+  );
   z-index: -1;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -256,7 +270,11 @@
 
 /* Dark mode specific glow */
 .dark .glow-effect:hover::before {
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.2), transparent 50%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.2),
+    transparent 50%
+  );
 }
 
 /* Custom scrollbar */
@@ -380,7 +398,9 @@
   height: 3.5rem;
   border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .fab:hover {

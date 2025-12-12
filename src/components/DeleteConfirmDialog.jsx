@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,15 +10,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
-export function DeleteConfirmDialog({ 
-  open, 
-  onOpenChange, 
+export function DeleteConfirmDialog({
+  open,
+  onOpenChange,
   onConfirm,
-  title = 'Delete Item',
-  description = 'Are you sure you want to delete this item? This action cannot be undone.',
-  itemName = ''
+  title = "Delete Item",
+  description = "Are you sure you want to delete this item? This action cannot be undone.",
+  itemName = "",
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -28,7 +28,7 @@ export function DeleteConfirmDialog({
       await onConfirm();
       onOpenChange(false);
     } catch (error) {
-      console.error('Delete failed:', error);
+      console.error("Delete failed:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -55,15 +55,15 @@ export function DeleteConfirmDialog({
         </DialogHeader>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isDeleting}
           >
             Cancel
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             onClick={handleConfirm}
             disabled={isDeleting}
           >
@@ -77,4 +77,3 @@ export function DeleteConfirmDialog({
 }
 
 export default DeleteConfirmDialog;
-

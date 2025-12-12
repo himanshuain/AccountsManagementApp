@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Store, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PinInput } from '@/components/PinInput';
-import { verifyPin, isAuthenticated } from '@/lib/auth';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Store, Loader2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PinInput } from "@/components/PinInput";
+import { verifyPin, isAuthenticated } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +22,7 @@ export default function LoginPage() {
   useEffect(() => {
     // Check if already authenticated
     if (isAuthenticated()) {
-      router.replace('/');
+      router.replace("/");
     } else {
       setIsChecking(false);
     }
@@ -24,7 +30,7 @@ export default function LoginPage() {
 
   const handlePinComplete = async (pin) => {
     if (isLoading) return; // Prevent double submission
-    
+
     setIsLoading(true);
     setError(false);
 
@@ -32,8 +38,8 @@ export default function LoginPage() {
 
     if (result.success) {
       // Small delay to ensure cookie is set before redirect
-      await new Promise(resolve => setTimeout(resolve, 100));
-      window.location.href = '/'; // Use window.location for full page reload
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      window.location.href = "/"; // Use window.location for full page reload
     } else {
       setError(true);
       setIsLoading(false);
@@ -52,10 +58,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       {/* Background pattern */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 opacity-20 dark:opacity-10" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--primary)) 1px, transparent 0)`,
-          backgroundSize: '32px 32px'
-        }} />
+        <div
+          className="absolute inset-0 opacity-20 dark:opacity-10"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--primary)) 1px, transparent 0)`,
+            backgroundSize: "32px 32px",
+          }}
+        />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10" />
       </div>
@@ -72,15 +81,11 @@ export default function LoginPage() {
             </CardDescription>
           </div>
         </CardHeader>
-        
+
         <CardContent className="pt-6 pb-8">
           <div className="space-y-6">
-            <PinInput 
-              length={6} 
-              onComplete={handlePinComplete} 
-              error={error}
-            />
-            
+            <PinInput length={6} onComplete={handlePinComplete} error={error} />
+
             {error && (
               <p className="text-center text-sm text-destructive animate-shake">
                 Invalid PIN. Please try again.

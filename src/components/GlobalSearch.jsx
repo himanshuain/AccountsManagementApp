@@ -20,7 +20,7 @@ export function GlobalSearch({ suppliers = [], className }) {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = e => {
+    const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
       }
@@ -31,7 +31,7 @@ export function GlobalSearch({ suppliers = [], className }) {
 
   // Keyboard shortcut to focus search (Cmd/Ctrl + K)
   useEffect(() => {
-    const handleKeyDown = e => {
+    const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         inputRef.current?.focus();
@@ -62,19 +62,19 @@ export function GlobalSearch({ suppliers = [], className }) {
         const allSuppliers = await supplierDB.getAll();
         const matchedSuppliers = allSuppliers
           .filter(
-            s =>
+            (s) =>
               s.name?.toLowerCase().includes(lowerQuery) ||
               s.companyName?.toLowerCase().includes(lowerQuery) ||
               s.phone?.includes(query) ||
-              s.gstNumber?.toLowerCase().includes(lowerQuery)
+              s.gstNumber?.toLowerCase().includes(lowerQuery),
           )
           .slice(0, 5);
 
         // Search transactions
         const allTransactions = await transactionDB.getAll();
         const matchedTransactions = allTransactions
-          .filter(t => {
-            const supplier = allSuppliers.find(s => s.id === t.supplierId);
+          .filter((t) => {
+            const supplier = allSuppliers.find((s) => s.id === t.supplierId);
             const supplierName = supplier?.name?.toLowerCase() || "";
             const amount = t.amount?.toString() || "";
             const notes = t.notes?.toLowerCase() || "";
@@ -88,9 +88,10 @@ export function GlobalSearch({ suppliers = [], className }) {
           .slice(0, 5);
 
         // Add supplier info to transactions
-        const transactionsWithSupplier = matchedTransactions.map(t => ({
+        const transactionsWithSupplier = matchedTransactions.map((t) => ({
           ...t,
-          supplierName: allSuppliers.find(s => s.id === t.supplierId)?.name || "Unknown",
+          supplierName:
+            allSuppliers.find((s) => s.id === t.supplierId)?.name || "Unknown",
         }));
 
         setResults({
@@ -108,30 +109,31 @@ export function GlobalSearch({ suppliers = [], className }) {
     return () => clearTimeout(debounce);
   }, [query]);
 
-  const handleSupplierClick = supplier => {
+  const handleSupplierClick = (supplier) => {
     setIsOpen(false);
     setQuery("");
     router.push(`/suppliers/${supplier.id}`);
   };
 
-  const handleTransactionClick = transaction => {
+  const handleTransactionClick = (transaction) => {
     setIsOpen(false);
     setQuery("");
     router.push(`/suppliers/${transaction.supplierId}`);
   };
 
-  const getInitials = name => {
+  const getInitials = (name) => {
     return (
       name
         ?.split(" ")
-        .map(n => n[0])
+        .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2) || "??"
     );
   };
 
-  const hasResults = results.suppliers.length > 0 || results.transactions.length > 0;
+  const hasResults =
+    results.suppliers.length > 0 || results.transactions.length > 0;
 
   const paymentStatusColors = {
     paid: "bg-green-100 text-green-700",
@@ -148,7 +150,7 @@ export function GlobalSearch({ suppliers = [], className }) {
           type="text"
           placeholder="Search suppliers, transactions... (⌘K)"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
           className="pl-9 pr-9 h-10 bg-muted/50 border-muted focus:bg-background"
         />
@@ -176,7 +178,9 @@ export function GlobalSearch({ suppliers = [], className }) {
           ) : !hasResults ? (
             <div className="p-4 text-center text-muted-foreground">
               <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No results found for &quot;{query}&quot;</p>
+              <p className="text-sm">
+                No results found for &quot;{query}&quot;
+              </p>
             </div>
           ) : (
             <>
@@ -189,7 +193,7 @@ export function GlobalSearch({ suppliers = [], className }) {
                       SUPPLIERS
                     </div>
                   </div>
-                  {results.suppliers.map(supplier => (
+                  {results.suppliers.map((supplier) => (
                     <button
                       key={supplier.id}
                       onClick={() => handleSupplierClick(supplier)}
@@ -202,7 +206,9 @@ export function GlobalSearch({ suppliers = [], className }) {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{supplier.name}</p>
+                        <p className="font-medium text-sm truncate">
+                          {supplier.name}
+                        </p>
                         {supplier.companyName && (
                           <p className="text-xs text-muted-foreground truncate">
                             {supplier.companyName}
@@ -224,7 +230,7 @@ export function GlobalSearch({ suppliers = [], className }) {
                       TRANSACTIONS
                     </div>
                   </div>
-                  {results.transactions.map(transaction => (
+                  {results.transactions.map((transaction) => (
                     <button
                       key={transaction.id}
                       onClick={() => handleTransactionClick(transaction)}
@@ -239,16 +245,19 @@ export function GlobalSearch({ suppliers = [], className }) {
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {transaction.supplierName} •{" "}
-                          {new Date(transaction.date).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                          })}
+                          {new Date(transaction.date).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            },
+                          )}
                         </p>
                       </div>
                       <Badge
                         className={cn(
                           "text-[10px]",
-                          paymentStatusColors[transaction.paymentStatus]
+                          paymentStatusColors[transaction.paymentStatus],
                         )}
                       >
                         {transaction.paymentStatus}
@@ -262,8 +271,14 @@ export function GlobalSearch({ suppliers = [], className }) {
               {hasResults && (
                 <div className="px-3 py-2 border-t bg-muted/30">
                   <p className="text-xs text-muted-foreground text-center">
-                    Press <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">Enter</kbd> to
-                    search or <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">Esc</kbd>{" "}
+                    Press{" "}
+                    <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
+                      Enter
+                    </kbd>{" "}
+                    to search or{" "}
+                    <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
+                      Esc
+                    </kbd>{" "}
                     to close
                   </p>
                 </div>

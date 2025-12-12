@@ -12,7 +12,9 @@ export function OfflineIndicator() {
     <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-amber-950 px-4 py-2 animate-slide-down">
       <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-sm font-medium">
         <WifiOff className="h-4 w-4" />
-        <span>You&apos;re offline. Changes will sync when you&apos;re back online.</span>
+        <span>
+          You&apos;re offline. Changes will sync when you&apos;re back online.
+        </span>
       </div>
     </div>
   );

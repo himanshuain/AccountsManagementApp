@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { syncManager } from '@/lib/sync';
-import { syncQueueDB } from '@/lib/db';
+import { useState, useEffect, useCallback } from "react";
+import { syncManager } from "@/lib/sync";
+import { syncQueueDB } from "@/lib/db";
 
 export function useSync() {
   const [syncStatus, setSyncStatus] = useState({
-    status: 'idle',
+    status: "idle",
     pendingCount: 0,
     lastSync: null,
-    error: null
+    error: null,
   });
 
   useEffect(() => {
     // Subscribe to sync manager updates
     const unsubscribe = syncManager.subscribe((status) => {
-      setSyncStatus(prev => ({ ...prev, ...status }));
+      setSyncStatus((prev) => ({ ...prev, ...status }));
     });
 
     // Get initial pending count
     const updatePendingCount = async () => {
       const count = await syncQueueDB.getPendingCount();
-      setSyncStatus(prev => ({ ...prev, pendingCount: count }));
+      setSyncStatus((prev) => ({ ...prev, pendingCount: count }));
     };
 
     updatePendingCount();
@@ -47,9 +47,8 @@ export function useSync() {
     ...syncStatus,
     triggerSync,
     forceFullSync,
-    isSyncing: syncStatus.status === 'syncing'
+    isSyncing: syncStatus.status === "syncing",
   };
 }
 
 export default useSync;
-

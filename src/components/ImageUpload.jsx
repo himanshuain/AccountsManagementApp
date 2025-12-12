@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { useState, useRef } from "react";
+import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function ImageUpload({ 
-  value, 
-  onChange, 
+export function ImageUpload({
+  value,
+  onChange,
   className,
-  placeholder = 'Upload Image',
-  aspectRatio = 'square',
-  disabled = false
+  placeholder = "Upload Image",
+  aspectRatio = "square",
+  disabled = false,
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
@@ -32,11 +32,11 @@ export function ImageUpload({
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
 
       if (response.ok) {
@@ -48,7 +48,7 @@ export function ImageUpload({
         onChange?.(preview);
       }
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error("Upload failed:", error);
       // Keep local preview for offline mode
       onChange?.(preview);
     } finally {
@@ -60,18 +60,18 @@ export function ImageUpload({
     setPreview(null);
     onChange?.(null);
     if (inputRef.current) {
-      inputRef.current.value = '';
+      inputRef.current.value = "";
     }
   };
 
   const aspectClasses = {
-    square: 'aspect-square',
-    video: 'aspect-video',
-    portrait: 'aspect-[3/4]'
+    square: "aspect-square",
+    video: "aspect-video",
+    portrait: "aspect-[3/4]",
   };
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn("relative", className)}>
       <input
         ref={inputRef}
         type="file"
@@ -82,10 +82,12 @@ export function ImageUpload({
       />
 
       {preview ? (
-        <div className={cn(
-          'relative rounded-lg overflow-hidden border bg-muted',
-          aspectClasses[aspectRatio]
-        )}>
+        <div
+          className={cn(
+            "relative rounded-lg overflow-hidden border bg-muted",
+            aspectClasses[aspectRatio],
+          )}
+        >
           <img
             src={preview}
             alt="Preview"
@@ -113,11 +115,11 @@ export function ImageUpload({
           onClick={() => inputRef.current?.click()}
           disabled={disabled || isUploading}
           className={cn(
-            'w-full rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50',
-            'flex flex-col items-center justify-center gap-2 p-6',
-            'hover:border-primary/50 hover:bg-muted transition-colors',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            aspectClasses[aspectRatio]
+            "w-full rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50",
+            "flex flex-col items-center justify-center gap-2 p-6",
+            "hover:border-primary/50 hover:bg-muted transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            aspectClasses[aspectRatio],
           )}
         >
           {isUploading ? (
@@ -127,7 +129,9 @@ export function ImageUpload({
               <div className="rounded-full bg-primary/10 p-3">
                 <ImageIcon className="h-6 w-6 text-primary" />
               </div>
-              <span className="text-sm text-muted-foreground">{placeholder}</span>
+              <span className="text-sm text-muted-foreground">
+                {placeholder}
+              </span>
             </>
           )}
         </button>
@@ -136,11 +140,11 @@ export function ImageUpload({
   );
 }
 
-export function MultiImageUpload({ 
-  value = [], 
+export function MultiImageUpload({
+  value = [],
   onChange,
   maxImages = 5,
-  disabled = false 
+  disabled = false,
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef(null);
@@ -166,12 +170,12 @@ export function MultiImageUpload({
 
         // Try to upload
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append("file", file);
 
         try {
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
           });
 
           if (response.ok) {
@@ -184,14 +188,14 @@ export function MultiImageUpload({
           newUrls.push(localUrl);
         }
       } catch (error) {
-        console.error('File processing failed:', error);
+        console.error("File processing failed:", error);
       }
     }
 
     onChange?.([...value, ...newUrls]);
     setIsUploading(false);
     if (inputRef.current) {
-      inputRef.current.value = '';
+      inputRef.current.value = "";
     }
   };
 
@@ -215,7 +219,10 @@ export function MultiImageUpload({
       {/* Image grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {value.map((url, index) => (
-          <div key={index} className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+          <div
+            key={index}
+            className="relative aspect-video rounded-lg overflow-hidden border bg-muted"
+          >
             <img
               src={url}
               alt={`Bill ${index + 1}`}
@@ -241,10 +248,10 @@ export function MultiImageUpload({
             onClick={() => inputRef.current?.click()}
             disabled={disabled || isUploading}
             className={cn(
-              'aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25',
-              'flex flex-col items-center justify-center gap-1',
-              'hover:border-primary/50 hover:bg-muted/50 transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
+              "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
+              "flex flex-col items-center justify-center gap-1",
+              "hover:border-primary/50 hover:bg-muted/50 transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
             )}
           >
             {isUploading ? (
@@ -267,4 +274,3 @@ export function MultiImageUpload({
 }
 
 export default ImageUpload;
-

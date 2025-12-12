@@ -26,7 +26,9 @@ export function SupplierForm({
   title = "Add Supplier",
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
+  const [profilePicture, setProfilePicture] = useState(
+    initialData?.profilePicture || null,
+  );
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
   const cameraInputRef = useRef(null);
 
@@ -72,7 +74,7 @@ export function SupplierForm({
     }
   }, [open, initialData, reset]);
 
-  const handleFormSubmit = async data => {
+  const handleFormSubmit = async (data) => {
     setIsSubmitting(true);
     try {
       await onSubmit({
@@ -94,8 +96,14 @@ export function SupplierForm({
   const handleClose = () => {
     if (!isSubmitting) {
       // Check if form is dirty and show confirmation
-      if (isDirty || profilePicture !== (initialData?.profilePicture || null) || upiQrCode !== (initialData?.upiQrCode || null)) {
-        if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
+      if (
+        isDirty ||
+        profilePicture !== (initialData?.profilePicture || null) ||
+        upiQrCode !== (initialData?.upiQrCode || null)
+      ) {
+        if (
+          !confirm("You have unsaved changes. Are you sure you want to close?")
+        ) {
           return;
         }
       }
@@ -124,22 +132,33 @@ export function SupplierForm({
         <DialogHeader className="px-6 pt-6">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {initialData ? "Update supplier information" : "Add a new supplier to your records"}
+            {initialData
+              ? "Update supplier information"
+              : "Add a new supplier to your records"}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] px-6">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
+          <form
+            onSubmit={handleSubmit(handleFormSubmit)}
+            className="space-y-5 py-4"
+          >
             {/* Supplier Name - First */}
             <div className="space-y-2">
               <Label htmlFor="companyName">Supplier Name *</Label>
-              <Input 
-                id="companyName" 
-                {...register("companyName", { required: "Supplier name is required" })} 
+              <Input
+                id="companyName"
+                {...register("companyName", {
+                  required: "Supplier name is required",
+                })}
                 placeholder="Enter supplier/shop name"
                 className="text-base"
               />
-              {errors.companyName && <p className="text-xs text-destructive">{errors.companyName.message}</p>}
+              {errors.companyName && (
+                <p className="text-xs text-destructive">
+                  {errors.companyName.message}
+                </p>
+              )}
             </div>
 
             {/* Person Name & Phone */}
@@ -171,9 +190,9 @@ export function SupplierForm({
 
               <div className="space-y-2">
                 <Label htmlFor="upiId">UPI ID</Label>
-                <Input 
-                  id="upiId" 
-                  {...register("upiId")} 
+                <Input
+                  id="upiId"
+                  {...register("upiId")}
                   placeholder="example@upi or 9876543210@paytm"
                   className="text-base"
                 />
@@ -242,12 +261,20 @@ export function SupplierForm({
 
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" {...register("address")} placeholder="Full address" />
+                <Input
+                  id="address"
+                  {...register("address")}
+                  placeholder="Full address"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="gstNumber">GST Number</Label>
-                <Input id="gstNumber" {...register("gstNumber")} placeholder="GST number (optional)" />
+                <Input
+                  id="gstNumber"
+                  {...register("gstNumber")}
+                  placeholder="GST number (optional)"
+                />
               </div>
             </div>
           </form>
@@ -255,20 +282,22 @@ export function SupplierForm({
 
         <DialogFooter className="px-6 pb-6">
           <div className="flex gap-3 w-full">
-            <Button 
-              variant="outline" 
-              onClick={handleClose} 
+            <Button
+              variant="outline"
+              onClick={handleClose}
               disabled={isSubmitting}
               className="flex-1"
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit(handleFormSubmit)} 
+            <Button
+              onClick={handleSubmit(handleFormSubmit)}
               disabled={isSubmitting}
               className="flex-1"
             >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {initialData ? "Update" : "Add Supplier"}
             </Button>
           </div>

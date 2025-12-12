@@ -1,18 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import Link from 'next/link';
-import { 
-  X, 
-  User,
-  Calendar,
-  IndianRupee,
-  ImageIcon
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { X, User, Calendar, IndianRupee, ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export function BillGallery({ transactions, suppliers }) {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -20,7 +14,7 @@ export function BillGallery({ transactions, suppliers }) {
   const [zoom, setZoom] = useState(1);
   const [allBills, setAllBills] = useState([]);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  
+
   // Touch handling refs
   const touchStartRef = useRef({ x: 0, y: 0, distance: 0 });
   const imageContainerRef = useRef(null);
@@ -29,14 +23,14 @@ export function BillGallery({ transactions, suppliers }) {
   // Flatten all bills from all transactions
   useEffect(() => {
     const bills = [];
-    transactions.forEach(transaction => {
+    transactions.forEach((transaction) => {
       if (transaction.billImages && transaction.billImages.length > 0) {
         transaction.billImages.forEach((imageUrl, index) => {
           bills.push({
             url: imageUrl,
             transaction: transaction,
-            supplier: suppliers.find(s => s.id === transaction.supplierId),
-            index: index
+            supplier: suppliers.find((s) => s.id === transaction.supplierId),
+            index: index,
           });
         });
       }
@@ -44,7 +38,7 @@ export function BillGallery({ transactions, suppliers }) {
     setAllBills(bills);
   }, [transactions, suppliers]);
 
-  const currentIndex = allBills.findIndex(b => b.url === selectedImage);
+  const currentIndex = allBills.findIndex((b) => b.url === selectedImage);
 
   const openLightbox = (bill) => {
     setSelectedImage(bill.url);
@@ -86,7 +80,7 @@ export function BillGallery({ transactions, suppliers }) {
       touchStartRef.current = {
         x: e.touches[0].clientX,
         y: e.touches[0].clientY,
-        distance: 0
+        distance: 0,
       };
     } else if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -102,8 +96,8 @@ export function BillGallery({ transactions, suppliers }) {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const distance = Math.sqrt(dx * dx + dy * dy);
       const scale = distance / touchStartRef.current.distance;
-      
-      setZoom(prev => {
+
+      setZoom((prev) => {
         const newZoom = prev * scale;
         return Math.min(Math.max(newZoom, 0.5), 4);
       });
@@ -121,7 +115,7 @@ export function BillGallery({ transactions, suppliers }) {
       // Check for double tap to zoom
       const now = Date.now();
       if (now - lastTapRef.current < 300) {
-        setZoom(prev => prev === 1 ? 2 : 1);
+        setZoom((prev) => (prev === 1 ? 2 : 1));
         setPosition({ x: 0, y: 0 });
         lastTapRef.current = 0;
         return;
@@ -143,25 +137,25 @@ export function BillGallery({ transactions, suppliers }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!selectedImage) return;
-      
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') goToPrevious();
-      if (e.key === 'ArrowRight') goToNext();
+
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") goToPrevious();
+      if (e.key === "ArrowRight") goToNext();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedImage, goToPrevious, goToNext]);
 
   const getSupplierName = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier?.companyName || supplier?.name || 'Unknown';
+    const supplier = suppliers.find((s) => s.id === supplierId);
+    return supplier?.companyName || supplier?.name || "Unknown";
   };
 
   const paymentStatusColors = {
-    paid: 'bg-green-500/20 text-green-400',
-    pending: 'bg-amber-500/20 text-amber-400',
-    partial: 'bg-blue-500/20 text-blue-400',
+    paid: "bg-green-500/20 text-green-400",
+    pending: "bg-amber-500/20 text-amber-400",
+    partial: "bg-blue-500/20 text-blue-400",
   };
 
   if (allBills.length === 0) {
@@ -179,7 +173,7 @@ export function BillGallery({ transactions, suppliers }) {
       {/* Gallery Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {allBills.map((bill) => (
-          <Card 
+          <Card
             key={`${bill.transaction.id}-${bill.index}`}
             className="cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary transition-all"
             onClick={() => openLightbox(bill)}
@@ -200,11 +194,13 @@ export function BillGallery({ transactions, suppliers }) {
                 <span className="text-xs text-muted-foreground">
                   ₹{bill.transaction.amount?.toLocaleString()}
                 </span>
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className={cn(
                     "text-[10px] px-1.5 py-0",
-                    bill.transaction.paymentStatus === 'paid' ? 'text-green-600' : 'text-amber-600'
+                    bill.transaction.paymentStatus === "paid"
+                      ? "text-green-600"
+                      : "text-amber-600",
                   )}
                 >
                   {bill.transaction.paymentStatus}
@@ -217,7 +213,7 @@ export function BillGallery({ transactions, suppliers }) {
 
       {/* Lightbox */}
       {selectedImage && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black flex flex-col touch-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -239,7 +235,7 @@ export function BillGallery({ transactions, suppliers }) {
           </div>
 
           {/* Image container */}
-          <div 
+          <div
             ref={imageContainerRef}
             className="flex-1 relative overflow-hidden flex items-center justify-center"
           >
@@ -247,13 +243,13 @@ export function BillGallery({ transactions, suppliers }) {
               src={selectedImage}
               alt="Bill"
               className="max-h-full max-w-full object-contain select-none"
-              style={{ 
+              style={{
                 transform: `scale(${zoom}) translate(${position.x}px, ${position.y}px)`,
-                transition: zoom === 1 ? 'transform 0.2s' : 'none'
+                transition: zoom === 1 ? "transform 0.2s" : "none",
               }}
               draggable={false}
             />
-            
+
             {/* Swipe hint for mobile */}
             {zoom === 1 && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs flex items-center gap-2">
@@ -270,24 +266,35 @@ export function BillGallery({ transactions, suppliers }) {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 text-white/70 text-sm">
                       <Calendar className="h-4 w-4" />
-                      {new Date(selectedTransaction.date).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
+                      {new Date(selectedTransaction.date).toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-white font-semibold">
                       <IndianRupee className="h-4 w-4" />
                       {selectedTransaction.amount?.toLocaleString()}
                     </div>
-                    <Badge className={cn("text-xs", paymentStatusColors[selectedTransaction.paymentStatus])}>
-                      {selectedTransaction.paymentStatus?.charAt(0).toUpperCase() + selectedTransaction.paymentStatus?.slice(1)}
+                    <Badge
+                      className={cn(
+                        "text-xs",
+                        paymentStatusColors[selectedTransaction.paymentStatus],
+                      )}
+                    >
+                      {selectedTransaction.paymentStatus
+                        ?.charAt(0)
+                        .toUpperCase() +
+                        selectedTransaction.paymentStatus?.slice(1)}
                     </Badge>
                   </div>
                 </div>
-                
+
                 {/* Go to Supplier button - prominent at bottom */}
-                <Link 
+                <Link
                   href={`/suppliers/${selectedTransaction.supplierId}`}
                   className="w-full"
                 >
@@ -313,10 +320,10 @@ export function BillGallery({ transactions, suppliers }) {
                     setPosition({ x: 0, y: 0 });
                   }}
                   className={cn(
-                    'h-14 w-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0',
-                    bill.url === selectedImage 
-                      ? 'border-primary ring-2 ring-primary/50' 
-                      : 'border-transparent opacity-60'
+                    "h-14 w-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
+                    bill.url === selectedImage
+                      ? "border-primary ring-2 ring-primary/50"
+                      : "border-transparent opacity-60",
                   )}
                 >
                   <img

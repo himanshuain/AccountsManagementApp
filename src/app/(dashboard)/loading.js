@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react";
 
 export default function DashboardLoading() {
   return (
@@ -66,4 +66,3 @@ export default function DashboardLoading() {
     </div>
   );
 }
-

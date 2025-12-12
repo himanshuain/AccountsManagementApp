@@ -1,67 +1,79 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Plus, Receipt, Filter, Image, List, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import { Plus, Receipt, Filter, Image, List, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import useSuppliers from '@/hooks/useSuppliers';
-import useTransactions from '@/hooks/useTransactions';
-import { TransactionForm } from '@/components/TransactionForm';
-import { TransactionTable } from '@/components/TransactionTable';
-import { BillGallery } from '@/components/BillGallery';
-import { QuickBillCapture } from '@/components/QuickBillCapture';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
-import { exportTransactions } from '@/lib/export';
-import { toast } from 'sonner';
+} from "@/components/ui/select";
+import useSuppliers from "@/hooks/useSuppliers";
+import useTransactions from "@/hooks/useTransactions";
+import { TransactionForm } from "@/components/TransactionForm";
+import { TransactionTable } from "@/components/TransactionTable";
+import { BillGallery } from "@/components/BillGallery";
+import { QuickBillCapture } from "@/components/QuickBillCapture";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { exportTransactions } from "@/lib/export";
+import { toast } from "sonner";
 
 export default function TransactionsPage() {
   const { suppliers } = useSuppliers();
-  const { transactions, loading, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
-  
+  const {
+    transactions,
+    loading,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useTransactions();
+
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [supplierFilter, setSupplierFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('list');
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("list");
   const [quickCaptureData, setQuickCaptureData] = useState(null);
 
   // Apply filters
-  const filteredTransactions = transactions.filter(t => {
-    if (statusFilter !== 'all' && t.paymentStatus !== statusFilter) return false;
-    if (supplierFilter !== 'all' && t.supplierId !== supplierFilter) return false;
+  const filteredTransactions = transactions.filter((t) => {
+    if (statusFilter !== "all" && t.paymentStatus !== statusFilter)
+      return false;
+    if (supplierFilter !== "all" && t.supplierId !== supplierFilter)
+      return false;
     return true;
   });
 
   // Calculate stats
-  const totalAmount = filteredTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const totalAmount = filteredTransactions.reduce(
+    (sum, t) => sum + (t.amount || 0),
+    0,
+  );
   const paidAmount = filteredTransactions
-    .filter(t => t.paymentStatus === 'paid')
+    .filter((t) => t.paymentStatus === "paid")
     .reduce((sum, t) => sum + (t.amount || 0), 0);
   const pendingAmount = filteredTransactions
-    .filter(t => t.paymentStatus !== 'paid')
+    .filter((t) => t.paymentStatus !== "paid")
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
   // Count bills
-  const totalBills = filteredTransactions.reduce((count, t) => 
-    count + (t.billImages?.length || 0), 0
+  const totalBills = filteredTransactions.reduce(
+    (count, t) => count + (t.billImages?.length || 0),
+    0,
   );
 
   const handleAddTransaction = async (data) => {
     const result = await addTransaction(data);
     if (result.success) {
-      toast.success('Transaction added');
+      toast.success("Transaction added");
     } else {
-      toast.error('Failed to add transaction');
+      toast.error("Failed to add transaction");
     }
   };
 
@@ -73,10 +85,10 @@ export default function TransactionsPage() {
   const handleUpdateTransaction = async (data) => {
     const result = await updateTransaction(transactionToEdit.id, data);
     if (result.success) {
-      toast.success('Transaction updated');
+      toast.success("Transaction updated");
       setTransactionToEdit(null);
     } else {
-      toast.error('Failed to update transaction');
+      toast.error("Failed to update transaction");
     }
   };
 
@@ -89,9 +101,9 @@ export default function TransactionsPage() {
     if (transactionToDelete) {
       const result = await deleteTransaction(transactionToDelete.id);
       if (result.success) {
-        toast.success('Transaction deleted');
+        toast.success("Transaction deleted");
       } else {
-        toast.error('Failed to delete transaction');
+        toast.error("Failed to delete transaction");
       }
       setTransactionToDelete(null);
     }
@@ -107,9 +119,9 @@ export default function TransactionsPage() {
   const handleExport = () => {
     try {
       exportTransactions(filteredTransactions, suppliers);
-      toast.success('Exported successfully');
+      toast.success("Exported successfully");
     } catch (error) {
-      toast.error('Export failed');
+      toast.error("Export failed");
     }
   };
 
@@ -128,13 +140,13 @@ export default function TransactionsPage() {
 
       {/* Quick Action Tiles */}
       <div className="grid grid-cols-2 gap-3">
-        <QuickBillCapture 
+        <QuickBillCapture
           suppliers={suppliers}
           onCapture={handleQuickCapture}
           disabled={suppliers.length === 0}
           variant="tile"
         />
-        <Card 
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors border-dashed border-2 hover:border-primary/50"
           onClick={() => {
             setQuickCaptureData(null);
@@ -146,7 +158,9 @@ export default function TransactionsPage() {
             <div className="rounded-full bg-primary/10 p-3">
               <Plus className="h-6 w-6 text-primary" />
             </div>
-            <span className="text-sm font-medium text-center">Add Transaction</span>
+            <span className="text-sm font-medium text-center">
+              Add Transaction
+            </span>
           </CardContent>
         </Card>
       </div>
@@ -170,20 +184,20 @@ export default function TransactionsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Suppliers</SelectItem>
-            {suppliers.map(supplier => (
+            {suppliers.map((supplier) => (
               <SelectItem key={supplier.id} value={supplier.id}>
                 {supplier.companyName || supplier.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {(statusFilter !== 'all' || supplierFilter !== 'all') && (
-          <Button 
-            variant="ghost" 
+        {(statusFilter !== "all" || supplierFilter !== "all") && (
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => {
-              setStatusFilter('all');
-              setSupplierFilter('all');
+              setStatusFilter("all");
+              setSupplierFilter("all");
             }}
           >
             Clear
@@ -192,7 +206,11 @@ export default function TransactionsPage() {
       </div>
 
       {/* Tabs for List and Gallery view */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full max-w-xs grid-cols-2">
           <TabsTrigger value="list" className="gap-1.5">
             <List className="h-4 w-4" />
@@ -216,20 +234,20 @@ export default function TransactionsPage() {
               <CardContent className="py-12 text-center text-muted-foreground">
                 <Receipt className="h-10 w-10 mx-auto mb-2 opacity-50" />
                 <p>No transactions found</p>
-                {(statusFilter !== 'all' || supplierFilter !== 'all') ? (
-                  <Button 
-                    variant="link" 
+                {statusFilter !== "all" || supplierFilter !== "all" ? (
+                  <Button
+                    variant="link"
                     className="mt-2"
                     onClick={() => {
-                      setStatusFilter('all');
-                      setSupplierFilter('all');
+                      setStatusFilter("all");
+                      setSupplierFilter("all");
                     }}
                   >
                     Clear filters
                   </Button>
                 ) : (
-                  <Button 
-                    variant="link" 
+                  <Button
+                    variant="link"
                     className="mt-2"
                     onClick={() => setTransactionFormOpen(true)}
                   >
@@ -251,9 +269,9 @@ export default function TransactionsPage() {
 
         {/* Bill Gallery Tab */}
         <TabsContent value="gallery" className="space-y-4 mt-0">
-          <BillGallery 
-            transactions={filteredTransactions} 
-            suppliers={suppliers} 
+          <BillGallery
+            transactions={filteredTransactions}
+            suppliers={suppliers}
           />
         </TabsContent>
       </Tabs>
@@ -268,11 +286,13 @@ export default function TransactionsPage() {
             setQuickCaptureData(null);
           }
         }}
-        onSubmit={transactionToEdit ? handleUpdateTransaction : handleAddTransaction}
+        onSubmit={
+          transactionToEdit ? handleUpdateTransaction : handleAddTransaction
+        }
         suppliers={suppliers}
         initialData={transactionToEdit}
         quickCaptureData={quickCaptureData}
-        title={transactionToEdit ? 'Edit Transaction' : 'Add Transaction'}
+        title={transactionToEdit ? "Edit Transaction" : "Add Transaction"}
       />
 
       {/* Delete Confirmation */}
@@ -282,7 +302,11 @@ export default function TransactionsPage() {
         onConfirm={handleConfirmDelete}
         title="Delete Transaction"
         description="This action cannot be undone."
-        itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ''}
+        itemName={
+          transactionToDelete
+            ? `₹${transactionToDelete.amount?.toLocaleString()}`
+            : ""
+        }
       />
     </div>
   );

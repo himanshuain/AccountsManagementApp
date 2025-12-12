@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Camera, X, Plus, Check, ImageIcon, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useRef } from "react";
+import { Camera, X, Plus, Check, ImageIcon, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -11,22 +11,27 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'button' }) {
+export function QuickBillCapture({
+  suppliers,
+  onCapture,
+  disabled,
+  variant = "button",
+}) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1); // 1: select supplier, 2: capture photos
-  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState("");
   const [capturedImages, setCapturedImages] = useState([]);
   const [isCapturing, setIsCapturing] = useState(false);
   const fileInputRef = useRef(null);
@@ -35,14 +40,14 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
   const handleOpen = () => {
     setOpen(true);
     setStep(1);
-    setSelectedSupplier('');
+    setSelectedSupplier("");
     setCapturedImages([]);
   };
 
   const handleClose = () => {
     setOpen(false);
     setStep(1);
-    setSelectedSupplier('');
+    setSelectedSupplier("");
     setCapturedImages([]);
   };
 
@@ -68,32 +73,32 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
 
     try {
       const newImages = [];
-      
+
       for (const file of files) {
         // Create preview URL
         const previewUrl = URL.createObjectURL(file);
         newImages.push({
           file,
           preview: previewUrl,
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         });
       }
 
-      setCapturedImages(prev => [...prev, ...newImages]);
+      setCapturedImages((prev) => [...prev, ...newImages]);
     } catch (error) {
-      console.error('Error processing images:', error);
+      console.error("Error processing images:", error);
     } finally {
       setIsCapturing(false);
       // Reset file input
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
   const handleRemoveImage = (imageId) => {
-    setCapturedImages(prev => {
-      const updated = prev.filter(img => img.id !== imageId);
+    setCapturedImages((prev) => {
+      const updated = prev.filter((img) => img.id !== imageId);
       // Revoke URL for removed image
-      const removed = prev.find(img => img.id === imageId);
+      const removed = prev.find((img) => img.id === imageId);
       if (removed?.preview) {
         URL.revokeObjectURL(removed.preview);
       }
@@ -103,25 +108,27 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
 
   const handleDone = () => {
     if (capturedImages.length > 0 && selectedSupplier) {
-      const supplier = suppliers.find(s => s.id === selectedSupplier);
+      const supplier = suppliers.find((s) => s.id === selectedSupplier);
       onCapture({
         supplierId: selectedSupplier,
         supplierName: supplier?.name,
-        images: capturedImages.map(img => img.file)
+        images: capturedImages.map((img) => img.file),
       });
       handleClose();
     }
   };
 
-  const selectedSupplierName = suppliers.find(s => s.id === selectedSupplier)?.name;
+  const selectedSupplierName = suppliers.find(
+    (s) => s.id === selectedSupplier,
+  )?.name;
 
   const TileButton = () => (
-    <Card 
+    <Card
       className={cn(
         "cursor-pointer transition-colors border-2",
         disabled || suppliers.length === 0
           ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-primary/5 hover:border-primary/50 border-primary/20 bg-primary/5"
+          : "hover:bg-primary/5 hover:border-primary/50 border-primary/20 bg-primary/5",
       )}
       onClick={disabled || suppliers.length === 0 ? undefined : handleOpen}
     >
@@ -130,14 +137,16 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
           <Camera className="h-6 w-6 text-primary-foreground" />
         </div>
         <span className="text-sm font-medium text-center">Quick Capture</span>
-        <span className="text-[10px] text-muted-foreground">Snap bill photos</span>
+        <span className="text-[10px] text-muted-foreground">
+          Snap bill photos
+        </span>
       </CardContent>
     </Card>
   );
 
   const ButtonTrigger = () => (
-    <Button 
-      variant="outline" 
+    <Button
+      variant="outline"
       onClick={handleOpen}
       disabled={disabled || suppliers.length === 0}
       className="gap-2"
@@ -149,7 +158,7 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
 
   return (
     <>
-      {variant === 'tile' ? <TileButton /> : <ButtonTrigger />}
+      {variant === "tile" ? <TileButton /> : <ButtonTrigger />}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
@@ -159,10 +168,9 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
               Quick Bill Capture
             </DialogTitle>
             <DialogDescription>
-              {step === 1 
-                ? 'Select a supplier to attach the bills to'
-                : `Capture bills for ${selectedSupplierName}`
-              }
+              {step === 1
+                ? "Select a supplier to attach the bills to"
+                : `Capture bills for ${selectedSupplierName}`}
             </DialogDescription>
           </DialogHeader>
 
@@ -170,18 +178,21 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Select Supplier</Label>
-                <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                <Select
+                  value={selectedSupplier}
+                  onValueChange={setSelectedSupplier}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a supplier..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {suppliers.map(supplier => (
+                    {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         <div className="flex items-center gap-2">
                           {supplier.profilePicture ? (
-                            <img 
-                              src={supplier.profilePicture} 
-                              alt="" 
+                            <img
+                              src={supplier.profilePicture}
+                              alt=""
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
@@ -201,7 +212,10 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
                 <Button variant="outline" onClick={handleClose}>
                   Cancel
                 </Button>
-                <Button onClick={handleSupplierSelect} disabled={!selectedSupplier}>
+                <Button
+                  onClick={handleSupplierSelect}
+                  disabled={!selectedSupplier}
+                >
                   Next
                 </Button>
               </DialogFooter>
@@ -216,7 +230,7 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
                   <Label>Captured Bills ({capturedImages.length})</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {capturedImages.map((img) => (
-                      <div 
+                      <div
                         key={img.id}
                         className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted group"
                       >
@@ -278,20 +292,17 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
               />
 
               <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setStep(1)}
                   className="sm:mr-auto"
                 >
                   Back
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleClose}
-                >
+                <Button variant="outline" onClick={handleClose}>
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleDone}
                   disabled={capturedImages.length === 0}
                   className="gap-2"
@@ -309,4 +320,3 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = 'bu
 }
 
 export default QuickBillCapture;
-

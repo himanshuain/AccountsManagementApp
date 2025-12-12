@@ -1,30 +1,41 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { 
-  Users, 
-  Receipt, 
-  IndianRupee, 
-  Clock, 
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  Users,
+  Receipt,
+  IndianRupee,
+  Clock,
   Plus,
   ArrowRight,
-  TrendingUp
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import useSuppliers from '@/hooks/useSuppliers';
-import useTransactions from '@/hooks/useTransactions';
-import { SupplierForm } from '@/components/SupplierForm';
-import { TransactionForm } from '@/components/TransactionForm';
+  TrendingUp,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import useSuppliers from "@/hooks/useSuppliers";
+import useTransactions from "@/hooks/useTransactions";
+import { SupplierForm } from "@/components/SupplierForm";
+import { TransactionForm } from "@/components/TransactionForm";
 
 export default function DashboardPage() {
   const { suppliers, addSupplier } = useSuppliers();
-  const { transactions, addTransaction, getPendingPayments, getRecentTransactions } = useTransactions();
-  
+  const {
+    transactions,
+    addTransaction,
+    getPendingPayments,
+    getRecentTransactions,
+  } = useTransactions();
+
   const [pendingPayments, setPendingPayments] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [supplierFormOpen, setSupplierFormOpen] = useState(false);
@@ -43,17 +54,27 @@ export default function DashboardPage() {
   // Calculate stats
   const totalSuppliers = suppliers.length;
   const totalTransactions = transactions.length;
-  const pendingAmount = pendingPayments.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const pendingAmount = pendingPayments.reduce(
+    (sum, t) => sum + (t.amount || 0),
+    0,
+  );
   const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
 
   const getSupplierName = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier?.name || 'Unknown';
+    const supplier = suppliers.find((s) => s.id === supplierId);
+    return supplier?.name || "Unknown";
   };
 
   const getSupplierInitials = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
+    const supplier = suppliers.find((s) => s.id === supplierId);
+    return (
+      supplier?.name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
   };
 
   const handleAddSupplier = async (data) => {
@@ -65,9 +86,9 @@ export default function DashboardPage() {
   };
 
   const paymentStatusColors = {
-    paid: 'bg-green-100 text-green-700',
-    pending: 'bg-amber-100 text-amber-700',
-    partial: 'bg-blue-100 text-blue-700',
+    paid: "bg-green-100 text-green-700",
+    pending: "bg-amber-100 text-amber-700",
+    partial: "bg-blue-100 text-blue-700",
   };
 
   return (
@@ -76,7 +97,9 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Here&apos;s your shop overview.</p>
+          <p className="text-muted-foreground">
+            Welcome back! Here&apos;s your shop overview.
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setSupplierFormOpen(true)}>
@@ -101,7 +124,9 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{totalSuppliers}</p>
-                  <p className="text-xs text-muted-foreground">Total Suppliers</p>
+                  <p className="text-xs text-muted-foreground">
+                    Total Suppliers
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -132,7 +157,9 @@ export default function DashboardPage() {
                   <Clock className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">
+                    ₹{pendingAmount.toLocaleString()}
+                  </p>
                   <p className="text-xs text-muted-foreground">Pending</p>
                 </div>
               </div>
@@ -148,7 +175,9 @@ export default function DashboardPage() {
                   <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">
+                    ₹{totalAmount.toLocaleString()}
+                  </p>
                   <p className="text-xs text-muted-foreground">Total Amount</p>
                 </div>
               </div>
@@ -176,8 +205,8 @@ export default function DashboardPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No transactions yet</p>
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   className="mt-2"
                   onClick={() => setTransactionFormOpen(true)}
                 >
@@ -187,7 +216,10 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div
+                    key={transaction.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="text-xs bg-primary/10 text-primary">
                         {getSupplierInitials(transaction.supplierId)}
@@ -198,15 +230,22 @@ export default function DashboardPage() {
                         {getSupplierName(transaction.supplierId)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(transaction.date).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short'
-                        })}
+                        {new Date(transaction.date).toLocaleDateString(
+                          "en-IN",
+                          {
+                            day: "numeric",
+                            month: "short",
+                          },
+                        )}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-sm">₹{transaction.amount?.toLocaleString()}</p>
-                      <Badge className={`text-[10px] ${paymentStatusColors[transaction.paymentStatus]}`}>
+                      <p className="font-semibold text-sm">
+                        ₹{transaction.amount?.toLocaleString()}
+                      </p>
+                      <Badge
+                        className={`text-[10px] ${paymentStatusColors[transaction.paymentStatus]}`}
+                      >
                         {transaction.paymentStatus}
                       </Badge>
                     </div>
@@ -222,7 +261,9 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Pending Payments</CardTitle>
-              <Badge variant="secondary">{pendingPayments.length} pending</Badge>
+              <Badge variant="secondary">
+                {pendingPayments.length} pending
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -235,7 +276,10 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {pendingPayments.slice(0, 5).map((payment) => (
-                  <div key={payment.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div
+                    key={payment.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
                         {getSupplierInitials(payment.supplierId)}
@@ -247,10 +291,14 @@ export default function DashboardPage() {
                       </p>
                       {payment.dueDate && (
                         <p className="text-xs text-muted-foreground">
-                          Due: {new Date(payment.dueDate).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short'
-                          })}
+                          Due:{" "}
+                          {new Date(payment.dueDate).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            },
+                          )}
                         </p>
                       )}
                     </div>
@@ -291,14 +339,14 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium">All Transactions</p>
               </div>
             </Link>
-            <div 
+            <div
               className="p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-center cursor-pointer"
               onClick={() => setSupplierFormOpen(true)}
             >
               <Plus className="h-6 w-6 mx-auto mb-2 text-primary" />
               <p className="text-sm font-medium">New Supplier</p>
             </div>
-            <div 
+            <div
               className="p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-center cursor-pointer"
               onClick={() => setTransactionFormOpen(true)}
             >
@@ -325,4 +373,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

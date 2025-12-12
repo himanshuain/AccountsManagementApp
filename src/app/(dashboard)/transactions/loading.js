@@ -58,4 +58,3 @@ export default function TransactionsLoading() {
     </div>
   );
 }
-

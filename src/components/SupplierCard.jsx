@@ -10,11 +10,11 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
   // Show company name prominently, person name secondary
   const displayName = supplier.companyName || supplier.name;
   const secondaryName = supplier.companyName ? supplier.name : null;
-  
+
   const initials =
     displayName
       ?.split(" ")
-      .map(n => n[0])
+      .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2) || "??";
@@ -57,12 +57,16 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
               <div className="flex items-center gap-2 mt-2">
                 {transactionCount > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    {transactionCount} transaction{transactionCount !== 1 ? "s" : ""}
+                    {transactionCount} transaction
+                    {transactionCount !== 1 ? "s" : ""}
                   </Badge>
                 )}
                 {/* Sync status indicator */}
                 {supplier.syncStatus === "pending" && (
-                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-500/30">
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-amber-600 border-amber-500/30"
+                  >
                     <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse mr-1" />
                     Syncing
                   </Badge>

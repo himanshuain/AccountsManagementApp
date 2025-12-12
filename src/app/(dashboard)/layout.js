@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-import { isAuthenticated } from '@/lib/auth';
-import { Sidebar } from '@/components/Sidebar';
-import { MobileNav } from '@/components/MobileNav';
-import { OfflineIndicator } from '@/components/OfflineIndicator';
-import { NavigationProgress } from '@/components/NavigationProgress';
-import { GlobalSearch } from '@/components/GlobalSearch';
+import { useEffect, useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { isAuthenticated } from "@/lib/auth";
+import { Sidebar } from "@/components/Sidebar";
+import { MobileNav } from "@/components/MobileNav";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { NavigationProgress } from "@/components/NavigationProgress";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -20,13 +20,13 @@ export default function DashboardLayout({ children }) {
     const checkAuth = () => {
       const authed = isAuthenticated();
       if (!authed) {
-        router.replace('/login');
+        router.replace("/login");
       } else {
         setIsAuthed(true);
         setIsChecking(false);
       }
     };
-    
+
     // Small delay to ensure cookies are available after redirect
     const timer = setTimeout(checkAuth, 50);
     return () => clearTimeout(timer);
@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }) {
       <OfflineIndicator />
       <Sidebar />
       <MobileNav />
-      
+
       {/* Main content */}
       <main className="lg:pl-64">
         {/* Search Header */}
@@ -57,12 +57,9 @@ export default function DashboardLayout({ children }) {
             <GlobalSearch className="max-w-md" />
           </div>
         </div>
-        
-        <div className="pt-14 lg:pt-0 pb-20 lg:pb-6">
-          {children}
-        </div>
+
+        <div className="pt-14 lg:pt-0 pb-20 lg:pb-6">{children}</div>
       </main>
     </div>
   );
 }
-

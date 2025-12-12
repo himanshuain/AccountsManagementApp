@@ -1,48 +1,50 @@
-'use client';
+"use client";
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { 
-  ArrowLeft, 
-  Edit, 
-  Trash2, 
-  Phone, 
-  MapPin, 
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
+  Phone,
+  MapPin,
   FileText,
   Plus,
   IndianRupee,
   QrCode,
   ExternalLink,
   Copy,
-  Check
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+  Check,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import useSuppliers from '@/hooks/useSuppliers';
-import useTransactions from '@/hooks/useTransactions';
-import { SupplierForm } from '@/components/SupplierForm';
-import { TransactionForm } from '@/components/TransactionForm';
-import { TransactionTable } from '@/components/TransactionTable';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
-import { toast } from 'sonner';
+} from "@/components/ui/dialog";
+import useSuppliers from "@/hooks/useSuppliers";
+import useTransactions from "@/hooks/useTransactions";
+import { SupplierForm } from "@/components/SupplierForm";
+import { TransactionForm } from "@/components/TransactionForm";
+import { TransactionTable } from "@/components/TransactionTable";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { toast } from "sonner";
 
 export default function SupplierDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
-  
-  const { suppliers, getSupplierById, updateSupplier, deleteSupplier } = useSuppliers();
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useTransactions(id);
-  
+
+  const { suppliers, getSupplierById, updateSupplier, deleteSupplier } =
+    useSuppliers();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
+    useTransactions(id);
+
   const [supplier, setSupplier] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editFormOpen, setEditFormOpen] = useState(false);
@@ -50,7 +52,8 @@ export default function SupplierDetailPage({ params }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
-  const [deleteTransactionDialogOpen, setDeleteTransactionDialogOpen] = useState(false);
+  const [deleteTransactionDialogOpen, setDeleteTransactionDialogOpen] =
+    useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
@@ -65,7 +68,7 @@ export default function SupplierDetailPage({ params }) {
 
   useEffect(() => {
     if (!loading) {
-      const updatedSupplier = suppliers.find(s => s.id === id);
+      const updatedSupplier = suppliers.find((s) => s.id === id);
       if (updatedSupplier) {
         setSupplier(updatedSupplier);
       }
@@ -87,7 +90,9 @@ export default function SupplierDetailPage({ params }) {
     return (
       <div className="p-4 lg:p-6 text-center py-16">
         <h2 className="text-xl font-semibold mb-2">Supplier not found</h2>
-        <p className="text-muted-foreground mb-4">The supplier you&apos;re looking for doesn&apos;t exist.</p>
+        <p className="text-muted-foreground mb-4">
+          The supplier you&apos;re looking for doesn&apos;t exist.
+        </p>
         <Link href="/suppliers">
           <Button>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -101,17 +106,18 @@ export default function SupplierDetailPage({ params }) {
   // Display company name prominently
   const displayName = supplier.companyName || supplier.name;
   const secondaryName = supplier.companyName ? supplier.name : null;
-  
-  const initials = displayName
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || '??';
+
+  const initials =
+    displayName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "??";
 
   const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
   const paidAmount = transactions
-    .filter(t => t.paymentStatus === 'paid')
+    .filter((t) => t.paymentStatus === "paid")
     .reduce((sum, t) => sum + (t.amount || 0), 0);
   const pendingAmount = totalAmount - paidAmount;
 
@@ -119,28 +125,28 @@ export default function SupplierDetailPage({ params }) {
     const result = await updateSupplier(id, data);
     if (result.success) {
       setSupplier(result.data);
-      toast.success('Supplier updated');
+      toast.success("Supplier updated");
     } else {
-      toast.error('Failed to update supplier');
+      toast.error("Failed to update supplier");
     }
   };
 
   const handleDeleteSupplier = async () => {
     const result = await deleteSupplier(id);
     if (result.success) {
-      toast.success('Supplier deleted');
-      router.push('/suppliers');
+      toast.success("Supplier deleted");
+      router.push("/suppliers");
     } else {
-      toast.error('Failed to delete supplier');
+      toast.error("Failed to delete supplier");
     }
   };
 
   const handleAddTransaction = async (data) => {
     const result = await addTransaction(data);
     if (result.success) {
-      toast.success('Transaction added');
+      toast.success("Transaction added");
     } else {
-      toast.error('Failed to add transaction');
+      toast.error("Failed to add transaction");
     }
   };
 
@@ -152,10 +158,10 @@ export default function SupplierDetailPage({ params }) {
   const handleUpdateTransaction = async (data) => {
     const result = await updateTransaction(transactionToEdit.id, data);
     if (result.success) {
-      toast.success('Transaction updated');
+      toast.success("Transaction updated");
       setTransactionToEdit(null);
     } else {
-      toast.error('Failed to update transaction');
+      toast.error("Failed to update transaction");
     }
   };
 
@@ -168,19 +174,19 @@ export default function SupplierDetailPage({ params }) {
     if (transactionToDelete) {
       const result = await deleteTransaction(transactionToDelete.id);
       if (result.success) {
-        toast.success('Transaction deleted');
+        toast.success("Transaction deleted");
       } else {
-        toast.error('Failed to delete transaction');
+        toast.error("Failed to delete transaction");
       }
       setTransactionToDelete(null);
     }
   };
 
-  const handleUpiClick = (app = 'gpay') => {
+  const handleUpiClick = (app = "gpay") => {
     if (supplier?.upiId) {
-      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(displayName || 'Supplier')}&cu=INR`;
-      
-      if (app === 'gpay') {
+      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(displayName || "Supplier")}&cu=INR`;
+
+      if (app === "gpay") {
         const gpayIntent = `intent://pay?${upiParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         if (isIOS) {
@@ -188,9 +194,9 @@ export default function SupplierDetailPage({ params }) {
         } else {
           window.location.href = gpayIntent;
         }
-      } else if (app === 'phonepe') {
+      } else if (app === "phonepe") {
         window.location.href = `phonepe://pay?${upiParams}`;
-      } else if (app === 'paytm') {
+      } else if (app === "paytm") {
         window.location.href = `paytmmp://pay?${upiParams}`;
       } else {
         window.location.href = `upi://pay?${upiParams}`;
@@ -203,10 +209,10 @@ export default function SupplierDetailPage({ params }) {
       try {
         await navigator.clipboard.writeText(supplier.upiId);
         setUpiCopied(true);
-        toast.success('UPI ID copied!');
+        toast.success("UPI ID copied!");
         setTimeout(() => setUpiCopied(false), 2000);
       } catch (err) {
-        toast.error('Failed to copy');
+        toast.error("Failed to copy");
       }
     }
   };
@@ -223,14 +229,24 @@ export default function SupplierDetailPage({ params }) {
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold truncate">{displayName}</h1>
           {secondaryName && (
-            <p className="text-sm text-muted-foreground truncate">{secondaryName}</p>
+            <p className="text-sm text-muted-foreground truncate">
+              {secondaryName}
+            </p>
           )}
         </div>
         <div className="flex gap-2 shrink-0">
-          <Button variant="outline" size="icon" onClick={() => setEditFormOpen(true)}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setEditFormOpen(true)}
+          >
             <Edit className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setDeleteDialogOpen(true)}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
@@ -251,7 +267,10 @@ export default function SupplierDetailPage({ params }) {
             {/* Details */}
             <div className="flex-1 min-w-0 space-y-2">
               {supplier.phone && (
-                <a href={`tel:${supplier.phone}`} className="flex items-center gap-2 text-sm hover:text-primary">
+                <a
+                  href={`tel:${supplier.phone}`}
+                  className="flex items-center gap-2 text-sm hover:text-primary"
+                >
                   <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>{supplier.phone}</span>
                 </a>
@@ -268,10 +287,13 @@ export default function SupplierDetailPage({ params }) {
                   <span>GST: {supplier.gstNumber}</span>
                 </div>
               )}
-              
+
               {/* Sync status */}
-              {supplier.syncStatus === 'pending' && (
-                <Badge variant="outline" className="text-amber-600 border-amber-500/30">
+              {supplier.syncStatus === "pending" && (
+                <Badge
+                  variant="outline"
+                  className="text-amber-600 border-amber-500/30"
+                >
                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" />
                   Syncing
                 </Badge>
@@ -288,31 +310,33 @@ export default function SupplierDetailPage({ params }) {
             <div className="flex items-center gap-4">
               {/* QR Code */}
               {supplier.upiQrCode && (
-                <div 
+                <div
                   className="w-20 h-20 rounded-lg overflow-hidden border-2 border-background shadow-lg cursor-pointer hover:scale-105 transition-transform relative shrink-0"
                   onClick={() => setQrDialogOpen(true)}
                 >
-                  <Image 
-                    src={supplier.upiQrCode} 
-                    alt="UPI QR Code" 
+                  <Image
+                    src={supplier.upiQrCode}
+                    alt="UPI QR Code"
                     fill
                     className="object-cover"
                     unoptimized
                   />
                 </div>
               )}
-              
+
               {/* UPI Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <QrCode className="h-4 w-4 text-primary" />
                   <span className="font-semibold text-sm">UPI Payment</span>
                 </div>
-                
+
                 {supplier.upiId && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 bg-muted rounded text-xs truncate max-w-[150px]">{supplier.upiId}</code>
+                      <code className="px-2 py-1 bg-muted rounded text-xs truncate max-w-[150px]">
+                        {supplier.upiId}
+                      </code>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -328,19 +352,19 @@ export default function SupplierDetailPage({ params }) {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
-                        onClick={() => handleUpiClick('gpay')}
+                        onClick={() => handleUpiClick("gpay")}
                         className="px-3 py-1.5 bg-blue-600 text-white rounded-full text-xs font-medium hover:bg-blue-700 transition-colors"
                       >
                         GPay
                       </button>
                       <button
-                        onClick={() => handleUpiClick('phonepe')}
+                        onClick={() => handleUpiClick("phonepe")}
                         className="px-3 py-1.5 bg-purple-600 text-white rounded-full text-xs font-medium hover:bg-purple-700 transition-colors"
                       >
                         PhonePe
                       </button>
                       <button
-                        onClick={() => handleUpiClick('other')}
+                        onClick={() => handleUpiClick("other")}
                         className="px-3 py-1.5 bg-muted text-foreground rounded-full text-xs font-medium hover:bg-accent transition-colors"
                       >
                         Other
@@ -364,17 +388,23 @@ export default function SupplierDetailPage({ params }) {
             </div>
             <div className="h-10 w-px bg-border" />
             <div className="text-center flex-1">
-              <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold">
+                ₹{totalAmount.toLocaleString()}
+              </p>
               <p className="text-xs text-muted-foreground">Total</p>
             </div>
             <div className="h-10 w-px bg-border" />
             <div className="text-center flex-1">
-              <p className="text-2xl font-bold text-green-600">₹{paidAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">
+                ₹{paidAmount.toLocaleString()}
+              </p>
               <p className="text-xs text-muted-foreground">Paid</p>
             </div>
             <div className="h-10 w-px bg-border" />
             <div className="text-center flex-1">
-              <p className="text-2xl font-bold text-amber-600">₹{pendingAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-amber-600">
+                ₹{pendingAmount.toLocaleString()}
+              </p>
               <p className="text-xs text-muted-foreground">Pending</p>
             </div>
           </div>
@@ -385,22 +415,25 @@ export default function SupplierDetailPage({ params }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Transactions</h2>
-          <Button size="sm" onClick={() => {
-            setTransactionToEdit(null);
-            setTransactionFormOpen(true);
-          }}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setTransactionToEdit(null);
+              setTransactionFormOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-1" />
             Add
           </Button>
         </div>
-        
+
         {transactions.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
               <p>No transactions yet</p>
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="mt-2"
                 onClick={() => setTransactionFormOpen(true)}
               >
@@ -435,11 +468,13 @@ export default function SupplierDetailPage({ params }) {
           setTransactionFormOpen(open);
           if (!open) setTransactionToEdit(null);
         }}
-        onSubmit={transactionToEdit ? handleUpdateTransaction : handleAddTransaction}
+        onSubmit={
+          transactionToEdit ? handleUpdateTransaction : handleAddTransaction
+        }
         suppliers={[supplier]}
         initialData={transactionToEdit}
         defaultSupplierId={id}
-        title={transactionToEdit ? 'Edit Transaction' : 'Add Transaction'}
+        title={transactionToEdit ? "Edit Transaction" : "Add Transaction"}
       />
 
       {/* Delete Supplier Confirmation */}
@@ -459,7 +494,11 @@ export default function SupplierDetailPage({ params }) {
         onConfirm={handleConfirmDeleteTransaction}
         title="Delete Transaction"
         description="This action cannot be undone."
-        itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ''}
+        itemName={
+          transactionToDelete
+            ? `₹${transactionToDelete.amount?.toLocaleString()}`
+            : ""
+        }
       />
 
       {/* QR Code Full View Dialog */}
@@ -471,9 +510,9 @@ export default function SupplierDetailPage({ params }) {
           <div className="flex flex-col items-center gap-4">
             {supplier?.upiQrCode && (
               <div className="w-56 h-56 rounded-lg overflow-hidden border-2 border-muted relative bg-white">
-                <Image 
-                  src={supplier.upiQrCode} 
-                  alt="UPI QR Code" 
+                <Image
+                  src={supplier.upiQrCode}
+                  alt="UPI QR Code"
                   fill
                   className="object-contain"
                   unoptimized
@@ -486,7 +525,7 @@ export default function SupplierDetailPage({ params }) {
                 <p className="font-medium">{supplier.upiId}</p>
               </div>
             )}
-            <Button onClick={() => handleUpiClick('other')} className="w-full">
+            <Button onClick={() => handleUpiClick("other")} className="w-full">
               <ExternalLink className="h-4 w-4 mr-2" />
               Open in UPI App
             </Button>

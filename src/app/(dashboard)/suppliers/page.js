@@ -1,22 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Search, Plus, Users, Download } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import useSuppliers from '@/hooks/useSuppliers';
-import useTransactions from '@/hooks/useTransactions';
-import { SupplierCard, SupplierCardSkeleton } from '@/components/SupplierCard';
-import { SupplierForm } from '@/components/SupplierForm';
-import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
-import { exportSuppliers } from '@/lib/export';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Search, Plus, Users, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import useSuppliers from "@/hooks/useSuppliers";
+import useTransactions from "@/hooks/useTransactions";
+import { SupplierCard, SupplierCardSkeleton } from "@/components/SupplierCard";
+import { SupplierForm } from "@/components/SupplierForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { exportSuppliers } from "@/lib/export";
+import { toast } from "sonner";
 
 export default function SuppliersPage() {
-  const { suppliers, loading, addSupplier, deleteSupplier, searchSuppliers } = useSuppliers();
+  const { suppliers, loading, addSupplier, deleteSupplier, searchSuppliers } =
+    useSuppliers();
   const { transactions } = useTransactions();
-  
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [supplierFormOpen, setSupplierFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState(null);
@@ -30,9 +31,9 @@ export default function SuppliersPage() {
   const handleAddSupplier = async (data) => {
     const result = await addSupplier(data);
     if (result.success) {
-      toast.success('Supplier added successfully');
+      toast.success("Supplier added successfully");
     } else {
-      toast.error('Failed to add supplier');
+      toast.error("Failed to add supplier");
     }
   };
 
@@ -47,24 +48,24 @@ export default function SuppliersPage() {
     if (supplierToDelete) {
       const result = await deleteSupplier(supplierToDelete.id);
       if (result.success) {
-        toast.success('Supplier deleted successfully');
+        toast.success("Supplier deleted successfully");
       } else {
-        toast.error('Failed to delete supplier');
+        toast.error("Failed to delete supplier");
       }
       setSupplierToDelete(null);
     }
   };
 
   const getTransactionCount = (supplierId) => {
-    return transactions.filter(t => t.supplierId === supplierId).length;
+    return transactions.filter((t) => t.supplierId === supplierId).length;
   };
 
   const handleExport = () => {
     try {
       exportSuppliers(suppliers);
-      toast.success('Suppliers exported successfully');
+      toast.success("Suppliers exported successfully");
     } catch (error) {
-      toast.error('Failed to export suppliers');
+      toast.error("Failed to export suppliers");
     }
   };
 
@@ -74,7 +75,9 @@ export default function SuppliersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Suppliers</h1>
-          <p className="text-muted-foreground">Manage your supplier information</p>
+          <p className="text-muted-foreground">
+            Manage your supplier information
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {suppliers.length > 0 && (
@@ -115,9 +118,9 @@ export default function SuppliersPage() {
           </div>
           <h3 className="text-lg font-semibold mb-1">No suppliers yet</h3>
           <p className="text-muted-foreground mb-4">
-            {searchQuery 
-              ? 'No suppliers match your search' 
-              : 'Add your first supplier to get started'}
+            {searchQuery
+              ? "No suppliers match your search"
+              : "Add your first supplier to get started"}
           </p>
           {!searchQuery && (
             <Button onClick={() => setSupplierFormOpen(true)}>
@@ -129,8 +132,8 @@ export default function SuppliersPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {suppliers.map((supplier) => (
-            <SupplierCard 
-              key={supplier.id} 
+            <SupplierCard
+              key={supplier.id}
               supplier={supplier}
               transactionCount={getTransactionCount(supplier.id)}
             />
@@ -157,4 +160,3 @@ export default function SuppliersPage() {
     </div>
   );
 }
-
