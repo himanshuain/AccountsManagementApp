@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   ArrowLeft, 
   Edit, 
@@ -248,14 +249,15 @@ export default function SupplierDetailPage({ params }) {
               {/* QR Code */}
               {supplier.upiQrCode && (
                 <div 
-                  className="w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform"
+                  className="w-24 h-24 rounded-lg overflow-hidden border-2 border-white shadow-lg cursor-pointer hover:scale-105 transition-transform relative"
                   onClick={() => setQrDialogOpen(true)}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
+                  <Image 
                     src={supplier.upiQrCode} 
                     alt="UPI QR Code" 
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
                 </div>
               )}
@@ -518,12 +520,13 @@ export default function SupplierDetailPage({ params }) {
           </DialogHeader>
           <div className="flex flex-col items-center gap-4">
             {supplier?.upiQrCode && (
-              <div className="w-64 h-64 rounded-lg overflow-hidden border-2 border-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
+              <div className="w-64 h-64 rounded-lg overflow-hidden border-2 border-muted relative bg-white">
+                <Image 
                   src={supplier.upiQrCode} 
                   alt="UPI QR Code" 
-                  className="w-full h-full object-contain bg-white"
+                  fill
+                  className="object-contain"
+                  unoptimized
                 />
               </div>
             )}
