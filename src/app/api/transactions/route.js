@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { loadTransactions, saveTransactions } from '@/lib/blob-storage';
 
+// Disable caching for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

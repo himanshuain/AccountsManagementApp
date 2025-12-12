@@ -37,7 +37,17 @@ export async function loadDataFromBlob(key) {
     const { blobs } = await list({ prefix: `${DATA_PREFIX}${key}` });
     if (blobs.length === 0) return null;
     
-    const response = await fetch(blobs[0].url);
+    // Add cache-busting query param to ensure fresh data
+    const url = new URL(blobs[0].url);
+    url.searchParams.set('t', Date.now().toString());
+    
+    const response = await fetch(url.toString(), {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    });
     if (!response.ok) return null;
     
     return await response.json();
