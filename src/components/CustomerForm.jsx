@@ -1,22 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ImageUpload, MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
-import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 
 export function CustomerForm({
   open,
@@ -29,7 +27,6 @@ export function CustomerForm({
   onInitialAmountChange = () => {},
 }) {
   const isOnline = useOnlineStatus();
-  const { isKeyboardVisible } = useKeyboardVisible();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(
     initialData?.profilePicture || null,
@@ -38,7 +35,6 @@ export function CustomerForm({
     initialData?.khataPhotos ||
       (initialData?.khataPhoto ? [initialData.khataPhoto] : []),
   );
-  const scrollContainerRef = useRef(null);
 
   const defaultFormValues = {
     name: "",
@@ -132,31 +128,41 @@ export function CustomerForm({
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
         </div>
 
-        <SheetHeader className="px-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle>{title}</SheetTitle>
-              <SheetDescription>
-                {initialData
-                  ? "Update customer information"
-                  : "Add a new customer for Udhar tracking"}
-              </SheetDescription>
-            </div>
+        {/* Header with action buttons */}
+        <SheetHeader className="px-4 pb-3 border-b">
+          <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={handleClose}
-              className="h-8 w-8 rounded-full"
+              disabled={isSubmitting}
+              className="h-9 px-3"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+            <SheetTitle className="text-base font-semibold flex-1 text-center">
+              {title}
+            </SheetTitle>
+            <Button
+              size="sm"
+              onClick={handleSubmit(handleFormSubmit)}
+              disabled={isSubmitting || !isOnline}
+              className="h-9 px-3"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  {initialData ? "Save" : "Add"}
+                </>
+              )}
             </Button>
           </div>
         </SheetHeader>
 
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-6 pb-safe"
-        >
+        <div className="flex-1 overflow-y-auto px-6 pb-safe">
           <form
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
@@ -255,28 +261,8 @@ export function CustomerForm({
               />
             </div>
 
-            {/* Action Buttons - Inside scroll area */}
-            <div className="pt-4 pb-6 space-y-3">
-              <Button
-                type="submit"
-                disabled={isSubmitting || !isOnline}
-                className="w-full h-12 text-base"
-              >
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {initialData ? "Update Customer" : "Add Customer"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="w-full h-12 text-base"
-              >
-                Cancel
-              </Button>
-            </div>
+            {/* Bottom padding for safe area */}
+            <div className="h-8" />
           </form>
         </div>
       </SheetContent>

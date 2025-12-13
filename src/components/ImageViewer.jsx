@@ -180,12 +180,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 /**
  * Gallery Viewer for multiple images using PhotoSwipe
  */
-export function ImageGalleryViewer({
-  images = [],
-  initialIndex = 0,
-  open,
-  onOpenChange,
-}) {
+export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
   const lightboxRef = useRef(null);
   const [loadedImages, setLoadedImages] = useState([]);
 
@@ -197,7 +192,7 @@ export function ImageGalleryViewer({
       const imageData = await Promise.all(
         images.map(
           (src, index) =>
-            new Promise((resolve) => {
+            new Promise(resolve => {
               const img = new Image();
               img.onload = () => {
                 resolve({
@@ -216,8 +211,8 @@ export function ImageGalleryViewer({
                 });
               };
               img.src = src;
-            }),
-        ),
+            })
+        )
       );
 
       setLoadedImages(imageData);

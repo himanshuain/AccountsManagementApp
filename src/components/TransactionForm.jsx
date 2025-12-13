@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +16,10 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -42,11 +42,11 @@ export function TransactionForm({
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     initialData?.supplierId || defaultSupplierId || "",
   );
-  const [paymentStatus, setPaymentStatus] = useState(
-    initialData?.paymentStatus || "pending",
+  const [isPaid, setIsPaid] = useState(
+    initialData?.paymentStatus === "paid" || false,
   );
-  const [paymentMode, setPaymentMode] = useState(
-    initialData?.paymentMode || "upi",
+  const [isCash, setIsCash] = useState(
+    initialData?.paymentMode === "cash" || false,
   );
   const [supplierSelectOpen, setSupplierSelectOpen] = useState(false);
 
@@ -69,6 +69,14 @@ export function TransactionForm({
     }
   }, [open, quickCaptureData]);
 
+  // Reset switches when initialData changes
+  useEffect(() => {
+    if (open) {
+      setIsPaid(initialData?.paymentStatus === "paid" || false);
+      setIsCash(initialData?.paymentMode === "cash" || false);
+    }
+  }, [open, initialData]);
+
   const {
     register,
     handleSubmit,
@@ -79,7 +87,6 @@ export function TransactionForm({
       date: new Date().toISOString().split("T")[0],
       amount: "",
       itemName: "Clothes",
-      dueDate: "",
       notes: "",
     },
   });
@@ -126,8 +133,8 @@ export function TransactionForm({
       await onSubmit({
         ...data,
         supplierId: selectedSupplierId,
-        paymentStatus,
-        paymentMode,
+        paymentStatus: isPaid ? "paid" : "pending",
+        paymentMode: isCash ? "cash" : "upi",
         billImages: finalBillImages,
         amount: Number(data.amount) || 0,
       });
@@ -135,8 +142,8 @@ export function TransactionForm({
       setBillImages([]);
       setPendingFiles([]);
       setSelectedSupplierId(defaultSupplierId || "");
-      setPaymentStatus("pending");
-      setPaymentMode("upi");
+      setIsPaid(false);
+      setIsCash(false);
       onOpenChange(false);
     } catch (error) {
       console.error("Submit failed:", error);
@@ -158,8 +165,8 @@ export function TransactionForm({
       setBillImages(initialData?.billImages || []);
       setPendingFiles([]);
       setSelectedSupplierId(initialData?.supplierId || defaultSupplierId || "");
-      setPaymentStatus(initialData?.paymentStatus || "pending");
-      setPaymentMode(initialData?.paymentMode || "upi");
+      setIsPaid(initialData?.paymentStatus === "paid" || false);
+      setIsCash(initialData?.paymentMode === "cash" || false);
       onOpenChange(false);
     }
   };
@@ -176,23 +183,36 @@ export function TransactionForm({
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
         </div>
 
-        <SheetHeader className="px-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle>{title}</SheetTitle>
-              <SheetDescription>
-                {initialData
-                  ? "Update transaction details"
-                  : "Record a new transaction"}
-              </SheetDescription>
-            </div>
+        {/* Header with action buttons */}
+        <SheetHeader className="px-4 pb-3 border-b">
+          <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={handleClose}
-              className="h-8 w-8 rounded-full"
+              disabled={isSubmitting}
+              className="h-9 px-3"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+            <SheetTitle className="text-base font-semibold flex-1 text-center">
+              {title}
+            </SheetTitle>
+            <Button
+              size="sm"
+              onClick={handleSubmit(handleFormSubmit)}
+              disabled={isSubmitting || !selectedSupplierId || !isOnline}
+              className="h-9 px-3"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  {initialData ? "Save" : "Add"}
+                </>
+              )}
             </Button>
           </div>
         </SheetHeader>
@@ -321,78 +341,50 @@ export function TransactionForm({
 
             <Separator />
 
-            {/* Payment Info - Simplified */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Payment Mode</Label>
-                <Select value={paymentMode} onValueChange={setPaymentMode}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="upi">UPI</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Payment Status</Label>
-                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Due Date & Notes - Stacked vertically */}
+            {/* Payment Info - Using Switches */}
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Date</Label>
-                <Input
-                  id="dueDate"
-                  type="date"
-                  {...register("dueDate")}
-                  className="h-12"
-                />
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Payment Mode</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {isCash ? "Cash payment" : "UPI payment"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">UPI</span>
+                  <Switch checked={isCash} onCheckedChange={setIsCash} />
+                  <span className="text-sm text-muted-foreground">Cash</span>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input
-                  id="notes"
-                  {...register("notes")}
-                  placeholder="Optional notes"
-                  className="h-12"
-                />
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Payment Status</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {isPaid ? "Already paid" : "Payment pending"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Pending</span>
+                  <Switch checked={isPaid} onCheckedChange={setIsPaid} />
+                  <span className="text-sm text-muted-foreground">Paid</span>
+                </div>
               </div>
             </div>
 
-            {/* Action Buttons - Inside scroll area */}
-            <div className="pt-4 pb-6 space-y-3">
-              <Button
-                type="submit"
-                disabled={isSubmitting || !selectedSupplierId || !isOnline}
-                className="w-full h-12 text-base"
-              >
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {initialData ? "Update Transaction" : "Save Transaction"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="w-full h-12 text-base"
-              >
-                Cancel
-              </Button>
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                {...register("notes")}
+                placeholder="Optional notes"
+                className="h-12"
+              />
             </div>
+
+            {/* Bottom padding for safe area */}
+            <div className="h-8" />
           </form>
         </div>
       </SheetContent>

@@ -6,7 +6,6 @@ import {
   Trash2,
   Image as ImageIcon,
   Calendar,
-  User,
   ChevronDown,
   CreditCard,
   Receipt,
@@ -236,8 +235,19 @@ export function TransactionTable({
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Main info */}
                     <div className="flex-1 min-w-0">
+                      {/* Supplier Name - Most prominent at top */}
+                      {showSupplier && (
+                        <Link
+                          href={`/suppliers/${transaction.supplierId}`}
+                          className="font-bold text-base hover:text-primary transition-colors block truncate mb-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {getSupplierName(transaction.supplierId)}
+                        </Link>
+                      )}
+
                       <div className="flex items-center gap-2 mb-1">
-                        {/* Amount - Most prominent */}
+                        {/* Amount */}
                         <span className="text-lg font-bold">
                           ₹{(transaction.amount || 0).toLocaleString()}
                         </span>
@@ -255,11 +265,6 @@ export function TransactionTable({
                         >
                           {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
                         </Badge>
-                        {/* Payment mode */}
-                        <span className="text-xs text-muted-foreground">
-                          {paymentModeLabels[transaction.paymentMode] ||
-                            transaction.paymentMode}
-                        </span>
                       </div>
 
                       {/* Show partial payment progress */}
@@ -300,19 +305,12 @@ export function TransactionTable({
                           )}
                         </span>
 
-                        {/* Supplier */}
-                        {showSupplier && (
-                          <Link
-                            href={`/suppliers/${transaction.supplierId}`}
-                            className="flex items-center gap-1 hover:text-primary transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <User className="h-3 w-3" />
-                            <span className="truncate max-w-[120px]">
-                              {getSupplierName(transaction.supplierId)}
-                            </span>
-                          </Link>
-                        )}
+                        {/* Payment mode */}
+                        <span className="flex items-center gap-1">
+                          <CreditCard className="h-3 w-3" />
+                          {paymentModeLabels[transaction.paymentMode] ||
+                            transaction.paymentMode}
+                        </span>
 
                         {/* Item name */}
                         {transaction.itemName && (

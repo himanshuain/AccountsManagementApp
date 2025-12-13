@@ -22,6 +22,9 @@ import {
   CreditCard,
   Receipt,
   Check,
+  Camera,
+  ImagePlus,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,7 +49,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { compressImage } from "@/lib/image-compression";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -98,13 +110,28 @@ export default function CustomersPage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentUdhar, setPaymentUdhar] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentReceipts, setPaymentReceipts] = useState([]);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const paymentInputRef = useRef(null);
+  const receiptInputRef = useRef(null);
+  const receiptGalleryInputRef = useRef(null);
 
   // Quick collect dialog state (for collecting from customer card)
   const [quickCollectOpen, setQuickCollectOpen] = useState(false);
   const [quickCollectCustomer, setQuickCollectCustomer] = useState(null);
   const [quickCollectAmount, setQuickCollectAmount] = useState("");
+  const [quickCollectReceipts, setQuickCollectReceipts] = useState([]);
+  const [isUploadingQuickReceipt, setIsUploadingQuickReceipt] = useState(false);
   const quickCollectInputRef = useRef(null);
+  const quickReceiptInputRef = useRef(null);
+  const quickReceiptGalleryInputRef = useRef(null);
+
+  // Quick add udhar state
+  const quickAddInputRef = useRef(null);
+  const [quickAddBillImages, setQuickAddBillImages] = useState([]);
+  const [isUploadingQuickAddBill, setIsUploadingQuickAddBill] = useState(false);
+  const quickAddBillInputRef = useRef(null);
+  const quickAddBillGalleryInputRef = useRef(null);
 
   // Expanded customer actions state
   const [expandedCustomerId, setExpandedCustomerId] = useState(null);
@@ -116,23 +143,44 @@ export default function CustomersPage() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
 
-  // Auto-focus payment input
+  // Auto-focus payment input and scroll into view
   useEffect(() => {
     if (paymentDialogOpen && paymentInputRef.current) {
       setTimeout(() => {
         paymentInputRef.current?.focus();
-      }, 100);
+        paymentInputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 500);
     }
   }, [paymentDialogOpen]);
 
-  // Auto-focus quick collect input
+  // Auto-focus quick collect input and scroll into view
   useEffect(() => {
     if (quickCollectOpen && quickCollectInputRef.current) {
       setTimeout(() => {
         quickCollectInputRef.current?.focus();
-      }, 100);
+        quickCollectInputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 500);
     }
   }, [quickCollectOpen]);
+
+  // Auto-focus quick add input
+  useEffect(() => {
+    if (quickAddOpen && quickAddInputRef.current) {
+      setTimeout(() => {
+        quickAddInputRef.current?.focus();
+        quickAddInputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 500);
+    }
+  }, [quickAddOpen]);
 
   // Calculate totals for each customer
   const customersWithStats = useMemo(() => {
@@ -204,20 +252,58 @@ export default function CustomersPage() {
       return;
     }
 
+    const customerId = quickAddCustomer.id;
     const result = await addUdhar({
-      customerId: quickAddCustomer.id,
+      customerId: customerId,
       amount: Number(quickAddAmount),
       date: new Date().toISOString().split("T")[0],
       notes: "",
+      billImages: quickAddBillImages,
     });
 
     if (result.success) {
       toast.success(`₹${Number(quickAddAmount).toLocaleString()} Udhar added`);
       setQuickAddOpen(false);
       setQuickAddAmount("");
+      setQuickAddBillImages([]);
       setQuickAddCustomer(null);
+      // Keep the collapsible open for the customer
+      setExpandedCustomerId(customerId);
     } else {
       toast.error("Failed to add Udhar");
+    }
+  };
+
+  // Handle quick add bill image upload
+  const handleQuickAddBillSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploadingQuickAddBill(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        const compressedFile = await compressImage(file);
+        const formData = new FormData();
+        formData.append("file", compressedFile);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const { url } = await response.json();
+          uploadedUrls.push(url);
+        }
+      }
+      setQuickAddBillImages((prev) => [...prev, ...uploadedUrls]);
+    } catch (error) {
+      console.error("Error uploading bill images:", error);
+      toast.error("Failed to upload images");
+    } finally {
+      setIsUploadingQuickAddBill(false);
+      e.target.value = "";
     }
   };
 
@@ -328,13 +414,85 @@ export default function CustomersPage() {
     setPaymentDialogOpen(true);
   };
 
+  // Handle receipt upload for payment (supports multiple receipts)
+  const handleReceiptSelect = async (e, isQuickCollect = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const setUploading = isQuickCollect
+      ? setIsUploadingQuickReceipt
+      : setIsUploadingReceipt;
+    const setReceipts = isQuickCollect
+      ? setQuickCollectReceipts
+      : setPaymentReceipts;
+    const currentReceipts = isQuickCollect
+      ? quickCollectReceipts
+      : paymentReceipts;
+
+    setUploading(true);
+
+    try {
+      // Compress image before upload
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.8,
+        maxSizeKB: 500,
+      });
+
+      // Upload file
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        setReceipts([...currentReceipts, url]);
+        toast.success("Receipt uploaded");
+      } else {
+        // Fallback to local preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setReceipts([...currentReceipts, e.target.result]);
+        };
+        reader.readAsDataURL(compressedFile);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setUploading(false);
+      // Reset the input
+      e.target.value = "";
+    }
+  };
+
+  // Remove a receipt from the list
+  const handleRemoveReceipt = (index, isQuickCollect = false) => {
+    if (isQuickCollect) {
+      setQuickCollectReceipts((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setPaymentReceipts((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const handleRecordPayment = async () => {
     if (!paymentUdhar || !paymentAmount || Number(paymentAmount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
 
-    const result = await recordDeposit(paymentUdhar.id, Number(paymentAmount));
+    // Use first receipt or null
+    const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
+
+    const result = await recordDeposit(
+      paymentUdhar.id,
+      Number(paymentAmount),
+      receiptUrl,
+    );
 
     if (result.success) {
       toast.success(
@@ -343,6 +501,7 @@ export default function CustomersPage() {
       setPaymentDialogOpen(false);
       setPaymentUdhar(null);
       setPaymentAmount("");
+      setPaymentReceipts([]);
     } else {
       toast.error(result.error || "Failed to record payment");
     }
@@ -351,13 +510,17 @@ export default function CustomersPage() {
   const handleMarkFullPaidFromDialog = async () => {
     if (!paymentUdhar) return;
 
-    const result = await markFullPaid(paymentUdhar.id);
+    // Use first receipt or null
+    const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
+
+    const result = await markFullPaid(paymentUdhar.id, receiptUrl);
 
     if (result.success) {
       toast.success("Marked as fully paid");
       setPaymentDialogOpen(false);
       setPaymentUdhar(null);
       setPaymentAmount("");
+      setPaymentReceipts([]);
     } else {
       toast.error(result.error || "Failed to mark as paid");
     }
@@ -367,6 +530,7 @@ export default function CustomersPage() {
   const handleQuickCollect = (customer) => {
     setQuickCollectCustomer(customer);
     setQuickCollectAmount(customer.pendingAmount.toString());
+    setQuickCollectReceipts([]);
     setQuickCollectOpen(true);
   };
 
@@ -395,6 +559,11 @@ export default function CustomersPage() {
     }
 
     let remainingAmount = Number(quickCollectAmount);
+    let isFirstPayment = true;
+
+    // Use first receipt or null
+    const receiptUrl =
+      quickCollectReceipts.length > 0 ? quickCollectReceipts[0] : null;
 
     // Apply payment to oldest udhar entries first
     for (const udhar of customerUdhars) {
@@ -409,7 +578,12 @@ export default function CustomersPage() {
       if (pending <= 0) continue;
 
       const paymentForThis = Math.min(remainingAmount, pending);
-      const result = await recordDeposit(udhar.id, paymentForThis);
+      // Only attach receipt to the first payment
+      const result = await recordDeposit(
+        udhar.id,
+        paymentForThis,
+        isFirstPayment ? receiptUrl : null,
+      );
 
       if (!result.success) {
         toast.error(result.error || "Failed to record payment");
@@ -417,12 +591,17 @@ export default function CustomersPage() {
       }
 
       remainingAmount -= paymentForThis;
+      isFirstPayment = false;
     }
 
+    const customerId = quickCollectCustomer.id;
     toast.success(`₹${Number(quickCollectAmount).toLocaleString()} collected`);
     setQuickCollectOpen(false);
     setQuickCollectCustomer(null);
     setQuickCollectAmount("");
+    setQuickCollectReceipts([]);
+    // Keep the collapsible open for the customer
+    setExpandedCustomerId(customerId);
   };
 
   // Get full customer data with stats
@@ -738,7 +917,7 @@ export default function CustomersPage() {
 
                                   {/* Payment details */}
                                   <div className="flex-1 pb-2">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span className="font-semibold text-green-600 text-sm">
                                         ₹{payment.amount.toLocaleString()}
                                       </span>
@@ -746,7 +925,21 @@ export default function CustomersPage() {
                                         — {formatRelativeDate(payment.date)}
                                       </span>
                                       {payment.receiptUrl && (
-                                        <Receipt className="h-3 w-3 text-primary" />
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-6 px-2 text-xs gap-1"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setImageViewerSrc(
+                                              payment.receiptUrl,
+                                            );
+                                            setImageViewerOpen(true);
+                                          }}
+                                        >
+                                          <Receipt className="h-3 w-3" />
+                                          Receipt
+                                        </Button>
                                       )}
                                     </div>
                                     {payment.isFinalPayment && (
@@ -863,210 +1056,511 @@ export default function CustomersPage() {
         defaultCustomerId={selectedCustomerId}
       />
 
-      {/* Quick Add Dialog */}
-      <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Quick Add Udhar</DialogTitle>
-            <DialogDescription>
-              Add Udhar for {quickAddCustomer?.name}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Amount (₹)</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={quickAddAmount}
-                onChange={(e) => setQuickAddAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="text-2xl h-16 font-bold text-center"
-                autoFocus
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <div className="flex gap-3 w-full">
+      {/* Quick Add Udhar Sheet - slides from top */}
+      <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+        <SheetContent
+          side="top"
+          className="rounded-b-2xl p-0 flex flex-col"
+          hideClose
+        >
+          {/* Header with action buttons */}
+          <SheetHeader className="px-4 py-3 border-b">
+            <div className="flex items-center justify-between gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setQuickAddOpen(false);
                   setQuickAddAmount("");
+                  setQuickAddBillImages([]);
                 }}
-                className="flex-1"
+                className="h-9 px-3"
               >
+                <X className="h-4 w-4 mr-1" />
                 Cancel
               </Button>
-              <Button onClick={handleQuickAdd} className="flex-1">
+              <SheetTitle className="text-base font-semibold flex-1 text-center">
                 Add Udhar
+              </SheetTitle>
+              <Button
+                size="sm"
+                onClick={handleQuickAdd}
+                disabled={!isOnline || !quickAddAmount || Number(quickAddAmount) <= 0}
+                className="h-9 px-3"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Add
               </Button>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetHeader>
 
-      {/* Quick Collect Dialog */}
-      <Dialog open={quickCollectOpen} onOpenChange={setQuickCollectOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Collect Payment</DialogTitle>
-            <DialogDescription>
-              Collect Udhar from {quickCollectCustomer?.name}
-            </DialogDescription>
-          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="space-y-4">
+              {quickAddCustomer && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Adding Udhar for <strong>{quickAddCustomer.name}</strong>
+                </p>
+              )}
 
-          <div className="space-y-4 py-4">
-            {quickCollectCustomer && (
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Pending</span>
-                  <span className="font-bold text-amber-600">
-                    ₹{quickCollectCustomer.pendingAmount?.toLocaleString()}
-                  </span>
-                </div>
+              <div className="space-y-2">
+                <Label>Amount (₹)</Label>
+                <Input
+                  ref={quickAddInputRef}
+                  type="number"
+                  inputMode="numeric"
+                  value={quickAddAmount}
+                  onChange={(e) => setQuickAddAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="text-3xl h-16 font-bold text-center"
+                />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label>Amount to Collect (₹)</Label>
-              <Input
-                ref={quickCollectInputRef}
-                type="number"
-                inputMode="numeric"
-                value={quickCollectAmount}
-                onChange={(e) => setQuickCollectAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="text-2xl h-16 font-bold text-center"
-              />
+              {/* Bill Images */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <ImagePlus className="h-4 w-4" />
+                  Bill Images (Optional)
+                </Label>
+                <div className="flex gap-2">
+                  <input
+                    ref={quickAddBillInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleQuickAddBillSelect}
+                    className="hidden"
+                    multiple
+                  />
+                  <input
+                    ref={quickAddBillGalleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleQuickAddBillSelect}
+                    className="hidden"
+                    multiple
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => quickAddBillInputRef.current?.click()}
+                    disabled={isUploadingQuickAddBill}
+                    className="flex-1"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Camera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => quickAddBillGalleryInputRef.current?.click()}
+                    disabled={isUploadingQuickAddBill}
+                    className="flex-1"
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    Gallery
+                  </Button>
+                </div>
+                {isUploadingQuickAddBill && (
+                  <p className="text-xs text-muted-foreground">Uploading...</p>
+                )}
+                {quickAddBillImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {quickAddBillImages.map((url, idx) => (
+                      <div key={idx} className="relative aspect-square">
+                        <img
+                          src={url}
+                          alt={`Bill ${idx + 1}`}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={() =>
+                            setQuickAddBillImages((prev) =>
+                              prev.filter((_, i) => i !== idx)
+                            )
+                          }
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <div className="flex gap-3 w-full">
+          {/* Drag handle at bottom */}
+          <div className="flex justify-center pb-3 pt-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Quick Collect Sheet - slides from top */}
+      <Sheet open={quickCollectOpen} onOpenChange={setQuickCollectOpen}>
+        <SheetContent
+          side="top"
+          className="rounded-b-2xl p-0 flex flex-col max-h-[80vh]"
+          hideClose
+        >
+          {/* Header with action buttons */}
+          <SheetHeader className="px-4 py-3 border-b">
+            <div className="flex items-center justify-between gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setQuickCollectOpen(false);
                   setQuickCollectCustomer(null);
                   setQuickCollectAmount("");
+                  setQuickCollectReceipts([]);
                 }}
-                className="flex-1"
+                className="h-9 px-3"
               >
+                <X className="h-4 w-4 mr-1" />
                 Cancel
               </Button>
+              <SheetTitle className="text-base font-semibold flex-1 text-center">
+                Collect Payment
+              </SheetTitle>
               <Button
+                size="sm"
                 onClick={handleQuickCollectSubmit}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                disabled={
+                  !isOnline ||
+                  !quickCollectAmount ||
+                  Number(quickCollectAmount) <= 0
+                }
+                className="h-9 px-3 bg-green-600 hover:bg-green-700"
               >
-                <CreditCard className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-1" />
                 Collect
               </Button>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetHeader>
 
-      {/* Payment Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
-            <DialogDescription>Customer is paying back Udhar</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {paymentUdhar &&
-              (() => {
-                const totalAmount =
-                  paymentUdhar.amount ||
-                  (paymentUdhar.cashAmount || 0) +
-                    (paymentUdhar.onlineAmount || 0);
-                const paidAmount =
-                  paymentUdhar.paidAmount ||
-                  (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
-                const pendingAmount = Math.max(0, totalAmount - paidAmount);
-
-                return (
-                  <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Total Amount
-                      </span>
-                      <span className="font-bold">
-                        ₹{totalAmount.toLocaleString()}
-                      </span>
-                    </div>
-                    {paidAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Already Paid</span>
-                        <span className="font-medium text-green-600">
-                          ₹{paidAmount.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="text-amber-600 font-medium">
-                        Pending
-                      </span>
-                      <span className="font-bold text-amber-600">
-                        ₹{pendingAmount.toLocaleString()}
-                      </span>
-                    </div>
-                    {paymentUdhar.notes && (
-                      <div className="flex justify-between text-xs text-muted-foreground pt-1">
-                        <span>Notes</span>
-                        <span className="truncate max-w-[150px]">
-                          {paymentUdhar.notes}
-                        </span>
-                      </div>
-                    )}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="space-y-4">
+              {quickCollectCustomer && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Collecting from <strong>{quickCollectCustomer.name}</strong>
+                    </span>
+                    <span className="font-bold text-lg text-amber-600">
+                      ₹{quickCollectCustomer.pendingAmount?.toLocaleString()}
+                    </span>
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
-            {/* Payment Amount Input */}
-            <div className="space-y-2">
-              <Label>Payment Amount (₹)</Label>
-              <Input
-                ref={paymentInputRef}
-                type="number"
-                inputMode="numeric"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="text-2xl h-14 font-bold text-center"
-              />
+              {/* Amount Input */}
+              <div className="space-y-2">
+                <Label>Amount to Collect (₹)</Label>
+                <Input
+                  ref={quickCollectInputRef}
+                  type="number"
+                  inputMode="numeric"
+                  value={quickCollectAmount}
+                  onChange={(e) => setQuickCollectAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="text-3xl h-16 font-bold text-center"
+                />
+              </div>
+
+              {/* Payment Receipts Upload - Multiple */}
+              <div className="space-y-2">
+                <Label className="text-sm">Payment Receipts (Optional)</Label>
+                <input
+                  ref={quickReceiptInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => handleReceiptSelect(e, true)}
+                  className="hidden"
+                />
+                <input
+                  ref={quickReceiptGalleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleReceiptSelect(e, true)}
+                  className="hidden"
+                />
+
+                {/* Show uploaded receipts */}
+                {quickCollectReceipts.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {quickCollectReceipts.map((receipt, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted"
+                      >
+                        <img
+                          src={receipt}
+                          alt={`Receipt ${index + 1}`}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => {
+                            setImageViewerSrc(receipt);
+                            setImageViewerOpen(true);
+                          }}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => handleRemoveReceipt(index, true)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {isUploadingQuickReceipt && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => quickReceiptInputRef.current?.click()}
+                    className="flex-1 h-10 gap-1.5"
+                    disabled={isUploadingQuickReceipt}
+                  >
+                    <Camera className="h-4 w-4" />
+                    Camera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      quickReceiptGalleryInputRef.current?.click()
+                    }
+                    className="flex-1 h-10 gap-1.5"
+                    disabled={isUploadingQuickReceipt}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    Gallery
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Attach UPI screenshots or payment proofs
+                </p>
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <div className="flex flex-col gap-2 w-full">
-              <div className="flex gap-2 w-full">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setPaymentDialogOpen(false);
-                    setPaymentUdhar(null);
-                    setPaymentAmount("");
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleRecordPayment}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled={
-                    !isOnline || !paymentAmount || Number(paymentAmount) <= 0
-                  }
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Record Payment
-                </Button>
+          {/* Drag handle at bottom */}
+          <div className="flex justify-center pb-3 pt-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Payment Sheet - slides from top */}
+      <Sheet open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <SheetContent
+          side="top"
+          className="rounded-b-2xl p-0 flex flex-col max-h-[80vh]"
+          hideClose
+        >
+          {/* Header with action buttons */}
+          <SheetHeader className="px-4 py-3 border-b">
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPaymentDialogOpen(false);
+                  setPaymentUdhar(null);
+                  setPaymentAmount("");
+                  setPaymentReceipts([]);
+                }}
+                className="h-9 px-3"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+              <SheetTitle className="text-base font-semibold flex-1 text-center">
+                Record Payment
+              </SheetTitle>
+              <Button
+                size="sm"
+                onClick={handleRecordPayment}
+                disabled={
+                  !isOnline || !paymentAmount || Number(paymentAmount) <= 0
+                }
+                className="h-9 px-3 bg-green-600 hover:bg-green-700"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Record
+              </Button>
+            </div>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="space-y-4">
+              {paymentUdhar &&
+                (() => {
+                  const totalAmount =
+                    paymentUdhar.amount ||
+                    (paymentUdhar.cashAmount || 0) +
+                      (paymentUdhar.onlineAmount || 0);
+                  const paidAmount =
+                    paymentUdhar.paidAmount ||
+                    (paymentUdhar.paidCash || 0) +
+                      (paymentUdhar.paidOnline || 0);
+                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+
+                  return (
+                    <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Total Amount
+                        </span>
+                        <span className="font-bold text-lg">
+                          ₹{totalAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      {paidAmount > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-green-600">Already Paid</span>
+                          <span className="font-medium text-green-600">
+                            ₹{paidAmount.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm border-t pt-3">
+                        <span className="text-amber-600 font-medium">
+                          Pending
+                        </span>
+                        <span className="font-bold text-lg text-amber-600">
+                          ₹{pendingAmount.toLocaleString()}
+                        </span>
+                      </div>
+                      {paymentUdhar.notes && (
+                        <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                          <span>Notes</span>
+                          <span className="truncate max-w-[150px]">
+                            {paymentUdhar.notes}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+              {/* Payment Amount Input */}
+              <div className="space-y-2">
+                <Label>Payment Amount (₹)</Label>
+                <Input
+                  ref={paymentInputRef}
+                  type="number"
+                  inputMode="numeric"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="text-3xl h-16 font-bold text-center"
+                />
               </div>
+
+              {/* Payment Receipts Upload - Multiple */}
+              <div className="space-y-2">
+                <Label className="text-sm">Payment Receipts (Optional)</Label>
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => handleReceiptSelect(e, false)}
+                  className="hidden"
+                />
+                <input
+                  ref={receiptGalleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleReceiptSelect(e, false)}
+                  className="hidden"
+                />
+
+                {/* Show uploaded receipts */}
+                {paymentReceipts.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {paymentReceipts.map((receipt, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted"
+                      >
+                        <img
+                          src={receipt}
+                          alt={`Receipt ${index + 1}`}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => {
+                            setImageViewerSrc(receipt);
+                            setImageViewerOpen(true);
+                          }}
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => handleRemoveReceipt(index, false)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {isUploadingReceipt && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => receiptInputRef.current?.click()}
+                    className="flex-1 h-10 gap-1.5"
+                    disabled={isUploadingReceipt}
+                  >
+                    <Camera className="h-4 w-4" />
+                    Camera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => receiptGalleryInputRef.current?.click()}
+                    className="flex-1 h-10 gap-1.5"
+                    disabled={isUploadingReceipt}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    Gallery
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Attach UPI screenshots or payment proofs
+                </p>
+              </div>
+
+              {/* Mark Full Paid Button */}
               {paymentUdhar &&
                 (() => {
                   const totalAmount =
@@ -1083,7 +1577,7 @@ export default function CustomersPage() {
                     <Button
                       variant="outline"
                       onClick={handleMarkFullPaidFromDialog}
-                      className="w-full text-green-600 border-green-200 hover:bg-green-50"
+                      className="w-full h-12 text-green-600 border-green-200 hover:bg-green-50"
                       disabled={!isOnline}
                     >
                       <Check className="h-4 w-4 mr-2" />
@@ -1092,9 +1586,14 @@ export default function CustomersPage() {
                   ) : null;
                 })()}
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          {/* Drag handle at bottom */}
+          <div className="flex justify-center pb-3 pt-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Customer Detail View */}
       <Dialog

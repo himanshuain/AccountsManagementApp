@@ -11,6 +11,8 @@ import {
   Banknote,
   Smartphone,
   UserPlus,
+  X,
+  Check,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,20 +28,12 @@ import { UdharForm } from "@/components/UdharForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { haptics } from "@/hooks/useHaptics";
 
@@ -332,128 +326,149 @@ export default function DashboardPage() {
         autoOpenCustomerDropdown={customerDropdownOpen}
       />
 
-      {/* Daily Income Form */}
-      <Dialog open={incomeFormOpen} onOpenChange={setIncomeFormOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Daily Income</DialogTitle>
-            <DialogDescription>
-              Record today&apos;s shop income
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select
-                value={incomeFormData.type}
-                onValueChange={(v) =>
-                  setIncomeFormData({ ...incomeFormData, type: v })
-                }
+      {/* Daily Income Form - Sheet sliding from top */}
+      <Sheet open={incomeFormOpen} onOpenChange={setIncomeFormOpen}>
+        <SheetContent
+          side="top"
+          className="rounded-b-2xl p-0 flex flex-col"
+          hideClose
+        >
+          {/* Header with action buttons */}
+          <SheetHeader className="px-4 py-3 border-b">
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIncomeFormOpen(false)}
+                className="h-9 px-3"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily Income</SelectItem>
-                  <SelectItem value="monthly">Monthly Income</SelectItem>
-                </SelectContent>
-              </Select>
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+              <SheetTitle className="text-base font-semibold flex-1 text-center">
+                Add Income
+              </SheetTitle>
+              <Button
+                size="sm"
+                onClick={handleAddIncome}
+                disabled={incomeFormTotal <= 0}
+                className="h-9 px-3 bg-green-600 hover:bg-green-700"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Save
+              </Button>
             </div>
+          </SheetHeader>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-green-500" />
-                Cash Amount (₹)
-              </Label>
-              <Input
-                ref={cashInputRef}
-                type="number"
-                inputMode="numeric"
-                value={incomeFormData.cashAmount}
-                onChange={(e) =>
-                  setIncomeFormData({
-                    ...incomeFormData,
-                    cashAmount: e.target.value,
-                  })
-                }
-                placeholder="0"
-                className="text-lg h-12 font-semibold"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-blue-500" />
-                Online Amount (₹)
-              </Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={incomeFormData.onlineAmount}
-                onChange={(e) =>
-                  setIncomeFormData({
-                    ...incomeFormData,
-                    onlineAmount: e.target.value,
-                  })
-                }
-                placeholder="0"
-                className="text-lg h-12 font-semibold"
-              />
-            </div>
-
-            {/* Total Display */}
-            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Total Amount</span>
-                <span className="text-xl font-bold text-primary">
-                  ₹{incomeFormTotal.toLocaleString()}
-                </span>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="space-y-5">
+              {/* Type Switch */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Monthly Income</span>
+                </div>
+                <Switch
+                  checked={incomeFormData.type === "monthly"}
+                  onCheckedChange={(checked) =>
+                    setIncomeFormData({
+                      ...incomeFormData,
+                      type: checked ? "monthly" : "daily",
+                    })
+                  }
+                />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input
-                type="date"
-                value={incomeFormData.date}
-                onChange={(e) =>
-                  setIncomeFormData({ ...incomeFormData, date: e.target.value })
-                }
-              />
-            </div>
+              {/* Total Display - Prominent at top */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                <div className="text-center">
+                  <span className="text-sm text-muted-foreground">Total Income</span>
+                  <div className="text-4xl font-bold text-green-600 mt-1">
+                    ₹{incomeFormTotal.toLocaleString()}
+                  </div>
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Description (Optional)</Label>
-              <Input
-                value={incomeFormData.description}
-                onChange={(e) =>
-                  setIncomeFormData({
-                    ...incomeFormData,
-                    description: e.target.value,
-                  })
-                }
-                placeholder="Any notes"
-              />
+              {/* Amount Inputs - Side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Banknote className="h-4 w-4 text-green-600" />
+                    Cash
+                  </Label>
+                  <Input
+                    ref={cashInputRef}
+                    type="number"
+                    inputMode="numeric"
+                    value={incomeFormData.cashAmount}
+                    onChange={(e) =>
+                      setIncomeFormData({
+                        ...incomeFormData,
+                        cashAmount: e.target.value,
+                      })
+                    }
+                    placeholder="0"
+                    className="text-2xl h-14 font-bold text-center"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Smartphone className="h-4 w-4 text-blue-600" />
+                    Online
+                  </Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={incomeFormData.onlineAmount}
+                    onChange={(e) =>
+                      setIncomeFormData({
+                        ...incomeFormData,
+                        onlineAmount: e.target.value,
+                      })
+                    }
+                    placeholder="0"
+                    className="text-2xl h-14 font-bold text-center"
+                  />
+                </div>
+              </div>
+
+              {/* Date */}
+              <div className="space-y-2">
+                <Label className="text-sm">Date</Label>
+                <Input
+                  type="date"
+                  value={incomeFormData.date}
+                  onChange={(e) =>
+                    setIncomeFormData({ ...incomeFormData, date: e.target.value })
+                  }
+                  className="h-12"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label className="text-sm">Notes (Optional)</Label>
+                <Input
+                  value={incomeFormData.description}
+                  onChange={(e) =>
+                    setIncomeFormData({
+                      ...incomeFormData,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Add any notes..."
+                  className="h-12"
+                />
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
-            <div className="flex gap-3 w-full">
-              <Button
-                variant="outline"
-                onClick={() => setIncomeFormOpen(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddIncome} className="flex-1">
-                Add Income
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {/* Drag handle at bottom */}
+          <div className="flex justify-center pb-3 pt-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

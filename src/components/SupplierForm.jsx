@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -127,23 +126,36 @@ export function SupplierForm({
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
         </div>
 
-        <SheetHeader className="px-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle>{title}</SheetTitle>
-              <SheetDescription>
-                {initialData
-                  ? "Update supplier information"
-                  : "Add a new supplier to your records"}
-              </SheetDescription>
-            </div>
+        {/* Header with action buttons */}
+        <SheetHeader className="px-4 pb-3 border-b">
+          <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={handleClose}
-              className="h-8 w-8 rounded-full"
+              disabled={isSubmitting}
+              className="h-9 px-3"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+            <SheetTitle className="text-base font-semibold flex-1 text-center">
+              {title}
+            </SheetTitle>
+            <Button
+              size="sm"
+              onClick={handleSubmit(handleFormSubmit)}
+              disabled={isSubmitting || !isOnline}
+              className="h-9 px-3"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  {initialData ? "Save" : "Add"}
+                </>
+              )}
             </Button>
           </div>
         </SheetHeader>
@@ -273,28 +285,8 @@ export function SupplierForm({
               </div>
             </div>
 
-            {/* Action Buttons - Inside scroll area */}
-            <div className="pt-4 pb-6 space-y-3">
-              <Button
-                type="submit"
-                disabled={isSubmitting || !isOnline}
-                className="w-full h-12 text-base"
-              >
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {initialData ? "Update Supplier" : "Add Supplier"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="w-full h-12 text-base"
-              >
-                Cancel
-              </Button>
-            </div>
+            {/* Bottom padding for safe area */}
+            <div className="h-8" />
           </form>
         </div>
       </SheetContent>

@@ -14,6 +14,8 @@ import {
   SortAsc,
   SortDesc,
   Calendar,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +27,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useCustomers from "@/hooks/useCustomers";
@@ -113,6 +134,11 @@ export default function TransactionsPage() {
   const [dateFilter, setDateFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("date"); // date, amount-high, amount-low
   const [customerFilter, setCustomerFilter] = useState("all");
+
+  // Bulk delete state for supplier transactions
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleteOption, setBulkDeleteOption] = useState("6months");
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
   // Filter supplier transactions
   const filteredTransactions = transactions.filter((t) => {
@@ -320,16 +346,77 @@ export default function TransactionsPage() {
     await markFullPaid(id);
   };
 
+  // Bulk delete functions for supplier transactions
+  const getTransactionsToDelete = () => {
+    const now = new Date();
+    let cutoffDate;
+
+    switch (bulkDeleteOption) {
+      case "6months":
+        cutoffDate = new Date(now.setMonth(now.getMonth() - 6));
+        break;
+      case "1year":
+        cutoffDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+      case "previousYear":
+        cutoffDate = new Date(now.getFullYear() - 1, 11, 31); // End of previous year
+        break;
+      case "all":
+        return transactions;
+      default:
+        cutoffDate = new Date(now.setMonth(now.getMonth() - 6));
+    }
+
+    return transactions.filter((t) => new Date(t.date) < cutoffDate);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    const transactionsToDelete = getTransactionsToDelete();
+    if (transactionsToDelete.length === 0) {
+      toast.error("No transactions match the selected criteria");
+      return;
+    }
+
+    let successCount = 0;
+    for (const transaction of transactionsToDelete) {
+      const result = await deleteTransaction(transaction.id);
+      if (result.success) {
+        successCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} transactions`);
+    } else {
+      toast.error("Failed to delete transactions");
+    }
+
+    setBulkDeleteConfirmOpen(false);
+    setBulkDeleteDialogOpen(false);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Transactions</h1>
         {mainTab === "suppliers" && transactions.length > 0 && (
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-1" />
-            Export
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              disabled={!isOnline}
+              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Bulk Delete
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+          </div>
         )}
       </div>
 
@@ -643,6 +730,186 @@ export default function TransactionsPage() {
             : ""
         }
       />
+
+      {/* Bulk Delete Dialog */}
+      <Sheet open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl p-0 flex flex-col max-h-[80vh]"
+          hideClose
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+
+          <SheetHeader className="px-6 pb-4">
+            <SheetTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Bulk Delete Transactions
+            </SheetTitle>
+            <SheetDescription>
+              Permanently delete multiple supplier transactions. This action
+              cannot be undone.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="space-y-4 pb-4">
+              {/* Delete Options */}
+              <div className="space-y-2">
+                <Label>Select transactions to delete</Label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="6months"
+                      checked={bulkDeleteOption === "6months"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">Older than 6 months</span>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          transactions.filter(
+                            (t) =>
+                              new Date(t.date) <
+                              new Date(
+                                new Date().setMonth(new Date().getMonth() - 6),
+                              ),
+                          ).length
+                        }{" "}
+                        transactions
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="1year"
+                      checked={bulkDeleteOption === "1year"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">Older than 1 year</span>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          transactions.filter(
+                            (t) =>
+                              new Date(t.date) <
+                              new Date(
+                                new Date().setFullYear(
+                                  new Date().getFullYear() - 1,
+                                ),
+                              ),
+                          ).length
+                        }{" "}
+                        transactions
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="previousYear"
+                      checked={bulkDeleteOption === "previousYear"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">
+                        Previous year ({new Date().getFullYear() - 1})
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          transactions.filter(
+                            (t) =>
+                              new Date(t.date) <
+                              new Date(new Date().getFullYear() - 1, 11, 31),
+                          ).length
+                        }{" "}
+                        transactions
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-destructive/30 cursor-pointer hover:bg-destructive/5">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="all"
+                      checked={bulkDeleteOption === "all"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium text-destructive">
+                        All transactions
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {transactions.length} transactions (entire history)
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
+            <div className="flex gap-3 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setBulkDeleteDialogOpen(false)}
+                className="flex-1 h-12"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setBulkDeleteConfirmOpen(true)}
+                disabled={!isOnline || getTransactionsToDelete().length === 0}
+                className="flex-1 h-12"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete {getTransactionsToDelete().length} Transactions
+              </Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {getTransactionsToDelete().length}{" "}
+              transactions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -44,6 +44,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import useSuppliers from "@/hooks/useSuppliers";
@@ -101,7 +111,7 @@ export default function SupplierDetailPage({ params }) {
   // Bulk delete state
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteOption, setBulkDeleteOption] = useState("6months");
-  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     const loadSupplier = async () => {
@@ -405,12 +415,7 @@ export default function SupplierDetailPage({ params }) {
     return transactions.filter((t) => new Date(t.date) < cutoffDate);
   };
 
-  const handleBulkDelete = async () => {
-    if (bulkDeleteConfirmText !== "DELETE") {
-      toast.error("Please type DELETE to confirm");
-      return;
-    }
-
+  const handleBulkDeleteConfirm = async () => {
     const transactionsToDelete = getTransactionsToDelete();
     if (transactionsToDelete.length === 0) {
       toast.error("No transactions match the selected criteria");
@@ -431,8 +436,8 @@ export default function SupplierDetailPage({ params }) {
       toast.error("Failed to delete transactions");
     }
 
+    setBulkDeleteConfirmOpen(false);
     setBulkDeleteDialogOpen(false);
-    setBulkDeleteConfirmText("");
   };
 
   const handleUpiClick = (app = "gpay") => {
@@ -1147,20 +1152,6 @@ export default function SupplierDetailPage({ params }) {
                 </div>
               </div>
 
-              {/* Confirmation Input */}
-              <div className="space-y-2 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
-                <Label className="text-destructive">
-                  Type &quot;DELETE&quot; to confirm
-                </Label>
-                <Input
-                  value={bulkDeleteConfirmText}
-                  onChange={(e) =>
-                    setBulkDeleteConfirmText(e.target.value.toUpperCase())
-                  }
-                  placeholder="DELETE"
-                  className="text-center font-mono"
-                />
-              </div>
             </div>
           </div>
 
@@ -1168,22 +1159,15 @@ export default function SupplierDetailPage({ params }) {
             <div className="flex gap-3 w-full">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setBulkDeleteDialogOpen(false);
-                  setBulkDeleteConfirmText("");
-                }}
+                onClick={() => setBulkDeleteDialogOpen(false)}
                 className="flex-1 h-12"
               >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
-                onClick={handleBulkDelete}
-                disabled={
-                  !isOnline ||
-                  bulkDeleteConfirmText !== "DELETE" ||
-                  getTransactionsToDelete().length === 0
-                }
+                onClick={() => setBulkDeleteConfirmOpen(true)}
+                disabled={!isOnline || getTransactionsToDelete().length === 0}
                 className="flex-1 h-12"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -1193,6 +1177,31 @@ export default function SupplierDetailPage({ params }) {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {getTransactionsToDelete().length}{" "}
+              transactions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
