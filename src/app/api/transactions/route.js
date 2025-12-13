@@ -91,9 +91,18 @@ export async function POST(request) {
     const body = await request.json();
     const now = new Date().toISOString();
 
+    // Clean up empty date fields - Postgres doesn't accept empty strings for date type
+    const cleanedBody = { ...body };
+    if (cleanedBody.dueDate === "" || cleanedBody.dueDate === null) {
+      delete cleanedBody.dueDate;
+    }
+    if (cleanedBody.date === "" || cleanedBody.date === null) {
+      cleanedBody.date = new Date().toISOString().split("T")[0];
+    }
+
     const transactionData = {
-      ...body,
-      id: body.id || crypto.randomUUID(),
+      ...cleanedBody,
+      id: cleanedBody.id || crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
     };

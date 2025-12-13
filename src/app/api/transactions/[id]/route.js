@@ -75,8 +75,17 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const body = await request.json();
 
+    // Clean up empty date fields - Postgres doesn't accept empty strings for date type
+    const cleanedBody = { ...body };
+    if (cleanedBody.dueDate === "" || cleanedBody.dueDate === null) {
+      delete cleanedBody.dueDate;
+    }
+    if (cleanedBody.date === "") {
+      delete cleanedBody.date;
+    }
+
     const updates = {
-      ...body,
+      ...cleanedBody,
       updatedAt: new Date().toISOString(),
     };
 

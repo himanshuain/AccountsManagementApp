@@ -190,9 +190,6 @@ export default function DashboardPage() {
             <span className="text-base font-semibold text-center">
               Vyapari Bill
             </span>
-            <span className="text-xs text-muted-foreground mt-1">
-              Add supplier transaction
-            </span>
           </CardContent>
         </Card>
 

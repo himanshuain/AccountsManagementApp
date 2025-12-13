@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Copy,
   Check,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +29,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { SupplierForm } from "@/components/SupplierForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionTable } from "@/components/TransactionTable";
@@ -39,11 +51,18 @@ import { toast } from "sonner";
 export default function SupplierDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
+  const isOnline = useOnlineStatus();
 
   const { suppliers, getSupplierById, updateSupplier, deleteSupplier } =
     useSuppliers();
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } =
-    useTransactions(id);
+  const {
+    transactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    recordPayment,
+    markFullPaid,
+  } = useTransactions(id);
 
   const [supplier, setSupplier] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +75,12 @@ export default function SupplierDetailPage({ params }) {
     useState(false);
   const [upiCopied, setUpiCopied] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+
+  // Payment dialog state
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentTransaction, setPaymentTransaction] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const paymentInputRef = useRef(null);
 
   useEffect(() => {
     const loadSupplier = async () => {
@@ -75,12 +100,55 @@ export default function SupplierDetailPage({ params }) {
     }
   }, [suppliers, id, loading]);
 
+  // Auto-focus payment input
+  useEffect(() => {
+    if (paymentDialogOpen && paymentInputRef.current) {
+      setTimeout(() => {
+        paymentInputRef.current?.focus();
+      }, 500);
+    }
+  }, [paymentDialogOpen]);
+
   if (loading) {
     return (
-      <div className="p-4 lg:p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 w-32 bg-muted rounded" />
-          <div className="h-48 bg-muted rounded-lg" />
+      <div className="p-4 lg:p-6 space-y-6">
+        {/* Back button skeleton */}
+        <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+
+        {/* Profile card skeleton */}
+        <div className="bg-card border rounded-lg p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="h-20 w-20 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-3">
+              <div className="h-6 w-48 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-card border rounded-lg p-4 space-y-2">
+              <div className="h-3 w-16 bg-muted rounded animate-pulse" />
+              <div className="h-6 w-20 bg-muted rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        {/* Transactions skeleton */}
+        <div className="space-y-3">
+          <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-card border rounded-lg p-4 space-y-2">
+              <div className="flex justify-between">
+                <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+              </div>
+              <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -116,9 +184,15 @@ export default function SupplierDetailPage({ params }) {
       .slice(0, 2) || "??";
 
   const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-  const paidAmount = transactions
-    .filter((t) => t.paymentStatus === "paid")
-    .reduce((sum, t) => sum + (t.amount || 0), 0);
+  // Calculate paid amount considering partial payments
+  const paidAmount = transactions.reduce((sum, t) => {
+    if (t.paymentStatus === "paid") {
+      return sum + (t.amount || 0);
+    } else if (t.paymentStatus === "partial") {
+      return sum + (t.paidAmount || 0);
+    }
+    return sum;
+  }, 0);
   const pendingAmount = totalAmount - paidAmount;
 
   const handleUpdateSupplier = async (data) => {
@@ -182,9 +256,58 @@ export default function SupplierDetailPage({ params }) {
     }
   };
 
+  // Payment handling
+  const handleOpenPayment = (transaction) => {
+    const currentPaid = transaction.paidAmount || 0;
+    const remaining = (transaction.amount || 0) - currentPaid;
+    setPaymentTransaction(transaction);
+    setPaymentAmount(remaining.toString());
+    setPaymentDialogOpen(true);
+  };
+
+  const handleRecordPayment = async () => {
+    if (!paymentTransaction || !paymentAmount || Number(paymentAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    const result = await recordPayment(
+      paymentTransaction.id,
+      Number(paymentAmount),
+    );
+
+    if (result.success) {
+      toast.success(
+        `₹${Number(paymentAmount).toLocaleString()} payment recorded`,
+      );
+      setPaymentDialogOpen(false);
+      setPaymentTransaction(null);
+      setPaymentAmount("");
+    } else {
+      toast.error(result.error || "Failed to record payment");
+    }
+  };
+
+  const handleMarkFullPaid = async () => {
+    if (!paymentTransaction) return;
+
+    const result = await markFullPaid(paymentTransaction.id);
+
+    if (result.success) {
+      toast.success("Marked as fully paid");
+      setPaymentDialogOpen(false);
+      setPaymentTransaction(null);
+      setPaymentAmount("");
+    } else {
+      toast.error(result.error || "Failed to mark as paid");
+    }
+  };
+
   const handleUpiClick = (app = "gpay") => {
     if (supplier?.upiId) {
-      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(displayName || "Supplier")}&cu=INR`;
+      // Pre-fill amount if there's pending payment
+      const amountParam = pendingAmount > 0 ? `&am=${pendingAmount}` : "";
+      const upiParams = `pa=${encodeURIComponent(supplier.upiId)}&pn=${encodeURIComponent(displayName || "Supplier")}&cu=INR${amountParam}`;
 
       if (app === "gpay") {
         const gpayIntent = `intent://pay?${upiParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
@@ -239,6 +362,7 @@ export default function SupplierDetailPage({ params }) {
             variant="outline"
             size="icon"
             onClick={() => setEditFormOpen(true)}
+            disabled={!isOnline}
           >
             <Edit className="h-4 w-4" />
           </Button>
@@ -246,6 +370,7 @@ export default function SupplierDetailPage({ params }) {
             variant="outline"
             size="icon"
             onClick={() => setDeleteDialogOpen(true)}
+            disabled={!isOnline}
           >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
@@ -378,39 +503,6 @@ export default function SupplierDetailPage({ params }) {
         </Card>
       )}
 
-      {/* Stats - Combined in one card */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <p className="text-2xl font-bold">{transactions.length}</p>
-              <p className="text-xs text-muted-foreground">Transactions</p>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="text-center flex-1">
-              <p className="text-2xl font-bold">
-                ₹{totalAmount.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="text-center flex-1">
-              <p className="text-2xl font-bold text-green-600">
-                ₹{paidAmount.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">Paid</p>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="text-center flex-1">
-              <p className="text-2xl font-bold text-amber-600">
-                ₹{pendingAmount.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">Pending</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Transactions */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -421,6 +513,7 @@ export default function SupplierDetailPage({ params }) {
               setTransactionToEdit(null);
               setTransactionFormOpen(true);
             }}
+            disabled={!isOnline}
           >
             <Plus className="h-4 w-4 mr-1" />
             Add
@@ -436,6 +529,7 @@ export default function SupplierDetailPage({ params }) {
                 variant="link"
                 className="mt-2"
                 onClick={() => setTransactionFormOpen(true)}
+                disabled={!isOnline}
               >
                 Add first transaction
               </Button>
@@ -447,10 +541,158 @@ export default function SupplierDetailPage({ params }) {
             suppliers={[supplier]}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransactionClick}
+            onPay={handleOpenPayment}
             showSupplier={false}
           />
         )}
       </div>
+
+      {/* Payment Sheet */}
+      <Sheet open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl p-0 flex flex-col max-h-[80vh]"
+          hideClose
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+
+          <SheetHeader className="px-6 pb-4">
+            <SheetTitle>Pay Supplier</SheetTitle>
+            <SheetDescription>
+              Record a payment for this transaction
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="space-y-4 pb-4">
+              {paymentTransaction && (
+                <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Amount</span>
+                    <span className="font-bold text-lg">
+                      ₹{paymentTransaction.amount?.toLocaleString()}
+                    </span>
+                  </div>
+                  {(paymentTransaction.paidAmount || 0) > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600">Already Paid</span>
+                      <span className="font-medium text-green-600">
+                        ₹{(paymentTransaction.paidAmount || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm border-t pt-3">
+                    <span className="text-amber-600 font-medium">Pending</span>
+                    <span className="font-bold text-lg text-amber-600">
+                      ₹
+                      {(
+                        (paymentTransaction.amount || 0) -
+                        (paymentTransaction.paidAmount || 0)
+                      ).toLocaleString()}
+                    </span>
+                  </div>
+                  {paymentTransaction.itemName && (
+                    <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                      <span>Item</span>
+                      <span className="truncate max-w-[150px]">
+                        {paymentTransaction.itemName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Payment Amount Input */}
+              <div className="space-y-2">
+                <Label>Payment Amount (₹)</Label>
+                <Input
+                  ref={paymentInputRef}
+                  type="number"
+                  inputMode="numeric"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="text-3xl h-16 font-bold text-center"
+                />
+              </div>
+
+              {/* UPI Quick Pay */}
+              {supplier.upiId && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Quick Pay via UPI
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleUpiClick("gpay")}
+                      className="flex-1 px-3 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      GPay
+                    </button>
+                    <button
+                      onClick={() => handleUpiClick("phonepe")}
+                      className="flex-1 px-3 py-3 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
+                    >
+                      PhonePe
+                    </button>
+                    <button
+                      onClick={() => handleUpiClick("other")}
+                      className="flex-1 px-3 py-3 bg-muted text-foreground rounded-xl text-sm font-medium hover:bg-accent transition-colors"
+                    >
+                      Other
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <SheetFooter className="px-6 py-4 border-t bg-background">
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex gap-3 w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPaymentDialogOpen(false);
+                    setPaymentTransaction(null);
+                    setPaymentAmount("");
+                  }}
+                  className="flex-1 h-12"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRecordPayment}
+                  className="flex-1 h-12 bg-green-600 hover:bg-green-700"
+                  disabled={
+                    !isOnline || !paymentAmount || Number(paymentAmount) <= 0
+                  }
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Record Payment
+                </Button>
+              </div>
+              {paymentTransaction &&
+                (paymentTransaction.amount || 0) -
+                  (paymentTransaction.paidAmount || 0) >
+                  0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleMarkFullPaid}
+                    className="w-full h-12 text-green-600 border-green-200 hover:bg-green-50"
+                    disabled={!isOnline}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Mark Full Amount as Paid
+                  </Button>
+                )}
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Edit Supplier Form */}
       <SupplierForm

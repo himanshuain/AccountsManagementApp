@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, Camera, UserPlus } from "lucide-react";
+import { Loader2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -48,14 +48,13 @@ export function UdharForm({
   );
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
-  const cameraInputRef = useRef(null);
 
   // Auto-open customer dropdown when requested
   useEffect(() => {
     if (open && autoOpenCustomerDropdown && !selectedCustomerId) {
       setTimeout(() => {
         setCustomerSelectOpen(true);
-      }, 200);
+      }, 500);
     }
   }, [open, autoOpenCustomerDropdown, selectedCustomerId]);
 
@@ -142,17 +141,6 @@ export function UdharForm({
     }
   };
 
-  const handleCameraCapture = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setKhataPhotos((prev) => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleNewCustomer = async (customerData) => {
     const result = await onAddCustomer(customerData);
     if (result.success) {
@@ -164,18 +152,39 @@ export function UdharForm({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-lg max-h-[90vh] p-0">
-          <DialogHeader className="px-6 pt-6">
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>
-              {initialData
-                ? "Update Udhar details"
-                : "Record a new Udhar (lending) entry"}
-            </DialogDescription>
-          </DialogHeader>
+      <Sheet open={open} onOpenChange={handleClose}>
+        <SheetContent
+          side="bottom"
+          className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
+          hideClose
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
 
-          <ScrollArea className="max-h-[60vh] px-6">
+          <SheetHeader className="px-6 pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <SheetTitle>{title}</SheetTitle>
+                <SheetDescription>
+                  {initialData
+                    ? "Update Udhar details"
+                    : "Record a new Udhar (lending) entry"}
+                </SheetDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClose}
+                className="h-8 w-8 rounded-full"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </SheetHeader>
+
+          <ScrollArea className="flex-1 px-6">
             <form
               onSubmit={handleSubmit(handleFormSubmit)}
               className="space-y-5 py-4"
@@ -232,37 +241,12 @@ export function UdharForm({
               {/* Khata Photos */}
               <div className="space-y-2">
                 <Label>Khata Photos</Label>
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <MultiImageUpload
-                      value={khataPhotos}
-                      onChange={setKhataPhotos}
-                      maxImages={5}
-                      disabled={!isOnline}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      ref={cameraInputRef}
-                      onChange={handleCameraCapture}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="gap-2"
-                      disabled={!isOnline}
-                    >
-                      <Camera className="h-4 w-4" />
-                      Camera
-                    </Button>
-                  </div>
-                </div>
+                <MultiImageUpload
+                  value={khataPhotos}
+                  onChange={setKhataPhotos}
+                  maxImages={5}
+                  disabled={!isOnline}
+                />
               </div>
 
               <Separator />
@@ -314,23 +298,26 @@ export function UdharForm({
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
+
+              {/* Bottom padding for safe area */}
+              <div className="h-4" />
             </form>
           </ScrollArea>
 
-          <DialogFooter className="px-6 pb-6">
+          <SheetFooter className="px-6 py-4 border-t bg-background">
             <div className="flex gap-3 w-full">
               <Button
                 variant="outline"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="flex-1"
+                className="flex-1 h-12"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit(handleFormSubmit)}
                 disabled={isSubmitting || !selectedCustomerId || !isOnline}
-                className="flex-1"
+                className="flex-1 h-12"
               >
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -338,11 +325,11 @@ export function UdharForm({
                 {initialData ? "Update" : "Add Udhar"}
               </Button>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* Customer Form Dialog */}
+      {/* Customer Form Sheet */}
       <CustomerForm
         open={customerFormOpen}
         onOpenChange={setCustomerFormOpen}

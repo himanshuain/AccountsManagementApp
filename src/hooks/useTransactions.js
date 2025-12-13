@@ -126,6 +126,67 @@ export function useTransactions(supplierId = null) {
     [deleteMutation],
   );
 
+  // Record a partial payment for a transaction
+  const recordPayment = useCallback(
+    async (id, amount, receiptUrl = null) => {
+      const transaction = transactions.find((t) => t.id === id);
+      if (!transaction)
+        return { success: false, error: "Transaction not found" };
+
+      const totalAmount = transaction.amount || 0;
+      const currentPaid = transaction.paidAmount || 0;
+      const newPaidAmount = currentPaid + amount;
+
+      const newPayment = {
+        id: crypto.randomUUID(),
+        amount: amount,
+        date: new Date().toISOString(),
+        receiptUrl: receiptUrl,
+      };
+
+      const updates = {
+        payments: [...(transaction.payments || []), newPayment],
+        paidAmount: newPaidAmount,
+        paymentStatus: newPaidAmount >= totalAmount ? "paid" : "partial",
+      };
+
+      return await updateTransaction(id, updates);
+    },
+    [transactions, updateTransaction],
+  );
+
+  // Mark transaction as fully paid
+  const markFullPaid = useCallback(
+    async (id, receiptUrl = null) => {
+      const transaction = transactions.find((t) => t.id === id);
+      if (!transaction)
+        return { success: false, error: "Transaction not found" };
+
+      const totalAmount = transaction.amount || 0;
+      const currentPaid = transaction.paidAmount || 0;
+      const remainingAmount = totalAmount - currentPaid;
+
+      const payments = [...(transaction.payments || [])];
+      if (remainingAmount > 0) {
+        payments.push({
+          id: crypto.randomUUID(),
+          amount: remainingAmount,
+          date: new Date().toISOString(),
+          receiptUrl: receiptUrl,
+          isFinalPayment: true,
+        });
+      }
+
+      return await updateTransaction(id, {
+        paymentStatus: "paid",
+        paidAmount: totalAmount,
+        paidDate: new Date().toISOString(),
+        payments: payments,
+      });
+    },
+    [transactions, updateTransaction],
+  );
+
   const getPendingPayments = useCallback(() => {
     return transactions.filter(
       (t) => t.paymentStatus === "pending" || t.paymentStatus === "partial",
@@ -152,6 +213,8 @@ export function useTransactions(supplierId = null) {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    recordPayment,
+    markFullPaid,
     getPendingPayments,
     getRecentTransactions,
     refresh,

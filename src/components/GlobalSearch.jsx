@@ -225,13 +225,13 @@ export function GlobalSearch({ className }) {
   const handleCustomerClick = (customer) => {
     setIsOpen(false);
     setQuery("");
-    router.push(`/transactions?tab=customers&customer=${customer.id}`);
+    router.push(`/customers?open=${customer.id}`);
   };
 
   const handleUdharClick = (udhar) => {
     setIsOpen(false);
     setQuery("");
-    router.push(`/transactions?tab=customers&customer=${udhar.customerId}`);
+    router.push(`/customers?open=${udhar.customerId}`);
   };
 
   const getInitials = (name) => {

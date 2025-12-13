@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import {
+  Upload,
+  X,
+  Image as ImageIcon,
+  Loader2,
+  Camera,
+  ImagePlus,
+  Expand,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
 
 export function ImageUpload({
   value,
@@ -15,7 +24,9 @@ export function ImageUpload({
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
-  const inputRef = useRef(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -56,11 +67,18 @@ export function ImageUpload({
     }
   };
 
-  const handleRemove = () => {
+  const handleRemove = (e) => {
+    e.stopPropagation();
     setPreview(null);
     onChange?.(null);
-    if (inputRef.current) {
-      inputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  const handleViewImage = (e) => {
+    e.stopPropagation();
+    if (preview) {
+      setViewerOpen(true);
     }
   };
 
@@ -71,72 +89,118 @@ export function ImageUpload({
   };
 
   return (
-    <div className={cn("relative", className)}>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={disabled || isUploading}
-      />
-
-      {preview ? (
-        <div
-          className={cn(
-            "relative rounded-lg overflow-hidden border bg-muted",
-            aspectClasses[aspectRatio],
-          )}
-        >
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full h-full object-cover"
-          />
-          {!disabled && (
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2 h-7 w-7"
-              onClick={handleRemove}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-          {isUploading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 text-white animate-spin" />
-            </div>
-          )}
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
+    <>
+      <div className={cn("relative", className)}>
+        {/* Hidden inputs for camera and gallery */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileSelect}
+          className="hidden"
           disabled={disabled || isUploading}
-          className={cn(
-            "w-full rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50",
-            "flex flex-col items-center justify-center gap-2 p-6",
-            "hover:border-primary/50 hover:bg-muted transition-colors",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            aspectClasses[aspectRatio],
-          )}
-        >
-          {isUploading ? (
-            <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
-          ) : (
-            <>
-              <div className="rounded-full bg-primary/10 p-3">
-                <ImageIcon className="h-6 w-6 text-primary" />
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+          disabled={disabled || isUploading}
+        />
+
+        {preview ? (
+          <div
+            className={cn(
+              "relative rounded-lg overflow-hidden border bg-muted cursor-pointer group",
+              aspectClasses[aspectRatio],
+            )}
+            onClick={handleViewImage}
+          >
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full h-full object-cover"
+            />
+            {/* Hover overlay with view hint */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <Expand className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            {!disabled && (
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={handleRemove}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 text-white animate-spin" />
               </div>
-              <span className="text-sm text-muted-foreground">
-                {placeholder}
-              </span>
-            </>
-          )}
-        </button>
-      )}
-    </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "w-full rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50",
+              "flex flex-col items-center justify-center gap-3 p-4",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              aspectClasses[aspectRatio],
+            )}
+          >
+            {isUploading ? (
+              <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+            ) : (
+              <>
+                <div className="rounded-full bg-primary/10 p-3">
+                  <ImageIcon className="h-6 w-6 text-primary" />
+                </div>
+                <span className="text-sm text-muted-foreground text-center">
+                  {placeholder}
+                </span>
+                {/* Camera and Gallery buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    disabled={disabled || isUploading}
+                    className="gap-1.5"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Camera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => galleryInputRef.current?.click()}
+                    disabled={disabled || isUploading}
+                    className="gap-1.5"
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    Gallery
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Image Viewer */}
+      <ImageViewer
+        src={preview}
+        alt="Preview"
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
+    </>
   );
 }
 
@@ -147,9 +211,12 @@ export function MultiImageUpload({
   disabled = false,
 }) {
   const [isUploading, setIsUploading] = useState(false);
-  const inputRef = useRef(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
-  const handleFilesSelect = async (e) => {
+  const handleFilesSelect = async (e, fromCamera = false) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -194,82 +261,131 @@ export function MultiImageUpload({
 
     onChange?.([...value, ...newUrls]);
     setIsUploading(false);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
 
-  const handleRemove = (index) => {
+  const handleRemove = (index, e) => {
+    e.stopPropagation();
     const newValue = value.filter((_, i) => i !== index);
     onChange?.(newValue);
   };
 
+  const handleViewImage = (index) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
+
   return (
-    <div className="space-y-3">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFilesSelect}
-        className="hidden"
-        disabled={disabled || isUploading}
-      />
+    <>
+      <div className="space-y-3">
+        {/* Hidden inputs for camera and gallery */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => handleFilesSelect(e, true)}
+          className="hidden"
+          disabled={disabled || isUploading}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => handleFilesSelect(e, false)}
+          className="hidden"
+          disabled={disabled || isUploading}
+        />
 
-      {/* Image grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {value.map((url, index) => (
-          <div
-            key={index}
-            className="relative aspect-video rounded-lg overflow-hidden border bg-muted"
-          >
-            <img
-              src={url}
-              alt={`Bill ${index + 1}`}
-              className="w-full h-full object-cover"
-            />
-            {!disabled && (
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-1 right-1 h-6 w-6"
-                onClick={() => handleRemove(index)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        ))}
+        {/* Image grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {value.map((url, index) => (
+            <div
+              key={index}
+              className="relative aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer group"
+              onClick={() => handleViewImage(index)}
+            >
+              <img
+                src={url}
+                alt={`Image ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              {!disabled && (
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => handleRemove(index, e)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          ))}
 
-        {/* Add more button */}
-        {value.length < maxImages && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={disabled || isUploading}
-            className={cn(
-              "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
-              "flex flex-col items-center justify-center gap-1",
-              "hover:border-primary/50 hover:bg-muted/50 transition-colors",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-            )}
-          >
-            {isUploading ? (
-              <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
-            ) : (
-              <>
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Add Bill</span>
-              </>
-            )}
-          </button>
-        )}
+          {/* Add more buttons */}
+          {value.length < maxImages && (
+            <div
+              className={cn(
+                "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
+                "flex flex-col items-center justify-center gap-2 p-2",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+              )}
+            >
+              {isUploading ? (
+                <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+              ) : (
+                <>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={disabled || isUploading}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => galleryInputRef.current?.click()}
+                      disabled={disabled || isUploading}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground text-center">
+                    Add Photo
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {value.length} of {maxImages} images • Tap to view
+        </p>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {value.length} of {maxImages} images uploaded
-      </p>
-    </div>
+      {/* Gallery Viewer */}
+      <ImageGalleryViewer
+        images={value}
+        initialIndex={viewerIndex}
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
+    </>
   );
 }
 

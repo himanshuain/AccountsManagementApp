@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,7 +57,7 @@ export function TransactionForm({
     if (open && autoOpenSupplierDropdown && !selectedSupplierId) {
       setTimeout(() => {
         setSupplierSelectOpen(true);
-      }, 200);
+      }, 500);
     }
   }, [open, autoOpenSupplierDropdown, selectedSupplierId]);
 
@@ -167,18 +167,39 @@ export function TransactionForm({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {initialData
-              ? "Update transaction details"
-              : "Record a new transaction"}
-          </DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={handleClose}>
+      <SheetContent
+        side="bottom"
+        className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
+        hideClose
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
 
-        <ScrollArea className="max-h-[60vh] px-6">
+        <SheetHeader className="px-6 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle>{title}</SheetTitle>
+              <SheetDescription>
+                {initialData
+                  ? "Update transaction details"
+                  : "Record a new transaction"}
+              </SheetDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-8 w-8 rounded-full"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </SheetHeader>
+
+        <ScrollArea className="flex-1 px-6">
           <form
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
@@ -343,23 +364,26 @@ export function TransactionForm({
                 />
               </div>
             </div>
+
+            {/* Bottom padding for safe area */}
+            <div className="h-4" />
           </form>
         </ScrollArea>
 
-        <DialogFooter className="px-6 pb-6">
+        <SheetFooter className="px-6 py-4 border-t bg-background">
           <div className="flex gap-3 w-full">
             <Button
               variant="outline"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="flex-1"
+              className="flex-1 h-12"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit(handleFormSubmit)}
               disabled={isSubmitting || !selectedSupplierId || !isOnline}
-              className="flex-1"
+              className="flex-1 h-12"
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -367,9 +391,9 @@ export function TransactionForm({
               {initialData ? "Update" : "Save"}
             </Button>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 

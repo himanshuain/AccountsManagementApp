@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
   gst_number TEXT,
   address TEXT,
   upi_id TEXT,
-  qr_code_url TEXT,
+  upi_qr_code TEXT,
   profile_picture TEXT,
   notes TEXT,
   sync_status TEXT DEFAULT 'synced',
@@ -28,10 +28,13 @@ CREATE TABLE IF NOT EXISTS transactions (
   supplier_id UUID REFERENCES suppliers(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   amount DECIMAL(12,2) DEFAULT 0,
+  paid_amount DECIMAL(12,2) DEFAULT 0,
   item_name TEXT,
   payment_status TEXT DEFAULT 'pending',
   payment_mode TEXT DEFAULT 'upi',
   due_date DATE,
+  paid_date TIMESTAMPTZ,
+  payments JSONB DEFAULT '[]',
   notes TEXT,
   bill_images JSONB DEFAULT '[]',
   sync_status TEXT DEFAULT 'synced',
@@ -67,6 +70,7 @@ CREATE TABLE IF NOT EXISTS udhar (
   payment_status TEXT DEFAULT 'pending',
   payments JSONB DEFAULT '[]',
   khata_photos JSONB DEFAULT '[]',
+  item_description TEXT,
   notes TEXT,
   paid_date TIMESTAMPTZ,
   sync_status TEXT DEFAULT 'synced',
@@ -131,5 +135,3 @@ CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions FOR 
 CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_udhar_updated_at BEFORE UPDATE ON udhar FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_income_updated_at BEFORE UPDATE ON income FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-

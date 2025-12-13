@@ -7,7 +7,11 @@ import {
   Image as ImageIcon,
   Calendar,
   User,
-  ChevronRight,
+  ChevronDown,
+  CreditCard,
+  Receipt,
+  CheckCircle2,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +41,34 @@ const paymentModeLabels = {
   cheque: "Cheque",
 };
 
+// Helper to format relative date
+const formatRelativeDate = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = now - date;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "Today";
+  } else if (diffDays === 1) {
+    return "Yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  } else {
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  }
+};
+
 export function TransactionTable({
   transactions,
   suppliers,
   onEdit,
   onDelete,
+  onPay,
   showSupplier = true,
   loading = false,
 }) {
@@ -49,6 +76,7 @@ export function TransactionTable({
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [expandedTransactions, setExpandedTransactions] = useState({});
 
   const getSupplierName = (supplierId) => {
     const supplier = suppliers?.find((s) => s.id === supplierId);
@@ -67,8 +95,22 @@ export function TransactionTable({
     setDeleteDialogOpen(true);
   };
 
-  const handleCardClick = (transaction) => {
+  const handlePayClick = (transaction, e) => {
+    e.stopPropagation();
+    onPay?.(transaction);
+  };
+
+  const handleEditClick = (transaction, e) => {
+    e.stopPropagation();
     onEdit?.(transaction);
+  };
+
+  const toggleExpanded = (transactionId, e) => {
+    e?.stopPropagation();
+    setExpandedTransactions((prev) => ({
+      ...prev,
+      [transactionId]: !prev[transactionId],
+    }));
   };
 
   const confirmDelete = () => {
@@ -79,13 +121,17 @@ export function TransactionTable({
     setTransactionToDelete(null);
   };
 
-  // Calculate totals
+  // Calculate totals - now considering partial payments
   const totals = transactions.reduce(
     (acc, t) => {
       const amount = Number(t.amount) || 0;
+      const paidAmount = Number(t.paidAmount) || 0;
       acc.total += amount;
       if (t.paymentStatus === "paid") {
         acc.paid += amount;
+      } else if (t.paymentStatus === "partial") {
+        acc.paid += paidAmount;
+        acc.pending += amount - paidAmount;
       } else {
         acc.pending += amount;
       }
@@ -165,137 +211,290 @@ export function TransactionTable({
 
       {/* Transaction List */}
       <div className="space-y-2">
-        {sortedTransactions.map((transaction) => (
-          <Card
-            key={transaction.id}
-            onClick={() => handleCardClick(transaction)}
-            className={cn(
-              "overflow-hidden transition-all hover:shadow-md cursor-pointer active:scale-[0.99]",
-              transaction.paymentStatus === "paid"
-                ? "border-l-4 border-l-green-500"
-                : "border-l-4 border-l-amber-500",
-            )}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between gap-3">
-                {/* Left: Main info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {/* Amount - Most prominent */}
-                    <span className="text-lg font-bold">
-                      ₹{(transaction.amount || 0).toLocaleString()}
-                    </span>
-                    {/* Status badge */}
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "text-xs px-1.5 py-0",
-                        transaction.paymentStatus === "paid"
-                          ? "bg-green-500/20 text-green-600"
-                          : "bg-amber-500/20 text-amber-600",
-                      )}
-                    >
-                      {transaction.paymentStatus === "paid"
-                        ? "Paid"
-                        : "Pending"}
-                    </Badge>
-                    {/* Payment mode */}
-                    <span className="text-xs text-muted-foreground">
-                      {paymentModeLabels[transaction.paymentMode] ||
-                        transaction.paymentMode}
-                    </span>
-                  </div>
+        {sortedTransactions.map((transaction) => {
+          const hasPayments =
+            transaction.payments && transaction.payments.length > 0;
+          const isExpanded = expandedTransactions[transaction.id];
+          const paidAmount = transaction.paidAmount || 0;
+          const pendingAmount = (transaction.amount || 0) - paidAmount;
+          const isPartial = transaction.paymentStatus === "partial";
+          const isPaid = transaction.paymentStatus === "paid";
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    {/* Date */}
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(transaction.date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "2-digit",
-                      })}
-                    </span>
-
-                    {/* Supplier */}
-                    {showSupplier && (
-                      <Link
-                        href={`/suppliers/${transaction.supplierId}`}
-                        className="flex items-center gap-1 hover:text-primary transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <User className="h-3 w-3" />
-                        <span className="truncate max-w-[120px]">
-                          {getSupplierName(transaction.supplierId)}
+          return (
+            <Card
+              key={transaction.id}
+              className={cn(
+                "overflow-hidden transition-all",
+                isPaid
+                  ? "border-l-4 border-l-green-500"
+                  : isPartial
+                    ? "border-l-4 border-l-blue-500"
+                    : "border-l-4 border-l-amber-500",
+              )}
+            >
+              <CardContent className="p-0">
+                {/* Main Transaction Row - Tap to expand */}
+                <div
+                  onClick={(e) => toggleExpanded(transaction.id, e)}
+                  className="p-3 cursor-pointer hover:bg-muted/50 active:scale-[0.99] transition-all"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Left: Main info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {/* Amount - Most prominent */}
+                        <span className="text-lg font-bold">
+                          ₹{(transaction.amount || 0).toLocaleString()}
                         </span>
-                      </Link>
-                    )}
+                        {/* Status badge */}
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "text-xs px-1.5 py-0",
+                            isPaid
+                              ? "bg-green-500/20 text-green-600"
+                              : isPartial
+                                ? "bg-blue-500/20 text-blue-600"
+                                : "bg-amber-500/20 text-amber-600",
+                          )}
+                        >
+                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                        </Badge>
+                        {/* Payment mode */}
+                        <span className="text-xs text-muted-foreground">
+                          {paymentModeLabels[transaction.paymentMode] ||
+                            transaction.paymentMode}
+                        </span>
+                      </div>
 
-                    {/* Item name */}
-                    {transaction.itemName && (
-                      <span className="truncate max-w-[80px]">
-                        {transaction.itemName}
-                      </span>
+                      {/* Show partial payment progress */}
+                      {isPartial && (
+                        <div className="mb-1">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-green-600">
+                              Paid: ₹{paidAmount.toLocaleString()}
+                            </span>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-amber-600">
+                              Pending: ₹{pendingAmount.toLocaleString()}
+                            </span>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-green-500 rounded-full transition-all"
+                              style={{
+                                width: `${(paidAmount / (transaction.amount || 1)) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {/* Date */}
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(transaction.date).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "numeric",
+                              month: "short",
+                              year: "2-digit",
+                            },
+                          )}
+                        </span>
+
+                        {/* Supplier */}
+                        {showSupplier && (
+                          <Link
+                            href={`/suppliers/${transaction.supplierId}`}
+                            className="flex items-center gap-1 hover:text-primary transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <User className="h-3 w-3" />
+                            <span className="truncate max-w-[120px]">
+                              {getSupplierName(transaction.supplierId)}
+                            </span>
+                          </Link>
+                        )}
+
+                        {/* Item name */}
+                        {transaction.itemName && (
+                          <span className="truncate max-w-[80px]">
+                            {transaction.itemName}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Notes if present */}
+                      {transaction.notes && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {transaction.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Right: Expand indicator */}
+                    <div className="flex items-center">
+                      <ChevronDown
+                        className={cn(
+                          "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                          isExpanded && "rotate-180",
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expandable Section - Actions + Payment History */}
+                {isExpanded && (
+                  <div className="border-t bg-muted/30">
+                    {/* Action Buttons */}
+                    <div className="p-3 flex items-center gap-2 flex-wrap">
+                      {/* Edit button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleEditClick(transaction, e)}
+                        className="h-9 px-3 text-sm"
+                      >
+                        <Edit className="h-4 w-4 mr-1.5" />
+                        Edit
+                      </Button>
+
+                      {/* Pay button for pending/partial transactions */}
+                      {!isPaid && onPay && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => handlePayClick(transaction, e)}
+                          className="h-9 px-3 text-sm bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                        >
+                          <CreditCard className="h-4 w-4 mr-1.5" />
+                          Pay
+                        </Button>
+                      )}
+
+                      {/* Bill images */}
+                      {transaction.billImages?.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) =>
+                            handleViewImages(transaction.billImages, e)
+                          }
+                          className="h-9 px-3 text-sm"
+                        >
+                          <ImageIcon className="h-4 w-4 mr-1.5" />
+                          Bills ({transaction.billImages.length})
+                        </Button>
+                      )}
+
+                      {/* Delete - pushed to end */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleDeleteClick(transaction, e)}
+                        className="h-9 px-3 text-sm text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        Delete
+                      </Button>
+                    </div>
+
+                    {/* Payment Timeline (if has payments) */}
+                    {hasPayments && (
+                      <div className="px-3 pb-3 border-t">
+                        <div className="pt-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            Payment History
+                          </p>
+                          <div className="space-y-0">
+                            {transaction.payments
+                              .sort(
+                                (a, b) => new Date(b.date) - new Date(a.date),
+                              )
+                              .map((payment, index, arr) => (
+                                <div key={payment.id} className="flex">
+                                  {/* Timeline line and dot */}
+                                  <div className="flex flex-col items-center mr-3">
+                                    <div
+                                      className={cn(
+                                        "w-3 h-3 rounded-full flex items-center justify-center",
+                                        index === 0
+                                          ? "bg-green-500"
+                                          : "bg-green-400",
+                                      )}
+                                    >
+                                      <CheckCircle2 className="w-2 h-2 text-white" />
+                                    </div>
+                                    {index < arr.length - 1 && (
+                                      <div className="w-0.5 h-full min-h-[24px] bg-green-300" />
+                                    )}
+                                  </div>
+
+                                  {/* Payment details */}
+                                  <div className="flex-1 pb-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-green-600">
+                                        ₹{payment.amount.toLocaleString()}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        — {formatRelativeDate(payment.date)}
+                                      </span>
+                                      {payment.receiptUrl && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedImages([
+                                              payment.receiptUrl,
+                                            ]);
+                                            setImageDialogOpen(true);
+                                          }}
+                                          className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                                        >
+                                          <Receipt className="h-3 w-3" />
+                                          Receipt
+                                        </button>
+                                      )}
+                                    </div>
+                                    {payment.isFinalPayment && (
+                                      <span className="text-xs text-green-600">
+                                        Final payment
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
-
-                  {/* Notes if present */}
-                  {transaction.notes && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate">
-                      {transaction.notes}
-                    </p>
-                  )}
-                </div>
-
-                {/* Right: Actions */}
-                <div className="flex items-center gap-1">
-                  {/* Bill images */}
-                  {transaction.billImages?.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) =>
-                        handleViewImages(transaction.billImages, e)
-                      }
-                      className="h-8 w-8 p-0"
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                      <span className="sr-only">
-                        {transaction.billImages.length} bills
-                      </span>
-                    </Button>
-                  )}
-
-                  {/* Delete */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleDeleteClick(transaction, e)}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-
-                  {/* Chevron to indicate clickable */}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Image Preview Dialog */}
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Bill Images</DialogTitle>
+            <DialogTitle>
+              {selectedImages.length === 1 ? "Receipt" : "Bill Images"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-4">
             {selectedImages.map((url, index) => (
               <div
                 key={index}
-                className="aspect-square rounded-lg overflow-hidden bg-muted"
+                className={cn(
+                  "aspect-square rounded-lg overflow-hidden bg-muted",
+                  selectedImages.length === 1 && "col-span-2",
+                )}
               >
                 <img
                   src={url}

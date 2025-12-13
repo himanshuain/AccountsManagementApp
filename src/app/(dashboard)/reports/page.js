@@ -83,6 +83,7 @@ import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899"];
 
@@ -149,7 +150,7 @@ export default function ReportsPage() {
     if (incomeFormOpen && cashInputRef.current) {
       setTimeout(() => {
         cashInputRef.current?.focus();
-      }, 100);
+      }, 500);
     }
   }, [incomeFormOpen]);
 
@@ -474,6 +475,66 @@ export default function ReportsPage() {
   const formTotal =
     (Number(formData.cashAmount) || 0) + (Number(formData.onlineAmount) || 0);
 
+  // Loading state
+  if (incomeLoading) {
+    return (
+      <div className="p-4 lg:p-6 space-y-6">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-28" />
+          </div>
+        </div>
+
+        {/* Summary cards skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4 space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-28" />
+                <Skeleton className="h-3 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Chart skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+
+        {/* List skeleton */}
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-40" />
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 lg:p-6 space-y-6">
       {/* Header */}
@@ -504,110 +565,239 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Summary Cards - Clickable */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary Cards - Redesigned */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Total Revenue Card - Combined with Cash & Online */}
         <Card
-          className="card-lift bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 cursor-pointer hover:scale-[1.02] transition-transform"
+          className="card-lift bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 cursor-pointer hover:scale-[1.01] transition-transform"
           onClick={() => scrollToSection(incomeListRef)}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1 mr-2">
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
+          <CardContent className="p-5">
+            {/* Main Total */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-muted-foreground mb-1">
+                  Total Revenue
+                </p>
                 <p
                   className={cn(
-                    "font-bold text-primary truncate",
-                    getAmountTextSize(stats.totalRevenue, "2xl"),
+                    "font-bold text-primary",
+                    getAmountTextSize(stats.totalRevenue, "3xl"),
                   )}
                 >
                   ₹{stats.totalRevenue.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Tap to view
-                </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <IndianRupee className="h-5 w-5 text-primary" />
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <IndianRupee className="h-7 w-7 text-primary" />
               </div>
             </div>
+
+            {/* Cash & Online Breakdown */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-primary/10">
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-green-500/5">
+                <div className="h-9 w-9 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                  <Banknote className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">Cash</p>
+                  <p className="font-semibold text-green-600 truncate">
+                    ₹{stats.totalCash.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-blue-500/5">
+                <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <Smartphone className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">Online</p>
+                  <p className="font-semibold text-blue-600 truncate">
+                    ₹{stats.totalOnline.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-3 text-center">
+              Tap to view income entries
+            </p>
           </CardContent>
         </Card>
 
+        {/* Udhar Pending Card */}
         <Card
-          className="card-lift cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => scrollToSection(incomeListRef)}
+          className="card-lift bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20 cursor-pointer hover:scale-[1.01] transition-transform"
+          onClick={() => router.push("/customers")}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1 mr-2">
-                <p className="text-sm text-muted-foreground">Cash Income</p>
-                <p
-                  className={cn(
-                    "font-bold text-green-500 truncate",
-                    getAmountTextSize(stats.totalCash, "2xl"),
-                  )}
-                >
-                  ₹{stats.totalCash.toLocaleString()}
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-muted-foreground mb-1">
+                  Udhar Pending
                 </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <Banknote className="h-5 w-5 text-green-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="card-lift cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => scrollToSection(incomeListRef)}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1 mr-2">
-                <p className="text-sm text-muted-foreground">Online Income</p>
                 <p
                   className={cn(
-                    "font-bold text-blue-500 truncate",
-                    getAmountTextSize(stats.totalOnline, "2xl"),
-                  )}
-                >
-                  ₹{stats.totalOnline.toLocaleString()}
-                </p>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                <Smartphone className="h-5 w-5 text-blue-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="card-lift cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => router.push("/transactions?tab=customers")}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1 mr-2">
-                <p className="text-sm text-muted-foreground">Udhar Pending</p>
-                <p
-                  className={cn(
-                    "font-bold text-amber-500 truncate",
-                    getAmountTextSize(stats.pendingUdhar, "2xl"),
+                    "font-bold text-amber-600",
+                    getAmountTextSize(stats.pendingUdhar, "3xl"),
                   )}
                 >
                   ₹{stats.pendingUdhar.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Tap to view
-                </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="h-5 w-5 text-amber-500" />
+              <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-7 w-7 text-amber-500" />
               </div>
             </div>
+
+            {/* Udhar Stats */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-amber-500/10">
+              <div className="p-2 rounded-lg bg-muted/50">
+                <p className="text-xs text-muted-foreground">Total Udhar</p>
+                <p className="font-semibold truncate">
+                  ₹{stats.totalUdhar.toLocaleString()}
+                </p>
+              </div>
+              <div className="p-2 rounded-lg bg-green-500/5">
+                <p className="text-xs text-green-600">Collected</p>
+                <p className="font-semibold text-green-600 truncate">
+                  ₹{stats.collectedUdhar.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-3 text-center">
+              Tap to view customers
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Income List - Collapsible (moved above Monthly) */}
+      <Collapsible
+        open={incomeListExpanded}
+        onOpenChange={setIncomeListExpanded}
+      >
+        <Card ref={incomeListRef} className="scroll-mt-20">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CardTitle>Income Entries</CardTitle>
+                  <Badge variant="secondary">
+                    {filteredIncome.length} entries
+                  </Badge>
+                </div>
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${incomeListExpanded ? "rotate-180" : ""}`}
+                />
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {sortedIncome.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p>No income entries yet</p>
+                  <Button
+                    variant="link"
+                    className="mt-2"
+                    onClick={openAddForm}
+                    disabled={!isOnline}
+                  >
+                    Add your first income
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedIncome.slice(0, 10).map((income) => (
+                    <div
+                      key={income.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                            income.type === "daily"
+                              ? "bg-green-500/10"
+                              : "bg-blue-500/10"
+                          }`}
+                        >
+                          {income.type === "daily" ? (
+                            <Banknote className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <IndianRupee className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold">
+                            ₹{getIncomeTotal(income).toLocaleString()}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {income.cashAmount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Banknote className="h-3 w-3 text-green-500" />₹
+                                {income.cashAmount.toLocaleString()}
+                              </span>
+                            )}
+                            {income.onlineAmount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Smartphone className="h-3 w-3 text-blue-500" />
+                                ₹{income.onlineAmount.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(income.date).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "2-digit",
+                            })}{" "}
+                            • {income.type === "daily" ? "Daily" : "Monthly"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {income.description && (
+                          <span className="text-xs text-muted-foreground hidden sm:block max-w-[150px] truncate">
+                            {income.description}
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(income)}
+                          disabled={!isOnline}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (!isOnline) {
+                              toast.error("Cannot delete while offline");
+                              return;
+                            }
+                            setIncomeToDelete(income);
+                            setDeleteDialogOpen(true);
+                          }}
+                          disabled={!isOnline}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Monthly Breakdown - Collapsible */}
       <Collapsible
@@ -836,132 +1026,6 @@ export default function ReportsPage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      {/* Income List - Collapsible */}
-      <Collapsible
-        open={incomeListExpanded}
-        onOpenChange={setIncomeListExpanded}
-      >
-        <Card ref={incomeListRef} className="scroll-mt-20">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CardTitle>Income Entries</CardTitle>
-                  <Badge variant="secondary">
-                    {filteredIncome.length} entries
-                  </Badge>
-                </div>
-                <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${incomeListExpanded ? "rotate-180" : ""}`}
-                />
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0">
-              {sortedIncome.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                  <p>No income entries yet</p>
-                  <Button
-                    variant="link"
-                    className="mt-2"
-                    onClick={openAddForm}
-                    disabled={!isOnline}
-                  >
-                    Add your first income
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {sortedIncome.slice(0, 10).map((income) => (
-                    <div
-                      key={income.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            income.type === "daily"
-                              ? "bg-green-500/10"
-                              : "bg-blue-500/10"
-                          }`}
-                        >
-                          {income.type === "daily" ? (
-                            <Banknote className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <IndianRupee className="h-5 w-5 text-blue-500" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-semibold">
-                            ₹{getIncomeTotal(income).toLocaleString()}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {income.cashAmount > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Banknote className="h-3 w-3 text-green-500" />₹
-                                {income.cashAmount.toLocaleString()}
-                              </span>
-                            )}
-                            {income.onlineAmount > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Smartphone className="h-3 w-3 text-blue-500" />
-                                ₹{income.onlineAmount.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(income.date).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "2-digit",
-                            })}{" "}
-                            • {income.type === "daily" ? "Daily" : "Monthly"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {income.description && (
-                          <span className="text-xs text-muted-foreground hidden sm:block max-w-[150px] truncate">
-                            {income.description}
-                          </span>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(income)}
-                          disabled={!isOnline}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (!isOnline) {
-                              toast.error("Cannot delete while offline");
-                              return;
-                            }
-                            setIncomeToDelete(income);
-                            setDeleteDialogOpen(true);
-                          }}
-                          disabled={!isOnline}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </CollapsibleContent>
         </Card>
