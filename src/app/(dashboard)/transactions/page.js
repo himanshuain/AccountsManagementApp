@@ -72,10 +72,24 @@ export default function TransactionsPage() {
     markFullPaid,
   } = useUdhar();
 
-  // Tab state - read from URL or default to customers
-  const [mainTab, setMainTab] = useState("customers");
+  // Tab state - read from URL, localStorage, or default to customers
+  const [mainTab, setMainTab] = useState(() => {
+    // On client side, try to read from localStorage
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("transactionsTab") || "customers";
+    }
+    return "customers";
+  });
 
-  // Read tab from URL query params
+  // Persist tab selection to localStorage
+  const handleTabChange = (tab) => {
+    setMainTab(tab);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("transactionsTab", tab);
+    }
+  };
+
+  // Read tab from URL query params (overrides localStorage)
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "customers" || tab === "suppliers") {
@@ -320,7 +334,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Main Tabs: Customers (Udhar) / Suppliers */}
-      <Tabs value={mainTab} onValueChange={setMainTab}>
+      <Tabs value={mainTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="customers" className="gap-1.5">
             <Users className="h-4 w-4" />

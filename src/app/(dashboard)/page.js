@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { haptics } from "@/hooks/useHaptics";
 
 export default function DashboardPage() {
   const isOnline = useOnlineStatus();
@@ -136,7 +137,9 @@ export default function DashboardPage() {
 
   // Open Vyapari Bill (transaction form with supplier dropdown open)
   const openVyapariBill = () => {
+    haptics.light();
     if (!isOnline) {
+      haptics.error();
       toast.error("Cannot add while offline");
       return;
     }
@@ -150,7 +153,9 @@ export default function DashboardPage() {
 
   // Open Add Udhar (with customer dropdown open)
   const openAddUdhar = () => {
+    haptics.light();
     if (!isOnline) {
+      haptics.error();
       toast.error("Cannot add while offline");
       return;
     }
@@ -200,7 +205,9 @@ export default function DashboardPage() {
               : "opacity-50 cursor-not-allowed"
           }`}
           onClick={() => {
+            haptics.light();
             if (!isOnline) {
+              haptics.error();
               toast.error("Cannot add while offline");
               return;
             }
@@ -250,7 +257,9 @@ export default function DashboardPage() {
               : "opacity-50 cursor-not-allowed"
           }`}
           onClick={() => {
+            haptics.light();
             if (!isOnline) {
+              haptics.error();
               toast.error("Cannot add while offline");
               return;
             }
@@ -276,7 +285,9 @@ export default function DashboardPage() {
         <Button
           className="w-full h-12 text-base"
           onClick={() => {
+            haptics.light();
             if (!isOnline) {
+              haptics.error();
               toast.error("Cannot add while offline");
               return;
             }
