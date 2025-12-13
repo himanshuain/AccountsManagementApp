@@ -8,11 +8,11 @@ import {
   LayoutDashboard,
   Users,
   Receipt,
-  Settings,
   LogOut,
   Store,
   RefreshCw,
   BarChart3,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { toast } from "sonner";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/suppliers", label: "Suppliers", icon: Users },
+  { href: "/customers", label: "Customers", icon: UserCircle },
   { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/reports", label: "Revenue", icon: BarChart3 },
 ];

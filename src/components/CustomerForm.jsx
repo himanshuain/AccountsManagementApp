@@ -25,6 +25,9 @@ export function CustomerForm({
   onSubmit,
   initialData = null,
   title = "Add Customer",
+  showInitialAmount = false,
+  initialAmount = "",
+  onInitialAmountChange = () => {},
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -187,6 +190,25 @@ export function CustomerForm({
                 className="text-base h-11"
               />
             </div>
+
+            {/* Initial Amount (optional) */}
+            {showInitialAmount && (
+              <div className="space-y-2">
+                <Label htmlFor="initialAmount">Initial Udhar Amount (₹)</Label>
+                <Input
+                  id="initialAmount"
+                  type="number"
+                  inputMode="numeric"
+                  value={initialAmount}
+                  onChange={(e) => onInitialAmountChange(e.target.value)}
+                  placeholder="Enter initial lending amount"
+                  className="text-xl h-14 font-bold"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This will create an Udhar entry automatically
+                </p>
+              </div>
+            )}
 
             {/* Address */}
             <div className="space-y-2">

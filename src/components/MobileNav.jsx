@@ -13,6 +13,7 @@ import {
   LogOut,
   RefreshCw,
   BarChart3,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -27,7 +28,7 @@ import { toast } from "sonner";
 const navItems = [
   {
     href: "/",
-    label: "Dashboard",
+    label: "Home",
     icon: LayoutDashboard,
     color: "bg-blue-500",
     activeColor: "bg-blue-600",
@@ -42,8 +43,16 @@ const navItems = [
     iconColor: "text-emerald-500",
   },
   {
+    href: "/customers",
+    label: "Customers",
+    icon: UserCircle,
+    color: "bg-orange-500",
+    activeColor: "bg-orange-600",
+    iconColor: "text-orange-500",
+  },
+  {
     href: "/transactions",
-    label: "Transactions",
+    label: "Txns",
     icon: Receipt,
     color: "bg-purple-500",
     activeColor: "bg-purple-600",
