@@ -72,12 +72,50 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import useIncome from "@/hooks/useIncome";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 
 const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899"];
+
+// Custom Y-axis formatter: show in thousands till 1 lac, then 50k gaps
+const formatYAxis = (value) => {
+  if (value === 0) return "₹0";
+  if (value < 100000) {
+    return `₹${(value / 1000).toFixed(0)}k`;
+  }
+  // For 1 lac and above, show in lakhs
+  return `₹${(value / 100000).toFixed(1)}L`;
+};
+
+// Generate Y-axis ticks
+const getYAxisTicks = (maxValue) => {
+  if (maxValue <= 0) return [0];
+  
+  const ticks = [0];
+  
+  if (maxValue <= 100000) {
+    // Show in 10k increments up to 1 lac
+    const increment = maxValue <= 50000 ? 10000 : 20000;
+    for (let i = increment; i <= maxValue * 1.1; i += increment) {
+      ticks.push(i);
+    }
+  } else {
+    // Show in 50k increments above 1 lac
+    for (let i = 50000; i <= maxValue * 1.1; i += 50000) {
+      ticks.push(i);
+    }
+  }
+  
+  return ticks;
+};
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -96,6 +134,9 @@ export default function ReportsPage() {
   const [incomeToEdit, setIncomeToEdit] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState(null);
+  const [incomeListExpanded, setIncomeListExpanded] = useState(true);
+  const [monthlyListExpanded, setMonthlyListExpanded] = useState(false);
+  const [chartsExpanded, setChartsExpanded] = useState(false);
 
   // Refs for scrolling
   const incomeListRef = useRef(null);
@@ -526,131 +567,172 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div ref={chartsRef} className="grid lg:grid-cols-2 gap-6 scroll-mt-20">
-        {/* Monthly Trend */}
+      {/* Monthly Breakdown - Collapsible */}
+      <Collapsible open={monthlyListExpanded} onOpenChange={setMonthlyListExpanded}>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Income Trend
-            </CardTitle>
-            <CardDescription>Cash vs Online income over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData}>
-                  <defs>
-                    <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient
-                      id="colorOnline"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted"
-                  />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis
-                    className="text-xs"
-                    tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value) => [`₹${value.toLocaleString()}`, ""]}
-                  />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="cash"
-                    stroke="#22c55e"
-                    fillOpacity={1}
-                    fill="url(#colorCash)"
-                    name="Cash"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="online"
-                    stroke="#3b82f6"
-                    fillOpacity={1}
-                    fill="url(#colorOnline)"
-                    name="Online"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Income Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Income Distribution</CardTitle>
-            <CardDescription>Cash vs Online income breakdown</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              {incomeTypeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={incomeTypeData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {incomeTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value) => [`₹${value.toLocaleString()}`, ""]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  No income data available
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Monthly Breakdown
+                  </CardTitle>
+                  <CardDescription>View cash, online & Udhar by month</CardDescription>
                 </div>
-              )}
-            </div>
-          </CardContent>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${monthlyListExpanded ? "rotate-180" : ""}`} />
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                {monthlyData.slice().reverse().map((month, idx) => (
+                  <div key={idx} className="p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold">{month.month}</span>
+                      <span className="font-bold text-lg">₹{month.total.toLocaleString()}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-muted-foreground">Cash:</span>
+                        <span className="font-medium text-green-600">₹{month.cash.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <span className="text-muted-foreground">Online:</span>
+                        <span className="font-medium text-blue-600">₹{month.online.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-muted-foreground">Udhar:</span>
+                        <span className="font-medium text-amber-600">₹{month.udharPending.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
         </Card>
-      </div>
+      </Collapsible>
 
-      {/* Income List */}
-      <Card ref={incomeListRef} className="scroll-mt-20">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Recent Income Entries</CardTitle>
-            <Badge variant="secondary">{filteredIncome.length} entries</Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
+      {/* Charts - Collapsible */}
+      <Collapsible open={chartsExpanded} onOpenChange={setChartsExpanded}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Income Charts
+                  </CardTitle>
+                  <CardDescription>Visualize your income trends</CardDescription>
+                </div>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${chartsExpanded ? "rotate-180" : ""}`} />
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div ref={chartsRef} className="grid lg:grid-cols-2 gap-6 scroll-mt-20">
+                {/* Monthly Trend */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">Cash vs Online Trend</h4>
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={monthlyData}>
+                        <defs>
+                          <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="month" className="text-xs" />
+                        <YAxis className="text-xs" tickFormatter={formatYAxis} />
+                        <Tooltip
+                          contentStyle={{
+                            background: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                          }}
+                          formatter={(value) => [`₹${value.toLocaleString()}`, ""]}
+                        />
+                        <Legend />
+                        <Area type="monotone" dataKey="cash" stroke="#22c55e" fillOpacity={1} fill="url(#colorCash)" name="Cash" />
+                        <Area type="monotone" dataKey="online" stroke="#3b82f6" fillOpacity={1} fill="url(#colorOnline)" name="Online" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Income Distribution */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">Income Distribution</h4>
+                  <div className="h-[250px]">
+                    {incomeTypeData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={incomeTypeData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {incomeTypeData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              background: "hsl(var(--card))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "8px",
+                            }}
+                            formatter={(value) => [`₹${value.toLocaleString()}`, ""]}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground">
+                        No income data
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Income List - Collapsible */}
+      <Collapsible open={incomeListExpanded} onOpenChange={setIncomeListExpanded}>
+        <Card ref={incomeListRef} className="scroll-mt-20">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CardTitle>Income Entries</CardTitle>
+                  <Badge variant="secondary">{filteredIncome.length} entries</Badge>
+                </div>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${incomeListExpanded ? "rotate-180" : ""}`} />
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
           {sortedIncome.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -749,8 +831,10 @@ export default function ReportsPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Income Form Dialog */}
       <Dialog open={incomeFormOpen} onOpenChange={setIncomeFormOpen}>
