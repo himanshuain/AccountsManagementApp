@@ -198,19 +198,17 @@ export default function ReportsPage() {
         0,
       );
 
-      const udharCollected = monthUdhar
-        .filter((u) => u.paymentStatus === "paid")
-        .reduce(
-          (sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0),
-          0,
-        );
+      // Helper functions for udhar amounts
+      const getTotal = (u) => u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+      const getPaid = (u) => u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
 
-      const udharPending = monthUdhar
-        .filter((u) => u.paymentStatus !== "paid")
-        .reduce(
-          (sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0),
-          0,
-        );
+      const udharCollected = monthUdhar.reduce((sum, u) => sum + getPaid(u), 0);
+
+      const udharPending = monthUdhar.reduce((sum, u) => {
+        const total = getTotal(u);
+        const paid = getPaid(u);
+        return sum + Math.max(0, total - paid);
+      }, 0);
 
       months.push({
         month: format(current, "MMM yy"),
@@ -273,15 +271,17 @@ export default function ReportsPage() {
       .filter((i) => i.type === "monthly")
       .reduce((sum, i) => sum + getIncomeTotal(i), 0);
 
-    // Udhar stats
-    const totalUdhar = udharList.reduce(
-      (sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0),
-      0,
-    );
-    const collectedUdhar = udharList
-      .filter((u) => u.paymentStatus === "paid")
-      .reduce((sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0), 0);
-    const pendingUdhar = totalUdhar - collectedUdhar;
+    // Udhar stats - support both old (cashAmount + onlineAmount) and new (amount) format
+    const getUdharTotal = (u) => u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+    const getUdharPaid = (u) => u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+    
+    const totalUdhar = udharList.reduce((sum, u) => sum + getUdharTotal(u), 0);
+    const collectedUdhar = udharList.reduce((sum, u) => sum + getUdharPaid(u), 0);
+    const pendingUdhar = udharList.reduce((sum, u) => {
+      const total = getUdharTotal(u);
+      const paid = getUdharPaid(u);
+      return sum + Math.max(0, total - paid);
+    }, 0);
 
     // Compare with previous period
     const prevStart = subMonths(

@@ -36,6 +36,7 @@ export function UdharForm({
   initialData = null,
   defaultCustomerId = null,
   title = "Add Udhar",
+  autoOpenCustomerDropdown = false,
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +47,17 @@ export function UdharForm({
     initialData?.customerId || defaultCustomerId || "",
   );
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
+  const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
   const cameraInputRef = useRef(null);
+
+  // Auto-open customer dropdown when requested
+  useEffect(() => {
+    if (open && autoOpenCustomerDropdown && !selectedCustomerId) {
+      setTimeout(() => {
+        setCustomerSelectOpen(true);
+      }, 200);
+    }
+  }, [open, autoOpenCustomerDropdown, selectedCustomerId]);
 
   const defaultFormValues = {
     date: new Date().toISOString().split("T")[0],
@@ -181,8 +192,13 @@ export function UdharForm({
                 <div className="flex gap-2">
                   <Select
                     value={selectedCustomerId}
-                    onValueChange={setSelectedCustomerId}
+                    onValueChange={(val) => {
+                      setSelectedCustomerId(val);
+                      setCustomerSelectOpen(false);
+                    }}
                     disabled={!!defaultCustomerId || !isOnline}
+                    open={customerSelectOpen}
+                    onOpenChange={setCustomerSelectOpen}
                   >
                     <SelectTrigger className="flex-1 text-base h-11">
                       <SelectValue placeholder="Select customer" />
@@ -270,41 +286,32 @@ export function UdharForm({
                 )}
               </div>
 
-              {/* Date & Item */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Udhari Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    {...register("date", { required: "Date is required" })}
-                    disabled={!isOnline}
-                  />
-                  {errors.date && (
-                    <p className="text-xs text-destructive">
-                      {errors.date.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="itemDescription">Item/Description</Label>
-                  <Input
-                    id="itemDescription"
-                    {...register("itemDescription")}
-                    placeholder="Clothes etc."
-                    disabled={!isOnline}
-                  />
-                </div>
+              {/* Date */}
+              <div className="space-y-2">
+                <Label htmlFor="date">Udhari Date *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  {...register("date", { required: "Date is required" })}
+                  disabled={!isOnline}
+                />
+                {errors.date && (
+                  <p className="text-xs text-destructive">
+                    {errors.date.message}
+                  </p>
+                )}
               </div>
 
-              {/* Notes */}
+              {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input
+                <Label htmlFor="notes">Description</Label>
+                <textarea
                   id="notes"
                   {...register("notes")}
-                  placeholder="Any additional notes"
+                  placeholder="Add any details about this Udhar..."
                   disabled={!isOnline}
+                  rows={3}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
             </form>

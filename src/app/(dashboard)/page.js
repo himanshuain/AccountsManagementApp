@@ -1,30 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Users,
   Receipt,
   IndianRupee,
-  Clock,
   Plus,
-  ArrowRight,
-  TrendingUp,
-  Camera,
+  Store,
   Banknote,
   Smartphone,
+  UserPlus,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useCustomers from "@/hooks/useCustomers";
@@ -33,8 +22,8 @@ import useIncome from "@/hooks/useIncome";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { SupplierForm } from "@/components/SupplierForm";
 import { TransactionForm } from "@/components/TransactionForm";
-import { QuickBillCapture } from "@/components/QuickBillCapture";
 import { UdharForm } from "@/components/UdharForm";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -57,24 +46,23 @@ import { toast } from "sonner";
 export default function DashboardPage() {
   const isOnline = useOnlineStatus();
   const { suppliers, addSupplier } = useSuppliers();
-  const {
-    transactions,
-    addTransaction,
-    getPendingPayments,
-    getRecentTransactions,
-  } = useTransactions();
+  const { addTransaction } = useTransactions();
   const { customers, addCustomer } = useCustomers();
-  const { udharList, addUdhar, getPending: getPendingUdhar } = useUdhar();
-  const { addIncome, getTotalIncome } = useIncome();
-
-  const [pendingPayments, setPendingPayments] = useState([]);
-  const [recentTransactions, setRecentTransactions] = useState([]);
-  const [pendingUdhar, setPendingUdhar] = useState([]);
+  const { addUdhar } = useUdhar();
+  const { addIncome } = useIncome();
+  
+  // Form states
   const [supplierFormOpen, setSupplierFormOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
   const [quickCaptureData, setQuickCaptureData] = useState(null);
+  
+  // For auto-opening dropdowns
+  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  
+  // Income form data
   const [incomeFormData, setIncomeFormData] = useState({
     type: "daily",
     cashAmount: "",
@@ -82,65 +70,18 @@ export default function DashboardPage() {
     date: new Date().toISOString().split("T")[0],
     description: "",
   });
+  
+  // Refs for auto-focus
+  const cashInputRef = useRef(null);
 
+  // Auto-focus cash input when income form opens
   useEffect(() => {
-    const loadDashboardData = async () => {
-      const pending = await getPendingPayments();
-      const recent = await getRecentTransactions(5);
-      const pendingU = await getPendingUdhar();
-      setPendingPayments(pending);
-      setRecentTransactions(recent);
-      setPendingUdhar(pendingU);
-    };
-    loadDashboardData();
-  }, [
-    getPendingPayments,
-    getRecentTransactions,
-    getPendingUdhar,
-    transactions,
-    udharList,
-  ]);
-
-  // Calculate stats
-  const totalSuppliers = suppliers.length;
-  const totalTransactions = transactions.length;
-  const pendingAmount = pendingPayments.reduce(
-    (sum, t) => sum + (t.amount || 0),
-    0,
-  );
-  const totalAmount = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-
-  // Udhar stats
-  const totalUdhar = udharList.reduce(
-    (sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0),
-    0,
-  );
-  const pendingUdharAmount = pendingUdhar.reduce(
-    (sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0),
-    0,
-  );
-
-  const getSupplierName = (supplierId) => {
-    const supplier = suppliers.find((s) => s.id === supplierId);
-    return supplier?.companyName || supplier?.name || "Unknown";
-  };
-
-  const getSupplierInitials = (supplierId) => {
-    const supplier = suppliers.find((s) => s.id === supplierId);
-    return (
-      supplier?.name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2) || "??"
-    );
-  };
-
-  const getCustomerName = (customerId) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.name || "Unknown";
-  };
+    if (incomeFormOpen && cashInputRef.current) {
+      setTimeout(() => {
+        cashInputRef.current?.focus();
+      }, 100);
+    }
+  }, [incomeFormOpen]);
 
   const handleAddSupplier = async (data) => {
     await addSupplier(data);
@@ -193,75 +134,69 @@ export default function DashboardPage() {
     (Number(incomeFormData.cashAmount) || 0) +
     (Number(incomeFormData.onlineAmount) || 0);
 
-  const handleQuickCapture = ({ supplierId, supplierName, images }) => {
+  // Open Vyapari Bill (transaction form with supplier dropdown open)
+  const openVyapariBill = () => {
     if (!isOnline) {
       toast.error("Cannot add while offline");
       return;
     }
-    setQuickCaptureData({ supplierId, images });
+    if (suppliers.length === 0) {
+      toast.error("Please add a supplier first");
+      return;
+    }
+    setSupplierDropdownOpen(true);
     setTransactionFormOpen(true);
-    toast.success(`${images.length} bill(s) captured for ${supplierName}`);
   };
 
-  const paymentStatusColors = {
-    paid: "bg-green-100 text-green-700",
-    pending: "bg-amber-100 text-amber-700",
-    partial: "bg-blue-100 text-blue-700",
+  // Open Add Udhar (with customer dropdown open)
+  const openAddUdhar = () => {
+    if (!isOnline) {
+      toast.error("Cannot add while offline");
+      return;
+    }
+    setCustomerDropdownOpen(true);
+    setUdharFormOpen(true);
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="p-4 lg:p-6 flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Here&apos;s your shop overview.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (!isOnline) {
-                toast.error("Cannot add while offline");
-                return;
-              }
-              setSupplierFormOpen(true);
-            }}
-            disabled={!isOnline}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Supplier
-          </Button>
-          <Button
-            onClick={() => {
-              if (!isOnline) {
-                toast.error("Cannot add while offline");
-                return;
-              }
-              setTransactionFormOpen(true);
-            }}
-            disabled={!isOnline}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Transaction
-          </Button>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground text-sm">
+          Quick actions for your shop
+        </p>
       </div>
 
-      {/* Quick Action Tiles */}
-      <div className="grid grid-cols-3 gap-3">
-        <QuickBillCapture
-          suppliers={suppliers}
-          onCapture={handleQuickCapture}
-          disabled={suppliers.length === 0 || !isOnline}
-          variant="tile"
-        />
+      {/* 2x2 Quick Action Grid */}
+      <div className="grid grid-cols-2 gap-4 flex-1">
+        {/* Vyapari Bill (Quick Bill Capture) */}
         <Card
-          className={`cursor-pointer transition-colors border-dashed border-2 ${
+          className={`cursor-pointer transition-all active:scale-[0.98] ${
+            isOnline && suppliers.length > 0
+              ? "hover:shadow-lg hover:border-blue-500/50 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20"
+              : "opacity-50 cursor-not-allowed"
+          }`}
+          onClick={openVyapariBill}
+        >
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="rounded-2xl bg-blue-500 p-4 mb-3 shadow-lg">
+              <Store className="h-8 w-8 text-white" />
+            </div>
+            <span className="text-base font-semibold text-center">
+              Vyapari Bill
+            </span>
+            <span className="text-xs text-muted-foreground mt-1">
+              Add supplier transaction
+            </span>
+          </CardContent>
+        </Card>
+
+        {/* Daily Income */}
+        <Card
+          className={`cursor-pointer transition-all active:scale-[0.98] ${
             isOnline
-              ? "hover:bg-accent/50 hover:border-green-500/50"
+              ? "hover:shadow-lg hover:border-green-500/50 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20"
               : "opacity-50 cursor-not-allowed"
           }`}
           onClick={() => {
@@ -272,19 +207,46 @@ export default function DashboardPage() {
             setIncomeFormOpen(true);
           }}
         >
-          <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full min-h-[100px]">
-            <div className="rounded-full bg-green-500/10 p-3">
-              <IndianRupee className="h-6 w-6 text-green-600" />
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="rounded-2xl bg-green-500 p-4 mb-3 shadow-lg">
+              <IndianRupee className="h-8 w-8 text-white" />
             </div>
-            <span className="text-xs font-medium text-center">
+            <span className="text-base font-semibold text-center">
               Daily Income
+            </span>
+            <span className="text-xs text-muted-foreground mt-1">
+              Record shop earnings
             </span>
           </CardContent>
         </Card>
+
+        {/* Add Udhar */}
         <Card
-          className={`cursor-pointer transition-colors border-dashed border-2 ${
+          className={`cursor-pointer transition-all active:scale-[0.98] ${
             isOnline
-              ? "hover:bg-accent/50 hover:border-amber-500/50"
+              ? "hover:shadow-lg hover:border-amber-500/50 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20"
+              : "opacity-50 cursor-not-allowed"
+          }`}
+          onClick={openAddUdhar}
+        >
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="rounded-2xl bg-amber-500 p-4 mb-3 shadow-lg">
+              <Banknote className="h-8 w-8 text-white" />
+            </div>
+            <span className="text-base font-semibold text-center">
+              Add Udhar
+            </span>
+            <span className="text-xs text-muted-foreground mt-1">
+              Customer lending
+            </span>
+          </CardContent>
+        </Card>
+
+        {/* Add Supplier */}
+        <Card
+          className={`cursor-pointer transition-all active:scale-[0.98] ${
+            isOnline
+              ? "hover:shadow-lg hover:border-purple-500/50 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20"
               : "opacity-50 cursor-not-allowed"
           }`}
           onClick={() => {
@@ -292,273 +254,45 @@ export default function DashboardPage() {
               toast.error("Cannot add while offline");
               return;
             }
-            setUdharFormOpen(true);
+            setSupplierFormOpen(true);
           }}
         >
-          <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full min-h-[100px]">
-            <div className="rounded-full bg-amber-500/10 p-3">
-              <Banknote className="h-6 w-6 text-amber-600" />
+          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="rounded-2xl bg-purple-500 p-4 mb-3 shadow-lg">
+              <UserPlus className="h-8 w-8 text-white" />
             </div>
-            <span className="text-xs font-medium text-center">Add Udhar</span>
+            <span className="text-base font-semibold text-center">
+              Add Supplier
+            </span>
+            <span className="text-xs text-muted-foreground mt-1">
+              New business contact
+            </span>
           </CardContent>
         </Card>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/suppliers">
-          <Card className="cursor-pointer hover:border-blue-500/50 hover:shadow-md transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totalSuppliers}</p>
-                  <p className="text-xs text-muted-foreground">Suppliers</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/transactions">
-          <Card className="cursor-pointer hover:border-green-500/50 hover:shadow-md transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Receipt className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totalTransactions}</p>
-                  <p className="text-xs text-muted-foreground">Transactions</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/transactions?tab=customers">
-          <Card className="cursor-pointer hover:border-amber-500/50 hover:shadow-md transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Banknote className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    ₹{pendingUdharAmount.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Udhar Pending</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/transactions?status=pending">
-          <Card className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    ₹{pendingAmount.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Supplier Pending
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Add Transaction Button */}
+      <div className="mt-4">
+        <Button
+          className="w-full h-12 text-base"
+          onClick={() => {
+            if (!isOnline) {
+              toast.error("Cannot add while offline");
+              return;
+            }
+            setTransactionFormOpen(true);
+          }}
+          disabled={!isOnline || suppliers.length === 0}
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Add Transaction
+        </Button>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Udhar */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Pending Udhar</CardTitle>
-              <Link href="/transactions">
-                <Button variant="ghost" size="sm">
-                  View All <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {pendingUdhar.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Banknote className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No pending Udhar</p>
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => setUdharFormOpen(true)}
-                  disabled={!isOnline}
-                >
-                  Add your first Udhar
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pendingUdhar.slice(0, 5).map((udhar) => (
-                  <div
-                    key={udhar.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
-                        {getCustomerName(udhar.customerId)
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {getCustomerName(udhar.customerId)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(udhar.date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </p>
-                    </div>
-                    <p className="font-semibold text-amber-600">
-                      ₹
-                      {(
-                        (udhar.cashAmount || 0) + (udhar.onlineAmount || 0)
-                      ).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-                {pendingUdhar.length > 5 && (
-                  <Link href="/transactions">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      View all {pendingUdhar.length} pending
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Transactions */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Recent Transactions</CardTitle>
-              <Link href="/transactions?tab=suppliers">
-                <Button variant="ghost" size="sm">
-                  View All <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No transactions yet</p>
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => setTransactionFormOpen(true)}
-                  disabled={!isOnline}
-                >
-                  Add your first transaction
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                        {getSupplierInitials(transaction.supplierId)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {getSupplierName(transaction.supplierId)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(transaction.date).toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "numeric",
-                            month: "short",
-                          },
-                        )}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm">
-                        ₹{transaction.amount?.toLocaleString()}
-                      </p>
-                      <Badge
-                        className={`text-[10px] ${paymentStatusColors[transaction.paymentStatus]}`}
-                      >
-                        {transaction.paymentStatus}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Search Bar at Bottom */}
+      <div className="mt-4 pt-4 border-t">
+        <GlobalSearch className="w-full" placeholder="Search suppliers, transactions, customers..." />
       </div>
-
-      {/* Quick Links */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link href="/suppliers">
-              <div className="p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-center">
-                <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium">View Suppliers</p>
-              </div>
-            </Link>
-            <Link href="/transactions">
-              <div className="p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-center">
-                <Receipt className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium">All Transactions</p>
-              </div>
-            </Link>
-            <div
-              className={`p-4 rounded-lg border transition-colors text-center ${
-                isOnline
-                  ? "hover:border-primary hover:bg-primary/5 cursor-pointer"
-                  : "opacity-50 cursor-not-allowed"
-              }`}
-              onClick={() => isOnline && setSupplierFormOpen(true)}
-            >
-              <Plus className="h-6 w-6 mx-auto mb-2 text-primary" />
-              <p className="text-sm font-medium">New Supplier</p>
-            </div>
-            <Link href="/reports">
-              <div className="p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors text-center">
-                <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium">Revenue Reports</p>
-              </div>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Forms */}
       <SupplierForm
@@ -571,19 +305,29 @@ export default function DashboardPage() {
         open={transactionFormOpen}
         onOpenChange={(open) => {
           setTransactionFormOpen(open);
-          if (!open) setQuickCaptureData(null);
+          if (!open) {
+            setQuickCaptureData(null);
+            setSupplierDropdownOpen(false);
+          }
         }}
         onSubmit={handleAddTransaction}
         suppliers={suppliers}
         quickCaptureData={quickCaptureData}
+        autoOpenSupplierDropdown={supplierDropdownOpen}
       />
 
       <UdharForm
         open={udharFormOpen}
-        onOpenChange={setUdharFormOpen}
+        onOpenChange={(open) => {
+          setUdharFormOpen(open);
+          if (!open) {
+            setCustomerDropdownOpen(false);
+          }
+        }}
         onSubmit={handleAddUdhar}
         onAddCustomer={addCustomer}
         customers={customers}
+        autoOpenCustomerDropdown={customerDropdownOpen}
       />
 
       {/* Daily Income Form */}
@@ -621,6 +365,7 @@ export default function DashboardPage() {
                 Cash Amount (₹)
               </Label>
               <Input
+                ref={cashInputRef}
                 type="number"
                 inputMode="numeric"
                 value={incomeFormData.cashAmount}

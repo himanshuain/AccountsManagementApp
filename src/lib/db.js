@@ -3,7 +3,21 @@ import Dexie from "dexie";
 // Initialize Dexie database
 export const db = new Dexie("ClothesShopManager");
 
-// Define database schema - Version 2 adds customers, udhar, and income
+// Define database schema - Version 3 adds payments array to udhar
+db.version(3).stores({
+  suppliers:
+    "++id, name, companyName, phone, email, gstNumber, syncStatus, updatedAt",
+  transactions: "++id, supplierId, date, paymentStatus, syncStatus, updatedAt",
+  customers: "++id, name, phone, address, syncStatus, updatedAt, totalPending",
+  udhar:
+    "++id, customerId, date, paymentStatus, syncStatus, updatedAt, amount",
+  income: "++id, date, type, syncStatus, updatedAt",
+  pendingUploads: "++id, type, entityId, filePath, createdAt",
+  syncQueue: "++id, operation, entityType, entityId, data, createdAt",
+  appSettings: "key",
+});
+
+// Version 2 - adds customers, udhar, and income
 db.version(2).stores({
   suppliers:
     "++id, name, companyName, phone, email, gstNumber, syncStatus, updatedAt",
@@ -17,7 +31,7 @@ db.version(2).stores({
   appSettings: "key",
 });
 
-// Keep version 1 for migration
+// Version 1 - original schema
 db.version(1).stores({
   suppliers:
     "++id, name, companyName, phone, email, gstNumber, syncStatus, updatedAt",
@@ -346,8 +360,13 @@ export const customerDB = {
       .toArray();
 
     const totalPending = udharRecords
-      .filter((u) => u.paymentStatus === "pending")
-      .reduce((sum, u) => sum + (u.cashAmount || 0) + (u.onlineAmount || 0), 0);
+      .filter((u) => u.paymentStatus !== "paid")
+      .reduce((sum, u) => {
+        // Support both old (cashAmount + onlineAmount) and new (amount) formats
+        const total = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+        const paid = u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+        return sum + Math.max(0, total - paid);
+      }, 0);
 
     await db.customers.update(customerId, {
       totalPending,
@@ -458,32 +477,29 @@ export const udharDB = {
   },
 
   // Record a deposit payment
-  async recordDeposit(id, depositAmount, depositMode = "cash") {
+  async recordDeposit(id, depositAmount, receiptUrl = null) {
     const udhar = await db.udhar.get(id);
     if (!udhar) return null;
 
     const now = new Date().toISOString();
-    const totalAmount = (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-    const paidAmount = (udhar.paidCash || 0) + (udhar.paidOnline || 0);
-    const newPaidAmount = paidAmount + depositAmount;
+    // Support both old and new format
+    const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+    const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+    const newPaidAmount = currentPaid + depositAmount;
+
+    // Add to payments array (timeline)
+    const newPayment = {
+      id: generateId(),
+      amount: depositAmount,
+      date: now,
+      receiptUrl: receiptUrl,
+    };
 
     const updates = {
-      deposits: [
-        ...(udhar.deposits || []),
-        {
-          amount: depositAmount,
-          mode: depositMode,
-          date: now,
-        },
-      ],
-      paidCash:
-        depositMode === "cash"
-          ? (udhar.paidCash || 0) + depositAmount
-          : udhar.paidCash || 0,
-      paidOnline:
-        depositMode === "online"
-          ? (udhar.paidOnline || 0) + depositAmount
-          : udhar.paidOnline || 0,
+      payments: [...(udhar.payments || []), newPayment],
+      paidAmount: newPaidAmount,
+      // Keep backward compatibility
+      paidCash: (udhar.paidCash || 0) + depositAmount,
       paymentStatus: newPaidAmount >= totalAmount ? "paid" : "partial",
     };
 
@@ -491,18 +507,34 @@ export const udharDB = {
   },
 
   // Mark as fully paid
-  async markFullPaid(id) {
+  async markFullPaid(id, receiptUrl = null) {
     const udhar = await db.udhar.get(id);
     if (!udhar) return null;
 
-    const totalAmount = (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
     const now = new Date().toISOString();
+    // Support both old and new format
+    const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+    const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+    const remainingAmount = totalAmount - currentPaid;
+
+    // Add final payment to timeline if there's remaining amount
+    const payments = [...(udhar.payments || [])];
+    if (remainingAmount > 0) {
+      payments.push({
+        id: generateId(),
+        amount: remainingAmount,
+        date: now,
+        receiptUrl: receiptUrl,
+        isFinalPayment: true,
+      });
+    }
 
     return await this.update(id, {
       paymentStatus: "paid",
-      paidCash: udhar.cashAmount || 0,
-      paidOnline: udhar.onlineAmount || 0,
+      paidAmount: totalAmount,
+      paidCash: totalAmount, // backward compatibility
       paidDate: now,
+      payments: payments,
     });
   },
 };

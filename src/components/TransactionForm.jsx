@@ -35,6 +35,7 @@ export function TransactionForm({
   defaultSupplierId = null,
   quickCaptureData = null,
   title = "Add Transaction",
+  autoOpenSupplierDropdown = false,
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,6 +50,16 @@ export function TransactionForm({
   const [paymentMode, setPaymentMode] = useState(
     initialData?.paymentMode || "upi",
   );
+  const [supplierSelectOpen, setSupplierSelectOpen] = useState(false);
+
+  // Auto-open supplier dropdown when requested
+  useEffect(() => {
+    if (open && autoOpenSupplierDropdown && !selectedSupplierId) {
+      setTimeout(() => {
+        setSupplierSelectOpen(true);
+      }, 200);
+    }
+  }, [open, autoOpenSupplierDropdown, selectedSupplierId]);
 
   useEffect(() => {
     if (open && quickCaptureData) {
@@ -184,8 +195,13 @@ export function TransactionForm({
               <Label>Supplier *</Label>
               <Select
                 value={selectedSupplierId}
-                onValueChange={setSelectedSupplierId}
+                onValueChange={(val) => {
+                  setSelectedSupplierId(val);
+                  setSupplierSelectOpen(false);
+                }}
                 disabled={!!defaultSupplierId}
+                open={supplierSelectOpen}
+                onOpenChange={setSupplierSelectOpen}
               >
                 <SelectTrigger className="text-base h-11">
                   <SelectValue placeholder="Select supplier" />
