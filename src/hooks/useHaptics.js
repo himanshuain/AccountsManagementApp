@@ -10,12 +10,12 @@ export function useHaptics() {
    */
   const lightImpact = () => {
     if (typeof window === "undefined") return;
-    
+
     // Try Vibration API first (Android, some iOS)
     if ("vibrate" in navigator) {
       navigator.vibrate(10);
     }
-    
+
     // iOS specific haptic feedback via AudioContext trick
     // This creates a very short "click" that triggers haptic on iOS
     try {
@@ -39,7 +39,7 @@ export function useHaptics() {
    */
   const mediumImpact = () => {
     if (typeof window === "undefined") return;
-    
+
     if ("vibrate" in navigator) {
       navigator.vibrate(20);
     }
@@ -50,7 +50,7 @@ export function useHaptics() {
    */
   const heavyImpact = () => {
     if (typeof window === "undefined") return;
-    
+
     if ("vibrate" in navigator) {
       navigator.vibrate([30, 50, 30]);
     }
@@ -61,7 +61,7 @@ export function useHaptics() {
    */
   const success = () => {
     if (typeof window === "undefined") return;
-    
+
     if ("vibrate" in navigator) {
       navigator.vibrate([10, 30, 10]);
     }
@@ -72,7 +72,7 @@ export function useHaptics() {
    */
   const error = () => {
     if (typeof window === "undefined") return;
-    
+
     if ("vibrate" in navigator) {
       navigator.vibrate([50, 30, 50, 30, 50]);
     }
@@ -83,7 +83,7 @@ export function useHaptics() {
    */
   const selection = () => {
     if (typeof window === "undefined") return;
-    
+
     if ("vibrate" in navigator) {
       navigator.vibrate(5);
     }
@@ -129,4 +129,3 @@ export const haptics = {
 };
 
 export default useHaptics;
-

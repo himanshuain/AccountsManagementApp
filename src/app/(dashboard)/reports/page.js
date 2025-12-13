@@ -98,9 +98,9 @@ const formatYAxis = (value) => {
 // Generate Y-axis ticks
 const getYAxisTicks = (maxValue) => {
   if (maxValue <= 0) return [0];
-  
+
   const ticks = [0];
-  
+
   if (maxValue <= 100000) {
     // Show in 10k increments up to 1 lac
     const increment = maxValue <= 50000 ? 10000 : 20000;
@@ -113,7 +113,7 @@ const getYAxisTicks = (maxValue) => {
       ticks.push(i);
     }
   }
-  
+
   return ticks;
 };
 
@@ -240,8 +240,10 @@ export default function ReportsPage() {
       );
 
       // Helper functions for udhar amounts
-      const getTotal = (u) => u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
-      const getPaid = (u) => u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+      const getTotal = (u) =>
+        u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+      const getPaid = (u) =>
+        u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
 
       const udharCollected = monthUdhar.reduce((sum, u) => sum + getPaid(u), 0);
 
@@ -313,11 +315,16 @@ export default function ReportsPage() {
       .reduce((sum, i) => sum + getIncomeTotal(i), 0);
 
     // Udhar stats - support both old (cashAmount + onlineAmount) and new (amount) format
-    const getUdharTotal = (u) => u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
-    const getUdharPaid = (u) => u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
-    
+    const getUdharTotal = (u) =>
+      u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+    const getUdharPaid = (u) =>
+      u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+
     const totalUdhar = udharList.reduce((sum, u) => sum + getUdharTotal(u), 0);
-    const collectedUdhar = udharList.reduce((sum, u) => sum + getUdharPaid(u), 0);
+    const collectedUdhar = udharList.reduce(
+      (sum, u) => sum + getUdharPaid(u),
+      0,
+    );
     const pendingUdhar = udharList.reduce((sum, u) => {
       const total = getUdharTotal(u);
       const paid = getUdharPaid(u);
@@ -499,7 +506,9 @@ export default function ReportsPage() {
                 <p className="text-2xl font-bold text-primary">
                   ₹{stats.totalRevenue.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Tap to view</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tap to view
+                </p>
               </div>
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <IndianRupee className="h-5 w-5 text-primary" />
@@ -557,7 +566,9 @@ export default function ReportsPage() {
                 <p className="text-2xl font-bold text-amber-500">
                   ₹{stats.pendingUdhar.toLocaleString()}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Tap to view</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tap to view
+                </p>
               </div>
               <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
                 <TrendingUp className="h-5 w-5 text-amber-500" />
@@ -568,7 +579,10 @@ export default function ReportsPage() {
       </div>
 
       {/* Monthly Breakdown - Collapsible */}
-      <Collapsible open={monthlyListExpanded} onOpenChange={setMonthlyListExpanded}>
+      <Collapsible
+        open={monthlyListExpanded}
+        onOpenChange={setMonthlyListExpanded}
+      >
         <Card>
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
@@ -578,40 +592,58 @@ export default function ReportsPage() {
                     <Calendar className="h-5 w-5" />
                     Monthly Breakdown
                   </CardTitle>
-                  <CardDescription>View cash, online & Udhar by month</CardDescription>
+                  <CardDescription>
+                    View cash, online & Udhar by month
+                  </CardDescription>
                 </div>
-                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${monthlyListExpanded ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${monthlyListExpanded ? "rotate-180" : ""}`}
+                />
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                {monthlyData.slice().reverse().map((month, idx) => (
-                  <div key={idx} className="p-3 rounded-lg border bg-muted/30">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold">{month.month}</span>
-                      <span className="font-bold text-lg">₹{month.total.toLocaleString()}</span>
+                {monthlyData
+                  .slice()
+                  .reverse()
+                  .map((month, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-lg border bg-muted/30"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold">{month.month}</span>
+                        <span className="font-bold text-lg">
+                          ₹{month.total.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <span className="text-muted-foreground">Cash:</span>
+                          <span className="font-medium text-green-600">
+                            ₹{month.cash.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          <span className="text-muted-foreground">Online:</span>
+                          <span className="font-medium text-blue-600">
+                            ₹{month.online.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                          <span className="text-muted-foreground">Udhar:</span>
+                          <span className="font-medium text-amber-600">
+                            ₹{month.udharPending.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <span className="text-muted-foreground">Cash:</span>
-                        <span className="font-medium text-green-600">₹{month.cash.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-500" />
-                        <span className="text-muted-foreground">Online:</span>
-                        <span className="font-medium text-blue-600">₹{month.online.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-amber-500" />
-                        <span className="text-muted-foreground">Udhar:</span>
-                        <span className="font-medium text-amber-600">₹{month.udharPending.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </CardContent>
           </CollapsibleContent>
@@ -629,15 +661,22 @@ export default function ReportsPage() {
                     <TrendingUp className="h-5 w-5" />
                     Income Charts
                   </CardTitle>
-                  <CardDescription>Visualize your income trends</CardDescription>
+                  <CardDescription>
+                    Visualize your income trends
+                  </CardDescription>
                 </div>
-                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${chartsExpanded ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${chartsExpanded ? "rotate-180" : ""}`}
+                />
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
-              <div ref={chartsRef} className="grid lg:grid-cols-2 gap-6 scroll-mt-20">
+              <div
+                ref={chartsRef}
+                className="grid lg:grid-cols-2 gap-6 scroll-mt-20"
+              >
                 {/* Monthly Trend */}
                 <div className="border rounded-lg p-4">
                   <h4 className="font-medium mb-2">Cash vs Online Trend</h4>
@@ -645,29 +684,80 @@ export default function ReportsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={monthlyData}>
                         <defs>
-                          <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                          <linearGradient
+                            id="colorCash"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="#22c55e"
+                              stopOpacity={0.3}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#22c55e"
+                              stopOpacity={0}
+                            />
                           </linearGradient>
-                          <linearGradient id="colorOnline" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          <linearGradient
+                            id="colorOnline"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="#3b82f6"
+                              stopOpacity={0.3}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#3b82f6"
+                              stopOpacity={0}
+                            />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-muted"
+                        />
                         <XAxis dataKey="month" className="text-xs" />
-                        <YAxis className="text-xs" tickFormatter={formatYAxis} />
+                        <YAxis
+                          className="text-xs"
+                          tickFormatter={formatYAxis}
+                        />
                         <Tooltip
                           contentStyle={{
                             background: "hsl(var(--card))",
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "8px",
                           }}
-                          formatter={(value) => [`₹${value.toLocaleString()}`, ""]}
+                          formatter={(value) => [
+                            `₹${value.toLocaleString()}`,
+                            "",
+                          ]}
                         />
                         <Legend />
-                        <Area type="monotone" dataKey="cash" stroke="#22c55e" fillOpacity={1} fill="url(#colorCash)" name="Cash" />
-                        <Area type="monotone" dataKey="online" stroke="#3b82f6" fillOpacity={1} fill="url(#colorOnline)" name="Online" />
+                        <Area
+                          type="monotone"
+                          dataKey="cash"
+                          stroke="#22c55e"
+                          fillOpacity={1}
+                          fill="url(#colorCash)"
+                          name="Cash"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="online"
+                          stroke="#3b82f6"
+                          fillOpacity={1}
+                          fill="url(#colorOnline)"
+                          name="Online"
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -699,7 +789,10 @@ export default function ReportsPage() {
                               border: "1px solid hsl(var(--border))",
                               borderRadius: "8px",
                             }}
-                            formatter={(value) => [`₹${value.toLocaleString()}`, ""]}
+                            formatter={(value) => [
+                              `₹${value.toLocaleString()}`,
+                              "",
+                            ]}
                           />
                           <Legend />
                         </PieChart>
@@ -718,119 +811,126 @@ export default function ReportsPage() {
       </Collapsible>
 
       {/* Income List - Collapsible */}
-      <Collapsible open={incomeListExpanded} onOpenChange={setIncomeListExpanded}>
+      <Collapsible
+        open={incomeListExpanded}
+        onOpenChange={setIncomeListExpanded}
+      >
         <Card ref={incomeListRef} className="scroll-mt-20">
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <CardTitle>Income Entries</CardTitle>
-                  <Badge variant="secondary">{filteredIncome.length} entries</Badge>
+                  <Badge variant="secondary">
+                    {filteredIncome.length} entries
+                  </Badge>
                 </div>
-                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${incomeListExpanded ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-5 w-5 text-muted-foreground transition-transform ${incomeListExpanded ? "rotate-180" : ""}`}
+                />
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
-          {sortedIncome.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>No income entries yet</p>
-              <Button
-                variant="link"
-                className="mt-2"
-                onClick={openAddForm}
-                disabled={!isOnline}
-              >
-                Add your first income
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {sortedIncome.slice(0, 10).map((income) => (
-                <div
-                  key={income.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        income.type === "daily"
-                          ? "bg-green-500/10"
-                          : "bg-blue-500/10"
-                      }`}
-                    >
-                      {income.type === "daily" ? (
-                        <Banknote className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <IndianRupee className="h-5 w-5 text-blue-500" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-semibold">
-                        ₹{getIncomeTotal(income).toLocaleString()}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {income.cashAmount > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Banknote className="h-3 w-3 text-green-500" />₹
-                            {income.cashAmount.toLocaleString()}
-                          </span>
-                        )}
-                        {income.onlineAmount > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Smartphone className="h-3 w-3 text-blue-500" />₹
-                            {income.onlineAmount.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(income.date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "2-digit",
-                        })}{" "}
-                        • {income.type === "daily" ? "Daily" : "Monthly"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {income.description && (
-                      <span className="text-xs text-muted-foreground hidden sm:block max-w-[150px] truncate">
-                        {income.description}
-                      </span>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(income)}
-                      disabled={!isOnline}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => {
-                        if (!isOnline) {
-                          toast.error("Cannot delete while offline");
-                          return;
-                        }
-                        setIncomeToDelete(income);
-                        setDeleteDialogOpen(true);
-                      }}
-                      disabled={!isOnline}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+              {sortedIncome.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p>No income entries yet</p>
+                  <Button
+                    variant="link"
+                    className="mt-2"
+                    onClick={openAddForm}
+                    disabled={!isOnline}
+                  >
+                    Add your first income
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <div className="space-y-2">
+                  {sortedIncome.slice(0, 10).map((income) => (
+                    <div
+                      key={income.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                            income.type === "daily"
+                              ? "bg-green-500/10"
+                              : "bg-blue-500/10"
+                          }`}
+                        >
+                          {income.type === "daily" ? (
+                            <Banknote className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <IndianRupee className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold">
+                            ₹{getIncomeTotal(income).toLocaleString()}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {income.cashAmount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Banknote className="h-3 w-3 text-green-500" />₹
+                                {income.cashAmount.toLocaleString()}
+                              </span>
+                            )}
+                            {income.onlineAmount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Smartphone className="h-3 w-3 text-blue-500" />
+                                ₹{income.onlineAmount.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(income.date).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "2-digit",
+                            })}{" "}
+                            • {income.type === "daily" ? "Daily" : "Monthly"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {income.description && (
+                          <span className="text-xs text-muted-foreground hidden sm:block max-w-[150px] truncate">
+                            {income.description}
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(income)}
+                          disabled={!isOnline}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (!isOnline) {
+                              toast.error("Cannot delete while offline");
+                              return;
+                            }
+                            setIncomeToDelete(income);
+                            setDeleteDialogOpen(true);
+                          }}
+                          disabled={!isOnline}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </CollapsibleContent>
         </Card>

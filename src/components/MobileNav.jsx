@@ -16,7 +16,13 @@ import {
   UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { GlobalSearch } from "./GlobalSearch";
@@ -121,7 +127,7 @@ export function MobileNav() {
 
                 {/* Navigation */}
                 <nav className="flex-1 px-4 py-4 space-y-1">
-                  {navItems.map(item => {
+                  {navItems.map((item) => {
                     const isActive =
                       pathname === item.href ||
                       (item.href !== "/" && pathname.startsWith(item.href));
@@ -133,7 +139,7 @@ export function MobileNav() {
                             "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                             isActive
                               ? `${item.color} text-white`
-                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                           )}
                         >
                           <item.icon className="h-5 w-5" />
@@ -175,7 +181,9 @@ export function MobileNav() {
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-5 w-5", isRefreshing && "animate-spin")}
+            />
           </Button>
         </div>
       </div>
@@ -183,9 +191,10 @@ export function MobileNav() {
       {/* Bottom navigation - Colorful tiles */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t safe-area-bottom">
         <div ref={scrollRef} className="flex items-stretch h-16 px-1">
-          {navItems.map(item => {
+          {navItems.map((item) => {
             const isActive =
-              pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+              pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
 
             return (
               <Link key={item.href} href={item.href} className="flex-1 p-1">
@@ -194,12 +203,20 @@ export function MobileNav() {
                     "flex flex-col items-center justify-center h-full rounded-xl transition-all",
                     isActive
                       ? `${item.color} text-white shadow-lg scale-105`
-                      : "text-muted-foreground hover:bg-accent/50"
+                      : "text-muted-foreground hover:bg-accent/50",
                   )}
                 >
-                  <item.icon className={cn("h-5 w-5 mb-0.5", !isActive && item.iconColor)} />
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 mb-0.5",
+                      !isActive && item.iconColor,
+                    )}
+                  />
                   <span
-                    className={cn("text-[10px] font-medium", !isActive && "text-muted-foreground")}
+                    className={cn(
+                      "text-[10px] font-medium",
+                      !isActive && "text-muted-foreground",
+                    )}
                   >
                     {item.label}
                   </span>

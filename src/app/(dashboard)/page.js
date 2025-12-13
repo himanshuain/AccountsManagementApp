@@ -51,18 +51,18 @@ export default function DashboardPage() {
   const { customers, addCustomer } = useCustomers();
   const { addUdhar } = useUdhar();
   const { addIncome } = useIncome();
-  
+
   // Form states
   const [supplierFormOpen, setSupplierFormOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
   const [quickCaptureData, setQuickCaptureData] = useState(null);
-  
+
   // For auto-opening dropdowns
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
-  
+
   // Income form data
   const [incomeFormData, setIncomeFormData] = useState({
     type: "daily",
@@ -71,7 +71,7 @@ export default function DashboardPage() {
     date: new Date().toISOString().split("T")[0],
     description: "",
   });
-  
+
   // Refs for auto-focus
   const cashInputRef = useRef(null);
 
@@ -302,7 +302,10 @@ export default function DashboardPage() {
 
       {/* Search Bar at Bottom */}
       <div className="mt-4 pt-4 border-t">
-        <GlobalSearch className="w-full" placeholder="Search suppliers, transactions, customers..." />
+        <GlobalSearch
+          className="w-full"
+          placeholder="Search suppliers, transactions, customers..."
+        />
       </div>
 
       {/* Forms */}

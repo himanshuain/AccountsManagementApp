@@ -9,8 +9,7 @@ db.version(3).stores({
     "++id, name, companyName, phone, email, gstNumber, syncStatus, updatedAt",
   transactions: "++id, supplierId, date, paymentStatus, syncStatus, updatedAt",
   customers: "++id, name, phone, address, syncStatus, updatedAt, totalPending",
-  udhar:
-    "++id, customerId, date, paymentStatus, syncStatus, updatedAt, amount",
+  udhar: "++id, customerId, date, paymentStatus, syncStatus, updatedAt, amount",
   income: "++id, date, type, syncStatus, updatedAt",
   pendingUploads: "++id, type, entityId, filePath, createdAt",
   syncQueue: "++id, operation, entityType, entityId, data, createdAt",
@@ -483,8 +482,10 @@ export const udharDB = {
 
     const now = new Date().toISOString();
     // Support both old and new format
-    const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-    const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+    const totalAmount =
+      udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+    const currentPaid =
+      udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
     const newPaidAmount = currentPaid + depositAmount;
 
     // Add to payments array (timeline)
@@ -513,8 +514,10 @@ export const udharDB = {
 
     const now = new Date().toISOString();
     // Support both old and new format
-    const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-    const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+    const totalAmount =
+      udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+    const currentPaid =
+      udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
     const remainingAmount = totalAmount - currentPaid;
 
     // Add final payment to timeline if there's remaining amount

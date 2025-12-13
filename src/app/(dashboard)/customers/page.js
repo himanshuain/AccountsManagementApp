@@ -44,7 +44,7 @@ export default function CustomersPage() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddAmount, setQuickAddAmount] = useState("");
   const [quickAddCustomer, setQuickAddCustomer] = useState(null);
-  
+
   // New customer with initial amount
   const [newCustomerWithAmount, setNewCustomerWithAmount] = useState(false);
   const [initialAmount, setInitialAmount] = useState("");
@@ -55,15 +55,15 @@ export default function CustomersPage() {
       const customerUdhar = udharList.filter(
         (u) => u.customerId === customer.id,
       );
-      
+
       const totalAmount = customerUdhar.reduce((sum, u) => {
         return sum + (u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0));
       }, 0);
-      
+
       const paidAmount = customerUdhar.reduce((sum, u) => {
         return sum + (u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0));
       }, 0);
-      
+
       const pendingAmount = Math.max(0, totalAmount - paidAmount);
       const transactionCount = customerUdhar.length;
 
@@ -124,7 +124,7 @@ export default function CustomersPage() {
   // Handle new customer with initial amount
   const handleAddCustomerWithAmount = async (customerData) => {
     const result = await addCustomer(customerData);
-    
+
     if (result.success && initialAmount && Number(initialAmount) > 0) {
       // Add initial udhar transaction
       await addUdhar({
@@ -137,19 +137,21 @@ export default function CustomersPage() {
     } else if (result.success) {
       toast.success("Customer added");
     }
-    
+
     setNewCustomerWithAmount(false);
     setInitialAmount("");
     return result;
   };
 
   const getCustomerInitials = (name) => {
-    return name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "??";
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2) || "??"
+    );
   };
 
   const loading = customersLoading || udharLoading;
@@ -354,8 +356,12 @@ export default function CustomersPage() {
             setInitialAmount("");
           }
         }}
-        onSubmit={newCustomerWithAmount ? handleAddCustomerWithAmount : addCustomer}
-        title={newCustomerWithAmount ? "Add Customer with Udhar" : "Add Customer"}
+        onSubmit={
+          newCustomerWithAmount ? handleAddCustomerWithAmount : addCustomer
+        }
+        title={
+          newCustomerWithAmount ? "Add Customer with Udhar" : "Add Customer"
+        }
         showInitialAmount={newCustomerWithAmount}
         initialAmount={initialAmount}
         onInitialAmountChange={setInitialAmount}
@@ -418,4 +424,3 @@ export default function CustomersPage() {
     </div>
   );
 }
-
