@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadCustomers } from "@/lib/blob-storage";
+import { loadCustomers } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

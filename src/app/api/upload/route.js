@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { uploadImageToSupabase } from "@/lib/supabase-storage";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file");
+    const folder = formData.get("folder") || "general";
 
     if (!file) {
       return NextResponse.json(
@@ -13,38 +16,20 @@ export async function POST(request) {
       );
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
+    const url = await uploadImageToSupabase(file, folder);
+
+    if (!url) {
       return NextResponse.json(
-        { success: false, error: "Only image files are allowed" },
-        { status: 400 },
+        { success: false, error: "Upload failed - Supabase not configured" },
+        { status: 500 },
       );
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { success: false, error: "File size must be less than 5MB" },
-        { status: 400 },
-      );
-    }
-
-    const filename = `images/${Date.now()}-${file.name}`;
-
-    const blob = await put(filename, file, {
-      access: "public",
-      addRandomSuffix: true,
-    });
-
-    return NextResponse.json({
-      success: true,
-      url: blob.url,
-      filename: blob.pathname,
-    });
+    return NextResponse.json({ success: true, url });
   } catch (error) {
     console.error("Upload failed:", error);
     return NextResponse.json(
-      { success: false, error: "Upload failed" },
+      { success: false, error: error.message },
       { status: 500 },
     );
   }

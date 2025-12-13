@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { syncTransactionsToBlob } from "@/lib/blob-storage";
+import { syncTransactionsToSupabase } from "@/lib/supabase-storage";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function POST(request) {
   try {
@@ -12,13 +15,14 @@ export async function POST(request) {
       );
     }
 
-    const updated = await syncTransactionsToBlob(operations);
+    console.log("[API] Syncing transactions, operations:", operations.length);
+    const updated = await syncTransactionsToSupabase(operations);
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error("Sync transactions failed:", error);
     return NextResponse.json(
-      { success: false, error: "Sync failed" },
+      { success: false, error: "Sync failed: " + error.message },
       { status: 500 },
     );
   }

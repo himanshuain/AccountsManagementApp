@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { syncUdharToBlob } from "@/lib/blob-storage";
+import { syncUdharToSupabase } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,7 +16,7 @@ export async function POST(request) {
     }
 
     console.log("[API] Syncing udhar, operations:", operations.length);
-    const updated = await syncUdharToBlob(operations);
+    const updated = await syncUdharToSupabase(operations);
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {

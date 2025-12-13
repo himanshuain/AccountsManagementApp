@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { fullSync } from "@/lib/blob-storage";
+import { fullSync } from "@/lib/supabase-storage";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function POST(request) {
   try {
@@ -11,7 +14,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Full sync failed:", error);
     return NextResponse.json(
-      { success: false, error: "Full sync failed" },
+      { success: false, error: "Full sync failed: " + error.message },
       { status: 500 },
     );
   }

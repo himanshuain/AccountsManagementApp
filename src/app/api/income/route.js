@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadIncome } from "@/lib/blob-storage";
+import { loadIncome } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

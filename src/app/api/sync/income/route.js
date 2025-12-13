@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { syncIncomeToBlob } from "@/lib/blob-storage";
+import { syncIncomeToSupabase } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,7 +16,7 @@ export async function POST(request) {
     }
 
     console.log("[API] Syncing income, operations:", operations.length);
-    const updated = await syncIncomeToBlob(operations);
+    const updated = await syncIncomeToSupabase(operations);
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {

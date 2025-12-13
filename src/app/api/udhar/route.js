@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadUdhar } from "@/lib/blob-storage";
+import { loadUdhar } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
