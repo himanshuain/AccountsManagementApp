@@ -165,12 +165,20 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 lg:p-6 flex flex-col min-h-[calc(100vh-8rem)]">
-      {/* Header */}
+      {/* Header with Search */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm">
-          Quick actions for your shop
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground text-sm">
+              Quick actions for your shop
+            </p>
+          </div>
+        </div>
+        <GlobalSearch
+          className="w-full"
+          placeholder="Search suppliers, transactions, customers..."
+        />
       </div>
 
       {/* 2x2 Quick Action Grid */}
@@ -298,14 +306,6 @@ export default function DashboardPage() {
           <Plus className="h-5 w-5 mr-2" />
           Add Transaction
         </Button>
-      </div>
-
-      {/* Search Bar at Bottom */}
-      <div className="mt-4 pt-4 border-t">
-        <GlobalSearch
-          className="w-full"
-          placeholder="Search suppliers, transactions, customers..."
-        />
       </div>
 
       {/* Forms */}

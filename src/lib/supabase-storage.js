@@ -29,9 +29,13 @@ const toCamelCase = (obj) => {
 // ==================== SUPPLIERS ====================
 
 export async function loadSuppliers() {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseConfigured()) {
+    console.warn("[Supabase] Not configured, returning empty suppliers");
+    return [];
+  }
 
   try {
+    console.log("[Supabase] Loading suppliers...");
     const { data, error } = await supabase
       .from("suppliers")
       .select("*")
@@ -42,6 +46,7 @@ export async function loadSuppliers() {
       return [];
     }
 
+    console.log("[Supabase] Loaded", data?.length || 0, "suppliers");
     return (data || []).map(toCamelCase);
   } catch (error) {
     console.error("[Supabase] Error loading suppliers:", error);
@@ -54,28 +59,49 @@ export async function syncSuppliersToSupabase(operations) {
     throw new Error("Supabase not configured");
   }
 
+  const results = [];
+
   for (const op of operations) {
     const record = toSnakeCase(op.data);
     // Remove fields that shouldn't be sent to DB
     delete record.sync_status;
 
+    console.log("[Supabase] Syncing supplier:", op.operation, record);
+
     if (op.operation === "create") {
-      const { error } = await supabase.from("suppliers").upsert(record, {
-        onConflict: "id",
-      });
-      if (error) console.error("[Supabase] Create supplier error:", error);
+      const { data, error } = await supabase
+        .from("suppliers")
+        .upsert(record, {
+          onConflict: "id",
+        })
+        .select();
+      if (error) {
+        console.error("[Supabase] Create supplier error:", error);
+        throw new Error(`Failed to create supplier: ${error.message}`);
+      }
+      console.log("[Supabase] Created supplier:", data);
+      results.push(data);
     } else if (op.operation === "update") {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("suppliers")
         .update(record)
-        .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Update supplier error:", error);
+        .eq("id", op.entityId)
+        .select();
+      if (error) {
+        console.error("[Supabase] Update supplier error:", error);
+        throw new Error(`Failed to update supplier: ${error.message}`);
+      }
+      console.log("[Supabase] Updated supplier:", data);
+      results.push(data);
     } else if (op.operation === "delete") {
       const { error } = await supabase
         .from("suppliers")
         .delete()
         .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Delete supplier error:", error);
+      if (error) {
+        console.error("[Supabase] Delete supplier error:", error);
+        throw new Error(`Failed to delete supplier: ${error.message}`);
+      }
     }
   }
 
@@ -114,23 +140,40 @@ export async function syncTransactionsToSupabase(operations) {
     const record = toSnakeCase(op.data);
     delete record.sync_status;
 
+    console.log("[Supabase] Syncing transaction:", op.operation, record);
+
     if (op.operation === "create") {
-      const { error } = await supabase.from("transactions").upsert(record, {
-        onConflict: "id",
-      });
-      if (error) console.error("[Supabase] Create transaction error:", error);
+      const { data, error } = await supabase
+        .from("transactions")
+        .upsert(record, {
+          onConflict: "id",
+        })
+        .select();
+      if (error) {
+        console.error("[Supabase] Create transaction error:", error);
+        throw new Error(`Failed to create transaction: ${error.message}`);
+      }
+      console.log("[Supabase] Created transaction:", data);
     } else if (op.operation === "update") {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("transactions")
         .update(record)
-        .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Update transaction error:", error);
+        .eq("id", op.entityId)
+        .select();
+      if (error) {
+        console.error("[Supabase] Update transaction error:", error);
+        throw new Error(`Failed to update transaction: ${error.message}`);
+      }
+      console.log("[Supabase] Updated transaction:", data);
     } else if (op.operation === "delete") {
       const { error } = await supabase
         .from("transactions")
         .delete()
         .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Delete transaction error:", error);
+      if (error) {
+        console.error("[Supabase] Delete transaction error:", error);
+        throw new Error(`Failed to delete transaction: ${error.message}`);
+      }
     }
   }
 
@@ -169,23 +212,40 @@ export async function syncCustomersToSupabase(operations) {
     const record = toSnakeCase(op.data);
     delete record.sync_status;
 
+    console.log("[Supabase] Syncing customer:", op.operation, record);
+
     if (op.operation === "create") {
-      const { error } = await supabase.from("customers").upsert(record, {
-        onConflict: "id",
-      });
-      if (error) console.error("[Supabase] Create customer error:", error);
+      const { data, error } = await supabase
+        .from("customers")
+        .upsert(record, {
+          onConflict: "id",
+        })
+        .select();
+      if (error) {
+        console.error("[Supabase] Create customer error:", error);
+        throw new Error(`Failed to create customer: ${error.message}`);
+      }
+      console.log("[Supabase] Created customer:", data);
     } else if (op.operation === "update") {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("customers")
         .update(record)
-        .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Update customer error:", error);
+        .eq("id", op.entityId)
+        .select();
+      if (error) {
+        console.error("[Supabase] Update customer error:", error);
+        throw new Error(`Failed to update customer: ${error.message}`);
+      }
+      console.log("[Supabase] Updated customer:", data);
     } else if (op.operation === "delete") {
       const { error } = await supabase
         .from("customers")
         .delete()
         .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Delete customer error:", error);
+      if (error) {
+        console.error("[Supabase] Delete customer error:", error);
+        throw new Error(`Failed to delete customer: ${error.message}`);
+      }
     }
   }
 
@@ -224,23 +284,40 @@ export async function syncUdharToSupabase(operations) {
     const record = toSnakeCase(op.data);
     delete record.sync_status;
 
+    console.log("[Supabase] Syncing udhar:", op.operation, record);
+
     if (op.operation === "create") {
-      const { error } = await supabase.from("udhar").upsert(record, {
-        onConflict: "id",
-      });
-      if (error) console.error("[Supabase] Create udhar error:", error);
+      const { data, error } = await supabase
+        .from("udhar")
+        .upsert(record, {
+          onConflict: "id",
+        })
+        .select();
+      if (error) {
+        console.error("[Supabase] Create udhar error:", error);
+        throw new Error(`Failed to create udhar: ${error.message}`);
+      }
+      console.log("[Supabase] Created udhar:", data);
     } else if (op.operation === "update") {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("udhar")
         .update(record)
-        .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Update udhar error:", error);
+        .eq("id", op.entityId)
+        .select();
+      if (error) {
+        console.error("[Supabase] Update udhar error:", error);
+        throw new Error(`Failed to update udhar: ${error.message}`);
+      }
+      console.log("[Supabase] Updated udhar:", data);
     } else if (op.operation === "delete") {
       const { error } = await supabase
         .from("udhar")
         .delete()
         .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Delete udhar error:", error);
+      if (error) {
+        console.error("[Supabase] Delete udhar error:", error);
+        throw new Error(`Failed to delete udhar: ${error.message}`);
+      }
     }
   }
 
@@ -279,23 +356,40 @@ export async function syncIncomeToSupabase(operations) {
     const record = toSnakeCase(op.data);
     delete record.sync_status;
 
+    console.log("[Supabase] Syncing income:", op.operation, record);
+
     if (op.operation === "create") {
-      const { error } = await supabase.from("income").upsert(record, {
-        onConflict: "id",
-      });
-      if (error) console.error("[Supabase] Create income error:", error);
+      const { data, error } = await supabase
+        .from("income")
+        .upsert(record, {
+          onConflict: "id",
+        })
+        .select();
+      if (error) {
+        console.error("[Supabase] Create income error:", error);
+        throw new Error(`Failed to create income: ${error.message}`);
+      }
+      console.log("[Supabase] Created income:", data);
     } else if (op.operation === "update") {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("income")
         .update(record)
-        .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Update income error:", error);
+        .eq("id", op.entityId)
+        .select();
+      if (error) {
+        console.error("[Supabase] Update income error:", error);
+        throw new Error(`Failed to update income: ${error.message}`);
+      }
+      console.log("[Supabase] Updated income:", data);
     } else if (op.operation === "delete") {
       const { error } = await supabase
         .from("income")
         .delete()
         .eq("id", op.entityId);
-      if (error) console.error("[Supabase] Delete income error:", error);
+      if (error) {
+        console.error("[Supabase] Delete income error:", error);
+        throw new Error(`Failed to delete income: ${error.message}`);
+      }
     }
   }
 

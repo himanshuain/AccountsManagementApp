@@ -9,6 +9,13 @@ import {
   Phone,
   Calendar,
   ChevronRight,
+  Edit,
+  Trash2,
+  ArrowLeft,
+  MapPin,
+  Banknote,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +30,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
@@ -34,7 +51,13 @@ import { cn } from "@/lib/utils";
 
 export default function CustomersPage() {
   const isOnline = useOnlineStatus();
-  const { customers, addCustomer, loading: customersLoading } = useCustomers();
+  const {
+    customers,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    loading: customersLoading,
+  } = useCustomers();
   const { udharList, addUdhar, loading: udharLoading } = useUdhar();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,6 +71,12 @@ export default function CustomersPage() {
   // New customer with initial amount
   const [newCustomerWithAmount, setNewCustomerWithAmount] = useState(false);
   const [initialAmount, setInitialAmount] = useState("");
+
+  // Customer detail view
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
 
   // Calculate totals for each customer
   const customersWithStats = useMemo(() => {
@@ -152,6 +181,52 @@ export default function CustomersPage() {
         .toUpperCase()
         .slice(0, 2) || "??"
     );
+  };
+
+  // Get transactions for selected customer
+  const selectedCustomerTransactions = useMemo(() => {
+    if (!selectedCustomer) return [];
+    return udharList
+      .filter((u) => u.customerId === selectedCustomer.id)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [selectedCustomer, udharList]);
+
+  // Handle customer edit
+  const handleEditCustomer = async (data) => {
+    if (!editingCustomer) return;
+    const result = await updateCustomer(editingCustomer.id, data);
+    if (result.success) {
+      toast.success("Customer updated");
+      setEditingCustomer(null);
+      // Update selected customer if viewing
+      if (selectedCustomer?.id === editingCustomer.id) {
+        setSelectedCustomer({ ...selectedCustomer, ...data });
+      }
+    } else {
+      toast.error("Failed to update customer");
+    }
+  };
+
+  // Handle customer delete
+  const handleDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+    const result = await deleteCustomer(customerToDelete.id);
+    if (result.success) {
+      toast.success("Customer deleted");
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
+      // Close detail view if deleting current customer
+      if (selectedCustomer?.id === customerToDelete.id) {
+        setSelectedCustomer(null);
+      }
+    } else {
+      toast.error("Failed to delete customer");
+    }
+  };
+
+  // Get full customer data with stats
+  const getFullCustomerData = (customerId) => {
+    return customersWithStats.find((c) => c.id === customerId);
   };
 
   const loading = customersLoading || udharLoading;
@@ -279,11 +354,12 @@ export default function CustomersPage() {
             <Card
               key={customer.id}
               className={cn(
-                "overflow-hidden transition-all hover:shadow-md",
+                "overflow-hidden transition-all hover:shadow-md cursor-pointer active:scale-[0.99]",
                 customer.pendingAmount > 0
                   ? "border-l-4 border-l-amber-500"
                   : "border-l-4 border-l-green-500",
               )}
+              onClick={() => setSelectedCustomer(customer)}
             >
               <CardContent className="p-3">
                 <div className="flex items-center gap-3">
@@ -421,6 +497,251 @@ export default function CustomersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Customer Detail View */}
+      <Dialog
+        open={!!selectedCustomer}
+        onOpenChange={(open) => !open && setSelectedCustomer(null)}
+      >
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          {selectedCustomer && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setSelectedCustomer(null)}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1">
+                    <DialogTitle>{selectedCustomer.name}</DialogTitle>
+                    <DialogDescription>Customer Details</DialogDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      if (!isOnline) {
+                        toast.error("Cannot edit while offline");
+                        return;
+                      }
+                      setEditingCustomer(selectedCustomer);
+                      setCustomerFormOpen(true);
+                    }}
+                    disabled={!isOnline}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (!isOnline) {
+                        toast.error("Cannot delete while offline");
+                        return;
+                      }
+                      setCustomerToDelete(selectedCustomer);
+                      setDeleteDialogOpen(true);
+                    }}
+                    disabled={!isOnline}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                {/* Profile Info */}
+                <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={selectedCustomer.profilePicture} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
+                      {getCustomerInitials(selectedCustomer.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">
+                      {selectedCustomer.name}
+                    </h3>
+                    {selectedCustomer.phone && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedCustomer.phone}
+                      </p>
+                    )}
+                    {selectedCustomer.address && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {selectedCustomer.address}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-3 rounded-lg bg-muted/50 text-center">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="font-bold">
+                      ₹{selectedCustomer.totalAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-green-500/10 text-center">
+                    <p className="text-xs text-green-600">Paid</p>
+                    <p className="font-bold text-green-600">
+                      ₹{selectedCustomer.paidAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-amber-500/10 text-center">
+                    <p className="text-xs text-amber-600">Pending</p>
+                    <p className="font-bold text-amber-600">
+                      ₹{selectedCustomer.pendingAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Add Udhar Button */}
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    if (!isOnline) {
+                      toast.error("Cannot add while offline");
+                      return;
+                    }
+                    setQuickAddCustomer(selectedCustomer);
+                    setQuickAddOpen(true);
+                  }}
+                  disabled={!isOnline}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Udhar
+                </Button>
+
+                {/* Transactions List */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <Banknote className="h-4 w-4" />
+                    Udhar Transactions ({selectedCustomerTransactions.length})
+                  </h4>
+
+                  {selectedCustomerTransactions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No transactions yet
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {selectedCustomerTransactions.map((txn) => {
+                        const total =
+                          txn.amount ||
+                          (txn.cashAmount || 0) + (txn.onlineAmount || 0);
+                        const paid =
+                          txn.paidAmount ||
+                          (txn.paidCash || 0) + (txn.paidOnline || 0);
+                        const pending = Math.max(0, total - paid);
+                        const isPaid = txn.paymentStatus === "paid";
+
+                        return (
+                          <div
+                            key={txn.id}
+                            className={cn(
+                              "p-3 rounded-lg border",
+                              isPaid
+                                ? "bg-green-500/5 border-green-500/20"
+                                : "bg-amber-500/5 border-amber-500/20",
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {isPaid ? (
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Clock className="h-4 w-4 text-amber-500" />
+                                )}
+                                <span className="font-semibold">
+                                  ₹{total.toLocaleString()}
+                                </span>
+                              </div>
+                              <Badge
+                                variant={isPaid ? "default" : "secondary"}
+                                className={cn(
+                                  "text-xs",
+                                  isPaid
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-amber-100 text-amber-700",
+                                )}
+                              >
+                                {isPaid ? "Paid" : `₹${pending} pending`}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(txn.date).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  },
+                                )}
+                              </p>
+                              {txn.notes && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                  {txn.notes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Customer Form */}
+      {editingCustomer && (
+        <CustomerForm
+          open={customerFormOpen && !!editingCustomer}
+          onOpenChange={(open) => {
+            setCustomerFormOpen(open);
+            if (!open) setEditingCustomer(null);
+          }}
+          onSubmit={handleEditCustomer}
+          customer={editingCustomer}
+          title="Edit Customer"
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {customerToDelete?.name} and all
+              their Udhar transactions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCustomer}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

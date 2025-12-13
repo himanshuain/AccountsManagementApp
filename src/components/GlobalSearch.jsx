@@ -219,7 +219,7 @@ export function GlobalSearch({ suppliers = [], className }) {
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search... (⌘K)"
+          placeholder="Search..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
@@ -423,19 +423,6 @@ export function GlobalSearch({ suppliers = [], className }) {
                       </Badge>
                     </button>
                   ))}
-                </div>
-              )}
-
-              {/* View all link */}
-              {hasResults && (
-                <div className="px-3 py-2 border-t bg-muted/30">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Press{" "}
-                    <kbd className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
-                      Esc
-                    </kbd>{" "}
-                    to close
-                  </p>
                 </div>
               )}
             </>

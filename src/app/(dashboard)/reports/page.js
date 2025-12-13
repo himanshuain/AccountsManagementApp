@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart,
@@ -138,9 +138,19 @@ export default function ReportsPage() {
   const [monthlyListExpanded, setMonthlyListExpanded] = useState(false);
   const [chartsExpanded, setChartsExpanded] = useState(false);
 
-  // Refs for scrolling
+  // Refs for scrolling and input focus
   const incomeListRef = useRef(null);
   const chartsRef = useRef(null);
+  const cashInputRef = useRef(null);
+
+  // Auto-focus cash input when income form opens
+  useEffect(() => {
+    if (incomeFormOpen && cashInputRef.current) {
+      setTimeout(() => {
+        cashInputRef.current?.focus();
+      }, 100);
+    }
+  }, [incomeFormOpen]);
 
   // Scroll to section handler
   const scrollToSection = (ref) => {
@@ -973,6 +983,7 @@ export default function ReportsPage() {
                   Cash Amount (₹)
                 </Label>
                 <Input
+                  ref={cashInputRef}
                   type="number"
                   inputMode="numeric"
                   value={formData.cashAmount}
