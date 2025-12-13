@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -51,6 +52,7 @@ export default function RootLayout({ children }) {
             enableSystem={false}
             disableTransitionOnChange
           >
+            <ServiceWorkerRegistration />
             {children}
             <Toaster position="top-right" theme="dark" />
           </ThemeProvider>

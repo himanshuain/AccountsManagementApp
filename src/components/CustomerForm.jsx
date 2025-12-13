@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,13 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ImageUpload, MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { useKeyboardVisible } from "@/hooks/useKeyboardVisible";
 
 export function CustomerForm({
   open,
@@ -30,6 +29,7 @@ export function CustomerForm({
   onInitialAmountChange = () => {},
 }) {
   const isOnline = useOnlineStatus();
+  const { isKeyboardVisible } = useKeyboardVisible();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(
     initialData?.profilePicture || null,
@@ -38,6 +38,7 @@ export function CustomerForm({
     initialData?.khataPhotos ||
       (initialData?.khataPhoto ? [initialData.khataPhoto] : []),
   );
+  const scrollContainerRef = useRef(null);
 
   const defaultFormValues = {
     name: "",
@@ -152,7 +153,10 @@ export function CustomerForm({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 px-6">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-6 pb-safe"
+        >
           <form
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
@@ -185,7 +189,7 @@ export function CustomerForm({
                   required: "Customer name is required",
                 })}
                 placeholder="Enter customer name"
-                className="text-base h-11"
+                className="text-base h-12"
               />
               {errors.name && (
                 <p className="text-xs text-destructive">
@@ -204,7 +208,7 @@ export function CustomerForm({
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="text-base h-11"
+                className="text-base h-12"
               />
             </div>
 
@@ -234,7 +238,7 @@ export function CustomerForm({
                 id="address"
                 {...register("address")}
                 placeholder="Full address"
-                className="text-base"
+                className="text-base h-12"
               />
             </div>
 
@@ -251,33 +255,30 @@ export function CustomerForm({
               />
             </div>
 
-            {/* Bottom padding for safe area */}
-            <div className="h-4" />
+            {/* Action Buttons - Inside scroll area */}
+            <div className="pt-4 pb-6 space-y-3">
+              <Button
+                type="submit"
+                disabled={isSubmitting || !isOnline}
+                className="w-full h-12 text-base"
+              >
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {initialData ? "Update Customer" : "Add Customer"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="w-full h-12 text-base"
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
-        </ScrollArea>
-
-        <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
-          <div className="flex gap-3 w-full">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="flex-1 h-12"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !isOnline}
-              className="flex-1 h-12"
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {initialData ? "Update" : "Add Customer"}
-            </Button>
-          </div>
-        </SheetFooter>
+        </div>
       </SheetContent>
     </Sheet>
   );

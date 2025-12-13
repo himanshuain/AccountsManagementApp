@@ -17,13 +17,11 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 export function TransactionForm({
@@ -199,7 +197,7 @@ export function TransactionForm({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 px-6">
+        <div className="flex-1 overflow-y-auto px-6 pb-safe">
           <form
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
@@ -224,7 +222,7 @@ export function TransactionForm({
                 open={supplierSelectOpen}
                 onOpenChange={setSupplierSelectOpen}
               >
-                <SelectTrigger className="text-base h-11">
+                <SelectTrigger className="text-base h-12">
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -307,6 +305,7 @@ export function TransactionForm({
                   {...register("itemName")}
                   placeholder="Clothes"
                   defaultValue="Clothes"
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
@@ -315,6 +314,7 @@ export function TransactionForm({
                   id="date"
                   type="date"
                   {...register("date", { required: "Date is required" })}
+                  className="h-12"
                 />
               </div>
             </div>
@@ -326,7 +326,7 @@ export function TransactionForm({
               <div className="space-y-2">
                 <Label>Payment Mode</Label>
                 <Select value={paymentMode} onValueChange={setPaymentMode}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -338,7 +338,7 @@ export function TransactionForm({
               <div className="space-y-2">
                 <Label>Payment Status</Label>
                 <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -353,7 +353,12 @@ export function TransactionForm({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date</Label>
-                <Input id="dueDate" type="date" {...register("dueDate")} />
+                <Input
+                  id="dueDate"
+                  type="date"
+                  {...register("dueDate")}
+                  className="h-12"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
@@ -361,37 +366,35 @@ export function TransactionForm({
                   id="notes"
                   {...register("notes")}
                   placeholder="Optional notes"
+                  className="h-12"
                 />
               </div>
             </div>
 
-            {/* Bottom padding for safe area */}
-            <div className="h-4" />
+            {/* Action Buttons - Inside scroll area */}
+            <div className="pt-4 pb-6 space-y-3">
+              <Button
+                type="submit"
+                disabled={isSubmitting || !selectedSupplierId || !isOnline}
+                className="w-full h-12 text-base"
+              >
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {initialData ? "Update Transaction" : "Save Transaction"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="w-full h-12 text-base"
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
-        </ScrollArea>
-
-        <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
-          <div className="flex gap-3 w-full">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="flex-1 h-12"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !selectedSupplierId || !isOnline}
-              className="flex-1 h-12"
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {initialData ? "Update" : "Save"}
-            </Button>
-          </div>
-        </SheetFooter>
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,11 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 export function SupplierForm({
@@ -150,7 +148,7 @@ export function SupplierForm({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 px-6">
+        <div className="flex-1 overflow-y-auto px-6 pb-safe">
           <form
             onSubmit={handleSubmit(handleFormSubmit)}
             className="space-y-5 py-4"
@@ -184,7 +182,7 @@ export function SupplierForm({
                   required: "Supplier name is required",
                 })}
                 placeholder="Enter supplier/shop name"
-                className="text-base h-11"
+                className="text-base h-12"
               />
               {errors.companyName && (
                 <p className="text-xs text-destructive">
@@ -201,6 +199,7 @@ export function SupplierForm({
                   id="name"
                   {...register("name")}
                   placeholder="Person name"
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
@@ -212,6 +211,7 @@ export function SupplierForm({
                   type="tel"
                   inputMode="numeric"
                   pattern="[0-9]*"
+                  className="h-12"
                 />
               </div>
             </div>
@@ -228,7 +228,7 @@ export function SupplierForm({
                   id="upiId"
                   {...register("upiId")}
                   placeholder="example@upi or 9876543210@paytm"
-                  className="text-base"
+                  className="text-base h-12"
                 />
               </div>
 
@@ -258,6 +258,7 @@ export function SupplierForm({
                   id="address"
                   {...register("address")}
                   placeholder="Full address"
+                  className="h-12"
                 />
               </div>
 
@@ -267,37 +268,35 @@ export function SupplierForm({
                   id="gstNumber"
                   {...register("gstNumber")}
                   placeholder="GST number (optional)"
+                  className="h-12"
                 />
               </div>
             </div>
 
-            {/* Bottom padding for safe area */}
-            <div className="h-4" />
+            {/* Action Buttons - Inside scroll area */}
+            <div className="pt-4 pb-6 space-y-3">
+              <Button
+                type="submit"
+                disabled={isSubmitting || !isOnline}
+                className="w-full h-12 text-base"
+              >
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {initialData ? "Update Supplier" : "Add Supplier"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="w-full h-12 text-base"
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
-        </ScrollArea>
-
-        <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
-          <div className="flex gap-3 w-full">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="flex-1 h-12"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !isOnline}
-              className="flex-1 h-12"
-            >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {initialData ? "Update" : "Add Supplier"}
-            </Button>
-          </div>
-        </SheetFooter>
+        </div>
       </SheetContent>
     </Sheet>
   );

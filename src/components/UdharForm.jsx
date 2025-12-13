@@ -10,7 +10,6 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -23,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 
@@ -184,7 +182,7 @@ export function UdharForm({
             </div>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 px-6">
+          <div className="flex-1 overflow-y-auto px-6 pb-safe">
             <form
               onSubmit={handleSubmit(handleFormSubmit)}
               className="space-y-5 py-4"
@@ -209,7 +207,7 @@ export function UdharForm({
                     open={customerSelectOpen}
                     onOpenChange={setCustomerSelectOpen}
                   >
-                    <SelectTrigger className="flex-1 text-base h-11">
+                    <SelectTrigger className="flex-1 text-base h-12">
                       <SelectValue placeholder="Select customer" />
                     </SelectTrigger>
                     <SelectContent>
@@ -224,7 +222,7 @@ export function UdharForm({
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11"
+                    className="h-12 w-12"
                     onClick={() => setCustomerFormOpen(true)}
                     disabled={!isOnline}
                   >
@@ -278,6 +276,7 @@ export function UdharForm({
                   type="date"
                   {...register("date", { required: "Date is required" })}
                   disabled={!isOnline}
+                  className="h-12"
                 />
                 {errors.date && (
                   <p className="text-xs text-destructive">
@@ -299,33 +298,30 @@ export function UdharForm({
                 />
               </div>
 
-              {/* Bottom padding for safe area */}
-              <div className="h-4" />
+              {/* Action Buttons - Inside scroll area */}
+              <div className="pt-4 pb-6 space-y-3">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !selectedCustomerId || !isOnline}
+                  className="w-full h-12 text-base"
+                >
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {initialData ? "Update Udhar" : "Add Udhar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={isSubmitting}
+                  className="w-full h-12 text-base"
+                >
+                  Cancel
+                </Button>
+              </div>
             </form>
-          </ScrollArea>
-
-          <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
-            <div className="flex gap-3 w-full">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="flex-1 h-12"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit(handleFormSubmit)}
-                disabled={isSubmitting || !selectedCustomerId || !isOnline}
-                className="flex-1 h-12"
-              >
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {initialData ? "Update" : "Add Udhar"}
-              </Button>
-            </div>
-          </SheetFooter>
+          </div>
         </SheetContent>
       </Sheet>
 
