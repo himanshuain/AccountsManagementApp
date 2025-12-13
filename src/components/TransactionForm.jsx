@@ -370,7 +370,7 @@ export function TransactionForm({
           </form>
         </ScrollArea>
 
-        <SheetFooter className="px-6 py-4 border-t bg-background">
+        <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
           <div className="flex gap-3 w-full">
             <Button
               variant="outline"

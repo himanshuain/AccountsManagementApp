@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS customers (
   address TEXT,
   profile_picture TEXT,
   khata_photo TEXT,
+  khata_photos JSONB DEFAULT '[]',
   total_pending DECIMAL(12,2) DEFAULT 0,
   sync_status TEXT DEFAULT 'synced',
   created_at TIMESTAMPTZ DEFAULT NOW(),

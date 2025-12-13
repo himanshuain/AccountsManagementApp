@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { ZoomIn, ZoomOut, RotateCw, Download, Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   const [scale, setScale] = useState(1);
@@ -13,6 +19,11 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
+  const imageRef = useRef(null);
+
+  // Pinch zoom state
+  const [initialPinchDistance, setInitialPinchDistance] = useState(null);
+  const [initialScale, setInitialScale] = useState(1);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -24,24 +35,67 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   }, [open]);
 
   const handleZoomIn = () => {
-    setScale(prev => Math.min(prev + 0.5, 5));
+    setScale((prev) => Math.min(prev + 0.5, 5));
   };
 
   const handleZoomOut = () => {
-    setScale(prev => Math.max(prev - 0.5, 0.5));
+    setScale((prev) => Math.max(prev - 0.5, 0.5));
   };
 
   const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
+    setRotation((prev) => (prev + 90) % 360);
   };
 
-  const handleDownload = () => {
-    const link = document.createElement("a");
-    link.href = src;
-    link.download = alt || "image";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = alt || "image";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Image downloaded");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download image");
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      // Fetch the image and convert to blob
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: blob.type });
+
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: alt || "Shared Image",
+        });
+        toast.success("Shared successfully");
+      } else if (navigator.share) {
+        // Fallback to sharing URL if file sharing not supported
+        await navigator.share({
+          title: alt || "Shared Image",
+          url: src,
+        });
+        toast.success("Shared successfully");
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(src);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Share failed:", error);
+        toast.error("Failed to share");
+      }
+    }
   };
 
   const handleReset = () => {
@@ -50,8 +104,58 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     setPosition({ x: 0, y: 0 });
   };
 
-  // Touch and mouse handlers for panning
-  const handlePointerDown = e => {
+  // Calculate distance between two touch points
+  const getDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Touch handlers for pinch zoom
+  const handleTouchStart = useCallback(
+    (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const distance = getDistance(e.touches[0], e.touches[1]);
+        setInitialPinchDistance(distance);
+        setInitialScale(scale);
+      } else if (e.touches.length === 1 && scale > 1) {
+        setIsDragging(true);
+        setDragStart({
+          x: e.touches[0].clientX - position.x,
+          y: e.touches[0].clientY - position.y,
+        });
+      }
+    },
+    [scale, position],
+  );
+
+  const handleTouchMove = useCallback(
+    (e) => {
+      if (e.touches.length === 2 && initialPinchDistance) {
+        e.preventDefault();
+        const distance = getDistance(e.touches[0], e.touches[1]);
+        const scaleChange = distance / initialPinchDistance;
+        const newScale = Math.max(0.5, Math.min(5, initialScale * scaleChange));
+        setScale(newScale);
+      } else if (e.touches.length === 1 && isDragging && scale > 1) {
+        setPosition({
+          x: e.touches[0].clientX - dragStart.x,
+          y: e.touches[0].clientY - dragStart.y,
+        });
+      }
+    },
+    [initialPinchDistance, initialScale, isDragging, scale, dragStart],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    setInitialPinchDistance(null);
+    setIsDragging(false);
+  }, []);
+
+  // Mouse handlers for panning
+  const handlePointerDown = (e) => {
+    if (e.pointerType === "touch") return; // Handle touch separately
     if (scale > 1) {
       setIsDragging(true);
       setDragStart({
@@ -61,7 +165,8 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     }
   };
 
-  const handlePointerMove = e => {
+  const handlePointerMove = (e) => {
+    if (e.pointerType === "touch") return;
     if (isDragging && scale > 1) {
       setPosition({
         x: e.clientX - dragStart.x,
@@ -70,21 +175,22 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     }
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e) => {
+    if (e.pointerType === "touch") return;
     setIsDragging(false);
   };
 
-  // Pinch zoom for touch devices
-  const handleWheel = e => {
+  // Mouse wheel zoom
+  const handleWheel = (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setScale(prev => Math.max(0.5, Math.min(5, prev + delta)));
+    setScale((prev) => Math.max(0.5, Math.min(5, prev + delta)));
   };
 
   // Double tap/click to zoom
   const handleDoubleClick = () => {
     if (scale === 1) {
-      setScale(2);
+      setScale(2.5);
     } else {
       handleReset();
     }
@@ -92,10 +198,20 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
+      <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black/95 border-none">
         <DialogHeader className="sr-only">
           <DialogTitle>Image Viewer</DialogTitle>
         </DialogHeader>
+
+        {/* Close button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 h-10 w-10"
+          onClick={() => onOpenChange(false)}
+        >
+          <X className="h-6 w-6" />
+        </Button>
 
         {/* Controls */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
@@ -137,25 +253,37 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           >
             <Download className="h-5 w-5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-9 w-9"
+            onClick={handleShare}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Image container */}
         <div
           ref={containerRef}
-          className="w-full h-[90vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+          className="w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing touch-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onWheel={handleWheel}
           onDoubleClick={handleDoubleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <img
+            ref={imageRef}
             src={src}
             alt={alt}
             className={cn(
               "max-w-full max-h-full object-contain transition-transform duration-200 select-none",
-              isDragging && "transition-none"
+              isDragging && "transition-none",
             )}
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
@@ -166,7 +294,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
         {/* Instructions */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-xs bg-black/30 px-3 py-1 rounded-full">
-          Double-tap to zoom • Pinch or scroll to zoom • Drag to pan
+          Pinch to zoom • Double-tap to zoom • Drag to pan
         </div>
       </DialogContent>
     </Dialog>
@@ -174,13 +302,22 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 }
 
 // Gallery viewer for multiple images
-export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
+export function ImageGalleryViewer({
+  images = [],
+  initialIndex = 0,
+  open,
+  onOpenChange,
+}) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Pinch zoom state
+  const [initialPinchDistance, setInitialPinchDistance] = useState(null);
+  const [initialScale, setInitialScale] = useState(1);
 
   // Reset state when dialog opens or image changes
   useEffect(() => {
@@ -199,23 +336,74 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   }, [currentIndex]);
 
   const handlePrev = () => {
-    setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
   };
 
   const handleZoomIn = () => {
-    setScale(prev => Math.min(prev + 0.5, 5));
+    setScale((prev) => Math.min(prev + 0.5, 5));
   };
 
   const handleZoomOut = () => {
-    setScale(prev => Math.max(prev - 0.5, 0.5));
+    setScale((prev) => Math.max(prev - 0.5, 0.5));
   };
 
   const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(images[currentIndex]);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `image-${currentIndex + 1}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Image downloaded");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download image");
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const response = await fetch(images[currentIndex]);
+      const blob = await response.blob();
+      const file = new File([blob], `image-${currentIndex + 1}.jpg`, {
+        type: blob.type,
+      });
+
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Image ${currentIndex + 1}`,
+        });
+        toast.success("Shared successfully");
+      } else if (navigator.share) {
+        await navigator.share({
+          title: `Image ${currentIndex + 1}`,
+          url: images[currentIndex],
+        });
+        toast.success("Shared successfully");
+      } else {
+        await navigator.clipboard.writeText(images[currentIndex]);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Share failed:", error);
+        toast.error("Failed to share");
+      }
+    }
   };
 
   const handleReset = () => {
@@ -224,7 +412,57 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     setPosition({ x: 0, y: 0 });
   };
 
-  const handlePointerDown = e => {
+  // Calculate distance between two touch points
+  const getDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Touch handlers for pinch zoom
+  const handleTouchStart = useCallback(
+    (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const distance = getDistance(e.touches[0], e.touches[1]);
+        setInitialPinchDistance(distance);
+        setInitialScale(scale);
+      } else if (e.touches.length === 1 && scale > 1) {
+        setIsDragging(true);
+        setDragStart({
+          x: e.touches[0].clientX - position.x,
+          y: e.touches[0].clientY - position.y,
+        });
+      }
+    },
+    [scale, position],
+  );
+
+  const handleTouchMove = useCallback(
+    (e) => {
+      if (e.touches.length === 2 && initialPinchDistance) {
+        e.preventDefault();
+        const distance = getDistance(e.touches[0], e.touches[1]);
+        const scaleChange = distance / initialPinchDistance;
+        const newScale = Math.max(0.5, Math.min(5, initialScale * scaleChange));
+        setScale(newScale);
+      } else if (e.touches.length === 1 && isDragging && scale > 1) {
+        setPosition({
+          x: e.touches[0].clientX - dragStart.x,
+          y: e.touches[0].clientY - dragStart.y,
+        });
+      }
+    },
+    [initialPinchDistance, initialScale, isDragging, scale, dragStart],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    setInitialPinchDistance(null);
+    setIsDragging(false);
+  }, []);
+
+  const handlePointerDown = (e) => {
+    if (e.pointerType === "touch") return;
     if (scale > 1) {
       setIsDragging(true);
       setDragStart({
@@ -234,7 +472,8 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     }
   };
 
-  const handlePointerMove = e => {
+  const handlePointerMove = (e) => {
+    if (e.pointerType === "touch") return;
     if (isDragging && scale > 1) {
       setPosition({
         x: e.clientX - dragStart.x,
@@ -243,19 +482,20 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     }
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e) => {
+    if (e.pointerType === "touch") return;
     setIsDragging(false);
   };
 
-  const handleWheel = e => {
+  const handleWheel = (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setScale(prev => Math.max(0.5, Math.min(5, prev + delta)));
+    setScale((prev) => Math.max(0.5, Math.min(5, prev + delta)));
   };
 
   const handleDoubleClick = () => {
     if (scale === 1) {
-      setScale(2);
+      setScale(2.5);
     } else {
       handleReset();
     }
@@ -263,7 +503,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
   // Keyboard navigation
   useEffect(() => {
-    const handleKeyDown = e => {
+    const handleKeyDown = (e) => {
       if (!open) return;
       if (e.key === "ArrowLeft") handlePrev();
       if (e.key === "ArrowRight") handleNext();
@@ -279,10 +519,20 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
+      <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black/95 border-none">
         <DialogHeader className="sr-only">
           <DialogTitle>Image Gallery</DialogTitle>
         </DialogHeader>
+
+        {/* Close button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 h-10 w-10"
+          onClick={() => onOpenChange(false)}
+        >
+          <X className="h-6 w-6" />
+        </Button>
 
         {/* Image counter */}
         <div className="absolute top-4 left-4 z-50 text-white bg-black/50 px-3 py-1 rounded-full text-sm">
@@ -298,7 +548,12 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               className="absolute left-2 top-1/2 -translate-y-1/2 z-50 text-white hover:bg-white/20 h-12 w-12"
               onClick={handlePrev}
             >
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="h-8 w-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -313,7 +568,12 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               className="absolute right-2 top-1/2 -translate-y-1/2 z-50 text-white hover:bg-white/20 h-12 w-12"
               onClick={handleNext}
             >
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="h-8 w-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -357,24 +617,43 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           >
             <RotateCw className="h-5 w-5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-9 w-9"
+            onClick={handleDownload}
+          >
+            <Download className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-9 w-9"
+            onClick={handleShare}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Image container */}
         <div
-          className="w-full h-[90vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+          className="w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing touch-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onWheel={handleWheel}
           onDoubleClick={handleDoubleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <img
             src={currentImage}
             alt={`Image ${currentIndex + 1}`}
             className={cn(
               "max-w-full max-h-full object-contain transition-transform duration-200 select-none",
-              isDragging && "transition-none"
+              isDragging && "transition-none",
             )}
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
@@ -394,7 +673,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
                   "w-12 h-12 rounded overflow-hidden flex-shrink-0 border-2 transition-all",
                   currentIndex === idx
                     ? "border-white"
-                    : "border-transparent opacity-60 hover:opacity-100"
+                    : "border-transparent opacity-60 hover:opacity-100",
                 )}
               >
                 <img
@@ -406,6 +685,11 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             ))}
           </div>
         )}
+
+        {/* Instructions */}
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 text-white/60 text-xs bg-black/30 px-3 py-1 rounded-full">
+          Pinch to zoom • Double-tap to zoom • Swipe to navigate
+        </div>
       </DialogContent>
     </Dialog>
   );

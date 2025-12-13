@@ -17,12 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { ImageGalleryViewer } from "./ImageViewer";
 
 const paymentModeLabels = {
   cash: "Cash",
@@ -140,9 +135,9 @@ export function TransactionTable({
     { total: 0, paid: 0, pending: 0 },
   );
 
-  // Sort by date (newest first)
+  // Sort by date (oldest first - old transactions at top)
   const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(b.date) - new Date(a.date),
+    (a, b) => new Date(a.date) - new Date(b.date),
   );
 
   if (loading) {
@@ -413,7 +408,7 @@ export function TransactionTable({
                           <div className="space-y-0">
                             {transaction.payments
                               .sort(
-                                (a, b) => new Date(b.date) - new Date(a.date),
+                                (a, b) => new Date(a.date) - new Date(b.date),
                               )
                               .map((payment, index, arr) => (
                                 <div key={payment.id} className="flex">
@@ -422,7 +417,7 @@ export function TransactionTable({
                                     <div
                                       className={cn(
                                         "w-3 h-3 rounded-full flex items-center justify-center",
-                                        index === 0
+                                        index === arr.length - 1
                                           ? "bg-green-500"
                                           : "bg-green-400",
                                       )}
@@ -452,10 +447,10 @@ export function TransactionTable({
                                             ]);
                                             setImageDialogOpen(true);
                                           }}
-                                          className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                                          className="ml-auto p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                          title="View Receipt"
                                         >
-                                          <Receipt className="h-3 w-3" />
-                                          Receipt
+                                          <Receipt className="h-4 w-4" />
                                         </button>
                                       )}
                                     </div>
@@ -479,33 +474,13 @@ export function TransactionTable({
         })}
       </div>
 
-      {/* Image Preview Dialog */}
-      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedImages.length === 1 ? "Receipt" : "Bill Images"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {selectedImages.map((url, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "aspect-square rounded-lg overflow-hidden bg-muted",
-                  selectedImages.length === 1 && "col-span-2",
-                )}
-              >
-                <img
-                  src={url}
-                  alt={`Bill ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Image Gallery Viewer with Zoom */}
+      <ImageGalleryViewer
+        images={selectedImages}
+        initialIndex={0}
+        open={imageDialogOpen}
+        onOpenChange={setImageDialogOpen}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -18,7 +18,14 @@ import {
   Copy,
   Check,
   CreditCard,
+  Receipt,
+  Camera,
+  ImagePlus,
+  Calendar,
+  AlertTriangle,
 } from "lucide-react";
+import { ImageViewer } from "@/components/ImageViewer";
+import { compressImage } from "@/lib/image-compression";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +49,7 @@ import { Label } from "@/components/ui/label";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { cn } from "@/lib/utils";
 import { SupplierForm } from "@/components/SupplierForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionTable } from "@/components/TransactionTable";
@@ -80,7 +88,20 @@ export default function SupplierDetailPage({ params }) {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentTransaction, setPaymentTransaction] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const paymentInputRef = useRef(null);
+  const receiptInputRef = useRef(null);
+  const receiptGalleryInputRef = useRef(null);
+
+  // Image viewer state
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerSrc, setImageViewerSrc] = useState("");
+
+  // Bulk delete state
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleteOption, setBulkDeleteOption] = useState("6months");
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
 
   useEffect(() => {
     const loadSupplier = async () => {
@@ -100,11 +121,16 @@ export default function SupplierDetailPage({ params }) {
     }
   }, [suppliers, id, loading]);
 
-  // Auto-focus payment input
+  // Auto-focus and scroll payment input into view
   useEffect(() => {
     if (paymentDialogOpen && paymentInputRef.current) {
       setTimeout(() => {
         paymentInputRef.current?.focus();
+        // Scroll the input into view for mobile keyboards
+        paymentInputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
       }, 500);
     }
   }, [paymentDialogOpen]);
@@ -262,7 +288,51 @@ export default function SupplierDetailPage({ params }) {
     const remaining = (transaction.amount || 0) - currentPaid;
     setPaymentTransaction(transaction);
     setPaymentAmount(remaining.toString());
+    setPaymentReceipt(null);
     setPaymentDialogOpen(true);
+  };
+
+  const handleReceiptSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingReceipt(true);
+
+    try {
+      // Compress image before upload
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.8,
+        maxSizeKB: 500,
+      });
+
+      // Create local preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPaymentReceipt(e.target.result);
+      };
+      reader.readAsDataURL(compressedFile);
+
+      // Upload file
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        setPaymentReceipt(url);
+        toast.success("Receipt uploaded");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploadingReceipt(false);
+    }
   };
 
   const handleRecordPayment = async () => {
@@ -274,6 +344,7 @@ export default function SupplierDetailPage({ params }) {
     const result = await recordPayment(
       paymentTransaction.id,
       Number(paymentAmount),
+      paymentReceipt,
     );
 
     if (result.success) {
@@ -283,6 +354,7 @@ export default function SupplierDetailPage({ params }) {
       setPaymentDialogOpen(false);
       setPaymentTransaction(null);
       setPaymentAmount("");
+      setPaymentReceipt(null);
     } else {
       toast.error(result.error || "Failed to record payment");
     }
@@ -291,16 +363,76 @@ export default function SupplierDetailPage({ params }) {
   const handleMarkFullPaid = async () => {
     if (!paymentTransaction) return;
 
-    const result = await markFullPaid(paymentTransaction.id);
+    const result = await markFullPaid(paymentTransaction.id, paymentReceipt);
 
     if (result.success) {
       toast.success("Marked as fully paid");
       setPaymentDialogOpen(false);
       setPaymentTransaction(null);
       setPaymentAmount("");
+      setPaymentReceipt(null);
     } else {
       toast.error(result.error || "Failed to mark as paid");
     }
+  };
+
+  const handleViewImage = (src) => {
+    setImageViewerSrc(src);
+    setImageViewerOpen(true);
+  };
+
+  // Bulk delete functions
+  const getTransactionsToDelete = () => {
+    const now = new Date();
+    let cutoffDate;
+
+    switch (bulkDeleteOption) {
+      case "6months":
+        cutoffDate = new Date(now.setMonth(now.getMonth() - 6));
+        break;
+      case "1year":
+        cutoffDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+      case "previousYear":
+        cutoffDate = new Date(now.getFullYear() - 1, 11, 31); // End of previous year
+        break;
+      case "all":
+        return transactions;
+      default:
+        cutoffDate = new Date(now.setMonth(now.getMonth() - 6));
+    }
+
+    return transactions.filter((t) => new Date(t.date) < cutoffDate);
+  };
+
+  const handleBulkDelete = async () => {
+    if (bulkDeleteConfirmText !== "DELETE") {
+      toast.error("Please type DELETE to confirm");
+      return;
+    }
+
+    const transactionsToDelete = getTransactionsToDelete();
+    if (transactionsToDelete.length === 0) {
+      toast.error("No transactions match the selected criteria");
+      return;
+    }
+
+    let successCount = 0;
+    for (const transaction of transactionsToDelete) {
+      const result = await deleteTransaction(transaction.id);
+      if (result.success) {
+        successCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} transactions`);
+    } else {
+      toast.error("Failed to delete transactions");
+    }
+
+    setBulkDeleteDialogOpen(false);
+    setBulkDeleteConfirmText("");
   };
 
   const handleUpiClick = (app = "gpay") => {
@@ -381,13 +513,24 @@ export default function SupplierDetailPage({ params }) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
-            {/* Avatar */}
-            <Avatar className="h-16 w-16 border-2 border-primary/10 shrink-0">
-              <AvatarImage src={supplier.profilePicture} alt={displayName} />
-              <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            {/* Avatar - Clickable to view full image */}
+            <div
+              className={cn(
+                "shrink-0",
+                supplier.profilePicture && "cursor-pointer",
+              )}
+              onClick={() =>
+                supplier.profilePicture &&
+                handleViewImage(supplier.profilePicture)
+              }
+            >
+              <Avatar className="h-16 w-16 border-2 border-primary/10">
+                <AvatarImage src={supplier.profilePicture} alt={displayName} />
+                <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </div>
 
             {/* Details */}
             <div className="flex-1 min-w-0 space-y-2">
@@ -507,17 +650,31 @@ export default function SupplierDetailPage({ params }) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Transactions</h2>
-          <Button
-            size="sm"
-            onClick={() => {
-              setTransactionToEdit(null);
-              setTransactionFormOpen(true);
-            }}
-            disabled={!isOnline}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            {transactions.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                disabled={!isOnline}
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Bulk Delete
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => {
+                setTransactionToEdit(null);
+                setTransactionFormOpen(true);
+              }}
+              disabled={!isOnline}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
 
         {transactions.length === 0 ? (
@@ -619,6 +776,77 @@ export default function SupplierDetailPage({ params }) {
                 />
               </div>
 
+              {/* Payment Receipt Upload */}
+              <div className="space-y-2">
+                <Label className="text-sm">Payment Receipt (Optional)</Label>
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleReceiptSelect}
+                  className="hidden"
+                />
+                <input
+                  ref={receiptGalleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleReceiptSelect}
+                  className="hidden"
+                />
+                {paymentReceipt ? (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border bg-muted">
+                    <img
+                      src={paymentReceipt}
+                      alt="Payment Receipt"
+                      className="w-full h-full object-cover cursor-pointer"
+                      onClick={() => handleViewImage(paymentReceipt)}
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => setPaymentReceipt(null)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    {isUploadingReceipt && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => receiptInputRef.current?.click()}
+                      className="flex-1 h-10 gap-1.5"
+                      disabled={isUploadingReceipt}
+                    >
+                      <Camera className="h-4 w-4" />
+                      Camera
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => receiptGalleryInputRef.current?.click()}
+                      className="flex-1 h-10 gap-1.5"
+                      disabled={isUploadingReceipt}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                      Gallery
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Attach UPI screenshot or payment proof
+                </p>
+              </div>
+
               {/* UPI Quick Pay */}
               {supplier.upiId && (
                 <div className="space-y-2">
@@ -650,7 +878,7 @@ export default function SupplierDetailPage({ params }) {
             </div>
           </div>
 
-          <SheetFooter className="px-6 py-4 border-t bg-background">
+          <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
             <div className="flex flex-col gap-3 w-full">
               <div className="flex gap-3 w-full">
                 <Button
@@ -751,7 +979,13 @@ export default function SupplierDetailPage({ params }) {
           </DialogHeader>
           <div className="flex flex-col items-center gap-4">
             {supplier?.upiQrCode && (
-              <div className="w-56 h-56 rounded-lg overflow-hidden border-2 border-muted relative bg-white">
+              <div
+                className="w-56 h-56 rounded-lg overflow-hidden border-2 border-muted relative bg-white cursor-pointer"
+                onClick={() => {
+                  setQrDialogOpen(false);
+                  handleViewImage(supplier.upiQrCode);
+                }}
+              >
                 <Image
                   src={supplier.upiQrCode}
                   alt="UPI QR Code"
@@ -774,6 +1008,191 @@ export default function SupplierDetailPage({ params }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Viewer */}
+      <ImageViewer
+        src={imageViewerSrc}
+        alt="Full Image"
+        open={imageViewerOpen}
+        onOpenChange={setImageViewerOpen}
+      />
+
+      {/* Bulk Delete Dialog */}
+      <Sheet open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl p-0 flex flex-col max-h-[80vh]"
+          hideClose
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+
+          <SheetHeader className="px-6 pb-4">
+            <SheetTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Bulk Delete Transactions
+            </SheetTitle>
+            <SheetDescription>
+              Permanently delete multiple transactions. This action cannot be
+              undone.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="space-y-4 pb-4">
+              {/* Delete Options */}
+              <div className="space-y-2">
+                <Label>Select transactions to delete</Label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="6months"
+                      checked={bulkDeleteOption === "6months"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">Older than 6 months</span>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          transactions.filter(
+                            (t) =>
+                              new Date(t.date) <
+                              new Date(
+                                new Date().setMonth(new Date().getMonth() - 6),
+                              ),
+                          ).length
+                        }{" "}
+                        transactions
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="1year"
+                      checked={bulkDeleteOption === "1year"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">Older than 1 year</span>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          transactions.filter(
+                            (t) =>
+                              new Date(t.date) <
+                              new Date(
+                                new Date().setFullYear(
+                                  new Date().getFullYear() - 1,
+                                ),
+                              ),
+                          ).length
+                        }{" "}
+                        transactions
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="previousYear"
+                      checked={bulkDeleteOption === "previousYear"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium">
+                        Previous year ({new Date().getFullYear() - 1})
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          transactions.filter(
+                            (t) =>
+                              new Date(t.date) <
+                              new Date(new Date().getFullYear() - 1, 11, 31),
+                          ).length
+                        }{" "}
+                        transactions
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-destructive/30 cursor-pointer hover:bg-destructive/5">
+                    <input
+                      type="radio"
+                      name="bulkDelete"
+                      value="all"
+                      checked={bulkDeleteOption === "all"}
+                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium text-destructive">
+                        All transactions
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {transactions.length} transactions (entire history)
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Confirmation Input */}
+              <div className="space-y-2 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                <Label className="text-destructive">
+                  Type &quot;DELETE&quot; to confirm
+                </Label>
+                <Input
+                  value={bulkDeleteConfirmText}
+                  onChange={(e) =>
+                    setBulkDeleteConfirmText(e.target.value.toUpperCase())
+                  }
+                  placeholder="DELETE"
+                  className="text-center font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
+            <div className="flex gap-3 w-full">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBulkDeleteDialogOpen(false);
+                  setBulkDeleteConfirmText("");
+                }}
+                className="flex-1 h-12"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleBulkDelete}
+                disabled={
+                  !isOnline ||
+                  bulkDeleteConfirmText !== "DELETE" ||
+                  getTransactionsToDelete().length === 0
+                }
+                className="flex-1 h-12"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete {getTransactionsToDelete().length} Transactions
+              </Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

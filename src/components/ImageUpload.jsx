@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
+import { compressImage } from "@/lib/image-compression";
 
 export function ImageUpload({
   value,
@@ -32,18 +33,27 @@ export function ImageUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Create local preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload file
     setIsUploading(true);
+
     try {
+      // Compress image before upload
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.8,
+        maxSizeKB: 500,
+      });
+
+      // Create local preview from compressed file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreview(e.target.result);
+      };
+      reader.readAsDataURL(compressedFile);
+
+      // Upload compressed file
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", compressedFile);
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -56,7 +66,13 @@ export function ImageUpload({
         setPreview(url);
       } else {
         // Keep local preview for offline mode
-        onChange?.(preview);
+        const localUrl = await new Promise((resolve) => {
+          const r = new FileReader();
+          r.onload = (e) => resolve(e.target.result);
+          r.readAsDataURL(compressedFile);
+        });
+        onChange?.(localUrl);
+        setPreview(localUrl);
       }
     } catch (error) {
       console.error("Upload failed:", error);
@@ -228,16 +244,24 @@ export function MultiImageUpload({
 
     for (const file of filesToUpload) {
       try {
+        // Compress image before upload
+        const compressedFile = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.8,
+          maxSizeKB: 500,
+        });
+
         // Create local preview first
         const localUrl = await new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target.result);
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(compressedFile);
         });
 
         // Try to upload
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressedFile);
 
         try {
           const response = await fetch("/api/upload", {
