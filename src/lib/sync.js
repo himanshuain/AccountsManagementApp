@@ -57,14 +57,9 @@ class SyncManager {
         this.isPageVisible &&
         !this.isUserIdle()
       ) {
-        console.log("Periodic sync triggered");
         this.sync();
-      } else if (this.isUserIdle()) {
-        console.log("Skipping periodic sync - user idle");
       }
     }, SYNC_INTERVAL);
-
-    console.log("Periodic sync started (every 30s, pauses when idle)");
   }
 
   // Stop periodic sync
@@ -81,9 +76,6 @@ class SyncManager {
     if (isVisible) {
       // Reset activity when page becomes visible
       this.updateActivity();
-      console.log("[Sync] Page visible - activity reset");
-    } else {
-      console.log("[Sync] Page hidden - syncing paused");
     }
   }
 
@@ -95,7 +87,6 @@ class SyncManager {
 
     this.debounceTimer = setTimeout(() => {
       if (navigator.onLine && !this.isSyncing && this.isPageVisible) {
-        console.log("Auto-sync after CRUD operation");
         this.sync();
       }
     }, DEBOUNCE_DELAY);
@@ -112,20 +103,7 @@ class SyncManager {
   }
 
   async sync() {
-    console.log(
-      "[Sync] Starting sync... Online:",
-      navigator.onLine,
-      "Already syncing:",
-      this.isSyncing,
-      "Visible:",
-      this.isPageVisible,
-    );
-
     if (this.isSyncing || !navigator.onLine) {
-      console.log(
-        "[Sync] Skipped - reason:",
-        this.isSyncing ? "already_syncing" : "offline",
-      );
       return {
         success: false,
         reason: this.isSyncing ? "already_syncing" : "offline",
@@ -137,21 +115,16 @@ class SyncManager {
 
     try {
       // Step 1: Push local changes to cloud
-      console.log("[Sync] Step 1: Pushing changes...");
       const pushResult = await this.pushChanges();
-      console.log("[Sync] Push result:", pushResult);
 
       // Step 2: Pull latest from cloud
-      console.log("[Sync] Step 2: Pulling changes...");
       await this.pullChanges();
 
       // Step 3: Clear sync queue only if push was successful
       if (pushResult !== false) {
-        console.log("[Sync] Step 3: Clearing queue...");
         await syncQueueDB.clear();
       }
 
-      console.log("[Sync] Complete!");
       this.notify({ status: "synced", lastSync: new Date().toISOString() });
       return { success: true };
     } catch (error) {
@@ -166,8 +139,6 @@ class SyncManager {
   async pushChanges() {
     const queue = await syncQueueDB.getAll();
 
-    console.log("[Sync] Push changes - queue length:", queue.length);
-
     if (queue.length === 0) return true;
 
     let allSuccess = true;
@@ -179,38 +150,19 @@ class SyncManager {
     const udharOps = queue.filter((q) => q.entityType === "udhar");
     const incomeOps = queue.filter((q) => q.entityType === "income");
 
-    console.log(
-      "[Sync] Operations - Suppliers:",
-      supplierOps.length,
-      "Transactions:",
-      transactionOps.length,
-      "Customers:",
-      customerOps.length,
-      "Udhar:",
-      udharOps.length,
-      "Income:",
-      incomeOps.length,
-    );
-
     // Push supplier changes
     if (supplierOps.length > 0) {
       try {
-        console.log("[Sync] Pushing suppliers...");
         const response = await fetch(`${API_BASE}/sync/suppliers`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ operations: supplierOps }),
         });
 
-        const result = await response.json();
-        console.log("[Sync] Suppliers response:", result);
-
         if (response.ok) {
           const supplierIds = supplierOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("supplier", supplierIds);
-          console.log("[Sync] Marked suppliers as synced:", supplierIds);
         } else {
-          console.error("[Sync] Failed to sync suppliers:", result);
           allSuccess = false;
         }
       } catch (error) {
@@ -222,22 +174,16 @@ class SyncManager {
     // Push transaction changes
     if (transactionOps.length > 0) {
       try {
-        console.log("[Sync] Pushing transactions...");
         const response = await fetch(`${API_BASE}/sync/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ operations: transactionOps }),
         });
 
-        const result = await response.json();
-        console.log("[Sync] Transactions response:", result);
-
         if (response.ok) {
           const transactionIds = transactionOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("transaction", transactionIds);
-          console.log("[Sync] Marked transactions as synced:", transactionIds);
         } else {
-          console.error("[Sync] Failed to sync transactions:", result);
           allSuccess = false;
         }
       } catch (error) {
@@ -249,22 +195,16 @@ class SyncManager {
     // Push customer changes
     if (customerOps.length > 0) {
       try {
-        console.log("[Sync] Pushing customers...");
         const response = await fetch(`${API_BASE}/sync/customers`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ operations: customerOps }),
         });
 
-        const result = await response.json();
-        console.log("[Sync] Customers response:", result);
-
         if (response.ok) {
           const customerIds = customerOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("customer", customerIds);
-          console.log("[Sync] Marked customers as synced:", customerIds);
         } else {
-          console.error("[Sync] Failed to sync customers:", result);
           allSuccess = false;
         }
       } catch (error) {
@@ -276,22 +216,16 @@ class SyncManager {
     // Push udhar changes
     if (udharOps.length > 0) {
       try {
-        console.log("[Sync] Pushing udhar...");
         const response = await fetch(`${API_BASE}/sync/udhar`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ operations: udharOps }),
         });
 
-        const result = await response.json();
-        console.log("[Sync] Udhar response:", result);
-
         if (response.ok) {
           const udharIds = udharOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("udhar", udharIds);
-          console.log("[Sync] Marked udhar as synced:", udharIds);
         } else {
-          console.error("[Sync] Failed to sync udhar:", result);
           allSuccess = false;
         }
       } catch (error) {
@@ -303,22 +237,16 @@ class SyncManager {
     // Push income changes
     if (incomeOps.length > 0) {
       try {
-        console.log("[Sync] Pushing income...");
         const response = await fetch(`${API_BASE}/sync/income`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ operations: incomeOps }),
         });
 
-        const result = await response.json();
-        console.log("[Sync] Income response:", result);
-
         if (response.ok) {
           const incomeIds = incomeOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("income", incomeIds);
-          console.log("[Sync] Marked income as synced:", incomeIds);
         } else {
-          console.error("[Sync] Failed to sync income:", result);
           allSuccess = false;
         }
       } catch (error) {
@@ -333,15 +261,9 @@ class SyncManager {
   async pullChanges() {
     // Fetch latest suppliers
     try {
-      console.log("[Sync] Pulling suppliers from cloud...");
       const suppliersResponse = await fetch(`${API_BASE}/suppliers`);
       if (suppliersResponse.ok) {
         const { data: suppliers } = await suppliersResponse.json();
-        console.log(
-          "[Sync] Got",
-          suppliers?.length || 0,
-          "suppliers from cloud",
-        );
         if (suppliers && suppliers.length > 0) {
           await bulkOperations.mergeSuppliers(suppliers);
           const ids = suppliers.map((s) => s.id);
@@ -354,15 +276,9 @@ class SyncManager {
 
     // Fetch latest transactions
     try {
-      console.log("[Sync] Pulling transactions from cloud...");
       const transactionsResponse = await fetch(`${API_BASE}/transactions`);
       if (transactionsResponse.ok) {
         const { data: transactions } = await transactionsResponse.json();
-        console.log(
-          "[Sync] Got",
-          transactions?.length || 0,
-          "transactions from cloud",
-        );
         if (transactions && transactions.length > 0) {
           await bulkOperations.mergeTransactions(transactions);
           const ids = transactions.map((t) => t.id);
@@ -375,15 +291,9 @@ class SyncManager {
 
     // Fetch latest customers
     try {
-      console.log("[Sync] Pulling customers from cloud...");
       const customersResponse = await fetch(`${API_BASE}/customers`);
       if (customersResponse.ok) {
         const { data: customers } = await customersResponse.json();
-        console.log(
-          "[Sync] Got",
-          customers?.length || 0,
-          "customers from cloud",
-        );
         if (customers && customers.length > 0) {
           await bulkOperations.mergeCustomers(customers);
           const ids = customers.map((c) => c.id);
@@ -396,11 +306,9 @@ class SyncManager {
 
     // Fetch latest udhar
     try {
-      console.log("[Sync] Pulling udhar from cloud...");
       const udharResponse = await fetch(`${API_BASE}/udhar`);
       if (udharResponse.ok) {
         const { data: udhar } = await udharResponse.json();
-        console.log("[Sync] Got", udhar?.length || 0, "udhar from cloud");
         if (udhar && udhar.length > 0) {
           await bulkOperations.mergeUdhar(udhar);
           const ids = udhar.map((u) => u.id);
@@ -413,11 +321,9 @@ class SyncManager {
 
     // Fetch latest income
     try {
-      console.log("[Sync] Pulling income from cloud...");
       const incomeResponse = await fetch(`${API_BASE}/income`);
       if (incomeResponse.ok) {
         const { data: income } = await incomeResponse.json();
-        console.log("[Sync] Got", income?.length || 0, "income from cloud");
         if (income && income.length > 0) {
           await bulkOperations.mergeIncome(income);
           const ids = income.map((i) => i.id);
@@ -490,8 +396,7 @@ export const syncManager = new SyncManager();
 if (typeof window !== "undefined") {
   // Set up callback for auto-sync after CRUD operations
   setOnDataChangeCallback(() => {
-    console.log("[Sync] Data changed, triggering debounced sync...");
-    syncManager.updateActivity(); // User did something
+    syncManager.updateActivity();
     syncManager.debouncedSync();
   });
 
@@ -515,23 +420,15 @@ if (typeof window !== "undefined") {
   // Auto-sync when coming online (only if page is visible and user active)
   window.addEventListener("online", () => {
     if (!syncManager.isUserIdle() && !document.hidden) {
-      console.log("[Sync] Back online, triggering sync...");
       syncManager.sync();
     }
   });
 
-  // Stop periodic sync when going offline
-  window.addEventListener("offline", () => {
-    console.log("[Sync] Gone offline, pausing periodic sync");
-  });
-
   // Start periodic sync after page loads
   const initSync = () => {
-    console.log("[Sync] Initializing sync manager...");
     syncManager.startPeriodicSync();
     // Trigger initial sync
     setTimeout(() => {
-      console.log("[Sync] Triggering initial sync...");
       syncManager.sync();
     }, 1000);
   };
@@ -544,9 +441,6 @@ if (typeof window !== "undefined") {
 
   // Expose for debugging
   window.__syncManager = syncManager;
-  console.log(
-    "[Sync] Debug: use window.__syncManager.sync() to trigger sync manually",
-  );
 }
 
 export default syncManager;

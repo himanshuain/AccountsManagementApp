@@ -15,7 +15,6 @@ export async function POST(request) {
       );
     }
 
-    console.log("[API] Syncing income, operations:", operations.length);
     const updated = await syncIncomeToSupabase(operations);
 
     return NextResponse.json({ success: true, data: updated });
