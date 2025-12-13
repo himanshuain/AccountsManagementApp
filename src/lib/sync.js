@@ -3,6 +3,9 @@ import {
   bulkOperations,
   supplierDB,
   transactionDB,
+  customerDB,
+  udharDB,
+  incomeDB,
   setOnDataChangeCallback,
 } from "./db";
 
@@ -172,12 +175,21 @@ class SyncManager {
     // Group by entity type
     const supplierOps = queue.filter((q) => q.entityType === "supplier");
     const transactionOps = queue.filter((q) => q.entityType === "transaction");
+    const customerOps = queue.filter((q) => q.entityType === "customer");
+    const udharOps = queue.filter((q) => q.entityType === "udhar");
+    const incomeOps = queue.filter((q) => q.entityType === "income");
 
     console.log(
-      "[Sync] Supplier ops:",
+      "[Sync] Operations - Suppliers:",
       supplierOps.length,
-      "Transaction ops:",
+      "Transactions:",
       transactionOps.length,
+      "Customers:",
+      customerOps.length,
+      "Udhar:",
+      udharOps.length,
+      "Income:",
+      incomeOps.length,
     );
 
     // Push supplier changes
@@ -194,7 +206,6 @@ class SyncManager {
         console.log("[Sync] Suppliers response:", result);
 
         if (response.ok) {
-          // Mark local suppliers as synced
           const supplierIds = supplierOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("supplier", supplierIds);
           console.log("[Sync] Marked suppliers as synced:", supplierIds);
@@ -222,7 +233,6 @@ class SyncManager {
         console.log("[Sync] Transactions response:", result);
 
         if (response.ok) {
-          // Mark local transactions as synced
           const transactionIds = transactionOps.map((op) => op.entityId);
           await bulkOperations.markAsSynced("transaction", transactionIds);
           console.log("[Sync] Marked transactions as synced:", transactionIds);
@@ -232,6 +242,87 @@ class SyncManager {
         }
       } catch (error) {
         console.error("[Sync] Transaction sync error:", error);
+        allSuccess = false;
+      }
+    }
+
+    // Push customer changes
+    if (customerOps.length > 0) {
+      try {
+        console.log("[Sync] Pushing customers...");
+        const response = await fetch(`${API_BASE}/sync/customers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ operations: customerOps }),
+        });
+
+        const result = await response.json();
+        console.log("[Sync] Customers response:", result);
+
+        if (response.ok) {
+          const customerIds = customerOps.map((op) => op.entityId);
+          await bulkOperations.markAsSynced("customer", customerIds);
+          console.log("[Sync] Marked customers as synced:", customerIds);
+        } else {
+          console.error("[Sync] Failed to sync customers:", result);
+          allSuccess = false;
+        }
+      } catch (error) {
+        console.error("[Sync] Customer sync error:", error);
+        allSuccess = false;
+      }
+    }
+
+    // Push udhar changes
+    if (udharOps.length > 0) {
+      try {
+        console.log("[Sync] Pushing udhar...");
+        const response = await fetch(`${API_BASE}/sync/udhar`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ operations: udharOps }),
+        });
+
+        const result = await response.json();
+        console.log("[Sync] Udhar response:", result);
+
+        if (response.ok) {
+          const udharIds = udharOps.map((op) => op.entityId);
+          await bulkOperations.markAsSynced("udhar", udharIds);
+          console.log("[Sync] Marked udhar as synced:", udharIds);
+        } else {
+          console.error("[Sync] Failed to sync udhar:", result);
+          allSuccess = false;
+        }
+      } catch (error) {
+        console.error("[Sync] Udhar sync error:", error);
+        allSuccess = false;
+      }
+    }
+
+    // Push income changes
+    if (incomeOps.length > 0) {
+      try {
+        console.log("[Sync] Pushing income...");
+        const response = await fetch(`${API_BASE}/sync/income`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ operations: incomeOps }),
+        });
+
+        const result = await response.json();
+        console.log("[Sync] Income response:", result);
+
+        if (response.ok) {
+          const incomeIds = incomeOps.map((op) => op.entityId);
+          await bulkOperations.markAsSynced("income", incomeIds);
+          console.log("[Sync] Marked income as synced:", incomeIds);
+        } else {
+          console.error("[Sync] Failed to sync income:", result);
+          allSuccess = false;
+        }
+      } catch (error) {
+        console.error("[Sync] Income sync error:", error);
         allSuccess = false;
       }
     }
@@ -253,7 +344,6 @@ class SyncManager {
         );
         if (suppliers && suppliers.length > 0) {
           await bulkOperations.mergeSuppliers(suppliers);
-          // Mark pulled suppliers as synced
           const ids = suppliers.map((s) => s.id);
           await bulkOperations.markAsSynced("supplier", ids);
         }
@@ -275,13 +365,67 @@ class SyncManager {
         );
         if (transactions && transactions.length > 0) {
           await bulkOperations.mergeTransactions(transactions);
-          // Mark pulled transactions as synced
           const ids = transactions.map((t) => t.id);
           await bulkOperations.markAsSynced("transaction", ids);
         }
       }
     } catch (error) {
       console.warn("[Sync] Failed to pull transactions:", error.message);
+    }
+
+    // Fetch latest customers
+    try {
+      console.log("[Sync] Pulling customers from cloud...");
+      const customersResponse = await fetch(`${API_BASE}/customers`);
+      if (customersResponse.ok) {
+        const { data: customers } = await customersResponse.json();
+        console.log(
+          "[Sync] Got",
+          customers?.length || 0,
+          "customers from cloud",
+        );
+        if (customers && customers.length > 0) {
+          await bulkOperations.mergeCustomers(customers);
+          const ids = customers.map((c) => c.id);
+          await bulkOperations.markAsSynced("customer", ids);
+        }
+      }
+    } catch (error) {
+      console.warn("[Sync] Failed to pull customers:", error.message);
+    }
+
+    // Fetch latest udhar
+    try {
+      console.log("[Sync] Pulling udhar from cloud...");
+      const udharResponse = await fetch(`${API_BASE}/udhar`);
+      if (udharResponse.ok) {
+        const { data: udhar } = await udharResponse.json();
+        console.log("[Sync] Got", udhar?.length || 0, "udhar from cloud");
+        if (udhar && udhar.length > 0) {
+          await bulkOperations.mergeUdhar(udhar);
+          const ids = udhar.map((u) => u.id);
+          await bulkOperations.markAsSynced("udhar", ids);
+        }
+      }
+    } catch (error) {
+      console.warn("[Sync] Failed to pull udhar:", error.message);
+    }
+
+    // Fetch latest income
+    try {
+      console.log("[Sync] Pulling income from cloud...");
+      const incomeResponse = await fetch(`${API_BASE}/income`);
+      if (incomeResponse.ok) {
+        const { data: income } = await incomeResponse.json();
+        console.log("[Sync] Got", income?.length || 0, "income from cloud");
+        if (income && income.length > 0) {
+          await bulkOperations.mergeIncome(income);
+          const ids = income.map((i) => i.id);
+          await bulkOperations.markAsSynced("income", ids);
+        }
+      }
+    } catch (error) {
+      console.warn("[Sync] Failed to pull income:", error.message);
     }
   }
 
@@ -304,6 +448,9 @@ class SyncManager {
       // Get all local data
       const localSuppliers = await supplierDB.getAll();
       const localTransactions = await transactionDB.getAll();
+      const localCustomers = await customerDB.getAll();
+      const localUdhar = await udharDB.getAll();
+      const localIncome = await incomeDB.getAll();
 
       // Push all local data
       await fetch(`${API_BASE}/sync/full`, {
@@ -312,6 +459,9 @@ class SyncManager {
         body: JSON.stringify({
           suppliers: localSuppliers,
           transactions: localTransactions,
+          customers: localCustomers,
+          udhar: localUdhar,
+          income: localIncome,
         }),
       });
 

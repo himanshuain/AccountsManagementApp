@@ -182,7 +182,36 @@ export async function saveTransactions(transactions) {
 
 export async function loadTransactions() {
   const data = await loadDataFromBlob("transactions");
-  // Return null if load failed (timeout/error), empty array only if actually empty
+  return data;
+}
+
+// Customers data
+export async function saveCustomers(customers) {
+  return await saveDataToBlob("customers", customers);
+}
+
+export async function loadCustomers() {
+  const data = await loadDataFromBlob("customers");
+  return data;
+}
+
+// Udhar data
+export async function saveUdhar(udhar) {
+  return await saveDataToBlob("udhar", udhar);
+}
+
+export async function loadUdhar() {
+  const data = await loadDataFromBlob("udhar");
+  return data;
+}
+
+// Income data
+export async function saveIncome(income) {
+  return await saveDataToBlob("income", income);
+}
+
+export async function loadIncome() {
+  const data = await loadDataFromBlob("income");
   return data;
 }
 
@@ -257,20 +286,116 @@ export async function syncTransactionsToBlob(operations) {
   return updated;
 }
 
-export async function fullSync(localData) {
-  const { suppliers, transactions } = localData;
+export async function syncCustomersToBlob(operations) {
+  const existing = (await loadCustomers()) || [];
 
-  const cloudSuppliers = await loadSuppliers();
-  const cloudTransactions = await loadTransactions();
+  let updated = [...existing];
+
+  for (const op of operations) {
+    if (op.operation === "create") {
+      const exists = updated.find((c) => c.id === op.entityId);
+      if (!exists) {
+        updated.push(op.data);
+      }
+    } else if (op.operation === "update") {
+      const index = updated.findIndex((c) => c.id === op.entityId);
+      if (index >= 0) {
+        updated[index] = op.data;
+      } else {
+        updated.push(op.data);
+      }
+    } else if (op.operation === "delete") {
+      updated = updated.filter((c) => c.id !== op.entityId);
+    }
+  }
+
+  await saveCustomers(updated);
+  return updated;
+}
+
+export async function syncUdharToBlob(operations) {
+  const existing = (await loadUdhar()) || [];
+
+  let updated = [...existing];
+
+  for (const op of operations) {
+    if (op.operation === "create") {
+      const exists = updated.find((u) => u.id === op.entityId);
+      if (!exists) {
+        updated.push(op.data);
+      }
+    } else if (op.operation === "update") {
+      const index = updated.findIndex((u) => u.id === op.entityId);
+      if (index >= 0) {
+        updated[index] = op.data;
+      } else {
+        updated.push(op.data);
+      }
+    } else if (op.operation === "delete") {
+      updated = updated.filter((u) => u.id !== op.entityId);
+    }
+  }
+
+  await saveUdhar(updated);
+  return updated;
+}
+
+export async function syncIncomeToBlob(operations) {
+  const existing = (await loadIncome()) || [];
+
+  let updated = [...existing];
+
+  for (const op of operations) {
+    if (op.operation === "create") {
+      const exists = updated.find((i) => i.id === op.entityId);
+      if (!exists) {
+        updated.push(op.data);
+      }
+    } else if (op.operation === "update") {
+      const index = updated.findIndex((i) => i.id === op.entityId);
+      if (index >= 0) {
+        updated[index] = op.data;
+      } else {
+        updated.push(op.data);
+      }
+    } else if (op.operation === "delete") {
+      updated = updated.filter((i) => i.id !== op.entityId);
+    }
+  }
+
+  await saveIncome(updated);
+  return updated;
+}
+
+export async function fullSync(localData) {
+  const { suppliers, transactions, customers, udhar, income } = localData;
+
+  const cloudSuppliers = (await loadSuppliers()) || [];
+  const cloudTransactions = (await loadTransactions()) || [];
+  const cloudCustomers = (await loadCustomers()) || [];
+  const cloudUdhar = (await loadUdhar()) || [];
+  const cloudIncome = (await loadIncome()) || [];
 
   // Merge strategies: last write wins based on updatedAt
-  const mergedSuppliers = mergeData(cloudSuppliers, suppliers);
-  const mergedTransactions = mergeData(cloudTransactions, transactions);
+  const mergedSuppliers = mergeData(cloudSuppliers, suppliers || []);
+  const mergedTransactions = mergeData(cloudTransactions, transactions || []);
+  const mergedCustomers = mergeData(cloudCustomers, customers || []);
+  const mergedUdhar = mergeData(cloudUdhar, udhar || []);
+  const mergedIncome = mergeData(cloudIncome, income || []);
 
   await saveSuppliers(mergedSuppliers);
   await saveTransactions(mergedTransactions);
+  await saveCustomers(mergedCustomers);
+  await saveUdhar(mergedUdhar);
+  await saveIncome(mergedIncome);
 
-  return { suppliers: mergedSuppliers, transactions: mergedTransactions };
+  return {
+    suppliers: mergedSuppliers,
+    transactions: mergedTransactions,
+    customers: mergedCustomers,
+    udhar: mergedUdhar,
+    income: mergedIncome,
+  };
 }
 
 function mergeData(cloudData, localData) {
