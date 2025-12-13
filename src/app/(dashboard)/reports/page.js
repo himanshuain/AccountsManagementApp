@@ -82,6 +82,7 @@ import useIncome from "@/hooks/useIncome";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
+import { cn, getAmountTextSize } from "@/lib/utils";
 
 const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899"];
 
@@ -511,16 +512,21 @@ export default function ReportsPage() {
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1 mr-2">
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold text-primary">
+                <p
+                  className={cn(
+                    "font-bold text-primary truncate",
+                    getAmountTextSize(stats.totalRevenue, "2xl"),
+                  )}
+                >
                   ₹{stats.totalRevenue.toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Tap to view
                 </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <IndianRupee className="h-5 w-5 text-primary" />
               </div>
             </div>
@@ -533,13 +539,18 @@ export default function ReportsPage() {
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1 mr-2">
                 <p className="text-sm text-muted-foreground">Cash Income</p>
-                <p className="text-2xl font-bold text-green-500">
+                <p
+                  className={cn(
+                    "font-bold text-green-500 truncate",
+                    getAmountTextSize(stats.totalCash, "2xl"),
+                  )}
+                >
                   ₹{stats.totalCash.toLocaleString()}
                 </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
                 <Banknote className="h-5 w-5 text-green-500" />
               </div>
             </div>
@@ -552,13 +563,18 @@ export default function ReportsPage() {
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1 mr-2">
                 <p className="text-sm text-muted-foreground">Online Income</p>
-                <p className="text-2xl font-bold text-blue-500">
+                <p
+                  className={cn(
+                    "font-bold text-blue-500 truncate",
+                    getAmountTextSize(stats.totalOnline, "2xl"),
+                  )}
+                >
                   ₹{stats.totalOnline.toLocaleString()}
                 </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                 <Smartphone className="h-5 w-5 text-blue-500" />
               </div>
             </div>
@@ -571,16 +587,21 @@ export default function ReportsPage() {
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="min-w-0 flex-1 mr-2">
                 <p className="text-sm text-muted-foreground">Udhar Pending</p>
-                <p className="text-2xl font-bold text-amber-500">
+                <p
+                  className={cn(
+                    "font-bold text-amber-500 truncate",
+                    getAmountTextSize(stats.pendingUdhar, "2xl"),
+                  )}
+                >
                   ₹{stats.pendingUdhar.toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Tap to view
                 </p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                 <TrendingUp className="h-5 w-5 text-amber-500" />
               </div>
             </div>

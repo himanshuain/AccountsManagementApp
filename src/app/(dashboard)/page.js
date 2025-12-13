@@ -23,7 +23,6 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { SupplierForm } from "@/components/SupplierForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
-import { GlobalSearch } from "@/components/GlobalSearch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -165,20 +164,12 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 lg:p-6 flex flex-col min-h-[calc(100vh-8rem)]">
-      {/* Header with Search */}
+      {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground text-sm">
-              Quick actions for your shop
-            </p>
-          </div>
-        </div>
-        <GlobalSearch
-          className="w-full"
-          placeholder="Search suppliers, transactions, customers..."
-        />
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground text-sm">
+          Quick actions for your shop
+        </p>
       </div>
 
       {/* 2x2 Quick Action Grid */}

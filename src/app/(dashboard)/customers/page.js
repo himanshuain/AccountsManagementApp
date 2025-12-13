@@ -47,7 +47,7 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "@/components/CustomerForm";
 import { UdharForm } from "@/components/UdharForm";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, getAmountTextSize } from "@/lib/utils";
 
 export default function CustomersPage() {
   const isOnline = useOnlineStatus();
@@ -269,43 +269,64 @@ export default function CustomersPage() {
       </div>
 
       {/* Summary Card */}
-      {customersWithStats.length > 0 && (
-        <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-center flex-1">
-                <p className="text-xs text-muted-foreground">Total Udhar</p>
-                <p className="text-lg font-bold">
-                  ₹
-                  {customersWithStats
-                    .reduce((sum, c) => sum + c.totalAmount, 0)
-                    .toLocaleString()}
-                </p>
-              </div>
-              <div className="h-8 w-px bg-amber-500/20" />
-              <div className="text-center flex-1">
-                <p className="text-xs text-green-600">Collected</p>
-                <p className="text-lg font-bold text-green-600">
-                  ₹
-                  {customersWithStats
-                    .reduce((sum, c) => sum + c.paidAmount, 0)
-                    .toLocaleString()}
-                </p>
-              </div>
-              <div className="h-8 w-px bg-amber-500/20" />
-              <div className="text-center flex-1">
-                <p className="text-xs text-amber-600">Pending</p>
-                <p className="text-lg font-bold text-amber-600">
-                  ₹
-                  {customersWithStats
-                    .reduce((sum, c) => sum + c.pendingAmount, 0)
-                    .toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {customersWithStats.length > 0 &&
+        (() => {
+          const totalUdhar = customersWithStats.reduce(
+            (sum, c) => sum + c.totalAmount,
+            0,
+          );
+          const totalCollected = customersWithStats.reduce(
+            (sum, c) => sum + c.paidAmount,
+            0,
+          );
+          const totalPending = customersWithStats.reduce(
+            (sum, c) => sum + c.pendingAmount,
+            0,
+          );
+          return (
+            <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-center flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Total Udhar</p>
+                    <p
+                      className={cn(
+                        "font-bold truncate",
+                        getAmountTextSize(totalUdhar, "lg"),
+                      )}
+                    >
+                      ₹{totalUdhar.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="h-8 w-px bg-amber-500/20 flex-shrink-0" />
+                  <div className="text-center flex-1 min-w-0">
+                    <p className="text-xs text-green-600">Collected</p>
+                    <p
+                      className={cn(
+                        "font-bold text-green-600 truncate",
+                        getAmountTextSize(totalCollected, "lg"),
+                      )}
+                    >
+                      ₹{totalCollected.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="h-8 w-px bg-amber-500/20 flex-shrink-0" />
+                  <div className="text-center flex-1 min-w-0">
+                    <p className="text-xs text-amber-600">Pending</p>
+                    <p
+                      className={cn(
+                        "font-bold text-amber-600 truncate",
+                        getAmountTextSize(totalPending, "lg"),
+                      )}
+                    >
+                      ₹{totalPending.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
       {/* Customer List */}
       {loading ? (
@@ -585,22 +606,46 @@ export default function CustomersPage() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="p-3 rounded-lg bg-muted/50 text-center">
+                  <div className="p-3 rounded-lg bg-muted/50 text-center min-w-0">
                     <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="font-bold">
-                      ₹{selectedCustomer.totalAmount?.toLocaleString() || 0}
+                    <p
+                      className={cn(
+                        "font-bold truncate",
+                        getAmountTextSize(
+                          selectedCustomer.totalAmount || 0,
+                          "lg",
+                        ),
+                      )}
+                    >
+                      ₹{(selectedCustomer.totalAmount || 0).toLocaleString()}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-green-500/10 text-center">
+                  <div className="p-3 rounded-lg bg-green-500/10 text-center min-w-0">
                     <p className="text-xs text-green-600">Paid</p>
-                    <p className="font-bold text-green-600">
-                      ₹{selectedCustomer.paidAmount?.toLocaleString() || 0}
+                    <p
+                      className={cn(
+                        "font-bold text-green-600 truncate",
+                        getAmountTextSize(
+                          selectedCustomer.paidAmount || 0,
+                          "lg",
+                        ),
+                      )}
+                    >
+                      ₹{(selectedCustomer.paidAmount || 0).toLocaleString()}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-amber-500/10 text-center">
+                  <div className="p-3 rounded-lg bg-amber-500/10 text-center min-w-0">
                     <p className="text-xs text-amber-600">Pending</p>
-                    <p className="font-bold text-amber-600">
-                      ₹{selectedCustomer.pendingAmount?.toLocaleString() || 0}
+                    <p
+                      className={cn(
+                        "font-bold text-amber-600 truncate",
+                        getAmountTextSize(
+                          selectedCustomer.pendingAmount || 0,
+                          "lg",
+                        ),
+                      )}
+                    >
+                      ₹{(selectedCustomer.pendingAmount || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>

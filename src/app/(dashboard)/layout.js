@@ -106,13 +106,13 @@ export default function DashboardLayout({ children }) {
       {/* Main content */}
       <main className="lg:pl-64">
         {/* Search Header */}
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b lg:border-b-0">
-          <div className="hidden lg:block px-6 py-3">
-            <GlobalSearch className="max-w-md" />
+        <div className="sticky top-14 lg:top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="px-4 lg:px-6 py-3">
+            <GlobalSearch className="w-full lg:max-w-md" />
           </div>
         </div>
 
-        <div className="pt-14 lg:pt-0 pb-20 lg:pb-6">{children}</div>
+        <div className="pt-[120px] lg:pt-0 pb-20 lg:pb-6">{children}</div>
       </main>
     </div>
   );
