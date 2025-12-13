@@ -2,7 +2,6 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { udharDB, customerDB } from "@/lib/db";
 
 const UDHAR_KEY = ["udhar"];
 const CUSTOMERS_KEY = ["customers"];
@@ -10,6 +9,7 @@ const CUSTOMERS_KEY = ["customers"];
 export function useUdhar() {
   const queryClient = useQueryClient();
 
+  // Fetch udhar directly from cloud API
   const {
     data: udharList = [],
     isLoading: loading,
@@ -18,43 +18,71 @@ export function useUdhar() {
   } = useQuery({
     queryKey: UDHAR_KEY,
     queryFn: async () => {
-      return await udharDB.getAll();
+      const response = await fetch("/api/udhar");
+      if (!response.ok) {
+        throw new Error("Failed to fetch udhar");
+      }
+      const result = await response.json();
+      return result.data || [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+    retry: 2,
   });
 
+  // Add udhar mutation - directly to cloud
   const addMutation = useMutation({
     mutationFn: async (udharData) => {
-      return await udharDB.add(udharData);
+      const response = await fetch("/api/udhar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(udharData),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add udhar");
+      }
+      return response.json();
     },
-    onSuccess: (newUdhar) => {
-      queryClient.setQueryData(UDHAR_KEY, (old = []) => [...old, newUdhar]);
-      // Invalidate customers to update totalPending
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
     },
   });
 
+  // Update udhar mutation - directly to cloud
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
-      return await udharDB.update(id, updates);
+      const response = await fetch(`/api/udhar/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update udhar");
+      }
+      return response.json();
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(UDHAR_KEY, (old = []) =>
-        old.map((u) => (u.id === updated.id ? updated : u)),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
     },
   });
 
+  // Delete udhar mutation - directly to cloud
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      await udharDB.delete(id);
+      const response = await fetch(`/api/udhar/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete udhar");
+      }
       return id;
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData(UDHAR_KEY, (old = []) =>
-        old.filter((u) => u.id !== id),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
     },
   });
@@ -62,8 +90,8 @@ export function useUdhar() {
   const addUdhar = useCallback(
     async (udharData) => {
       try {
-        const newUdhar = await addMutation.mutateAsync(udharData);
-        return { success: true, data: newUdhar };
+        await addMutation.mutateAsync(udharData);
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -74,8 +102,8 @@ export function useUdhar() {
   const updateUdhar = useCallback(
     async (id, updates) => {
       try {
-        const updated = await updateMutation.mutateAsync({ id, updates });
-        return { success: true, data: updated };
+        await updateMutation.mutateAsync({ id, updates });
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -96,72 +124,92 @@ export function useUdhar() {
   );
 
   const recordDeposit = useCallback(
-    async (id, amount, mode = "cash") => {
-      try {
-        const updated = await udharDB.recordDeposit(id, amount, mode);
-        if (updated) {
-          queryClient.setQueryData(UDHAR_KEY, (old = []) =>
-            old.map((u) => (u.id === updated.id ? updated : u)),
-          );
-          queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
-          return { success: true, data: updated };
-        }
-        return { success: false, error: "Record not found" };
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
+    async (id, amount, receiptUrl = null) => {
+      const udhar = udharList.find((u) => u.id === id);
+      if (!udhar) return { success: false, error: "Record not found" };
+
+      const totalAmount =
+        udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      const currentPaid =
+        udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+      const newPaidAmount = currentPaid + amount;
+
+      const newPayment = {
+        id: crypto.randomUUID(),
+        amount: amount,
+        date: new Date().toISOString(),
+        receiptUrl: receiptUrl,
+      };
+
+      const updates = {
+        payments: [...(udhar.payments || []), newPayment],
+        paidAmount: newPaidAmount,
+        paidCash: (udhar.paidCash || 0) + amount,
+        paymentStatus: newPaidAmount >= totalAmount ? "paid" : "partial",
+      };
+
+      return await updateUdhar(id, updates);
     },
-    [queryClient],
+    [udharList, updateUdhar],
   );
 
   const markFullPaid = useCallback(
-    async (id) => {
-      try {
-        const updated = await udharDB.markFullPaid(id);
-        if (updated) {
-          queryClient.setQueryData(UDHAR_KEY, (old = []) =>
-            old.map((u) => (u.id === updated.id ? updated : u)),
-          );
-          queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
-          return { success: true, data: updated };
-        }
-        return { success: false, error: "Record not found" };
-      } catch (err) {
-        return { success: false, error: err.message };
+    async (id, receiptUrl = null) => {
+      const udhar = udharList.find((u) => u.id === id);
+      if (!udhar) return { success: false, error: "Record not found" };
+
+      const totalAmount =
+        udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      const currentPaid =
+        udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+      const remainingAmount = totalAmount - currentPaid;
+
+      const payments = [...(udhar.payments || [])];
+      if (remainingAmount > 0) {
+        payments.push({
+          id: crypto.randomUUID(),
+          amount: remainingAmount,
+          date: new Date().toISOString(),
+          receiptUrl: receiptUrl,
+          isFinalPayment: true,
+        });
       }
+
+      return await updateUdhar(id, {
+        paymentStatus: "paid",
+        paidAmount: totalAmount,
+        paidCash: totalAmount,
+        paidDate: new Date().toISOString(),
+        payments: payments,
+      });
     },
-    [queryClient],
+    [udharList, updateUdhar],
   );
 
-  const getByCustomer = useCallback(async (customerId) => {
-    try {
-      return await udharDB.getByCustomer(customerId);
-    } catch (err) {
-      return [];
-    }
-  }, []);
+  const getByCustomer = useCallback(
+    (customerId) => {
+      return udharList.filter((u) => u.customerId === customerId);
+    },
+    [udharList],
+  );
 
-  const getPending = useCallback(async () => {
-    try {
-      return await udharDB.getPending();
-    } catch (err) {
-      return [];
-    }
-  }, []);
+  const getPending = useCallback(() => {
+    return udharList.filter((u) => u.paymentStatus === "pending");
+  }, [udharList]);
 
-  const getRecent = useCallback(async (limit = 10) => {
-    try {
-      return await udharDB.getRecent(limit);
-    } catch (err) {
-      return [];
-    }
-  }, []);
+  const getRecent = useCallback(
+    (limit = 10) => {
+      return [...udharList]
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        .slice(0, limit);
+    },
+    [udharList],
+  );
 
   const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
   }, [queryClient]);
 
-  // Filter by date range
   const filterByDateRange = useCallback(
     (days) => {
       const now = new Date();
@@ -176,12 +224,11 @@ export function useUdhar() {
     [udharList],
   );
 
-  // Sort by amount
   const sortByAmount = useCallback(
     (order = "desc") => {
       return [...udharList].sort((a, b) => {
-        const amountA = (a.cashAmount || 0) + (a.onlineAmount || 0);
-        const amountB = (b.cashAmount || 0) + (b.onlineAmount || 0);
+        const amountA = a.amount || (a.cashAmount || 0) + (a.onlineAmount || 0);
+        const amountB = b.amount || (b.cashAmount || 0) + (b.onlineAmount || 0);
         return order === "desc" ? amountB - amountA : amountA - amountB;
       });
     },

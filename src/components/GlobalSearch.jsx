@@ -15,9 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { supplierDB, transactionDB, customerDB, udharDB } from "@/lib/db";
 
-export function GlobalSearch({ suppliers = [], className }) {
+export function GlobalSearch({ className }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -28,6 +27,12 @@ export function GlobalSearch({ suppliers = [], className }) {
     udhar: [],
   });
   const [isSearching, setIsSearching] = useState(false);
+  const [allData, setAllData] = useState({
+    suppliers: [],
+    transactions: [],
+    customers: [],
+    udhar: [],
+  });
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -59,6 +64,42 @@ export function GlobalSearch({ suppliers = [], className }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Fetch all data when search is focused
+  useEffect(() => {
+    const fetchAllData = async () => {
+      if (!isOpen) return;
+
+      try {
+        const [suppliersRes, customersRes, transactionsRes, udharRes] =
+          await Promise.all([
+            fetch("/api/suppliers"),
+            fetch("/api/customers"),
+            fetch("/api/transactions"),
+            fetch("/api/udhar"),
+          ]);
+
+        const [suppliersData, customersData, transactionsData, udharData] =
+          await Promise.all([
+            suppliersRes.json(),
+            customersRes.json(),
+            transactionsRes.json(),
+            udharRes.json(),
+          ]);
+
+        setAllData({
+          suppliers: suppliersData.data || [],
+          customers: customersData.data || [],
+          transactions: transactionsData.data || [],
+          udhar: udharData.data || [],
+        });
+      } catch (error) {
+        console.error("Failed to fetch search data:", error);
+      }
+    };
+
+    fetchAllData();
+  }, [isOpen]);
+
   // Search when query changes
   useEffect(() => {
     const searchData = async () => {
@@ -77,8 +118,7 @@ export function GlobalSearch({ suppliers = [], className }) {
 
       try {
         // Search suppliers
-        const allSuppliers = await supplierDB.getAll();
-        const matchedSuppliers = allSuppliers
+        const matchedSuppliers = allData.suppliers
           .filter(
             (s) =>
               s.name?.toLowerCase().includes(lowerQuery) ||
@@ -89,8 +129,7 @@ export function GlobalSearch({ suppliers = [], className }) {
           .slice(0, 5);
 
         // Search customers
-        const allCustomers = await customerDB.getAll();
-        const matchedCustomers = allCustomers
+        const matchedCustomers = allData.customers
           .filter(
             (c) =>
               c.name?.toLowerCase().includes(lowerQuery) ||
@@ -100,10 +139,11 @@ export function GlobalSearch({ suppliers = [], className }) {
           .slice(0, 5);
 
         // Search transactions
-        const allTransactions = await transactionDB.getAll();
-        const matchedTransactions = allTransactions
+        const matchedTransactions = allData.transactions
           .filter((t) => {
-            const supplier = allSuppliers.find((s) => s.id === t.supplierId);
+            const supplier = allData.suppliers.find(
+              (s) => s.id === t.supplierId,
+            );
             const supplierName = supplier?.name?.toLowerCase() || "";
             const amount = t.amount?.toString() || "";
             const notes = t.notes?.toLowerCase() || "";
@@ -117,13 +157,16 @@ export function GlobalSearch({ suppliers = [], className }) {
           .slice(0, 5);
 
         // Search udhar
-        const allUdhar = await udharDB.getAll();
-        const matchedUdhar = allUdhar
+        const matchedUdhar = allData.udhar
           .filter((u) => {
-            const customer = allCustomers.find((c) => c.id === u.customerId);
+            const customer = allData.customers.find(
+              (c) => c.id === u.customerId,
+            );
             const customerName = customer?.name?.toLowerCase() || "";
             const amount =
-              ((u.cashAmount || 0) + (u.onlineAmount || 0)).toString() || "";
+              (
+                u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0)
+              ).toString() || "";
             const notes = u.notes?.toLowerCase() || "";
 
             return (
@@ -138,14 +181,16 @@ export function GlobalSearch({ suppliers = [], className }) {
         const transactionsWithSupplier = matchedTransactions.map((t) => ({
           ...t,
           supplierName:
-            allSuppliers.find((s) => s.id === t.supplierId)?.name || "Unknown",
+            allData.suppliers.find((s) => s.id === t.supplierId)?.name ||
+            "Unknown",
         }));
 
         // Add customer info to udhar
         const udharWithCustomer = matchedUdhar.map((u) => ({
           ...u,
           customerName:
-            allCustomers.find((c) => c.id === u.customerId)?.name || "Unknown",
+            allData.customers.find((c) => c.id === u.customerId)?.name ||
+            "Unknown",
         }));
 
         setResults({
@@ -163,7 +208,7 @@ export function GlobalSearch({ suppliers = [], className }) {
 
     const debounce = setTimeout(searchData, 200);
     return () => clearTimeout(debounce);
-  }, [query]);
+  }, [query, allData]);
 
   const handleSupplierClick = (supplier) => {
     setIsOpen(false);
@@ -319,6 +364,7 @@ export function GlobalSearch({ suppliers = [], className }) {
                         <p className="font-medium text-sm">
                           ₹
                           {(
+                            udhar.amount ||
                             (udhar.cashAmount || 0) + (udhar.onlineAmount || 0)
                           ).toLocaleString()}
                         </p>

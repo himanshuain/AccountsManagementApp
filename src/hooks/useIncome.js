@@ -2,13 +2,13 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { incomeDB } from "@/lib/db";
 
 const INCOME_KEY = ["income"];
 
 export function useIncome() {
   const queryClient = useQueryClient();
 
+  // Fetch income directly from cloud API
   const {
     data: incomeList = [],
     isLoading: loading,
@@ -17,48 +17,77 @@ export function useIncome() {
   } = useQuery({
     queryKey: INCOME_KEY,
     queryFn: async () => {
-      return await incomeDB.getAll();
+      const response = await fetch("/api/income");
+      if (!response.ok) {
+        throw new Error("Failed to fetch income");
+      }
+      const result = await response.json();
+      return result.data || [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+    retry: 2,
   });
 
+  // Add income mutation - directly to cloud
   const addMutation = useMutation({
     mutationFn: async (incomeData) => {
-      return await incomeDB.add(incomeData);
+      const response = await fetch("/api/income", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(incomeData),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add income");
+      }
+      return response.json();
     },
-    onSuccess: (newIncome) => {
-      queryClient.setQueryData(INCOME_KEY, (old = []) => [...old, newIncome]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INCOME_KEY });
     },
   });
 
+  // Update income mutation - directly to cloud
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
-      return await incomeDB.update(id, updates);
+      const response = await fetch(`/api/income/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update income");
+      }
+      return response.json();
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(INCOME_KEY, (old = []) =>
-        old.map((i) => (i.id === updated.id ? updated : i)),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INCOME_KEY });
     },
   });
 
+  // Delete income mutation - directly to cloud
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      await incomeDB.delete(id);
+      const response = await fetch(`/api/income/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete income");
+      }
       return id;
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData(INCOME_KEY, (old = []) =>
-        old.filter((i) => i.id !== id),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: INCOME_KEY });
     },
   });
 
   const addIncome = useCallback(
     async (incomeData) => {
       try {
-        const newIncome = await addMutation.mutateAsync(incomeData);
-        return { success: true, data: newIncome };
+        await addMutation.mutateAsync(incomeData);
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -69,8 +98,8 @@ export function useIncome() {
   const updateIncome = useCallback(
     async (id, updates) => {
       try {
-        const updated = await updateMutation.mutateAsync({ id, updates });
-        return { success: true, data: updated };
+        await updateMutation.mutateAsync({ id, updates });
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }

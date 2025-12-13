@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 // Helper to convert camelCase to snake_case
 const toSnakeCase = (obj) => {
   if (!obj || typeof obj !== "object") return obj;
@@ -30,47 +27,7 @@ const toCamelCase = (obj) => {
   }, {});
 };
 
-export async function GET() {
-  try {
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json(
-        { success: false, error: "Database not configured", data: [] },
-        { status: 500 },
-      );
-    }
-
-    const { data, error } = await supabase
-      .from("suppliers")
-      .select("*")
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      console.error("Load suppliers failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message, data: [] },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(
-      { success: true, data: (data || []).map(toCamelCase) },
-      {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-      },
-    );
-  } catch (error) {
-    console.error("Load suppliers failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message, data: [] },
-      { status: 500 },
-    );
-  }
-}
-
-export async function POST(request) {
+export async function GET(request, { params }) {
   try {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
@@ -79,26 +36,61 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
-    const now = new Date().toISOString();
-
-    const supplierData = {
-      ...body,
-      id: body.id || crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const record = toSnakeCase(supplierData);
+    const { id } = await params;
 
     const { data, error } = await supabase
       .from("suppliers")
-      .upsert(record, { onConflict: "id" })
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: toCamelCase(data),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(request, { params }) {
+  try {
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        { success: false, error: "Database not configured" },
+        { status: 500 },
+      );
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+
+    const updates = {
+      ...body,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const record = toSnakeCase(updates);
+
+    const { data, error } = await supabase
+      .from("suppliers")
+      .update(record)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      console.error("Create supplier failed:", error);
+      console.error("Update supplier failed:", error);
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 500 },
@@ -110,7 +102,40 @@ export async function POST(request) {
       data: toCamelCase(data),
     });
   } catch (error) {
-    console.error("Create supplier failed:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        { success: false, error: "Database not configured" },
+        { status: 500 },
+      );
+    }
+
+    const { id } = await params;
+
+    // Delete related transactions first
+    await supabase.from("transactions").delete().eq("supplier_id", id);
+
+    // Delete the supplier
+    const { error } = await supabase.from("suppliers").delete().eq("id", id);
+
+    if (error) {
+      console.error("Delete supplier failed:", error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 },

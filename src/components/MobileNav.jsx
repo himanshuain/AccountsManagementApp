@@ -14,6 +14,7 @@ import {
   RefreshCw,
   BarChart3,
   UserCircle,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,10 +27,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { GlobalSearch } from "./GlobalSearch";
-import { SyncStatus } from "./SyncStatus";
 import { ThemeToggle } from "./ThemeToggle";
 import { logout } from "@/lib/auth";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const navItems = [
   {
@@ -78,6 +89,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const scrollRef = useRef(null);
 
   const handleLogout = () => {
@@ -95,6 +107,42 @@ export function MobileNav() {
       toast.error("Failed to refresh");
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleClearSiteData = async () => {
+    setIsClearing(true);
+    try {
+      // Clear IndexedDB
+      const databases = await indexedDB.databases();
+      for (const db of databases) {
+        if (db.name) {
+          indexedDB.deleteDatabase(db.name);
+        }
+      }
+
+      // Clear localStorage
+      localStorage.clear();
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      // Clear cache storage
+      if ("caches" in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      }
+
+      toast.success("Site data cleared! Reloading...");
+
+      // Reload the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("Failed to clear site data:", error);
+      toast.error("Failed to clear site data");
+      setIsClearing(false);
     }
   };
 
@@ -153,10 +201,43 @@ export function MobileNav() {
                 {/* Bottom section */}
                 <div className="p-4 space-y-4 border-t">
                   <div className="flex items-center justify-between">
-                    <SyncStatus />
+                    <span className="text-sm text-muted-foreground">
+                      Cloud Connected
+                    </span>
                     <ThemeToggle />
                   </div>
                   <Separator />
+
+                  {/* Clear Site Data Button */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-muted-foreground hover:text-destructive"
+                        disabled={isClearing}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {isClearing ? "Clearing..." : "Clear Site Data"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear Site Data?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will clear all locally cached data on this
+                          device. Your cloud data will not be affected. The page
+                          will reload after clearing.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearSiteData}>
+                          Clear Data
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-muted-foreground"

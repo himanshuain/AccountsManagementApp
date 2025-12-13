@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 // Helper to convert camelCase to snake_case
 const toSnakeCase = (obj) => {
   if (!obj || typeof obj !== "object") return obj;
@@ -54,56 +51,7 @@ async function updateCustomerTotalPending(customerId) {
     .eq("id", customerId);
 }
 
-export async function GET(request) {
-  try {
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json(
-        { success: false, error: "Database not configured", data: [] },
-        { status: 500 },
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const customerId = searchParams.get("customerId");
-
-    let query = supabase
-      .from("udhar")
-      .select("*")
-      .order("updated_at", { ascending: false });
-
-    if (customerId) {
-      query = query.eq("customer_id", customerId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Load udhar failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message, data: [] },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(
-      { success: true, data: (data || []).map(toCamelCase) },
-      {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-      },
-    );
-  } catch (error) {
-    console.error("Load udhar failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message, data: [] },
-      { status: 500 },
-    );
-  }
-}
-
-export async function POST(request) {
+export async function GET(request, { params }) {
   try {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
@@ -112,36 +60,19 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
-    const now = new Date().toISOString();
-
-    const udharData = {
-      ...body,
-      id: body.id || crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      paymentStatus: body.paymentStatus || "pending",
-    };
-
-    const record = toSnakeCase(udharData);
+    const { id } = await params;
 
     const { data, error } = await supabase
       .from("udhar")
-      .upsert(record, { onConflict: "id" })
-      .select()
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
-      console.error("Create udhar failed:", error);
       return NextResponse.json(
         { success: false, error: error.message },
-        { status: 500 },
+        { status: 404 },
       );
-    }
-
-    // Update customer's total pending
-    if (body.customerId) {
-      await updateCustomerTotalPending(body.customerId);
     }
 
     return NextResponse.json({
@@ -149,7 +80,106 @@ export async function POST(request) {
       data: toCamelCase(data),
     });
   } catch (error) {
-    console.error("Create udhar failed:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(request, { params }) {
+  try {
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        { success: false, error: "Database not configured" },
+        { status: 500 },
+      );
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+
+    // Get the current udhar to find customer ID
+    const { data: currentUdhar } = await supabase
+      .from("udhar")
+      .select("customer_id")
+      .eq("id", id)
+      .single();
+
+    const updates = {
+      ...body,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const record = toSnakeCase(updates);
+
+    const { data, error } = await supabase
+      .from("udhar")
+      .update(record)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Update udhar failed:", error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 },
+      );
+    }
+
+    // Update customer's total pending
+    if (currentUdhar?.customer_id) {
+      await updateCustomerTotalPending(currentUdhar.customer_id);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: toCamelCase(data),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        { success: false, error: "Database not configured" },
+        { status: 500 },
+      );
+    }
+
+    const { id } = await params;
+
+    // Get the udhar to find customer ID before deleting
+    const { data: udhar } = await supabase
+      .from("udhar")
+      .select("customer_id")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabase.from("udhar").delete().eq("id", id);
+
+    if (error) {
+      console.error("Delete udhar failed:", error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 },
+      );
+    }
+
+    // Update customer's total pending
+    if (udhar?.customer_id) {
+      await updateCustomerTotalPending(udhar.customer_id);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 },

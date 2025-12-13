@@ -2,7 +2,6 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { transactionDB, bulkOperations } from "@/lib/db";
 
 const TRANSACTIONS_KEY = ["transactions"];
 
@@ -13,7 +12,7 @@ export function useTransactions(supplierId = null) {
     ? [...TRANSACTIONS_KEY, { supplierId }]
     : TRANSACTIONS_KEY;
 
-  // Fetch transactions - uses React Query caching
+  // Fetch transactions directly from cloud API
   const {
     data: transactions = [],
     isLoading: loading,
@@ -22,109 +21,80 @@ export function useTransactions(supplierId = null) {
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      // Get local data first
-      let data;
-      if (supplierId) {
-        data = await transactionDB.getBySupplier(supplierId);
-      } else {
-        data = await transactionDB.getAll();
+      const url = supplierId
+        ? `/api/transactions?supplierId=${supplierId}`
+        : "/api/transactions";
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch transactions");
       }
-
-      // Try to fetch from cloud and merge
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch("/api/transactions", {
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const { data: cloudData } = await response.json();
-          if (cloudData && cloudData.length > 0) {
-            await bulkOperations.mergeTransactions(cloudData);
-            if (supplierId) {
-              data = await transactionDB.getBySupplier(supplierId);
-            } else {
-              data = await transactionDB.getAll();
-            }
-          }
-        }
-      } catch (cloudError) {
-        console.warn(
-          "Cloud fetch failed, using local data:",
-          cloudError.message,
-        );
-      }
-
-      return data;
+      const result = await response.json();
+      return result.data || [];
     },
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    staleTime: 1000 * 60 * 2,
+    retry: 2,
   });
 
-  // Add transaction mutation
+  // Add transaction mutation - directly to cloud
   const addMutation = useMutation({
     mutationFn: async (transactionData) => {
-      const newTransaction = await transactionDB.add(transactionData);
-      return newTransaction;
-    },
-    onSuccess: (newTransaction) => {
-      // Update both specific supplier transactions and all transactions cache
-      queryClient.setQueryData(TRANSACTIONS_KEY, (old = []) => [
-        newTransaction,
-        ...old,
-      ]);
-      if (supplierId) {
-        queryClient.setQueryData(queryKey, (old = []) => [
-          newTransaction,
-          ...old,
-        ]);
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(transactionData),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add transaction");
       }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
     },
   });
 
-  // Update transaction mutation
+  // Update transaction mutation - directly to cloud
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
-      const updated = await transactionDB.update(id, updates);
-      return updated;
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(TRANSACTIONS_KEY, (old = []) =>
-        old.map((t) => (t.id === updated.id ? updated : t)),
-      );
-      if (supplierId) {
-        queryClient.setQueryData(queryKey, (old = []) =>
-          old.map((t) => (t.id === updated.id ? updated : t)),
-        );
+      const response = await fetch(`/api/transactions/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update transaction");
       }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
     },
   });
 
-  // Delete transaction mutation
+  // Delete transaction mutation - directly to cloud
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      await transactionDB.delete(id);
+      const response = await fetch(`/api/transactions/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete transaction");
+      }
       return id;
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData(TRANSACTIONS_KEY, (old = []) =>
-        old.filter((t) => t.id !== id),
-      );
-      if (supplierId) {
-        queryClient.setQueryData(queryKey, (old = []) =>
-          old.filter((t) => t.id !== id),
-        );
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
     },
   });
 
   const addTransaction = useCallback(
     async (transactionData) => {
       try {
-        const newTransaction = await addMutation.mutateAsync(transactionData);
-        return { success: true, data: newTransaction };
+        await addMutation.mutateAsync(transactionData);
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -135,8 +105,8 @@ export function useTransactions(supplierId = null) {
   const updateTransaction = useCallback(
     async (id, updates) => {
       try {
-        const updated = await updateMutation.mutateAsync({ id, updates });
-        return { success: true, data: updated };
+        await updateMutation.mutateAsync({ id, updates });
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -156,13 +126,20 @@ export function useTransactions(supplierId = null) {
     [deleteMutation],
   );
 
-  const getPendingPayments = useCallback(async () => {
-    return await transactionDB.getPendingPayments();
-  }, []);
+  const getPendingPayments = useCallback(() => {
+    return transactions.filter(
+      (t) => t.paymentStatus === "pending" || t.paymentStatus === "partial",
+    );
+  }, [transactions]);
 
-  const getRecentTransactions = useCallback(async (limit = 10) => {
-    return await transactionDB.getRecent(limit);
-  }, []);
+  const getRecentTransactions = useCallback(
+    (limit = 10) => {
+      return [...transactions]
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        .slice(0, limit);
+    },
+    [transactions],
+  );
 
   const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });

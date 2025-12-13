@@ -2,13 +2,13 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { customerDB } from "@/lib/db";
 
 const CUSTOMERS_KEY = ["customers"];
 
 export function useCustomers() {
   const queryClient = useQueryClient();
 
+  // Fetch customers directly from cloud API
   const {
     data: customers = [],
     isLoading: loading,
@@ -17,51 +17,77 @@ export function useCustomers() {
   } = useQuery({
     queryKey: CUSTOMERS_KEY,
     queryFn: async () => {
-      return await customerDB.getAll();
+      const response = await fetch("/api/customers");
+      if (!response.ok) {
+        throw new Error("Failed to fetch customers");
+      }
+      const result = await response.json();
+      return result.data || [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+    retry: 2,
   });
 
+  // Add customer mutation - directly to cloud
   const addMutation = useMutation({
     mutationFn: async (customerData) => {
-      return await customerDB.add(customerData);
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(customerData),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add customer");
+      }
+      return response.json();
     },
-    onSuccess: (newCustomer) => {
-      queryClient.setQueryData(CUSTOMERS_KEY, (old = []) => [
-        ...old,
-        newCustomer,
-      ]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
     },
   });
 
+  // Update customer mutation - directly to cloud
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
-      return await customerDB.update(id, updates);
+      const response = await fetch(`/api/customers/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update customer");
+      }
+      return response.json();
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(CUSTOMERS_KEY, (old = []) =>
-        old.map((c) => (c.id === updated.id ? updated : c)),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
     },
   });
 
+  // Delete customer mutation - directly to cloud
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      await customerDB.delete(id);
+      const response = await fetch(`/api/customers/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete customer");
+      }
       return id;
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData(CUSTOMERS_KEY, (old = []) =>
-        old.filter((c) => c.id !== id),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
     },
   });
 
   const addCustomer = useCallback(
     async (customerData) => {
       try {
-        const newCustomer = await addMutation.mutateAsync(customerData);
-        return { success: true, data: newCustomer };
+        const result = await addMutation.mutateAsync(customerData);
+        return { success: true, data: result.data };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -72,8 +98,8 @@ export function useCustomers() {
   const updateCustomer = useCallback(
     async (id, updates) => {
       try {
-        const updated = await updateMutation.mutateAsync({ id, updates });
-        return { success: true, data: updated };
+        await updateMutation.mutateAsync({ id, updates });
+        return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -94,34 +120,25 @@ export function useCustomers() {
   );
 
   const searchCustomers = useCallback(
-    async (query) => {
+    (query) => {
       if (!query.trim()) {
-        refetch();
         return customers;
       }
-      try {
-        return await customerDB.search(query);
-      } catch (err) {
-        console.error("Search failed:", err);
-        return [];
-      }
+      const lowerQuery = query.toLowerCase();
+      return customers.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(lowerQuery) ||
+          c.phone?.includes(query),
+      );
     },
-    [refetch, customers],
+    [customers],
   );
 
   const getCustomerById = useCallback(
-    async (id) => {
-      const cached = queryClient.getQueryData(CUSTOMERS_KEY);
-      const fromCache = cached?.find((c) => c.id === id);
-      if (fromCache) return fromCache;
-
-      try {
-        return await customerDB.getById(id);
-      } catch (err) {
-        return null;
-      }
+    (id) => {
+      return customers.find((c) => c.id === id) || null;
     },
-    [queryClient],
+    [customers],
   );
 
   const refresh = useCallback(() => {

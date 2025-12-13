@@ -6,7 +6,7 @@ import { Loader2, Store } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { OfflineBlocker } from "@/components/OfflineBlocker";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { GlobalSearch } from "@/components/GlobalSearch";
 
@@ -89,6 +89,9 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Offline Blocker - blocks the entire app when offline */}
+      <OfflineBlocker />
+
       {/* Rehydration overlay - brief flash when resuming from background */}
       {isRehydrating && (
         <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity">
@@ -99,7 +102,6 @@ export default function DashboardLayout({ children }) {
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
-      <OfflineIndicator />
       <Sidebar />
       <MobileNav />
 
