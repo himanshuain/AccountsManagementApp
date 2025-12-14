@@ -73,7 +73,7 @@ export default function DashboardPage() {
     if (incomeFormOpen && cashInputRef.current) {
       setTimeout(() => {
         cashInputRef.current?.focus();
-      }, 100);
+      }, 1000);
     }
   }, [incomeFormOpen]);
 
@@ -369,15 +369,7 @@ export default function DashboardPage() {
                 />
               </div>
 
-              {/* Total Display - Prominent at top */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
-                <div className="text-center">
-                  <span className="text-sm text-muted-foreground">Total Income</span>
-                  <div className="text-4xl font-bold text-green-600 mt-1">
-                    ₹{incomeFormTotal.toLocaleString()}
-                  </div>
-                </div>
-              </div>
+
 
               {/* Amount Inputs - Side by side */}
               <div className="grid grid-cols-2 gap-3">
@@ -420,6 +412,16 @@ export default function DashboardPage() {
                     placeholder="0"
                     className="text-2xl h-14 font-bold text-center"
                   />
+                </div>
+              </div>
+
+              {/* Total Display - Prominent at top */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                <div className="text-center">
+                  <span className="text-sm text-muted-foreground">Total Income</span>
+                  <div className="text-4xl font-bold text-green-600 mt-1">
+                    ₹{incomeFormTotal.toLocaleString()}
+                  </div>
                 </div>
               </div>
 

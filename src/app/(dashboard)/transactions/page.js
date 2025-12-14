@@ -555,32 +555,6 @@ export default function TransactionsPage() {
 
         {/* Suppliers Tab */}
         <TabsContent value="suppliers" className="space-y-4 mt-4">
-          {/* Quick Action Tiles */}
-          <div className="grid grid-cols-2 gap-3">
-            <QuickBillCapture
-              suppliers={suppliers}
-              onCapture={handleQuickCapture}
-              disabled={suppliers.length === 0 || !isOnline}
-              variant="tile"
-            />
-            <Card
-              className={`cursor-pointer transition-colors border-dashed border-2 ${
-                isOnline
-                  ? "hover:bg-accent/50 hover:border-primary/50"
-                  : "opacity-50 cursor-not-allowed"
-              }`}
-              onClick={openAddForm}
-            >
-              <CardContent className="p-4 flex flex-col items-center justify-center gap-2 h-full min-h-[100px]">
-                <div className="rounded-full bg-primary/10 p-3">
-                  <Plus className="h-6 w-6 text-primary" />
-                </div>
-                <span className="text-sm font-medium text-center">
-                  Add Vyapari Transaction
-                </span>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center">
