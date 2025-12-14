@@ -1,21 +1,155 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import PhotoSwipeLightbox from "photoswipe/lightbox";
-import "photoswipe/style.css";
-import { Share2, Download } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-// Custom toolbar button for share
-const shareButton = {
-  name: "share",
-  order: 9,
-  isButton: true,
-  html: `<svg class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 6 12 2 8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="2" x2="12" y2="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  onClick: async (event, el, pswp) => {
-    const currentSlide = pswp.currSlide;
-    const src = currentSlide?.data?.src;
+/**
+ * Simple and reliable Image Viewer with touch gestures
+ * - Pinch to zoom
+ * - Double tap to zoom
+ * - Pan when zoomed
+ * - Swipe down to close
+ */
+export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const containerRef = useRef(null);
+  const imageRef = useRef(null);
+
+  // Touch gesture state
+  const touchState = useRef({
+    startX: 0,
+    startY: 0,
+    startScale: 1,
+    startDistance: 0,
+    isPinching: false,
+    isDragging: false,
+    lastTap: 0,
+    startPosition: { x: 0, y: 0 },
+  });
+
+  // Reset state when opening/closing
+  useEffect(() => {
+    if (open) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      setRotation(0);
+      setIsLoading(true);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  // Calculate distance between two touch points
+  const getDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Handle touch start
+  const handleTouchStart = useCallback(
+    e => {
+      const touches = e.touches;
+
+      if (touches.length === 2) {
+        // Pinch start
+        e.preventDefault();
+        touchState.current.isPinching = true;
+        touchState.current.startDistance = getDistance(touches[0], touches[1]);
+        touchState.current.startScale = scale;
+      } else if (touches.length === 1) {
+        // Single touch - check for double tap
+        const now = Date.now();
+        const timeDiff = now - touchState.current.lastTap;
+
+        if (timeDiff < 300 && timeDiff > 0) {
+          // Double tap - toggle zoom
+          e.preventDefault();
+          if (scale > 1) {
+            setScale(1);
+            setPosition({ x: 0, y: 0 });
+          } else {
+            setScale(2.5);
+          }
+          touchState.current.lastTap = 0;
+        } else {
+          touchState.current.lastTap = now;
+          touchState.current.startX = touches[0].clientX;
+          touchState.current.startY = touches[0].clientY;
+          touchState.current.startPosition = { ...position };
+          touchState.current.isDragging = true;
+        }
+      }
+    },
+    [scale, position]
+  );
+
+  // Handle touch move
+  const handleTouchMove = useCallback(
+    e => {
+      const touches = e.touches;
+
+      if (touchState.current.isPinching && touches.length === 2) {
+        // Pinch zoom
+        e.preventDefault();
+        const currentDistance = getDistance(touches[0], touches[1]);
+        const scaleFactor = currentDistance / touchState.current.startDistance;
+        const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
+        setScale(newScale);
+      } else if (touchState.current.isDragging && touches.length === 1) {
+        const deltaX = touches[0].clientX - touchState.current.startX;
+        const deltaY = touches[0].clientY - touchState.current.startY;
+
+        if (scale > 1) {
+          // Pan when zoomed
+          e.preventDefault();
+          setPosition({
+            x: touchState.current.startPosition.x + deltaX,
+            y: touchState.current.startPosition.y + deltaY,
+          });
+        } else {
+          // Swipe down to close when not zoomed
+          if (deltaY > 100 && Math.abs(deltaX) < 50) {
+            onOpenChange(false);
+          }
+        }
+      }
+    },
+    [scale, onOpenChange]
+  );
+
+  // Handle touch end
+  const handleTouchEnd = useCallback(() => {
+    touchState.current.isPinching = false;
+    touchState.current.isDragging = false;
+
+    // Snap back if scale is too small
+    if (scale < 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
+  // Handle mouse wheel zoom
+  const handleWheel = useCallback(e => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    setScale(prev => Math.min(Math.max(prev + delta, 0.5), 5));
+  }, []);
+
+  // Handle share
+  const handleShare = async () => {
     if (!src) return;
 
     try {
@@ -45,19 +179,10 @@ const shareButton = {
         toast.error("Failed to share");
       }
     }
-  },
-};
+  };
 
-// Custom download button
-const downloadButton = {
-  name: "download",
-  order: 8,
-  isButton: true,
-  html: `<svg class="pswp__icn" viewBox="0 0 24 24" width="24" height="24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="7 10 12 15 17 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="15" x2="12" y2="3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  onClick: async (event, el, pswp) => {
-    const currentSlide = pswp.currSlide;
-    const src = currentSlide?.data?.src;
-
+  // Handle download
+  const handleDownload = async () => {
     if (!src) return;
 
     try {
@@ -76,190 +201,521 @@ const downloadButton = {
       console.error("Download failed:", error);
       toast.error("Failed to download image");
     }
-  },
-};
+  };
 
-/**
- * Single Image Viewer using PhotoSwipe
- */
-export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
-  const lightboxRef = useRef(null);
+  // Handle zoom buttons
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.5, 5));
+  };
 
-  useEffect(() => {
-    if (!open || !src) return;
-
-    // Get image dimensions
-    const img = new Image();
-    img.onload = () => {
-      const lightbox = new PhotoSwipeLightbox({
-        dataSource: [
-          {
-            src: src,
-            w: img.naturalWidth || 1920,
-            h: img.naturalHeight || 1080,
-            alt: alt,
-          },
-        ],
-        showHideAnimationType: "fade",
-        pswpModule: () => import("photoswipe"),
-        paddingFn: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-        bgOpacity: 0.95,
-        pinchToClose: true,
-        closeOnVerticalDrag: true,
-        // Enable zoom
-        initialZoomLevel: "fit",
-        secondaryZoomLevel: 2.5,
-        maxZoomLevel: 5,
-      });
-
-      // Register custom buttons
-      lightbox.on("uiRegister", () => {
-        lightbox.pswp.ui.registerElement(shareButton);
-        lightbox.pswp.ui.registerElement(downloadButton);
-      });
-
-      // Handle close
-      lightbox.on("close", () => {
-        onOpenChange(false);
-      });
-
-      lightbox.init();
-      lightbox.loadAndOpen(0);
-      lightboxRef.current = lightbox;
-    };
-
-    img.onerror = () => {
-      // Fallback dimensions
-      const lightbox = new PhotoSwipeLightbox({
-        dataSource: [
-          {
-            src: src,
-            w: 1920,
-            h: 1080,
-            alt: alt,
-          },
-        ],
-        showHideAnimationType: "fade",
-        pswpModule: () => import("photoswipe"),
-        paddingFn: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-        bgOpacity: 0.95,
-        pinchToClose: true,
-        closeOnVerticalDrag: true,
-        initialZoomLevel: "fit",
-        secondaryZoomLevel: 2.5,
-        maxZoomLevel: 5,
-      });
-
-      lightbox.on("uiRegister", () => {
-        lightbox.pswp.ui.registerElement(shareButton);
-        lightbox.pswp.ui.registerElement(downloadButton);
-      });
-
-      lightbox.on("close", () => {
-        onOpenChange(false);
-      });
-
-      lightbox.init();
-      lightbox.loadAndOpen(0);
-      lightboxRef.current = lightbox;
-    };
-
-    img.src = src;
-
-    return () => {
-      if (lightboxRef.current) {
-        lightboxRef.current.destroy();
-        lightboxRef.current = null;
+  const handleZoomOut = () => {
+    setScale(prev => {
+      const newScale = Math.max(prev - 0.5, 1);
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
       }
-    };
-  }, [open, src, alt, onOpenChange]);
+      return newScale;
+    });
+  };
 
-  return null; // PhotoSwipe creates its own DOM elements
+  // Handle rotation
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
+  // Handle close
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
+  // Handle backdrop click
+  const handleBackdropClick = e => {
+    if (e.target === containerRef.current && scale === 1) {
+      handleClose();
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white hover:bg-white/20 h-10 w-10"
+          onClick={handleClose}
+        >
+          <X className="h-6 w-6" />
+        </Button>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleZoomOut}
+            disabled={scale <= 1}
+          >
+            <ZoomOut className="h-5 w-5" />
+          </Button>
+          <span className="text-white text-sm min-w-[50px] text-center">
+            {Math.round(scale * 100)}%
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleZoomIn}
+            disabled={scale >= 5}
+          >
+            <ZoomIn className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleRotate}
+          >
+            <RotateCw className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleDownload}
+          >
+            <Download className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleShare}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Image Container */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center overflow-hidden touch-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
+        onClick={handleBackdropClick}
+      >
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={imageRef}
+          src={src}
+          alt={alt}
+          className={cn(
+            "max-w-full max-h-full object-contain select-none transition-opacity duration-300",
+            isLoading ? "opacity-0" : "opacity-100"
+          )}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+            transition:
+              touchState.current.isPinching || touchState.current.isDragging
+                ? "none"
+                : "transform 0.2s ease-out",
+          }}
+          onLoad={() => setIsLoading(false)}
+          onError={() => setIsLoading(false)}
+          draggable={false}
+        />
+      </div>
+
+      {/* Hint text */}
+      {scale === 1 && (
+        <div className="absolute bottom-6 left-0 right-0 text-center text-white/50 text-sm pointer-events-none">
+          Double tap to zoom • Swipe down to close
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
- * Gallery Viewer for multiple images using PhotoSwipe
+ * Gallery Viewer for multiple images
  */
 export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
-  const lightboxRef = useRef(null);
-  const [loadedImages, setLoadedImages] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const containerRef = useRef(null);
+
+  // Touch gesture state
+  const touchState = useRef({
+    startX: 0,
+    startY: 0,
+    startScale: 1,
+    startDistance: 0,
+    isPinching: false,
+    isDragging: false,
+    lastTap: 0,
+    startPosition: { x: 0, y: 0 },
+  });
+
+  // Reset when opening
   useEffect(() => {
-    if (!open || images.length === 0) return;
-
-    // Load all image dimensions
-    const loadImageDimensions = async () => {
-      const imageData = await Promise.all(
-        images.map(
-          (src, index) =>
-            new Promise(resolve => {
-              const img = new Image();
-              img.onload = () => {
-                resolve({
-                  src: src,
-                  w: img.naturalWidth || 1920,
-                  h: img.naturalHeight || 1080,
-                  alt: `Image ${index + 1}`,
-                });
-              };
-              img.onerror = () => {
-                resolve({
-                  src: src,
-                  w: 1920,
-                  h: 1080,
-                  alt: `Image ${index + 1}`,
-                });
-              };
-              img.src = src;
-            })
-        )
-      );
-
-      setLoadedImages(imageData);
-
-      const lightbox = new PhotoSwipeLightbox({
-        dataSource: imageData,
-        showHideAnimationType: "fade",
-        pswpModule: () => import("photoswipe"),
-        paddingFn: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-        bgOpacity: 0.95,
-        pinchToClose: true,
-        closeOnVerticalDrag: true,
-        // Enable zoom
-        initialZoomLevel: "fit",
-        secondaryZoomLevel: 2.5,
-        maxZoomLevel: 5,
-        // Counter
-        counter: images.length > 1,
-      });
-
-      // Register custom buttons
-      lightbox.on("uiRegister", () => {
-        lightbox.pswp.ui.registerElement(shareButton);
-        lightbox.pswp.ui.registerElement(downloadButton);
-      });
-
-      // Handle close
-      lightbox.on("close", () => {
-        onOpenChange(false);
-      });
-
-      lightbox.init();
-      lightbox.loadAndOpen(initialIndex);
-      lightboxRef.current = lightbox;
-    };
-
-    loadImageDimensions();
-
+    if (open) {
+      setCurrentIndex(initialIndex);
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      setRotation(0);
+      setIsLoading(true);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
     return () => {
-      if (lightboxRef.current) {
-        lightboxRef.current.destroy();
-        lightboxRef.current = null;
-      }
+      document.body.style.overflow = "";
     };
-  }, [open, images, initialIndex, onOpenChange]);
+  }, [open, initialIndex]);
 
-  return null; // PhotoSwipe creates its own DOM elements
+  // Reset zoom when changing images
+  useEffect(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    setRotation(0);
+    setIsLoading(true);
+  }, [currentIndex]);
+
+  const getDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = useCallback(
+    e => {
+      const touches = e.touches;
+
+      if (touches.length === 2) {
+        e.preventDefault();
+        touchState.current.isPinching = true;
+        touchState.current.startDistance = getDistance(touches[0], touches[1]);
+        touchState.current.startScale = scale;
+      } else if (touches.length === 1) {
+        const now = Date.now();
+        const timeDiff = now - touchState.current.lastTap;
+
+        if (timeDiff < 300 && timeDiff > 0) {
+          e.preventDefault();
+          if (scale > 1) {
+            setScale(1);
+            setPosition({ x: 0, y: 0 });
+          } else {
+            setScale(2.5);
+          }
+          touchState.current.lastTap = 0;
+        } else {
+          touchState.current.lastTap = now;
+          touchState.current.startX = touches[0].clientX;
+          touchState.current.startY = touches[0].clientY;
+          touchState.current.startPosition = { ...position };
+          touchState.current.isDragging = true;
+        }
+      }
+    },
+    [scale, position]
+  );
+
+  const handleTouchMove = useCallback(
+    e => {
+      const touches = e.touches;
+
+      if (touchState.current.isPinching && touches.length === 2) {
+        e.preventDefault();
+        const currentDistance = getDistance(touches[0], touches[1]);
+        const scaleFactor = currentDistance / touchState.current.startDistance;
+        const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
+        setScale(newScale);
+      } else if (touchState.current.isDragging && touches.length === 1) {
+        const deltaX = touches[0].clientX - touchState.current.startX;
+        const deltaY = touches[0].clientY - touchState.current.startY;
+
+        if (scale > 1) {
+          e.preventDefault();
+          setPosition({
+            x: touchState.current.startPosition.x + deltaX,
+            y: touchState.current.startPosition.y + deltaY,
+          });
+        } else {
+          // Swipe to navigate or close
+          if (deltaY > 100 && Math.abs(deltaX) < 50) {
+            onOpenChange(false);
+          } else if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 50) {
+            if (deltaX > 0 && currentIndex > 0) {
+              setCurrentIndex(prev => prev - 1);
+              touchState.current.isDragging = false;
+            } else if (deltaX < 0 && currentIndex < images.length - 1) {
+              setCurrentIndex(prev => prev + 1);
+              touchState.current.isDragging = false;
+            }
+          }
+        }
+      }
+    },
+    [scale, onOpenChange, currentIndex, images.length]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    touchState.current.isPinching = false;
+    touchState.current.isDragging = false;
+
+    if (scale < 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
+  const handleWheel = useCallback(e => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    setScale(prev => Math.min(Math.max(prev + delta, 0.5), 5));
+  }, []);
+
+  const handleShare = async () => {
+    const src = images[currentIndex];
+    if (!src) return;
+
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: blob.type });
+
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Shared Image" });
+        toast.success("Shared successfully");
+      } else if (navigator.share) {
+        await navigator.share({ title: "Shared Image", url: src });
+        toast.success("Shared successfully");
+      } else {
+        await navigator.clipboard.writeText(src);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        toast.error("Failed to share");
+      }
+    }
+  };
+
+  const handleDownload = async () => {
+    const src = images[currentIndex];
+    if (!src) return;
+
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `image-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Image downloaded");
+    } catch (error) {
+      toast.error("Failed to download image");
+    }
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
+  if (!open || images.length === 0) return null;
+
+  const currentSrc = images[currentIndex];
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white hover:bg-white/20 h-10 w-10"
+          onClick={handleClose}
+        >
+          <X className="h-6 w-6" />
+        </Button>
+
+        <div className="flex items-center gap-2">
+          {images.length > 1 && (
+            <span className="text-white text-sm">
+              {currentIndex + 1} / {images.length}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={() => setRotation(prev => (prev + 90) % 360)}
+          >
+            <RotateCw className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleDownload}
+          >
+            <Download className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/20 h-10 w-10"
+            onClick={handleShare}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Image Container */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center overflow-hidden touch-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
+      >
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={currentSrc}
+          alt={`Image ${currentIndex + 1}`}
+          className={cn(
+            "max-w-full max-h-full object-contain select-none transition-opacity duration-300",
+            isLoading ? "opacity-0" : "opacity-100"
+          )}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+            transition:
+              touchState.current.isPinching || touchState.current.isDragging
+                ? "none"
+                : "transform 0.2s ease-out",
+          }}
+          onLoad={() => setIsLoading(false)}
+          onError={() => setIsLoading(false)}
+          draggable={false}
+        />
+      </div>
+
+      {/* Navigation arrows for desktop */}
+      {images.length > 1 && (
+        <>
+          {currentIndex > 0 && (
+            <button
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              onClick={handlePrev}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+          )}
+          {currentIndex < images.length - 1 && (
+            <button
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              onClick={handleNext}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Hint text */}
+      {scale === 1 && (
+        <div className="absolute bottom-6 left-0 right-0 text-center text-white/50 text-sm pointer-events-none">
+          Double tap to zoom • Swipe to navigate • Swipe down to close
+        </div>
+      )}
+
+      {/* Thumbnail strip for multiple images */}
+      {images.length > 1 && (
+        <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              className={cn(
+                "w-12 h-12 rounded-lg overflow-hidden border-2 transition-all",
+                idx === currentIndex
+                  ? "border-white scale-110"
+                  : "border-transparent opacity-60 hover:opacity-100"
+              )}
+              onClick={() => setCurrentIndex(idx)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default ImageViewer;

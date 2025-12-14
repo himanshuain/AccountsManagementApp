@@ -367,7 +367,6 @@ export default function SuppliersPage() {
           </button>
 
           {/* Vyapari Circles */}
-          {console.log(filteredSuppliers)}
           {filteredSuppliers.map(supplier => (
             <button
               key={supplier.id}
