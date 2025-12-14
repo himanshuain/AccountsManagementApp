@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { ImageGalleryViewer } from "./ImageViewer";
+import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 
 const paymentModeLabels = {
   cash: "Cash",
@@ -60,10 +61,12 @@ const formatRelativeDate = (dateString) => {
 export function TransactionTable({
   transactions,
   suppliers,
+  customers,
   onEdit,
   onDelete,
   onPay,
   showSupplier = true,
+  showCustomer = false,
   loading = false,
 }) {
   const [selectedImages, setSelectedImages] = useState([]);
@@ -79,6 +82,15 @@ export function TransactionTable({
   const getSupplierName = (supplierId) => {
     const supplier = getSupplier(supplierId);
     return supplier?.companyName || supplier?.name || "Unknown";
+  };
+
+  const getCustomer = (customerId) => {
+    return customers?.find((c) => c.id === customerId);
+  };
+
+  const getCustomerName = (customerId) => {
+    const customer = getCustomer(customerId);
+    return customer?.name || "Unknown";
   };
 
   const handleViewImages = (images, e) => {
@@ -142,6 +154,15 @@ export function TransactionTable({
   const sortedTransactions = [...transactions].sort(
     (a, b) => new Date(a.date) - new Date(b.date),
   );
+
+  // Progressive loading for large lists
+  const {
+    visibleItems: visibleTransactions,
+    hasMore,
+    loadMore,
+    loadMoreRef,
+    remainingCount,
+  } = useProgressiveList(sortedTransactions, 15, 15);
 
   if (loading) {
     return (
@@ -209,7 +230,7 @@ export function TransactionTable({
 
       {/* Transaction List */}
       <div className="space-y-2">
-        {sortedTransactions.map((transaction) => {
+        {visibleTransactions.map((transaction) => {
           const hasPayments =
             transaction.payments && transaction.payments.length > 0;
           const isExpanded = expandedTransactions[transaction.id];
@@ -246,28 +267,61 @@ export function TransactionTable({
                       {showSupplier && (() => {
                         const supplier = getSupplier(transaction.supplierId);
                         return (
-                          <Link
-                            href={`/suppliers/${transaction.supplierId}`}
-                            className="flex items-center gap-2 mb-1 hover:opacity-80 transition-opacity"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {supplier?.profilePicture ? (
-                              <img
-                                src={supplier.profilePicture}
-                                alt=""
-                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs font-semibold text-primary">
-                                  {(supplier?.name || "?").charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
-                            <span className="font-bold text-base truncate">
-                              {getSupplierName(transaction.supplierId)}
-                            </span>
-                          </Link>
+                          <div className="mb-1">
+                            <Link
+                              href={`/suppliers/${transaction.supplierId}`}
+                              className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {supplier?.profilePicture ? (
+                                <img
+                                  src={supplier.profilePicture}
+                                  alt=""
+                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-primary">
+                                    {(supplier?.name || "?").charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <span className="font-bold text-base truncate">
+                                {getSupplierName(transaction.supplierId)}
+                              </span>
+                            </Link>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Customer with DP */}
+                      {showCustomer && transaction.customerId && (() => {
+                        const customer = getCustomer(transaction.customerId);
+                        return (
+                          <div className="mb-1">
+                            <Link
+                              href={`/customers?open=${transaction.customerId}`}
+                              className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {customer?.profilePicture ? (
+                                <img
+                                  src={customer.profilePicture}
+                                  alt=""
+                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-amber-600">
+                                    {(customer?.name || "?").charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <span className="font-bold text-base truncate">
+                                {getCustomerName(transaction.customerId)}
+                              </span>
+                            </Link>
+                          </div>
                         );
                       })()}
 
@@ -479,6 +533,11 @@ export function TransactionTable({
                                         </button>
                                       )}
                                     </div>
+                                    {payment.notes && (
+                                      <p className="text-xs text-muted-foreground mt-0.5 italic">
+                                        &quot;{payment.notes}&quot;
+                                      </p>
+                                    )}
                                     {payment.isFinalPayment && (
                                       <span className="text-xs text-green-600">
                                         Final payment
@@ -497,6 +556,14 @@ export function TransactionTable({
             </Card>
           );
         })}
+        
+        {/* Load More Trigger */}
+        <LoadMoreTrigger
+          loadMoreRef={loadMoreRef}
+          hasMore={hasMore}
+          remainingCount={remainingCount}
+          onLoadMore={loadMore}
+        />
       </div>
 
       {/* Image Gallery Viewer with Zoom */}

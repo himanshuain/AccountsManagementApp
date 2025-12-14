@@ -15,21 +15,19 @@ import {
   BarChart3,
   UserCircle,
   Trash2,
+  HardDrive,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { GlobalSearch } from "./GlobalSearch";
+import { PinInput } from "./PinInput";
 import { ThemeToggle } from "./ThemeToggle";
 import { logout } from "@/lib/auth";
 import { toast } from "sonner";
+import { useStorage } from "@/hooks/useStorage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,11 +88,81 @@ export function MobileNav() {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
+  const [passwordStep, setPasswordStep] = useState("current"); // "current", "new", "confirm"
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const scrollRef = useRef(null);
+
+  const { storageInfo, loading: storageLoading } = useStorage();
 
   const handleLogout = () => {
     logout();
     window.location.href = "/login";
+  };
+
+  const resetPasswordForm = () => {
+    setPasswordSheetOpen(false);
+    setPasswordStep("current");
+    setCurrentPassword("");
+    setNewPassword("");
+    setPinError(false);
+  };
+
+  const handleCurrentPinComplete = pin => {
+    setCurrentPassword(pin);
+    setPasswordStep("new");
+  };
+
+  const handleNewPinComplete = pin => {
+    setNewPassword(pin);
+    setPasswordStep("confirm");
+  };
+
+  const handleConfirmPinComplete = async pin => {
+    if (pin !== newPassword) {
+      setPinError(true);
+      toast.error("PINs do not match. Please try again.");
+      setTimeout(() => {
+        setPinError(false);
+        setPasswordStep("new");
+        setNewPassword("");
+      }, 1000);
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("PIN changed successfully");
+        resetPasswordForm();
+      } else {
+        setPinError(true);
+        toast.error(data.error || "Failed to change PIN");
+        setTimeout(() => {
+          setPinError(false);
+          resetPasswordForm();
+        }, 1000);
+      }
+    } catch (error) {
+      toast.error("Failed to change PIN");
+      resetPasswordForm();
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -130,7 +198,7 @@ export function MobileNav() {
       // Clear cache storage
       if ("caches" in window) {
         const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map((name) => caches.delete(name)));
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
 
       toast.success("Site data cleared! Reloading...");
@@ -175,7 +243,7 @@ export function MobileNav() {
 
                 {/* Navigation */}
                 <nav className="flex-1 px-4 py-4 space-y-1">
-                  {navItems.map((item) => {
+                  {navItems.map(item => {
                     const isActive =
                       pathname === item.href ||
                       (item.href !== "/" && pathname.startsWith(item.href));
@@ -187,7 +255,7 @@ export function MobileNav() {
                             "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                             isActive
                               ? `${item.color} text-white`
-                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                           )}
                         >
                           <item.icon className="h-5 w-5" />
@@ -200,13 +268,56 @@ export function MobileNav() {
 
                 {/* Bottom section */}
                 <div className="p-4 space-y-4 border-t">
+                  {/* Storage Usage */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <HardDrive className="h-4 w-4" />
+                      <span>Storage</span>
+                    </div>
+                    {storageLoading ? (
+                      <div className="h-2 bg-muted rounded-full animate-pulse" />
+                    ) : storageInfo ? (
+                      <div className="space-y-1">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              storageInfo.usedPercentage > 80
+                                ? "bg-destructive"
+                                : storageInfo.usedPercentage > 50
+                                ? "bg-amber-500"
+                                : "bg-green-500"
+                            )}
+                            style={{ width: `${Math.min(storageInfo.usedPercentage, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {storageInfo.usedFormatted} / {storageInfo.totalFormatted} (
+                          {storageInfo.usedPercentage}%)
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Unable to load</p>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Cloud Connected
-                    </span>
+                    <span className="text-sm text-muted-foreground">Cloud Connected</span>
                     <ThemeToggle />
                   </div>
                   <Separator />
+
+                  {/* Change Password Button */}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-muted-foreground"
+                    onClick={() => setPasswordSheetOpen(true)}
+                  >
+                    <Key className="h-4 w-4 mr-2" />
+                    Change Password
+                  </Button>
 
                   {/* Clear Site Data Button */}
                   <AlertDialog>
@@ -222,11 +333,10 @@ export function MobileNav() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Clear Site Data?</AlertDialogTitle>
+                        <AlertDialogTitle>Data?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will clear all locally cached data on this
-                          device. Your cloud data will not be affected. The page
-                          will reload after clearing.
+                          This will clear all locally cached data on this device. Your cloud data
+                          will not be affected. The page will reload after clearing.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -251,6 +361,82 @@ export function MobileNav() {
             </SheetContent>
           </Sheet>
 
+          {/* Change PIN Sheet */}
+          <Sheet
+            open={passwordSheetOpen}
+            onOpenChange={open => {
+              if (!open) resetPasswordForm();
+              else setPasswordSheetOpen(open);
+            }}
+          >
+            <SheetContent side="bottom" className="h-auto rounded-t-2xl" hideClose>
+              <SheetHeader className="pb-4 text-center">
+                <SheetTitle>
+                  {passwordStep === "current" && "Enter Current PIN"}
+                  {passwordStep === "new" && "Enter New PIN"}
+                  {passwordStep === "confirm" && "Confirm New PIN"}
+                </SheetTitle>
+                <p className="text-sm text-muted-foreground">
+                  {passwordStep === "current" && "Enter your current 6-digit PIN"}
+                  {passwordStep === "new" && "Enter your new 6-digit PIN"}
+                  {passwordStep === "confirm" && "Re-enter your new PIN to confirm"}
+                </p>
+              </SheetHeader>
+              <div className="py-6">
+                {passwordStep === "current" && (
+                  <PinInput
+                    key="current-pin-mobile"
+                    length={6}
+                    onComplete={handleCurrentPinComplete}
+                    error={pinError}
+                  />
+                )}
+                {passwordStep === "new" && (
+                  <PinInput
+                    key="new-pin-mobile"
+                    length={6}
+                    onComplete={handleNewPinComplete}
+                    error={pinError}
+                  />
+                )}
+                {passwordStep === "confirm" && (
+                  <PinInput
+                    key="confirm-pin-mobile"
+                    length={6}
+                    onComplete={handleConfirmPinComplete}
+                    error={pinError}
+                  />
+                )}
+
+                {isChangingPassword && (
+                  <p className="text-center text-sm text-muted-foreground mt-4">Changing PIN...</p>
+                )}
+              </div>
+              <div className="flex gap-3 pb-6">
+                <Button variant="outline" className="flex-1" onClick={resetPasswordForm}>
+                  Cancel
+                </Button>
+                {passwordStep !== "current" && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      if (passwordStep === "new") {
+                        setPasswordStep("current");
+                        setCurrentPassword("");
+                      } else if (passwordStep === "confirm") {
+                        setPasswordStep("new");
+                        setNewPassword("");
+                      }
+                    }}
+                  >
+                    Back
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+
           {/* Full width search bar */}
           <GlobalSearch className="flex-1" />
 
@@ -262,9 +448,7 @@ export function MobileNav() {
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw
-              className={cn("h-5 w-5", isRefreshing && "animate-spin")}
-            />
+            <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
           </Button>
         </div>
       </div>
@@ -272,10 +456,9 @@ export function MobileNav() {
       {/* Bottom navigation - Colorful tiles */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t safe-area-bottom">
         <div ref={scrollRef} className="flex items-stretch h-20 px-1.5 py-1.5">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const isActive =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+              pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
             return (
               <Link key={item.href} href={item.href} className="flex-1 p-1">
@@ -284,21 +467,11 @@ export function MobileNav() {
                     "flex flex-col items-center justify-center h-full rounded-xl transition-all",
                     isActive
                       ? `${item.color} text-white shadow-lg scale-105`
-                      : "text-muted-foreground hover:bg-accent/50 active:scale-95",
+                      : "text-muted-foreground hover:bg-accent/50 active:scale-95"
                   )}
                 >
-                  <item.icon
-                    className={cn(
-                      "h-6 w-6 mb-1",
-                      !isActive && item.iconColor,
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      !isActive && "text-muted-foreground",
-                    )}
-                  >
+                  <item.icon className={cn("h-6 w-6 mb-1", !isActive && item.iconColor)} />
+                  <span className={cn("text-xs font-medium", !isActive && "text-muted-foreground")}>
                     {item.label}
                   </span>
                 </div>

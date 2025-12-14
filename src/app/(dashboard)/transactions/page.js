@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -66,6 +67,9 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { UdharForm } from "@/components/UdharForm";
 import { UdharList } from "@/components/UdharList";
 import { CustomerForm } from "@/components/CustomerForm";
+import { ImageGalleryViewer } from "@/components/ImageViewer";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { exportTransactions } from "@/lib/export";
 import { toast } from "sonner";
 
@@ -98,6 +102,7 @@ export default function TransactionsPage() {
     deleteUdhar,
     recordDeposit,
     markFullPaid,
+    deletePayment,
   } = useUdhar();
 
   // Tab state - read from URL, localStorage, or default to customers
@@ -149,6 +154,58 @@ export default function TransactionsPage() {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteOption, setBulkDeleteOption] = useState("6months");
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+
+  // All receipts view state
+  const [allReceiptsSheetOpen, setAllReceiptsSheetOpen] = useState(false);
+  const [receiptGalleryOpen, setReceiptGalleryOpen] = useState(false);
+  const [receiptGalleryImages, setReceiptGalleryImages] = useState([]);
+  const [receiptGalleryInitialIndex, setReceiptGalleryInitialIndex] = useState(0);
+
+  // Collect all receipts from udhar payments
+  const allReceipts = useMemo(() => {
+    const receipts = [];
+    udharList.forEach(udhar => {
+      // Add khata/bill photos
+      if (udhar.khataPhotos?.length > 0) {
+        udhar.khataPhotos.forEach(photo => {
+          receipts.push({
+            url: photo,
+            type: "bill",
+            date: udhar.date,
+            customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+            amount: udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0),
+          });
+        });
+      }
+      if (udhar.billImages?.length > 0) {
+        udhar.billImages.forEach(photo => {
+          receipts.push({
+            url: photo,
+            type: "bill",
+            date: udhar.date,
+            customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+            amount: udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0),
+          });
+        });
+      }
+      // Add payment receipts
+      if (udhar.payments?.length > 0) {
+        udhar.payments.forEach(payment => {
+          if (payment.receiptUrl) {
+            receipts.push({
+              url: payment.receiptUrl,
+              type: "receipt",
+              date: payment.date,
+              customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+              amount: payment.amount,
+            });
+          }
+        });
+      }
+    });
+    // Sort by date, newest first
+    return receipts.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [udharList, customers]);
 
   // Filter and sort supplier transactions
   const filteredTransactions = useMemo(() => {
@@ -459,7 +516,7 @@ export default function TransactionsPage() {
 
       {/* Main Tabs: Customers (Udhar) / Suppliers */}
       <Tabs value={mainTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 bg-blue-900">
           <TabsTrigger value="customers" className="gap-1.5">
             <Users className="h-4 w-4" />
             Customers (Udhar)
@@ -472,6 +529,26 @@ export default function TransactionsPage() {
 
         {/* Customers (Udhar) Tab */}
         <TabsContent value="customers" className="space-y-4 mt-4">
+          {/* Stats Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-sm px-3 py-1">
+                {filteredUdhar.length} Transaction{filteredUdhar.length !== 1 ? "s" : ""}
+              </Badge>
+              {allReceipts.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setAllReceiptsSheetOpen(true)}
+                >
+                  <Receipt className="h-4 w-4" />
+                  All Receipts ({allReceipts.length})
+                </Button>
+              )}
+            </div>
+          </div>
+
           {/* Add Udhar Button */}
           <Card
             className={`cursor-pointer transition-colors border-dashed border-2 ${
@@ -574,6 +651,7 @@ export default function TransactionsPage() {
             onDelete={handleDeleteUdhar}
             onDeposit={handleDeposit}
             onFullPaid={handleFullPaid}
+            onDeletePayment={deletePayment}
             loading={udharLoading}
           />
         </TabsContent>
@@ -947,6 +1025,82 @@ export default function TransactionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* All Receipts Sheet */}
+      <Sheet open={allReceiptsSheetOpen} onOpenChange={(open) => {
+        // Only close if image viewer is not open
+        if (!open && receiptGalleryOpen) return;
+        setAllReceiptsSheetOpen(open);
+      }}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
+          <SheetHeader className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                All Receipts & Bills ({allReceipts.length})
+              </SheetTitle>
+              <Button variant="ghost" size="icon" onClick={() => setAllReceiptsSheetOpen(false)}>
+                <span className="sr-only">Close</span>
+                ×
+              </Button>
+            </div>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(85vh-80px)]">
+            <div className="p-4">
+              {allReceipts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No receipts or bills found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {allReceipts.map((receipt, idx) => (
+                    <div
+                      key={idx}
+                      className="relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer group"
+                      onClick={() => {
+                        setReceiptGalleryImages(allReceipts.map(r => r.url));
+                        setReceiptGalleryInitialIndex(idx);
+                        setReceiptGalleryOpen(true);
+                      }}
+                    >
+                      <img
+                        src={receipt.url}
+                        alt={`${receipt.type} ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-0 left-0 right-0 p-2 text-white text-xs">
+                          <p className="font-medium truncate">{receipt.customerName}</p>
+                          <p className="opacity-75">₹{receipt.amount?.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={`absolute top-1 right-1 text-[10px] px-1.5 py-0 ${
+                          receipt.type === "receipt" 
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {receipt.type === "receipt" ? "Receipt" : "Bill"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Receipt Gallery Viewer */}
+      <ImageGalleryViewer
+        images={receiptGalleryImages}
+        initialIndex={receiptGalleryInitialIndex}
+        open={receiptGalleryOpen}
+        onOpenChange={setReceiptGalleryOpen}
+      />
     </div>
   );
 }

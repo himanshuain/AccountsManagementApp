@@ -187,6 +187,45 @@ export function useUdhar() {
     [udharList, updateUdhar],
   );
 
+  // Delete a specific payment from an udhar record
+  const deletePayment = useCallback(
+    async (udharId, paymentId) => {
+      const udhar = udharList.find((u) => u.id === udharId);
+      if (!udhar) return { success: false, error: "Record not found" };
+
+      const payments = [...(udhar.payments || [])];
+      const paymentIndex = payments.findIndex((p) => p.id === paymentId);
+      
+      if (paymentIndex === -1) {
+        return { success: false, error: "Payment not found" };
+      }
+
+      // Remove the payment
+      const removedPayment = payments.splice(paymentIndex, 1)[0];
+      
+      // Recalculate paid amount
+      const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      
+      // Determine new payment status
+      let paymentStatus = "pending";
+      if (newPaidAmount >= totalAmount) {
+        paymentStatus = "paid";
+      } else if (newPaidAmount > 0) {
+        paymentStatus = "partial";
+      }
+
+      return await updateUdhar(udharId, {
+        payments: payments,
+        paidAmount: newPaidAmount,
+        paidCash: newPaidAmount, // Assuming all payments are cash for simplicity
+        paymentStatus: paymentStatus,
+        paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
+      });
+    },
+    [udharList, updateUdhar],
+  );
+
   const getByCustomer = useCallback(
     (customerId) => {
       return udharList.filter((u) => u.customerId === customerId);
@@ -245,6 +284,7 @@ export function useUdhar() {
     deleteUdhar,
     recordDeposit,
     markFullPaid,
+    deletePayment,
     getByCustomer,
     getPending,
     getRecent,

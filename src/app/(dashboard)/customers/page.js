@@ -71,6 +71,7 @@ import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageViewer } from "@/components/ImageViewer";
+import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 
 export default function CustomersPage() {
   const searchParams = useSearchParams();
@@ -89,6 +90,7 @@ export default function CustomersPage() {
     deleteUdhar,
     recordDeposit,
     markFullPaid,
+    deletePayment,
     loading: udharLoading,
   } = useUdhar();
 
@@ -157,6 +159,10 @@ export default function CustomersPage() {
   // Image viewer state
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
+
+  // Payment deletion state
+  const [deletePaymentDialogOpen, setDeletePaymentDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
 
   // Auto-focus payment input and scroll into view
   useEffect(() => {
@@ -259,6 +265,15 @@ export default function CustomersPage() {
       (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
     );
   }, [customersWithStats, searchQuery]);
+
+  // Progressive loading for large customer lists
+  const {
+    visibleItems: visibleCustomers,
+    hasMore: hasMoreCustomers,
+    loadMore: loadMoreCustomers,
+    loadMoreRef: customersLoadMoreRef,
+    remainingCount: customersRemaining,
+  } = useProgressiveList(filteredCustomers, 15, 15);
 
   // Quick add udhar for a customer
   const handleQuickAdd = async () => {
@@ -800,8 +815,8 @@ export default function CustomersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {filteredCustomers.map((customer) => {
+        <div className="space-y-6">
+          {visibleCustomers.map((customer) => {
             const isExpanded = expandedCustomerId === customer.id;
 
             // Get all payments for this customer from all udhar transactions
@@ -834,15 +849,15 @@ export default function CustomersPage() {
                   customer.pendingAmount > 0
                     ? "border-l-4 border-l-amber-500"
                     : "border-l-4 border-l-green-500",
-                  isExpanded && "ring-2 ring-primary/50 shadow-md",
+                  isExpanded && " shadow-md bg-blue-800",
                 )}
               >
                 <CardContent className="p-0">
                   {/* Main Row - tap to expand/collapse */}
                   <div
                     className={cn(
-                      "p-3 cursor-pointer hover:bg-muted/50 active:scale-[0.99] transition-all",
-                      isExpanded && "bg-primary/5"
+                      "p-3 cursor-pointer  active:scale-[0.99] transition-all",
+                      isExpanded && "bg-blue-800"
                     )}
                     onClick={() =>
                       setExpandedCustomerId(isExpanded ? null : customer.id)
@@ -901,24 +916,28 @@ export default function CustomersPage() {
                   {/* Collapsible Section with Progress, Payment History & Actions */}
                   {isExpanded && (
                     <div className="px-3 pb-3 pt-0 border-t bg-muted/30">
+                      {/* Remaining Amount - Prominent on top */}
+                      {customer.pendingAmount > 0 && (
+                        <div className="pt-3 pb-2">
+                          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-center">
+                            <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">Remaining Balance</p>
+                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                              ₹{customer.pendingAmount.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Payment Progress Bar - only show if there's any transaction */}
                       {customer.totalAmount > 0 && (
-                        <div className="pt-3 pb-2">
+                        <div className="pt-2 pb-2">
                           <div className="flex items-center justify-between text-xs mb-1.5">
                             <span className="text-muted-foreground">
                               Total: ₹{customer.totalAmount.toLocaleString()}
                             </span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-green-600">
-                                Paid: ₹{customer.paidAmount.toLocaleString()}
-                              </span>
-                              {customer.pendingAmount > 0 && (
-                                <span className="text-amber-600">
-                                  Pending: ₹
-                                  {customer.pendingAmount.toLocaleString()}
-                                </span>
-                              )}
-                            </div>
+                            <span className="text-green-600">
+                              Paid: ₹{customer.paidAmount.toLocaleString()}
+                            </span>
                           </div>
                           {/* Progress bar */}
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -991,7 +1010,28 @@ export default function CustomersPage() {
                                           Receipt
                                         </Button>
                                       )}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPaymentToDelete({
+                                            udharId: payment.udharId,
+                                            paymentId: payment.id,
+                                            amount: payment.amount,
+                                          });
+                                          setDeletePaymentDialogOpen(true);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
                                     </div>
+                                    {payment.notes && (
+                                      <p className="text-xs text-muted-foreground mt-0.5 italic">
+                                        &quot;{payment.notes}&quot;
+                                      </p>
+                                    )}
                                     {payment.isFinalPayment && (
                                       <span className="text-xs text-green-600">
                                         Final payment
@@ -1109,6 +1149,14 @@ export default function CustomersPage() {
               </Card>
             );
           })}
+          
+          {/* Load More Trigger */}
+          <LoadMoreTrigger
+            loadMoreRef={customersLoadMoreRef}
+            hasMore={hasMoreCustomers}
+            remainingCount={customersRemaining}
+            onLoadMore={loadMoreCustomers}
+          />
         </div>
       )}
 
@@ -1900,7 +1948,7 @@ export default function CustomersPage() {
                         <p className="text-sm">No transactions yet</p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-6">
                         {selectedCustomerTransactions.map((txn) => {
                           const total = txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0);
                           const paid = txn.paidAmount || (txn.paidCash || 0) + (txn.paidOnline || 0);
@@ -1970,12 +2018,14 @@ export default function CustomersPage() {
                                           Pay
                                         </Button>
                                       )}
-                                      <ChevronDown
-                                        className={cn(
-                                          "h-4 w-4 text-muted-foreground transition-transform",
-                                          isExpanded && "rotate-180"
-                                        )}
-                                      />
+                                      {hasPayments && (
+                                        <ChevronDown
+                                          className={cn(
+                                            "h-4 w-4 text-muted-foreground transition-transform",
+                                            isExpanded && "rotate-180"
+                                          )}
+                                        />
+                                      )}
                                     </div>
                                   </div>
 
@@ -2046,6 +2096,11 @@ export default function CustomersPage() {
                                                     </Button>
                                                   )}
                                                 </div>
+                                                {payment.notes && (
+                                                  <p className="text-xs text-muted-foreground mt-0.5 italic">
+                                                    &quot;{payment.notes}&quot;
+                                                  </p>
+                                                )}
                                                 {payment.isFinalPayment && (
                                                   <span className="text-xs text-green-600">Final payment</span>
                                                 )}
@@ -2105,6 +2160,42 @@ export default function CustomersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete Payment Confirmation Dialog */}
+      <AlertDialog open={deletePaymentDialogOpen} onOpenChange={setDeletePaymentDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the payment of ₹{paymentToDelete?.amount?.toLocaleString() || 0}. 
+              The udhar balance will be recalculated. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPaymentToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (paymentToDelete && deletePayment) {
+                  const result = await deletePayment(
+                    paymentToDelete.udharId,
+                    paymentToDelete.paymentId
+                  );
+                  if (result?.success) {
+                    toast.success("Payment deleted");
+                  } else {
+                    toast.error(result?.error || "Failed to delete payment");
+                  }
+                }
+                setPaymentToDelete(null);
+                setDeletePaymentDialogOpen(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Udhar Transactions Drawer */}
       <Sheet open={udharDrawerOpen} onOpenChange={setUdharDrawerOpen}>
         <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0" hideClose>
@@ -2153,6 +2244,8 @@ export default function CustomersPage() {
                         const isPaid = txn.paymentStatus === "paid";
                         const isPartial = txn.paymentStatus === "partial";
                         const hasPayments = txn.payments && txn.payments.length > 0;
+                        const hasBillImages = (txn.khataPhotos?.length > 0 || txn.billImages?.length > 0);
+                        const hasExpandableContent = hasPayments || hasBillImages;
                         const isExpanded = expandedUdharId === txn.id;
 
                         return (
@@ -2216,12 +2309,14 @@ export default function CustomersPage() {
                                         Pay
                                       </Button>
                                     )}
-                                    <ChevronDown
-                                      className={cn(
-                                        "h-5 w-5 text-muted-foreground transition-transform",
-                                        isExpanded && "rotate-180"
-                                      )}
-                                    />
+                                    {hasExpandableContent && (
+                                      <ChevronDown
+                                        className={cn(
+                                          "h-5 w-5 text-muted-foreground transition-transform",
+                                          isExpanded && "rotate-180"
+                                        )}
+                                      />
+                                    )}
                                   </div>
                                 </div>
 
@@ -2313,6 +2408,11 @@ export default function CustomersPage() {
                                                     </Button>
                                                   )}
                                                 </div>
+                                                {payment.notes && (
+                                                  <p className="text-xs text-muted-foreground mt-0.5 italic">
+                                                    &quot;{payment.notes}&quot;
+                                                  </p>
+                                                )}
                                                 {payment.isFinalPayment && (
                                                   <span className="text-xs text-green-600">Final payment</span>
                                                 )}

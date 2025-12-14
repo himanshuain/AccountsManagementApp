@@ -138,6 +138,22 @@ export default function SuppliersPage() {
     }
   };
 
+  const handleUpdateSupplier = async data => {
+    if (!isOnline) {
+      toast.error("Cannot update supplier while offline");
+      return;
+    }
+    if (!editingSupplier) return;
+    const result = await updateSupplier(editingSupplier.id, data);
+    if (result.success) {
+      toast.success("Supplier updated successfully");
+      setEditingSupplier(null);
+      setSupplierFormOpen(false);
+    } else {
+      toast.error("Failed to update supplier");
+    }
+  };
+
   const handleDeleteClick = (supplier, e) => {
     e?.preventDefault();
     e?.stopPropagation();
@@ -609,7 +625,7 @@ export default function SuppliersPage() {
                             <p>No transactions yet</p>
                           </div>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-6">
                             {supplierTransactions.map(txn => {
                               const amount = Number(txn.amount) || 0;
                               const paid =
@@ -867,8 +883,9 @@ export default function SuppliersPage() {
           setSupplierFormOpen(open);
           if (!open) setEditingSupplier(null);
         }}
-        onSubmit={handleAddSupplier}
-        supplier={editingSupplier}
+        onSubmit={editingSupplier ? handleUpdateSupplier : handleAddSupplier}
+        initialData={editingSupplier}
+        title={editingSupplier ? "Edit Vyapari" : "Add Vyapari"}
       />
 
       {/* Delete Confirmation */}

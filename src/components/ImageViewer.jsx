@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,27 +39,51 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     pinchCenterY: 0,
   });
 
-  // Track previous overflow value to restore it properly
-  const previousOverflowRef = useRef("");
+  // State for portal mounting
+  const [mounted, setMounted] = useState(false);
+  const portalContainerRef = useRef(null);
+
+  // Create dedicated portal container on client side
+  useEffect(() => {
+    // Create a dedicated container for the image viewer portal
+    const container = document.createElement("div");
+    container.id = "image-viewer-portal-root";
+    container.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2147483647;
+      pointer-events: none;
+      isolation: isolate;
+    `;
+    document.body.appendChild(container);
+    portalContainerRef.current = container;
+    setMounted(true);
+
+    return () => {
+      if (container && document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+    };
+  }, []);
 
   // Reset state when opening/closing
   useEffect(() => {
     if (open) {
-      // Store the current overflow value before changing it
-      previousOverflowRef.current = document.body.style.overflow;
       setScale(1);
       setPosition({ x: 0, y: 0 });
       setRotation(0);
       setIsLoading(true);
-      document.body.style.overflow = "hidden";
-    } else {
-      // Restore the previous overflow value
-      document.body.style.overflow = previousOverflowRef.current;
+
+      // Fallback for cached images where onLoad might not fire
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
-    return () => {
-      // On unmount, restore the previous overflow value
-      document.body.style.overflow = previousOverflowRef.current;
-    };
   }, [open]);
 
   // Calculate distance between two touch points
@@ -311,21 +336,26 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     }
   };
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+      className="fixed inset-0 bg-black/95 flex flex-col"
+      style={{ zIndex: 2147483647, pointerEvents: "auto" }}
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
+      <div
+        className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0"
+        style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+      >
         <Button
           variant="ghost"
           size="icon"
           className="text-white hover:bg-white/20 h-10 w-10"
           onClick={handleClose}
+          style={{ pointerEvents: "auto" }}
         >
           <X className="h-6 w-6" />
         </Button>
@@ -337,6 +367,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleZoomOut}
             disabled={scale <= 1}
+            style={{ pointerEvents: "auto" }}
           >
             <ZoomOut className="h-5 w-5" />
           </Button>
@@ -349,6 +380,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleZoomIn}
             disabled={scale >= 5}
+            style={{ pointerEvents: "auto" }}
           >
             <ZoomIn className="h-5 w-5" />
           </Button>
@@ -357,6 +389,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             size="icon"
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleRotate}
+            style={{ pointerEvents: "auto" }}
           >
             <RotateCw className="h-5 w-5" />
           </Button>
@@ -365,6 +398,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             size="icon"
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleDownload}
+            style={{ pointerEvents: "auto" }}
           >
             <Download className="h-5 w-5" />
           </Button>
@@ -373,6 +407,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             size="icon"
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleShare}
+            style={{ pointerEvents: "auto" }}
           >
             <Share2 className="h-5 w-5" />
           </Button>
@@ -382,7 +417,8 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden touch-none"
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        style={{ touchAction: "none", pointerEvents: "auto" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -425,6 +461,9 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       )}
     </div>
   );
+
+  if (!portalContainerRef.current) return null;
+  return createPortal(content, portalContainerRef.current);
 }
 
 /**
@@ -436,8 +475,28 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const containerRef = useRef(null);
+  const portalContainerRef = useRef(null);
+
+  // Reset currentIndex when opening with a new initialIndex
+  useEffect(() => {
+    if (open) {
+      setCurrentIndex(initialIndex);
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      setRotation(0);
+      setIsLoading(true);
+
+      // For cached images, onLoad might not fire, so check after a short delay
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [open, initialIndex]);
 
   // Touch gesture state
   const touchState = useRef({
@@ -453,28 +512,40 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     pinchCenterY: 0,
   });
 
-  // Track previous overflow value to restore it properly
-  const previousOverflowRef = useRef("");
+  // Create dedicated portal container on client side
+  useEffect(() => {
+    const container = document.createElement("div");
+    container.id = "image-gallery-viewer-portal-root";
+    container.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2147483647;
+      pointer-events: none;
+      isolation: isolate;
+    `;
+    document.body.appendChild(container);
+    portalContainerRef.current = container;
+    setMounted(true);
+
+    return () => {
+      if (container && document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
+    };
+  }, []);
 
   // Reset when opening
   useEffect(() => {
     if (open) {
-      // Store the current overflow value before changing it
-      previousOverflowRef.current = document.body.style.overflow;
       setCurrentIndex(initialIndex);
       setScale(1);
       setPosition({ x: 0, y: 0 });
       setRotation(0);
       setIsLoading(true);
-      document.body.style.overflow = "hidden";
-    } else {
-      // Restore the previous overflow value
-      document.body.style.overflow = previousOverflowRef.current;
     }
-    return () => {
-      // On unmount, restore the previous overflow value
-      document.body.style.overflow = previousOverflowRef.current;
-    };
   }, [open, initialIndex]);
 
   // Reset zoom when changing images
@@ -483,6 +554,13 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     setPosition({ x: 0, y: 0 });
     setRotation(0);
     setIsLoading(true);
+
+    // Fallback for cached images where onLoad might not fire
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [currentIndex]);
 
   const getDistance = (touch1, touch2) => {
@@ -698,23 +776,28 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     }
   };
 
-  if (!open || images.length === 0) return null;
+  if (!open || images.length === 0 || !mounted) return null;
 
   const currentSrc = images[currentIndex];
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+      className="fixed inset-0 bg-black/95 flex flex-col"
+      style={{ zIndex: 2147483647, pointerEvents: "auto" }}
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
+      <div
+        className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0"
+        style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+      >
         <Button
           variant="ghost"
           size="icon"
           className="text-white hover:bg-white/20 h-10 w-10"
           onClick={handleClose}
+          style={{ pointerEvents: "auto" }}
         >
           <X className="h-6 w-6" />
         </Button>
@@ -733,6 +816,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             size="icon"
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={() => setRotation(prev => (prev + 90) % 360)}
+            style={{ pointerEvents: "auto" }}
           >
             <RotateCw className="h-5 w-5" />
           </Button>
@@ -741,6 +825,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             size="icon"
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleDownload}
+            style={{ pointerEvents: "auto" }}
           >
             <Download className="h-5 w-5" />
           </Button>
@@ -749,6 +834,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             size="icon"
             className="text-white hover:bg-white/20 h-10 w-10"
             onClick={handleShare}
+            style={{ pointerEvents: "auto" }}
           >
             <Share2 className="h-5 w-5" />
           </Button>
@@ -758,7 +844,8 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden touch-none"
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        style={{ touchAction: "none", pointerEvents: "auto" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -797,6 +884,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           {currentIndex > 0 && (
             <button
               className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              style={{ zIndex: 2147483647, pointerEvents: "auto" }}
               onClick={handlePrev}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -812,6 +900,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           {currentIndex < images.length - 1 && (
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              style={{ zIndex: 2147483647, pointerEvents: "auto" }}
               onClick={handleNext}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -836,7 +925,10 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
       {/* Thumbnail strip for multiple images */}
       {images.length > 1 && (
-        <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4">
+        <div
+          className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4"
+          style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+        >
           {images.map((img, idx) => (
             <button
               key={idx}
@@ -846,6 +938,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
                   ? "border-white scale-110"
                   : "border-transparent opacity-60 hover:opacity-100"
               )}
+              style={{ pointerEvents: "auto" }}
               onClick={() => setCurrentIndex(idx)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -856,6 +949,9 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       )}
     </div>
   );
+
+  if (!portalContainerRef.current) return null;
+  return createPortal(content, portalContainerRef.current);
 }
 
 export default ImageViewer;

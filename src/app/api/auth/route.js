@@ -1,9 +1,33 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-const APP_PIN = process.env.APP_PIN || "123456";
+const DEFAULT_PIN = process.env.APP_PIN || "123456";
 const AUTH_COOKIE_NAME = "shop_auth";
 const SESSION_DURATION_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+// Helper to get PIN from database or env
+async function getAppPin() {
+  if (!isSupabaseConfigured()) {
+    return DEFAULT_PIN;
+  }
+  
+  try {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "app_pin")
+      .single();
+    
+    if (error || !data) {
+      return DEFAULT_PIN;
+    }
+    
+    return data.value || DEFAULT_PIN;
+  } catch {
+    return DEFAULT_PIN;
+  }
+}
 
 export async function POST(request) {
   try {
@@ -16,7 +40,9 @@ export async function POST(request) {
       );
     }
 
-    if (pin === APP_PIN) {
+    const appPin = await getAppPin();
+    
+    if (pin === appPin) {
       // Set auth cookie (not httpOnly so client JS can read it for auth checks)
       const cookieStore = await cookies();
       cookieStore.set(AUTH_COOKIE_NAME, "authenticated", {

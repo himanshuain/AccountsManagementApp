@@ -732,30 +732,27 @@ export default function ReportsPage() {
                           )}
                         </div>
                         <div>
-                          <p className="font-semibold">
+                          <p className="font-bold text-2xl pb-2 text-green-600">
                             ₹{getIncomeTotal(income).toLocaleString()}
                           </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="flex flex-col gap-0.5 text-xs">
                             {income.cashAmount > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Banknote className="h-3 w-3 text-green-500" />₹
-                                {income.cashAmount.toLocaleString()}
+                              <span className="flex items-center gap-1.5 text-green-300">
+                                <Banknote className="h-3 w-3" />
+                                <span className="font-medium text-base">₹{income.cashAmount.toLocaleString()}</span>
+                                <span className="text-muted-foreground">Cash</span>
                               </span>
                             )}
                             {income.onlineAmount > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Smartphone className="h-3 w-3 text-blue-500" />
-                                ₹{income.onlineAmount.toLocaleString()}
+                              <span className="flex items-center gap-1.5 text-blue-400">
+                                <Smartphone className="h-3 w-3" />
+                                <span className="font-medium text-base">₹{income.onlineAmount.toLocaleString()}</span>
+                                <span className="text-muted-foreground">Online</span>
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(income.date).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "short",
-                              year: "2-digit",
-                            })}{" "}
-                            • {income.type === "daily" ? "Daily" : "Monthly"}
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {format(new Date(income.date), "dd MMM yyyy")} • {income.type === "daily" ? "Daily" : "Monthly"}
                           </p>
                         </div>
                       </div>
