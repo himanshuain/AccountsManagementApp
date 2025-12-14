@@ -231,10 +231,13 @@ export function TransactionTable({
               )}
             >
               <CardContent className="p-0">
-                {/* Main Transaction Row - Tap to expand */}
+                {/* Main Transaction Row - Tap to expand if has payments */}
                 <div
-                  onClick={(e) => toggleExpanded(transaction.id, e)}
-                  className="p-3 cursor-pointer hover:bg-muted/50 active:scale-[0.99] transition-all"
+                  onClick={(e) => hasPayments && toggleExpanded(transaction.id, e)}
+                  className={cn(
+                    "p-3 transition-all",
+                    hasPayments && "cursor-pointer hover:bg-muted/50 active:scale-[0.99]"
+                  )}
                 >
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Main info */}
@@ -350,20 +353,22 @@ export function TransactionTable({
                       )}
                     </div>
 
-                    {/* Right: Expand indicator */}
-                    <div className="flex items-center">
-                      <ChevronDown
-                        className={cn(
-                          "h-5 w-5 text-muted-foreground transition-transform duration-200",
-                          isExpanded && "rotate-180",
-                        )}
-                      />
-                    </div>
+                    {/* Right: Expand indicator - only show if has payments */}
+                    {hasPayments && (
+                      <div className="flex items-center">
+                        <ChevronDown
+                          className={cn(
+                            "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                            isExpanded && "rotate-180",
+                          )}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Expandable Section - Actions + Payment History */}
-                {isExpanded && (
+                {/* Expandable Section - Actions + Payment History - only show if has payments */}
+                {isExpanded && hasPayments && (
                   <div className="border-t bg-muted/30">
                     {/* Action Buttons */}
                     <div className="p-3 flex items-center gap-2 flex-wrap">

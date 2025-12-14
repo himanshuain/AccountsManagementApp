@@ -26,6 +26,49 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
+// Custom hook for swipe gesture
+const useSwipeClose = (onClose, side) => {
+  const touchStartRef = React.useRef({ y: 0, x: 0 });
+  const touchCurrentRef = React.useRef({ y: 0, x: 0 });
+  const startTimeRef = React.useRef(0);
+
+  const handleTouchStart = React.useCallback((e) => {
+    touchStartRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
+    touchCurrentRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
+    startTimeRef.current = Date.now();
+  }, []);
+
+  const handleTouchMove = React.useCallback((e) => {
+    touchCurrentRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
+  }, []);
+
+  const handleTouchEnd = React.useCallback(() => {
+    const deltaY = touchCurrentRef.current.y - touchStartRef.current.y;
+    const deltaX = touchCurrentRef.current.x - touchStartRef.current.x;
+    const deltaTime = Date.now() - startTimeRef.current;
+    const velocity = deltaY / deltaTime;
+
+    // For bottom sheets: swipe down to close
+    if (side === "bottom") {
+      if ((deltaY > 80 || (deltaY > 40 && velocity > 0.3)) && Math.abs(deltaX) < 100) {
+        onClose?.();
+      }
+    }
+    // For top sheets: swipe up to close
+    else if (side === "top") {
+      if ((deltaY < -80 || (deltaY < -40 && velocity < -0.3)) && Math.abs(deltaX) < 100) {
+        onClose?.();
+      }
+    }
+  }, [onClose, side]);
+
+  return {
+    onTouchStart: handleTouchStart,
+    onTouchMove: handleTouchMove,
+    onTouchEnd: handleTouchEnd,
+  };
+};
+
 const sheetVariants = cva(
   "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
   {
@@ -47,26 +90,57 @@ const sheetVariants = cva(
 
 const SheetContent = React.forwardRef(
   (
-    { side = "right", className, children, hideClose = false, ...props },
+    { side = "right", className, children, hideClose = false, onOpenChange, ...props },
     ref,
-  ) => (
-    <SheetPortal>
-      <SheetOverlay />
-      <SheetPrimitive.Content
-        ref={ref}
-        className={cn(sheetVariants({ side }), className)}
-        {...props}
-      >
-        {!hideClose && (
-          <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
-        )}
-        {children}
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  ),
+  ) => {
+    // Get the onOpenChange from context if available
+    const context = React.useContext(SheetPrimitive.Root);
+    const handleClose = React.useCallback(() => {
+      // Trigger close via the close button programmatically
+      const closeButton = document.querySelector('[data-sheet-close]');
+      if (closeButton) {
+        closeButton.click();
+      }
+    }, []);
+
+    const swipeHandlers = useSwipeClose(handleClose, side);
+    const isSwipeable = side === "bottom" || side === "top";
+
+    return (
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content
+          ref={ref}
+          className={cn(sheetVariants({ side }), className)}
+          {...props}
+        >
+          {/* Swipe handle area for bottom/top sheets */}
+          {isSwipeable && (
+            <div
+              className="absolute top-0 left-0 right-0 h-16 z-10"
+              {...swipeHandlers}
+            />
+          )}
+          {!hideClose && (
+            <SheetPrimitive.Close 
+              data-sheet-close
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </SheetPrimitive.Close>
+          )}
+          {/* Hidden close button for swipe gesture */}
+          {hideClose && (
+            <SheetPrimitive.Close data-sheet-close className="sr-only">
+              <span>Close</span>
+            </SheetPrimitive.Close>
+          )}
+          {children}
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 

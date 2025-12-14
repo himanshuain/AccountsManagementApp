@@ -142,19 +142,44 @@ export default function TransactionsPage() {
   const [sortOrder, setSortOrder] = useState("date"); // date, amount-high, amount-low
   const [customerFilter, setCustomerFilter] = useState("all");
 
+  // Supplier transaction sort state
+  const [supplierSortOrder, setSupplierSortOrder] = useState("date"); // date, amount-high, amount-low
+
   // Bulk delete state for supplier transactions
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteOption, setBulkDeleteOption] = useState("6months");
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
 
-  // Filter supplier transactions
-  const filteredTransactions = transactions.filter((t) => {
-    if (statusFilter !== "all" && t.paymentStatus !== statusFilter)
-      return false;
-    if (supplierFilter !== "all" && t.supplierId !== supplierFilter)
-      return false;
-    return true;
-  });
+  // Filter and sort supplier transactions
+  const filteredTransactions = useMemo(() => {
+    let filtered = transactions.filter((t) => {
+      if (statusFilter !== "all" && t.paymentStatus !== statusFilter)
+        return false;
+      if (supplierFilter !== "all" && t.supplierId !== supplierFilter)
+        return false;
+      return true;
+    });
+
+    // Sort
+    if (supplierSortOrder === "amount-high") {
+      filtered = [...filtered].sort((a, b) => {
+        const amountA = Number(a.amount) || 0;
+        const amountB = Number(b.amount) || 0;
+        return amountB - amountA;
+      });
+    } else if (supplierSortOrder === "amount-low") {
+      filtered = [...filtered].sort((a, b) => {
+        const amountA = Number(a.amount) || 0;
+        const amountB = Number(b.amount) || 0;
+        return amountA - amountB;
+      });
+    } else {
+      // Default: sort by date (newest first)
+      filtered = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    return filtered;
+  }, [transactions, statusFilter, supplierFilter, supplierSortOrder]);
 
   // Filter and sort Udhar
   const filteredUdhar = useMemo(() => {
@@ -582,13 +607,39 @@ export default function TransactionsPage() {
                 ))}
               </SelectContent>
             </Select>
-            {(statusFilter !== "all" || supplierFilter !== "all") && (
+            <Select value={supplierSortOrder} onValueChange={setSupplierSortOrder}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">
+                  <span className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Recent
+                  </span>
+                </SelectItem>
+                <SelectItem value="amount-high">
+                  <span className="flex items-center gap-2">
+                    <SortDesc className="h-4 w-4" />
+                    Amount High
+                  </span>
+                </SelectItem>
+                <SelectItem value="amount-low">
+                  <span className="flex items-center gap-2">
+                    <SortAsc className="h-4 w-4" />
+                    Amount Low
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {(statusFilter !== "all" || supplierFilter !== "all" || supplierSortOrder !== "date") && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setStatusFilter("all");
                   setSupplierFilter("all");
+                  setSupplierSortOrder("date");
                 }}
               >
                 Clear

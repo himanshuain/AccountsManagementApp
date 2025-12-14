@@ -266,7 +266,8 @@ export default function ReportsPage() {
       }, 0);
 
       months.push({
-        month: format(current, "MMM yy"),
+        month: format(current, "MMM"),
+        monthRange: `1 - ${format(monthEnd, "d")} ${format(current, "MMM")}`,
         daily: dailyIncome,
         monthly: monthlyIncome,
         cash: cashIncome,
@@ -835,28 +836,33 @@ export default function ReportsPage() {
                       className="p-3 rounded-lg border bg-muted/30"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">{month.month}</span>
+                        <div>
+                          <span className="font-semibold">{month.month}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({month.monthRange})
+                          </span>
+                        </div>
                         <span className="font-bold text-lg">
                           ₹{month.total.toLocaleString()}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <div className="flex flex-col gap-1.5 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                           <span className="text-muted-foreground">Cash:</span>
                           <span className="font-medium text-green-600">
                             ₹{month.cash.toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                           <span className="text-muted-foreground">Online:</span>
                           <span className="font-medium text-blue-600">
                             ₹{month.online.toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                           <span className="text-muted-foreground">Udhar:</span>
                           <span className="font-medium text-amber-600">
                             ₹{month.udharPending.toLocaleString()}
