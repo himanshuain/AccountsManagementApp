@@ -16,6 +16,7 @@ import {
   Calendar,
   Trash2,
   AlertTriangle,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,6 +46,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
@@ -401,22 +408,27 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Transactions</h1>
         {mainTab === "suppliers" && transactions.length > 0 && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setBulkDeleteDialogOpen(true)}
-              disabled={!isOnline}
-              className="text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Bulk Delete
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setBulkDeleteDialogOpen(true)}
+                disabled={!isOnline}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Bulk Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -429,7 +441,7 @@ export default function TransactionsPage() {
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="gap-1.5">
             <Store className="h-4 w-4" />
-            Suppliers
+            Vyapari
           </TabsTrigger>
         </TabsList>
 
@@ -564,7 +576,7 @@ export default function TransactionsPage() {
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
                 <span className="text-sm font-medium text-center">
-                  Add Transaction
+                  Add Vyapari Transaction
                 </span>
               </CardContent>
             </Card>

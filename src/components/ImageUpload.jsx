@@ -145,10 +145,15 @@ export function ImageUpload({
             </div>
             {!disabled && (
               <Button
+                type="button"
                 variant="destructive"
                 size="icon"
                 className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={handleRemove}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRemove(e);
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -289,8 +294,7 @@ export function MultiImageUpload({
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
 
-  const handleRemove = (index, e) => {
-    e.stopPropagation();
+  const handleRemove = (index) => {
     const newValue = value.filter((_, i) => i !== index);
     onChange?.(newValue);
   };
@@ -342,10 +346,15 @@ export function MultiImageUpload({
               </div>
               {!disabled && (
                 <Button
+                  type="button"
                   variant="destructive"
                   size="icon"
                   className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => handleRemove(index, e)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRemove(index);
+                  }}
                 >
                   <X className="h-3 w-3" />
                 </Button>

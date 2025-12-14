@@ -23,12 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-export function QuickBillCapture({
-  suppliers,
-  onCapture,
-  disabled,
-  variant = "button",
-}) {
+export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "button" }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1); // 1: select supplier, 2: capture photos
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -84,7 +79,7 @@ export function QuickBillCapture({
         });
       }
 
-      setCapturedImages((prev) => [...prev, ...newImages]);
+      setCapturedImages(prev => [...prev, ...newImages]);
     } catch (error) {
       console.error("Error processing images:", error);
     } finally {
@@ -94,11 +89,11 @@ export function QuickBillCapture({
     }
   };
 
-  const handleRemoveImage = (imageId) => {
-    setCapturedImages((prev) => {
-      const updated = prev.filter((img) => img.id !== imageId);
+  const handleRemoveImage = imageId => {
+    setCapturedImages(prev => {
+      const updated = prev.filter(img => img.id !== imageId);
       // Revoke URL for removed image
-      const removed = prev.find((img) => img.id === imageId);
+      const removed = prev.find(img => img.id === imageId);
       if (removed?.preview) {
         URL.revokeObjectURL(removed.preview);
       }
@@ -108,19 +103,17 @@ export function QuickBillCapture({
 
   const handleDone = () => {
     if (capturedImages.length > 0 && selectedSupplier) {
-      const supplier = suppliers.find((s) => s.id === selectedSupplier);
+      const supplier = suppliers.find(s => s.id === selectedSupplier);
       onCapture({
         supplierId: selectedSupplier,
         supplierName: supplier?.name,
-        images: capturedImages.map((img) => img.file),
+        images: capturedImages.map(img => img.file),
       });
       handleClose();
     }
   };
 
-  const selectedSupplierName = suppliers.find(
-    (s) => s.id === selectedSupplier,
-  )?.name;
+  const selectedSupplierName = suppliers.find(s => s.id === selectedSupplier)?.name;
 
   const TileButton = () => (
     <Card
@@ -128,7 +121,7 @@ export function QuickBillCapture({
         "cursor-pointer transition-colors border-2",
         disabled || suppliers.length === 0
           ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-primary/5 hover:border-primary/50 border-primary/20 bg-primary/5",
+          : "hover:bg-primary/5 hover:border-primary/50 border-primary/20 bg-primary/5"
       )}
       onClick={disabled || suppliers.length === 0 ? undefined : handleOpen}
     >
@@ -136,10 +129,8 @@ export function QuickBillCapture({
         <div className="rounded-full bg-primary p-3">
           <Camera className="h-6 w-6 text-primary-foreground" />
         </div>
-        <span className="text-sm font-medium text-center">Quick Capture</span>
-        <span className="text-[10px] text-muted-foreground">
-          Snap bill photos
-        </span>
+        <span className="text-sm font-medium text-center">Capture Bills</span>
+        <span className="text-[10px] text-muted-foreground">Vyapari bills</span>
       </CardContent>
     </Card>
   );
@@ -165,11 +156,11 @@ export function QuickBillCapture({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
-              Quick Bill Capture
+              Capture Vyapari Bills
             </DialogTitle>
             <DialogDescription>
               {step === 1
-                ? "Select a supplier to attach the bills to"
+                ? "Select a vyapari to attach the bills to"
                 : `Capture bills for ${selectedSupplierName}`}
             </DialogDescription>
           </DialogHeader>
@@ -177,16 +168,13 @@ export function QuickBillCapture({
           {step === 1 && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Select Supplier</Label>
-                <Select
-                  value={selectedSupplier}
-                  onValueChange={setSelectedSupplier}
-                >
+                <Label>Select Vyapari</Label>
+                <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a supplier..." />
+                    <SelectValue placeholder="Choose a vyapari..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {suppliers.map((supplier) => (
+                    {suppliers.map(supplier => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         <div className="flex items-center gap-2">
                           {supplier.profilePicture ? (
@@ -212,10 +200,7 @@ export function QuickBillCapture({
                 <Button variant="outline" onClick={handleClose}>
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleSupplierSelect}
-                  disabled={!selectedSupplier}
-                >
+                <Button onClick={handleSupplierSelect} disabled={!selectedSupplier}>
                   Next
                 </Button>
               </DialogFooter>
@@ -229,7 +214,7 @@ export function QuickBillCapture({
                 <div className="space-y-2">
                   <Label>Captured Bills ({capturedImages.length})</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    {capturedImages.map((img) => (
+                    {capturedImages.map(img => (
                       <div
                         key={img.id}
                         className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted group"
@@ -280,7 +265,7 @@ export function QuickBillCapture({
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFileChange(e, true)}
+                onChange={e => handleFileChange(e, true)}
               />
               <input
                 ref={fileInputRef}
@@ -288,15 +273,11 @@ export function QuickBillCapture({
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => handleFileChange(e, false)}
+                onChange={e => handleFileChange(e, false)}
               />
 
               <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="sm:mr-auto"
-                >
+                <Button variant="outline" onClick={() => setStep(1)} className="sm:mr-auto">
                   Back
                 </Button>
                 <Button variant="outline" onClick={handleClose}>

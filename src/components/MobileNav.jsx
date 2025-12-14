@@ -53,7 +53,7 @@ const navItems = [
   },
   {
     href: "/suppliers",
-    label: "Suppliers",
+    label: "Vyapari",
     icon: Users,
     color: "bg-emerald-500",
     activeColor: "bg-emerald-600",
@@ -271,7 +271,7 @@ export function MobileNav() {
 
       {/* Bottom navigation - Colorful tiles */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t safe-area-bottom">
-        <div ref={scrollRef} className="flex items-stretch h-16 px-1">
+        <div ref={scrollRef} className="flex items-stretch h-20 px-1.5 py-1.5">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -284,18 +284,18 @@ export function MobileNav() {
                     "flex flex-col items-center justify-center h-full rounded-xl transition-all",
                     isActive
                       ? `${item.color} text-white shadow-lg scale-105`
-                      : "text-muted-foreground hover:bg-accent/50",
+                      : "text-muted-foreground hover:bg-accent/50 active:scale-95",
                   )}
                 >
                   <item.icon
                     className={cn(
-                      "h-5 w-5 mb-0.5",
+                      "h-6 w-6 mb-1",
                       !isActive && item.iconColor,
                     )}
                   />
                   <span
                     className={cn(
-                      "text-[10px] font-medium",
+                      "text-xs font-medium",
                       !isActive && "text-muted-foreground",
                     )}
                   >

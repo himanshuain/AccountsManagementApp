@@ -22,9 +22,9 @@ import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
 import useIncome from "@/hooks/useIncome";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
-import { SupplierForm } from "@/components/SupplierForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
+import { CustomerForm } from "@/components/CustomerForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,17 +39,17 @@ import { haptics } from "@/hooks/useHaptics";
 
 export default function DashboardPage() {
   const isOnline = useOnlineStatus();
-  const { suppliers, addSupplier } = useSuppliers();
+  const { suppliers } = useSuppliers();
   const { addTransaction } = useTransactions();
   const { customers, addCustomer } = useCustomers();
   const { addUdhar } = useUdhar();
   const { addIncome } = useIncome();
 
   // Form states
-  const [supplierFormOpen, setSupplierFormOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
+  const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [quickCaptureData, setQuickCaptureData] = useState(null);
 
   // For auto-opening dropdowns
@@ -76,10 +76,6 @@ export default function DashboardPage() {
       }, 100);
     }
   }, [incomeFormOpen]);
-
-  const handleAddSupplier = async (data) => {
-    await addSupplier(data);
-  };
 
   const handleAddTransaction = async (data) => {
     await addTransaction(data);
@@ -160,7 +156,9 @@ export default function DashboardPage() {
     <div className="p-4 lg:p-6 flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Dashboard
+        </h1>
         <p className="text-muted-foreground text-sm">
           Quick actions for your shop
         </p>
@@ -170,29 +168,32 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-4 flex-1">
         {/* Vyapari Bill (Quick Bill Capture) */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] ${
+          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
             isOnline && suppliers.length > 0
-              ? "hover:shadow-lg hover:border-blue-500/50 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20"
-              : "opacity-50 cursor-not-allowed"
+              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-indigo-500 to-purple-600"
+              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-indigo-400 to-purple-500"
           }`}
           onClick={openVyapariBill}
         >
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-blue-500 p-4 mb-3 shadow-lg">
+            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
               <Store className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center">
-              Vyapari Bill
+            <span className="text-base font-semibold text-center text-white">
+              Capture Vyapari Bill
+            </span>
+            <span className="text-xs text-white/70 mt-1">
+              Quick scan
             </span>
           </CardContent>
         </Card>
 
         {/* Daily Income */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] ${
+          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
             isOnline
-              ? "hover:shadow-lg hover:border-green-500/50 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20"
-              : "opacity-50 cursor-not-allowed"
+              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-emerald-500 to-teal-600"
+              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-emerald-400 to-teal-500"
           }`}
           onClick={() => {
             haptics.light();
@@ -205,46 +206,46 @@ export default function DashboardPage() {
           }}
         >
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-green-500 p-4 mb-3 shadow-lg">
+            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
               <IndianRupee className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center">
+            <span className="text-base font-semibold text-center text-white">
               Daily Income
             </span>
-            <span className="text-xs text-muted-foreground mt-1">
-              Record shop earnings
+            <span className="text-xs text-white/70 mt-1">
+              Record earnings
             </span>
           </CardContent>
         </Card>
 
         {/* Add Udhar */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] ${
+          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
             isOnline
-              ? "hover:shadow-lg hover:border-amber-500/50 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20"
-              : "opacity-50 cursor-not-allowed"
+              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-orange-500 to-rose-500"
+              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-orange-400 to-rose-400"
           }`}
           onClick={openAddUdhar}
         >
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-amber-500 p-4 mb-3 shadow-lg">
+            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
               <Banknote className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center">
+            <span className="text-base font-semibold text-center text-white">
               Add Udhar
             </span>
-            <span className="text-xs text-muted-foreground mt-1">
+            <span className="text-xs text-white/70 mt-1">
               Customer lending
             </span>
           </CardContent>
         </Card>
 
-        {/* Add Supplier */}
+        {/* Add Customer */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] ${
+          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
             isOnline
-              ? "hover:shadow-lg hover:border-purple-500/50 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20"
-              : "opacity-50 cursor-not-allowed"
+              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-cyan-500 to-blue-600"
+              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-cyan-400 to-blue-500"
           }`}
           onClick={() => {
             haptics.light();
@@ -253,49 +254,24 @@ export default function DashboardPage() {
               toast.error("Cannot add while offline");
               return;
             }
-            setSupplierFormOpen(true);
+            setCustomerFormOpen(true);
           }}
         >
           <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-purple-500 p-4 mb-3 shadow-lg">
+            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
               <UserPlus className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center">
-              Add Supplier
+            <span className="text-base font-semibold text-center text-white">
+              Add Customer
             </span>
-            <span className="text-xs text-muted-foreground mt-1">
-              New business contact
+            <span className="text-xs text-white/70 mt-1">
+              New customer
             </span>
           </CardContent>
         </Card>
       </div>
 
-      {/* Add Transaction Button */}
-      <div className="mt-4">
-        <Button
-          className="w-full h-12 text-base"
-          onClick={() => {
-            haptics.light();
-            if (!isOnline) {
-              haptics.error();
-              toast.error("Cannot add while offline");
-              return;
-            }
-            setTransactionFormOpen(true);
-          }}
-          disabled={!isOnline || suppliers.length === 0}
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Add Transaction
-        </Button>
-      </div>
-
       {/* Forms */}
-      <SupplierForm
-        open={supplierFormOpen}
-        onOpenChange={setSupplierFormOpen}
-        onSubmit={handleAddSupplier}
-      />
 
       <TransactionForm
         open={transactionFormOpen}
@@ -324,6 +300,21 @@ export default function DashboardPage() {
         onAddCustomer={addCustomer}
         customers={customers}
         autoOpenCustomerDropdown={customerDropdownOpen}
+      />
+
+      {/* Customer Form */}
+      <CustomerForm
+        open={customerFormOpen}
+        onOpenChange={setCustomerFormOpen}
+        onSubmit={async (data) => {
+          const result = await addCustomer(data);
+          if (result.success) {
+            toast.success("Customer added successfully");
+          } else {
+            toast.error("Failed to add customer");
+          }
+        }}
+        title="Add Customer"
       />
 
       {/* Daily Income Form - Sheet sliding from top */}

@@ -23,6 +23,7 @@ import {
   ImagePlus,
   Calendar,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import { ImageViewer } from "@/components/ImageViewer";
 import { compressImage } from "@/lib/image-compression";
@@ -65,6 +66,7 @@ import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionTable } from "@/components/TransactionTable";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { toast } from "sonner";
+import { exportSupplierTransactionsPDF } from "@/lib/export";
 
 export default function SupplierDetailPage({ params }) {
   const { id } = use(params);
@@ -657,16 +659,34 @@ export default function SupplierDetailPage({ params }) {
           <h2 className="text-lg font-semibold">Transactions</h2>
           <div className="flex items-center gap-2">
             {transactions.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setBulkDeleteDialogOpen(true)}
-                disabled={!isOnline}
-                className="text-destructive border-destructive/30 hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Bulk Delete
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    try {
+                      exportSupplierTransactionsPDF(supplier, transactions);
+                      toast.success("PDF exported successfully");
+                    } catch (error) {
+                      console.error("PDF export failed:", error);
+                      toast.error("Failed to export PDF");
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                  disabled={!isOnline}
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Bulk Delete
+                </Button>
+              </>
             )}
             <Button
               size="sm"

@@ -72,8 +72,12 @@ export function TransactionTable({
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [expandedTransactions, setExpandedTransactions] = useState({});
 
+  const getSupplier = (supplierId) => {
+    return suppliers?.find((s) => s.id === supplierId);
+  };
+
   const getSupplierName = (supplierId) => {
-    const supplier = suppliers?.find((s) => s.id === supplierId);
+    const supplier = getSupplier(supplierId);
     return supplier?.companyName || supplier?.name || "Unknown";
   };
 
@@ -235,16 +239,34 @@ export function TransactionTable({
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Main info */}
                     <div className="flex-1 min-w-0">
-                      {/* Supplier Name - Most prominent at top */}
-                      {showSupplier && (
-                        <Link
-                          href={`/suppliers/${transaction.supplierId}`}
-                          className="font-bold text-base hover:text-primary transition-colors block truncate mb-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {getSupplierName(transaction.supplierId)}
-                        </Link>
-                      )}
+                      {/* Supplier with DP */}
+                      {showSupplier && (() => {
+                        const supplier = getSupplier(transaction.supplierId);
+                        return (
+                          <Link
+                            href={`/suppliers/${transaction.supplierId}`}
+                            className="flex items-center gap-2 mb-1 hover:opacity-80 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {supplier?.profilePicture ? (
+                              <img
+                                src={supplier.profilePicture}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-semibold text-primary">
+                                  {(supplier?.name || "?").charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="font-bold text-base truncate">
+                              {getSupplierName(transaction.supplierId)}
+                            </span>
+                          </Link>
+                        );
+                      })()}
 
                       <div className="flex items-center gap-2 mb-1">
                         {/* Amount */}

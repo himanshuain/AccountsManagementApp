@@ -130,13 +130,37 @@ export function TransactionForm({
       const finalBillImages =
         pendingFiles.length > 0 ? uploadedUrls : billImages;
 
+      // Calculate payment status based on existing payments and new amount
+      const newAmount = Number(data.amount) || 0;
+      const existingPaidAmount = initialData?.paidAmount || 0;
+      const existingPayments = initialData?.payments || [];
+
+      let calculatedPaymentStatus;
+      if (isPaid) {
+        calculatedPaymentStatus = "paid";
+      } else if (existingPaidAmount > 0) {
+        // If there are existing payments, check if they cover the new amount
+        if (existingPaidAmount >= newAmount) {
+          calculatedPaymentStatus = "paid";
+        } else {
+          calculatedPaymentStatus = "partial";
+        }
+      } else {
+        calculatedPaymentStatus = "pending";
+      }
+
       await onSubmit({
         ...data,
         supplierId: selectedSupplierId,
-        paymentStatus: isPaid ? "paid" : "pending",
+        paymentStatus: calculatedPaymentStatus,
         paymentMode: isCash ? "cash" : "upi",
         billImages: finalBillImages,
-        amount: Number(data.amount) || 0,
+        amount: newAmount,
+        // Preserve existing payments and paidAmount when editing
+        ...(initialData && {
+          payments: existingPayments,
+          paidAmount: existingPaidAmount,
+        }),
       });
       reset();
       setBillImages([]);
@@ -313,6 +337,22 @@ export function TransactionForm({
                 <p className="text-xs text-destructive">
                   {errors.amount.message}
                 </p>
+              )}
+              {/* Show existing payment info when editing */}
+              {initialData?.paidAmount > 0 && (
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <p className="text-sm text-green-700">
+                    Already paid: ₹{initialData.paidAmount.toLocaleString()}
+                    {initialData.payments?.length > 0 && (
+                      <span className="text-xs ml-2">
+                        ({initialData.payments.length} payment{initialData.payments.length > 1 ? "s" : ""})
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Payment history will be preserved when you save.
+                  </p>
+                </div>
               )}
             </div>
 
