@@ -12,15 +12,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 
@@ -33,7 +27,6 @@ export function UdharForm({
   initialData = null,
   defaultCustomerId = null,
   title = "Add Udhar",
-  autoOpenCustomerDropdown = false,
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,16 +37,6 @@ export function UdharForm({
     initialData?.customerId || defaultCustomerId || "",
   );
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
-  const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
-
-  // Auto-open customer dropdown when requested
-  useEffect(() => {
-    if (open && autoOpenCustomerDropdown && !selectedCustomerId) {
-      setTimeout(() => {
-        setCustomerSelectOpen(true);
-      }, 500);
-    }
-  }, [open, autoOpenCustomerDropdown, selectedCustomerId]);
 
   const defaultFormValues = {
     date: new Date().toISOString().split("T")[0],
@@ -209,27 +192,20 @@ export function UdharForm({
               <div className="space-y-2">
                 <Label>Customer *</Label>
                 <div className="flex gap-2">
-                  <Select
-                    value={selectedCustomerId}
-                    onValueChange={(val) => {
-                      setSelectedCustomerId(val);
-                      setCustomerSelectOpen(false);
-                    }}
-                    disabled={!!defaultCustomerId || !isOnline}
-                    open={customerSelectOpen}
-                    onOpenChange={setCustomerSelectOpen}
-                  >
-                    <SelectTrigger className="flex-1 text-base h-12">
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1">
+                    <Autocomplete
+                      options={customers}
+                      value={selectedCustomerId}
+                      onValueChange={setSelectedCustomerId}
+                      placeholder="Select customer"
+                      searchPlaceholder="Search customer..."
+                      emptyText="No customer found"
+                      disabled={!!defaultCustomerId || !isOnline}
+                      getOptionLabel={(opt) => opt?.name || ""}
+                      getOptionValue={(opt) => opt?.id || ""}
+                      triggerClassName="h-12 text-base"
+                    />
+                  </div>
                   <Button
                     type="button"
                     variant="outline"

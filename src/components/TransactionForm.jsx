@@ -6,22 +6,11 @@ import { Loader2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 export function TransactionForm({
@@ -33,49 +22,37 @@ export function TransactionForm({
   defaultSupplierId = null,
   quickCaptureData = null,
   title = "Add Transaction",
-  autoOpenSupplierDropdown = false,
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billImages, setBillImages] = useState(initialData?.billImages || []);
   const [pendingFiles, setPendingFiles] = useState([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState(
-    initialData?.supplierId || defaultSupplierId || "",
+    initialData?.supplierId || defaultSupplierId || ""
   );
-  const [isPaid, setIsPaid] = useState(
-    initialData?.paymentStatus === "paid" || false,
-  );
-  const [isCash, setIsCash] = useState(
-    initialData?.paymentMode === "cash" || false,
-  );
-  const [supplierSelectOpen, setSupplierSelectOpen] = useState(false);
-
-  // Auto-open supplier dropdown when requested
-  useEffect(() => {
-    if (open && autoOpenSupplierDropdown && !selectedSupplierId) {
-      setTimeout(() => {
-        setSupplierSelectOpen(true);
-      }, 500);
-    }
-  }, [open, autoOpenSupplierDropdown, selectedSupplierId]);
-
+  const [isPaid, setIsPaid] = useState(initialData?.paymentStatus === "paid" || false);
+  const [isCash, setIsCash] = useState(initialData?.paymentMode === "cash" || false);
   useEffect(() => {
     if (open && quickCaptureData) {
       setSelectedSupplierId(quickCaptureData.supplierId);
       setPendingFiles(quickCaptureData.images || []);
-      const previews =
-        quickCaptureData.images?.map((file) => URL.createObjectURL(file)) || [];
+      const previews = quickCaptureData.images?.map(file => URL.createObjectURL(file)) || [];
       setBillImages(previews);
     }
   }, [open, quickCaptureData]);
 
-  // Reset switches when initialData changes
+  // Reset form state when opening
   useEffect(() => {
     if (open) {
       setIsPaid(initialData?.paymentStatus === "paid" || false);
       setIsCash(initialData?.paymentMode === "cash" || false);
+      // Set supplier from initialData or defaultSupplierId
+      setSelectedSupplierId(initialData?.supplierId || defaultSupplierId || "");
+      // Reset bill images
+      setBillImages(initialData?.billImages || []);
+      setPendingFiles([]);
     }
-  }, [open, initialData]);
+  }, [open, initialData, defaultSupplierId]);
 
   const {
     register,
@@ -91,7 +68,7 @@ export function TransactionForm({
     },
   });
 
-  const handleFormSubmit = async (data) => {
+  const handleFormSubmit = async data => {
     if (!selectedSupplierId || !isOnline) {
       return;
     }
@@ -114,9 +91,9 @@ export function TransactionForm({
               const { url } = await response.json();
               uploadedUrls.push(url);
             } else {
-              const localUrl = await new Promise((resolve) => {
+              const localUrl = await new Promise(resolve => {
                 const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
+                reader.onload = e => resolve(e.target.result);
                 reader.readAsDataURL(file);
               });
               uploadedUrls.push(localUrl);
@@ -127,8 +104,7 @@ export function TransactionForm({
         }
       }
 
-      const finalBillImages =
-        pendingFiles.length > 0 ? uploadedUrls : billImages;
+      const finalBillImages = pendingFiles.length > 0 ? uploadedUrls : billImages;
 
       // Calculate payment status based on existing payments and new amount
       const newAmount = Number(data.amount) || 0;
@@ -179,9 +155,7 @@ export function TransactionForm({
   const handleClose = () => {
     if (!isSubmitting) {
       if (isDirty || billImages.length > 0 || pendingFiles.length > 0) {
-        if (
-          !confirm("You have unsaved changes. Are you sure you want to close?")
-        ) {
+        if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
           return;
         }
       }
@@ -197,11 +171,7 @@ export function TransactionForm({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent
-        side="bottom"
-        className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
-        hideClose
-      >
+      <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0 flex flex-col" hideClose>
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
@@ -220,9 +190,7 @@ export function TransactionForm({
               <X className="h-4 w-4 mr-1" />
               Cancel
             </Button>
-            <SheetTitle className="text-base font-semibold flex-1 text-center">
-              {title}
-            </SheetTitle>
+            <SheetTitle className="text-base font-semibold flex-1 text-center">{title}</SheetTitle>
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
@@ -242,10 +210,7 @@ export function TransactionForm({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 pb-safe">
-          <form
-            onSubmit={handleSubmit(handleFormSubmit)}
-            className="space-y-5 py-4"
-          >
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
             {/* Offline warning */}
             {!isOnline && (
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
@@ -255,28 +220,19 @@ export function TransactionForm({
 
             {/* Supplier Selection */}
             <div className="space-y-2">
-              <Label>Supplier *</Label>
-              <Select
+              <Label>Vyapari *</Label>
+              <Autocomplete
+                options={suppliers}
                 value={selectedSupplierId}
-                onValueChange={(val) => {
-                  setSelectedSupplierId(val);
-                  setSupplierSelectOpen(false);
-                }}
+                onValueChange={setSelectedSupplierId}
+                placeholder="Select vyapari"
+                searchPlaceholder="Search vyapari..."
+                emptyText="No vyapari found"
                 disabled={!!defaultSupplierId}
-                open={supplierSelectOpen}
-                onOpenChange={setSupplierSelectOpen}
-              >
-                <SelectTrigger className="text-base h-12">
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.companyName || supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                getOptionLabel={opt => opt?.companyName || opt?.name || ""}
+                getOptionValue={opt => opt?.id || ""}
+                triggerClassName="h-12 text-base"
+              />
             </div>
 
             {/* Bill Images - Moved to top */}
@@ -333,11 +289,7 @@ export function TransactionForm({
                 placeholder="Enter amount"
                 className="text-2xl h-14 font-semibold"
               />
-              {errors.amount && (
-                <p className="text-xs text-destructive">
-                  {errors.amount.message}
-                </p>
-              )}
+              {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
               {/* Show existing payment info when editing */}
               {initialData?.paidAmount > 0 && (
                 <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
@@ -345,7 +297,8 @@ export function TransactionForm({
                     Already paid: ₹{initialData.paidAmount.toLocaleString()}
                     {initialData.payments?.length > 0 && (
                       <span className="text-xs ml-2">
-                        ({initialData.payments.length} payment{initialData.payments.length > 1 ? "s" : ""})
+                        ({initialData.payments.length} payment
+                        {initialData.payments.length > 1 ? "s" : ""})
                       </span>
                     )}
                   </p>

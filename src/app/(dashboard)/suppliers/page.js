@@ -22,6 +22,8 @@ import {
   CheckCircle,
   CheckCircle2,
   MoreVertical,
+  Image as ImageIcon,
+  Receipt,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,7 +47,8 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { exportSuppliers, exportSupplierTransactionsPDF } from "@/lib/export";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ImageViewer } from "@/components/ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
+import { ImageUpload } from "@/components/ImageUpload";
 import { Label } from "@/components/ui/label";
 
 export default function SuppliersPage() {
@@ -79,6 +82,11 @@ export default function SuppliersPage() {
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [transactionToPay, setTransactionToPay] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
+  
+  // Bill gallery viewer
+  const [billGalleryOpen, setBillGalleryOpen] = useState(false);
+  const [billGalleryImages, setBillGalleryImages] = useState([]);
 
   // Calculate stats for each supplier
   const suppliersWithStats = useMemo(() => {
@@ -209,6 +217,7 @@ export default function SuppliersPage() {
     }
     setTransactionToPay(txn);
     setPaymentAmount("");
+    setPaymentReceipt(null);
     setPaymentSheetOpen(true);
   };
 
@@ -219,12 +228,13 @@ export default function SuppliersPage() {
       toast.error("Please enter a valid amount");
       return;
     }
-    const result = await recordPayment(transactionToPay.id, amount);
+    const result = await recordPayment(transactionToPay.id, amount, paymentReceipt);
     if (result.success) {
       toast.success("Payment recorded");
       setPaymentSheetOpen(false);
       setTransactionToPay(null);
       setPaymentAmount("");
+      setPaymentReceipt(null);
     } else {
       toast.error("Failed to record payment");
     }
@@ -232,13 +242,22 @@ export default function SuppliersPage() {
 
   const handleMarkFullPaid = async () => {
     if (!transactionToPay) return;
-    const result = await markFullPaid(transactionToPay.id);
+    const result = await markFullPaid(transactionToPay.id, paymentReceipt);
     if (result.success) {
       toast.success("Marked as fully paid");
       setPaymentSheetOpen(false);
       setTransactionToPay(null);
+      setPaymentReceipt(null);
     } else {
       toast.error("Failed to mark as paid");
+    }
+  };
+  
+  const handleViewBillImages = (images, e) => {
+    e?.stopPropagation();
+    if (images && images.length > 0) {
+      setBillGalleryImages(images);
+      setBillGalleryOpen(true);
     }
   };
 
@@ -407,7 +426,14 @@ export default function SuppliersPage() {
       )}
 
       {/* Supplier Detail Drawer */}
-      <Sheet open={!!selectedSupplier} onOpenChange={open => !open && setSelectedSupplier(null)}>
+      <Sheet 
+        open={!!selectedSupplier} 
+        onOpenChange={open => {
+          // Don't close if image viewer is open
+          if (!open && (imageViewerOpen || billGalleryOpen)) return;
+          if (!open) setSelectedSupplier(null);
+        }}
+      >
         <SheetContent side="bottom" className="rounded-t-2xl h-[90vh] p-0" hideClose>
           {selectedSupplier &&
             (() => {
@@ -699,6 +725,17 @@ export default function SuppliersPage() {
                                           Pay
                                         </Button>
                                       )}
+                                      {txn.billImages && txn.billImages.length > 0 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                                          onClick={e => handleViewBillImages(txn.billImages, e)}
+                                        >
+                                          <ImageIcon className="h-3 w-3 mr-1" />
+                                          Bills ({txn.billImages.length})
+                                        </Button>
+                                      )}
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -746,6 +783,21 @@ export default function SuppliersPage() {
                                                       <span className="text-xs text-muted-foreground">
                                                         — {formatRelativeDate(payment.date)}
                                                       </span>
+                                                      {payment.receiptUrl && (
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="h-6 px-2 text-xs text-blue-600"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setImageViewerSrc(payment.receiptUrl);
+                                                            setImageViewerOpen(true);
+                                                          }}
+                                                        >
+                                                          <Receipt className="h-3 w-3 mr-1" />
+                                                          Receipt
+                                                        </Button>
+                                                      )}
                                                     </div>
                                                     {payment.isFinalPayment && (
                                                       <span className="text-xs text-green-600">
@@ -800,6 +852,13 @@ export default function SuppliersPage() {
 
       {/* Image Viewer */}
       <ImageViewer open={imageViewerOpen} onOpenChange={setImageViewerOpen} src={imageViewerSrc} />
+      
+      {/* Bill Gallery Viewer */}
+      <ImageGalleryViewer 
+        open={billGalleryOpen} 
+        onOpenChange={setBillGalleryOpen} 
+        images={billGalleryImages} 
+      />
 
       {/* Supplier Form (Add/Edit) */}
       <SupplierForm
@@ -898,6 +957,19 @@ export default function SuppliersPage() {
                   onChange={e => setPaymentAmount(e.target.value)}
                   className="text-lg"
                 />
+              </div>
+
+              {/* Receipt Upload */}
+              <div className="space-y-2">
+                <Label>Payment Receipt (Optional)</Label>
+                <div className="w-24">
+                  <ImageUpload
+                    value={paymentReceipt}
+                    onChange={setPaymentReceipt}
+                    placeholder="Receipt"
+                    aspectRatio="square"
+                  />
+                </div>
               </div>
 
               {/* Action Buttons */}

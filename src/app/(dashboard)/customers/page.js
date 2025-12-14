@@ -125,6 +125,7 @@ export default function CustomersPage() {
   const [quickCollectCustomer, setQuickCollectCustomer] = useState(null);
   const [quickCollectAmount, setQuickCollectAmount] = useState("");
   const [quickCollectReceipts, setQuickCollectReceipts] = useState([]);
+  const [quickCollectNotes, setQuickCollectNotes] = useState("");
   const [isUploadingQuickReceipt, setIsUploadingQuickReceipt] = useState(false);
   const quickCollectInputRef = useRef(null);
   const quickReceiptInputRef = useRef(null);
@@ -133,6 +134,7 @@ export default function CustomersPage() {
   // Quick add udhar state
   const quickAddInputRef = useRef(null);
   const [quickAddBillImages, setQuickAddBillImages] = useState([]);
+  const [quickAddNotes, setQuickAddNotes] = useState("");
   const [isUploadingQuickAddBill, setIsUploadingQuickAddBill] = useState(false);
   const [isSubmittingQuickAdd, setIsSubmittingQuickAdd] = useState(false);
   const quickAddBillInputRef = useRef(null);
@@ -272,7 +274,7 @@ export default function CustomersPage() {
         customerId: customerId,
         amount: Number(quickAddAmount),
         date: new Date().toISOString().split("T")[0],
-        notes: "",
+        notes: quickAddNotes,
         billImages: quickAddBillImages,
       });
 
@@ -281,6 +283,7 @@ export default function CustomersPage() {
         setQuickAddOpen(false);
         setQuickAddAmount("");
         setQuickAddBillImages([]);
+        setQuickAddNotes("");
         setQuickAddCustomer(null);
         // Keep the collapsible open for the customer
         setExpandedCustomerId(customerId);
@@ -559,6 +562,7 @@ export default function CustomersPage() {
     setQuickCollectCustomer(customer);
     setQuickCollectAmount(customer.pendingAmount.toString());
     setQuickCollectReceipts([]);
+    setQuickCollectNotes("");
     setQuickCollectOpen(true);
   };
 
@@ -608,11 +612,12 @@ export default function CustomersPage() {
         if (pending <= 0) continue;
 
         const paymentForThis = Math.min(remainingAmount, pending);
-        // Only attach receipt to the first payment
+        // Only attach receipt and notes to the first payment
         const result = await recordDeposit(
           udhar.id,
           paymentForThis,
           isFirstPayment ? receiptUrl : null,
+          isFirstPayment ? quickCollectNotes : null,
         );
 
         if (!result.success) {
@@ -630,6 +635,7 @@ export default function CustomersPage() {
       setQuickCollectCustomer(null);
       setQuickCollectAmount("");
       setQuickCollectReceipts([]);
+      setQuickCollectNotes("");
       // Keep the collapsible open for the customer
       setExpandedCustomerId(customerId);
     } finally {
@@ -1156,6 +1162,7 @@ export default function CustomersPage() {
                   setQuickAddOpen(false);
                   setQuickAddAmount("");
                   setQuickAddBillImages([]);
+                  setQuickAddNotes("");
                 }}
                 className="h-9 px-3"
               >
@@ -1201,6 +1208,17 @@ export default function CustomersPage() {
                   onChange={(e) => setQuickAddAmount(e.target.value)}
                   placeholder="Enter amount"
                   className="text-3xl h-16 font-bold text-center"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Input
+                  value={quickAddNotes}
+                  onChange={(e) => setQuickAddNotes(e.target.value)}
+                  placeholder="Enter notes"
+                  className="h-10"
                 />
               </div>
 
@@ -1309,6 +1327,7 @@ export default function CustomersPage() {
                   setQuickCollectCustomer(null);
                   setQuickCollectAmount("");
                   setQuickCollectReceipts([]);
+                  setQuickCollectNotes("");
                 }}
                 className="h-9 px-3"
               >
@@ -1367,6 +1386,17 @@ export default function CustomersPage() {
                   onChange={(e) => setQuickCollectAmount(e.target.value)}
                   placeholder="Enter amount"
                   className="text-3xl h-16 font-bold text-center"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Input
+                  value={quickCollectNotes}
+                  onChange={(e) => setQuickCollectNotes(e.target.value)}
+                  placeholder="Enter notes"
+                  className="h-10"
                 />
               </div>
 

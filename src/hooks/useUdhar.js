@@ -124,7 +124,7 @@ export function useUdhar() {
   );
 
   const recordDeposit = useCallback(
-    async (id, amount, receiptUrl = null) => {
+    async (id, amount, receiptUrl = null, notes = null) => {
       const udhar = udharList.find((u) => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
@@ -139,6 +139,7 @@ export function useUdhar() {
         amount: amount,
         date: new Date().toISOString(),
         receiptUrl: receiptUrl,
+        notes: notes,
       };
 
       const updates = {
