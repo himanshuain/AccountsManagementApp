@@ -70,7 +70,12 @@ function buildTransformUrl(imageUrl, transformString) {
  * @returns {Object} Object containing src, lqip, and thumbnail URLs
  */
 export function getOptimizedImageUrl(imagePath, options = {}) {
-  if (!imagePath) return { src: "", lqip: "", thumbnail: "", original: "" };
+  const emptyResult = { src: "", lqip: "", thumbnail: "", medium: "", original: "" };
+  
+  // Handle null, undefined, or non-string values
+  if (!imagePath || typeof imagePath !== "string") {
+    return emptyResult;
+  }
   
   // If it's a base64 data URL, return as-is
   if (imagePath.startsWith("data:")) {
@@ -78,6 +83,7 @@ export function getOptimizedImageUrl(imagePath, options = {}) {
       src: imagePath, 
       lqip: imagePath, 
       thumbnail: imagePath,
+      medium: imagePath,
       original: imagePath,
     };
   }
@@ -88,6 +94,7 @@ export function getOptimizedImageUrl(imagePath, options = {}) {
       src: imagePath, 
       lqip: imagePath, 
       thumbnail: imagePath,
+      medium: imagePath,
       original: imagePath,
     };
   }
@@ -223,7 +230,7 @@ export async function deleteFromImageKit(fileId) {
   return response.ok;
 }
 
-export default {
+const imageKitUtils = {
   isImageKitConfigured,
   getImageKitUrlEndpoint,
   getOptimizedImageUrl,
@@ -231,4 +238,6 @@ export default {
   uploadToImageKit,
   deleteFromImageKit,
 };
+
+export default imageKitUtils;
 

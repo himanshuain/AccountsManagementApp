@@ -1042,34 +1042,37 @@ export default function TransactionsPage() {
                   {allReceipts.map((receipt, idx) => (
                     <div
                       key={idx}
-                      className="relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer group"
+                      className="relative rounded-lg overflow-hidden border bg-muted cursor-pointer"
                       onClick={() => {
                         setReceiptGalleryImages(allReceipts.map(r => r.url));
                         setReceiptGalleryInitialIndex(idx);
                         setReceiptGalleryOpen(true);
                       }}
                     >
-                      <img
-                        src={receipt.url}
-                        alt={`${receipt.type} ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="absolute bottom-0 left-0 right-0 p-2 text-white text-xs">
-                          <p className="font-medium truncate">{receipt.customerName}</p>
-                          <p className="opacity-75">₹{receipt.amount?.toLocaleString()}</p>
+                      <div className="aspect-square">
+                        <img
+                          src={receipt.url}
+                          alt={`${receipt.type} ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {/* Info always visible */}
+                      <div className="p-2 bg-card border-t">
+                        <p className="text-xs font-medium truncate">{receipt.customerName}</p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-xs text-muted-foreground">₹{receipt.amount?.toLocaleString()}</span>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] px-1.5 py-0 ${
+                              receipt.type === "receipt" 
+                                ? "bg-green-100 text-green-700" 
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {receipt.type === "receipt" ? "Receipt" : "Bill"}
+                          </Badge>
                         </div>
                       </div>
-                      <Badge
-                        variant="secondary"
-                        className={`absolute top-1 right-1 text-[10px] px-1.5 py-0 ${
-                          receipt.type === "receipt" 
-                            ? "bg-green-100 text-green-700" 
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {receipt.type === "receipt" ? "Receipt" : "Bill"}
-                      </Badge>
                     </div>
                   ))}
                 </div>

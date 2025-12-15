@@ -93,8 +93,7 @@ const SheetContent = React.forwardRef(
     { side = "right", className, children, hideClose = false, onOpenChange, ...props },
     ref,
   ) => {
-    // Get the onOpenChange from context if available
-    const context = React.useContext(SheetPrimitive.Root);
+    const contentRef = React.useRef(null);
     const handleClose = React.useCallback(() => {
       // Trigger close via the close button programmatically
       const closeButton = document.querySelector('[data-sheet-close]');
@@ -106,21 +105,64 @@ const SheetContent = React.forwardRef(
     const swipeHandlers = useSwipeClose(handleClose, side);
     const isSwipeable = side === "bottom" || side === "top";
 
+    // Enhanced touch handlers that work on the entire content
+    const touchStartRef = React.useRef({ y: 0, x: 0, scrollTop: 0 });
+    const [isDragging, setIsDragging] = React.useState(false);
+
+    const handleContentTouchStart = React.useCallback((e) => {
+      const scrollableParent = e.target.closest('[data-scroll-area]') || 
+                               e.target.closest('.overflow-y-auto') ||
+                               e.target.closest('.overflow-auto');
+      const scrollTop = scrollableParent?.scrollTop || 0;
+      
+      touchStartRef.current = { 
+        y: e.touches[0].clientY, 
+        x: e.touches[0].clientX,
+        scrollTop 
+      };
+      setIsDragging(false);
+    }, []);
+
+    const handleContentTouchMove = React.useCallback((e) => {
+      const deltaY = e.touches[0].clientY - touchStartRef.current.y;
+      const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+      
+      // Check if we're at the top of scroll and swiping down (for bottom sheet)
+      // or at bottom and swiping up (for top sheet)
+      if (side === "bottom" && deltaY > 10 && deltaX < 50 && touchStartRef.current.scrollTop <= 0) {
+        setIsDragging(true);
+      } else if (side === "top" && deltaY < -10 && deltaX < 50) {
+        setIsDragging(true);
+      }
+    }, [side]);
+
+    const handleContentTouchEnd = React.useCallback((e) => {
+      if (!isDragging) return;
+      
+      const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+      const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartRef.current.x);
+      
+      // Close if swiped enough (80px or more) in the correct direction
+      if (side === "bottom" && deltaY > 80 && deltaX < 100) {
+        handleClose();
+      } else if (side === "top" && deltaY < -80 && deltaX < 100) {
+        handleClose();
+      }
+      
+      setIsDragging(false);
+    }, [isDragging, side, handleClose]);
+
     return (
       <SheetPortal>
         <SheetOverlay />
         <SheetPrimitive.Content
           ref={ref}
           className={cn(sheetVariants({ side }), className)}
+          onTouchStart={isSwipeable ? handleContentTouchStart : undefined}
+          onTouchMove={isSwipeable ? handleContentTouchMove : undefined}
+          onTouchEnd={isSwipeable ? handleContentTouchEnd : undefined}
           {...props}
         >
-          {/* Swipe handle area for bottom/top sheets - only covers the drag handle, not buttons */}
-          {isSwipeable && (
-            <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-8 z-10"
-              {...swipeHandlers}
-            />
-          )}
           {!hideClose && (
             <SheetPrimitive.Close 
               data-sheet-close

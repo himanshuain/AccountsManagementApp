@@ -70,7 +70,7 @@ import { UdharForm } from "@/components/UdharForm";
 import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageViewer } from "@/components/ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 
 export default function CustomersPage() {
@@ -159,6 +159,10 @@ export default function CustomersPage() {
   // Image viewer state
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
+  
+  // Gallery viewer state (for multiple images)
+  const [galleryViewerOpen, setGalleryViewerOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState([]);
 
   // Payment deletion state
   const [deletePaymentDialogOpen, setDeletePaymentDialogOpen] = useState(false);
@@ -1062,8 +1066,8 @@ export default function CustomersPage() {
                                 className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-muted cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setImageViewerSrc(customerKhataPhotos);
-                                  setImageViewerOpen(true);
+                                  setGalleryImages(customerKhataPhotos);
+                                  setGalleryViewerOpen(true);
                                 }}
                               >
                                 <img
@@ -1078,8 +1082,8 @@ export default function CustomersPage() {
                                 className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted flex items-center justify-center cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setImageViewerSrc(customerKhataPhotos);
-                                  setImageViewerOpen(true);
+                                  setGalleryImages(customerKhataPhotos);
+                                  setGalleryViewerOpen(true);
                                 }}
                               >
                                 <span className="text-xs text-muted-foreground">
@@ -2351,8 +2355,8 @@ export default function CustomersPage() {
                                             className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-muted cursor-pointer"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              setImageViewerSrc([...(txn.khataPhotos || []), ...(txn.billImages || [])]);
-                                              setImageViewerOpen(true);
+                                              setGalleryImages([...(txn.khataPhotos || []), ...(txn.billImages || [])]);
+                                              setGalleryViewerOpen(true);
                                             }}
                                           >
                                             <img src={photo} alt={`Bill ${idx + 1}`} className="w-full h-full object-cover" />
@@ -2471,6 +2475,13 @@ export default function CustomersPage() {
         alt="Profile Picture"
         open={imageViewerOpen}
         onOpenChange={setImageViewerOpen}
+      />
+      
+      {/* Gallery Viewer for multiple images */}
+      <ImageGalleryViewer
+        images={galleryImages}
+        open={galleryViewerOpen}
+        onOpenChange={setGalleryViewerOpen}
       />
     </div>
   );

@@ -42,7 +42,6 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/suppliers", label: "Vyapari", icon: Users },
   { href: "/customers", label: "Customers", icon: UserCircle },
-  { href: "/transactions", label: "Transactions", icon: Receipt },
   { href: "/reports", label: "Revenue", icon: BarChart3 },
 ];
 

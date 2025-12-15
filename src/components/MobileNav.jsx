@@ -66,14 +66,6 @@ const navItems = [
     iconColor: "text-orange-500",
   },
   {
-    href: "/transactions",
-    label: "Txns",
-    icon: Receipt,
-    color: "bg-purple-500",
-    activeColor: "bg-purple-600",
-    iconColor: "text-purple-500",
-  },
-  {
     href: "/reports",
     label: "Revenue",
     icon: BarChart3,

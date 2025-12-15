@@ -23,6 +23,8 @@ import {
   MoreVertical,
   Image as ImageIcon,
   Receipt,
+  List,
+  Filter,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +39,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -49,6 +54,8 @@ import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Label } from "@/components/ui/label";
+import { BillGallery } from "@/components/BillGallery";
+import { TransactionTable } from "@/components/TransactionTable";
 
 export default function SuppliersPage() {
   const isOnline = useOnlineStatus();
@@ -86,6 +93,15 @@ export default function SuppliersPage() {
   // Bill gallery viewer
   const [billGalleryOpen, setBillGalleryOpen] = useState(false);
   const [billGalleryImages, setBillGalleryImages] = useState([]);
+  
+  // Collapsible sections state
+  const [profilesExpanded, setProfilesExpanded] = useState(true);
+  const [transactionsExpanded, setTransactionsExpanded] = useState(false);
+  
+  // All transactions section state
+  const [allTxnSubTab, setAllTxnSubTab] = useState("list");
+  const [allTxnStatusFilter, setAllTxnStatusFilter] = useState("all");
+  const [allTxnSupplierFilter, setAllTxnSupplierFilter] = useState("all");
 
   // Calculate stats for each supplier
   const suppliersWithStats = useMemo(() => {
@@ -119,6 +135,22 @@ export default function SuppliersPage() {
         s.phone?.includes(query)
     );
   }, [suppliersWithStats, searchQuery]);
+
+  // All filtered transactions for the transactions section
+  const allFilteredTransactions = useMemo(() => {
+    let filtered = [...transactions];
+    if (allTxnStatusFilter !== "all") {
+      filtered = filtered.filter(t => t.paymentStatus === allTxnStatusFilter);
+    }
+    if (allTxnSupplierFilter !== "all") {
+      filtered = filtered.filter(t => t.supplierId === allTxnSupplierFilter);
+    }
+    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [transactions, allTxnStatusFilter, allTxnSupplierFilter]);
+
+  const totalBillsCount = useMemo(() => {
+    return allFilteredTransactions.reduce((count, t) => count + (t.billImages?.length || 0), 0);
+  }, [allFilteredTransactions]);
 
   const handleSearch = e => {
     setSearchQuery(e.target.value);
@@ -340,90 +372,230 @@ export default function SuppliersPage() {
         />
       </div>
 
-      {/* Instagram Story-like Vyapari Grid */}
-      {loading ? (
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted animate-pulse" />
-              <div className="h-3 w-12 bg-muted rounded animate-pulse" />
+      {/* Profiles Section - Collapsible */}
+      <Collapsible open={profilesExpanded} onOpenChange={setProfilesExpanded}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 rounded-lg transition-colors">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-emerald-500" />
+              <span className="font-semibold">Vyapari Profiles</span>
+              <Badge variant="secondary" className="text-xs">
+                {filteredSuppliers.length}
+              </Badge>
             </div>
-          ))}
-        </div>
-      ) : filteredSuppliers.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-            <Users className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold mb-1">No vyapari yet</h3>
-          <p className="text-muted-foreground mb-4">
-            {searchQuery ? "No vyapari match your search" : "Add your first vyapari to get started"}
-          </p>
-          {!searchQuery && (
-            <Button onClick={openAddForm} disabled={!isOnline}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Vyapari
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-5">
-          {/* Add New Vyapari Circle */}
-          <button
-            onClick={openAddForm}
-            disabled={!isOnline}
-            className="flex flex-col items-center gap-2 group"
-          >
-            <div
-              className="w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 group-hover:border-primary transition-all"
-              style={{ width: "72px", height: "72px" }}
-            >
-              <Plus className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-            </div>
-            <span className="text-xs font-medium text-muted-foreground text-center w-full">
-              Add New
-            </span>
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", profilesExpanded && "rotate-180")} />
           </button>
-
-          {/* Vyapari Circles */}
-          {filteredSuppliers.map(supplier => (
-            <button
-              key={supplier.id}
-              onClick={() => handleSupplierClick(supplier)}
-              className="flex flex-col items-center gap-2 group"
-            >
-              <div
-                className={cn(
-                  "rounded-full p-0.5 transition-all group-hover:scale-105 group-active:scale-95",
-                  supplier.pendingAmount > 0
-                    ? "bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500"
-                    : "bg-gradient-to-tr from-green-400 via-emerald-500 to-teal-500"
-                )}
-                style={{ width: "72px", height: "72px" }}
-              >
-                <div className="w-full h-full rounded-full bg-background p-0.5">
-                  {supplier.profilePicture ? (
-                    <img
-                      src={supplier.profilePicture}
-                      alt={supplier.companyName}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xl font-bold text-primary">
-                        {supplier.companyName?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          {/* Instagram Story-like Vyapari Grid */}
+          {loading ? (
+            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4 py-2">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted animate-pulse" />
+                  <div className="h-3 w-12 bg-muted rounded animate-pulse" />
                 </div>
+              ))}
+            </div>
+          ) : filteredSuppliers.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                <Users className="h-6 w-6 text-muted-foreground" />
               </div>
-              <span className="text-xs font-medium text-center w-full max-w-[80px] leading-tight line-clamp-2">
-                {supplier.companyName}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+              <h3 className="font-semibold mb-1">No vyapari yet</h3>
+              <p className="text-muted-foreground text-sm mb-3">
+                {searchQuery ? "No vyapari match your search" : "Add your first vyapari to get started"}
+              </p>
+              {!searchQuery && (
+                <Button onClick={openAddForm} disabled={!isOnline} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Vyapari
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-5 py-2">
+              {/* Add New Vyapari Circle */}
+              <button
+                onClick={openAddForm}
+                disabled={!isOnline}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <div
+                  className="w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 group-hover:border-primary transition-all"
+                  style={{ width: "72px", height: "72px" }}
+                >
+                  <Plus className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground text-center w-full">
+                  Add New
+                </span>
+              </button>
+
+              {/* Vyapari Circles */}
+              {filteredSuppliers.map(supplier => (
+                <button
+                  key={supplier.id}
+                  onClick={() => handleSupplierClick(supplier)}
+                  className="flex flex-col items-center gap-2 group"
+                >
+                  <div
+                    className={cn(
+                      "rounded-full p-0.5 transition-all group-hover:scale-105 group-active:scale-95",
+                      supplier.pendingAmount > 0
+                        ? "bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500"
+                        : "bg-gradient-to-tr from-green-400 via-emerald-500 to-teal-500"
+                    )}
+                    style={{ width: "72px", height: "72px" }}
+                  >
+                    <div className="w-full h-full rounded-full bg-background p-0.5">
+                      {supplier.profilePicture ? (
+                        <img
+                          src={supplier.profilePicture}
+                          alt={supplier.companyName}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xl font-bold text-primary">
+                            {supplier.companyName?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-center w-full max-w-[80px] leading-tight line-clamp-2">
+                    {supplier.companyName}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* All Transactions & Bills Section - Collapsible */}
+      <Collapsible open={transactionsExpanded} onOpenChange={setTransactionsExpanded}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 rounded-lg transition-colors">
+            <div className="flex items-center gap-3">
+              <Receipt className="h-5 w-5 text-purple-500" />
+              <span className="font-semibold">All Transactions & Bills</span>
+              <Badge variant="secondary" className="text-xs">
+                {transactions.length} txns
+              </Badge>
+              {totalBillsCount > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {totalBillsCount} bills
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", transactionsExpanded && "rotate-180")} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="space-y-4 py-2">
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <Select value={allTxnStatusFilter} onValueChange={setAllTxnStatusFilter}>
+                <SelectTrigger className="w-[120px] h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={allTxnSupplierFilter} onValueChange={setAllTxnSupplierFilter}>
+                <SelectTrigger className="w-[150px] h-9">
+                  <SelectValue placeholder="Supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vyapari</SelectItem>
+                  {suppliers.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.companyName || s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(allTxnStatusFilter !== "all" || allTxnSupplierFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setAllTxnStatusFilter("all");
+                    setAllTxnSupplierFilter("all");
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Sub-tabs for List and Bills view */}
+            <Tabs value={allTxnSubTab} onValueChange={setAllTxnSubTab}>
+              <TabsList className="grid w-full max-w-xs grid-cols-2">
+                <TabsTrigger value="list" className="gap-1.5">
+                  <Receipt className="h-4 w-4" />
+                  List
+                </TabsTrigger>
+                <TabsTrigger value="gallery" className="gap-1.5">
+                  <ImageIcon className="h-4 w-4" />
+                  Bills
+                  {totalBillsCount > 0 && (
+                    <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                      {totalBillsCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="list" className="mt-4">
+                {allFilteredTransactions.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No transactions found</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <TransactionTable
+                    transactions={allFilteredTransactions}
+                    suppliers={suppliers}
+                    onEdit={(txn) => {
+                      if (!isOnline) {
+                        toast.error("Cannot edit while offline");
+                        return;
+                      }
+                      setTransactionToEdit(txn);
+                      setTransactionFormOpen(true);
+                    }}
+                    onDelete={(txn) => {
+                      if (!isOnline) {
+                        toast.error("Cannot delete while offline");
+                        return;
+                      }
+                      setTransactionToDelete(txn);
+                      setTxnDeleteDialogOpen(true);
+                    }}
+                    loading={false}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="gallery" className="mt-4">
+                <BillGallery
+                  transactions={allFilteredTransactions}
+                  suppliers={suppliers}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Supplier Detail Drawer */}
       <Sheet 
