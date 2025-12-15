@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 
 export function BillGallery({ transactions, suppliers }) {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -189,18 +190,16 @@ export function BillGallery({ transactions, suppliers }) {
               className="cursor-pointer overflow-hidden hover:ring-2 hover:ring-primary transition-all"
               onClick={() => !hasError && openLightbox(bill)}
             >
-              <div className="aspect-[4/3] relative bg-muted">
+              <div className="aspect-[4/3] relative bg-muted overflow-hidden">
                 {hasError ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
                   </div>
                 ) : (
-                  <img
-                    src={bill.url}
+                  <OptimizedBillThumbnail 
+                    url={bill.url} 
                     alt={`Bill from ${getSupplierName(bill.transaction.supplierId)}`}
-                    className="w-full h-full object-cover"
                     onError={() => handleImageError(billId)}
-                    loading="lazy"
                   />
                 )}
               </div>
@@ -355,6 +354,42 @@ export function BillGallery({ transactions, suppliers }) {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// Optimized thumbnail component with LQIP support
+function OptimizedBillThumbnail({ url, alt, onError }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const urls = getOptimizedImageUrl(url);
+  const isImageKit = url.includes("ik.imagekit.io");
+  
+  return (
+    <>
+      {/* LQIP blurred background */}
+      {isImageKit && urls.lqip && (
+        <img
+          src={urls.lqip}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover scale-110 transition-opacity duration-500",
+            isLoaded ? "opacity-0" : "opacity-100 blur-xl"
+          )}
+        />
+      )}
+      {/* Thumbnail */}
+      <img
+        src={isImageKit ? urls.thumbnail : url}
+        alt={alt}
+        className={cn(
+          "w-full h-full object-cover transition-opacity duration-500",
+          !isLoaded && isImageKit ? "opacity-0" : "opacity-100"
+        )}
+        onLoad={() => setIsLoaded(true)}
+        onError={onError}
+        loading="lazy"
+      />
     </>
   );
 }

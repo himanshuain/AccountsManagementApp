@@ -14,7 +14,7 @@ import {
   BarChart3,
   UserCircle,
   Trash2,
-  HardDrive,
+  Activity,
   Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ export function Sidebar() {
   const [pinError, setPinError] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const { storageInfo, loading: storageLoading } = useStorage();
+  const { storageInfo, loading: storageLoading, isBandwidth } = useStorage();
 
   const handleLogout = () => {
     logout();
@@ -213,12 +213,14 @@ export function Sidebar() {
       <div className="p-4 space-y-4">
         <Separator />
 
-        {/* Storage Usage */}
+        {/* Bandwidth Usage */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <HardDrive className="h-4 w-4" />
-            <span>Storage</span>
-            <span className="text-xs text-muted-foreground">({storageInfo?.fileCount} Images)</span>
+            <Activity className="h-4 w-4" />
+            <span>{isBandwidth ? "Bandwidth" : "Storage"}</span>
+            {storageInfo?.fileCount && (
+              <span className="text-xs text-muted-foreground">({storageInfo.fileCount} files)</span>
+            )}
           </div>
           {storageLoading ? (
             <div className="h-2 bg-muted rounded-full animate-pulse" />
@@ -241,6 +243,11 @@ export function Sidebar() {
                 {storageInfo.usedFormatted} / {storageInfo.totalFormatted} (
                 {storageInfo.usedPercentage}%)
               </p>
+              {isBandwidth && storageInfo.storageFormatted && (
+                <p className="text-xs text-muted-foreground">
+                  Storage: {storageInfo.storageFormatted}
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Unable to load</p>

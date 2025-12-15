@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [quickCaptureData, setQuickCaptureData] = useState(null);
+  const [initialUdharAmount, setInitialUdharAmount] = useState("");
 
   // For auto-opening dropdowns
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
@@ -305,16 +306,37 @@ export default function DashboardPage() {
       {/* Customer Form */}
       <CustomerForm
         open={customerFormOpen}
-        onOpenChange={setCustomerFormOpen}
+        onOpenChange={(open) => {
+          setCustomerFormOpen(open);
+          if (!open) {
+            setInitialUdharAmount("");
+          }
+        }}
         onSubmit={async (data) => {
           const result = await addCustomer(data);
           if (result.success) {
             toast.success("Customer added successfully");
+            
+            // Create initial udhar if amount is provided
+            if (initialUdharAmount && Number(initialUdharAmount) > 0 && result.data?.id) {
+              const udharResult = await addUdhar({
+                customerId: result.data.id,
+                amount: Number(initialUdharAmount),
+                description: "Initial balance (खाता बाकी)",
+                date: new Date().toISOString().split("T")[0],
+              });
+              if (udharResult.success) {
+                toast.success(`Initial udhar of ₹${Number(initialUdharAmount).toLocaleString()} added`);
+              }
+            }
           } else {
             toast.error("Failed to add customer");
           }
         }}
         title="Add Customer"
+        showInitialAmount={true}
+        initialAmount={initialUdharAmount}
+        onInitialAmountChange={setInitialUdharAmount}
       />
 
       {/* Daily Income Form - Sheet sliding from top */}

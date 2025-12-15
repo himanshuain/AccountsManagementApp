@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X, Check } from "lucide-react";
+import { Loader2, X, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import {
 import { ImageUpload, MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { useContactPicker } from "@/hooks/useContactPicker";
 
 export function CustomerForm({
   open,
@@ -27,6 +28,7 @@ export function CustomerForm({
   onInitialAmountChange = () => {},
 }) {
   const isOnline = useOnlineStatus();
+  const { isSupported: contactPickerSupported, isPicking, pickContact } = useContactPicker();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(
     initialData?.profilePicture || null,
@@ -46,10 +48,28 @@ export function CustomerForm({
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isDirty },
   } = useForm({
     defaultValues: defaultFormValues,
   });
+
+  // Handle contact picker selection
+  const handlePickContact = async () => {
+    const contact = await pickContact();
+    if (contact) {
+      if (contact.phone) {
+        setValue("phone", contact.phone, { shouldDirty: true });
+      }
+      // Optionally fill name if empty
+      if (contact.name) {
+        const currentName = document.getElementById("name")?.value;
+        if (!currentName) {
+          setValue("name", contact.name, { shouldDirty: true });
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -207,15 +227,34 @@ export function CustomerForm({
             {/* Phone Number */}
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                {...register("phone")}
-                placeholder="Phone number"
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="text-base h-12"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="phone"
+                  {...register("phone")}
+                  placeholder="Phone number"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="text-base h-12 flex-1"
+                />
+                {contactPickerSupported && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0"
+                    onClick={handlePickContact}
+                    disabled={isPicking || !isOnline}
+                    title="Pick from contacts"
+                  >
+                    {isPicking ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Contact className="h-5 w-5" />
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Initial Amount (optional) */}

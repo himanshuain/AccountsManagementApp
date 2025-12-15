@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Upload,
   X,
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
 import { compressImage } from "@/lib/image-compression";
+import { getOptimizedImageUrl, isImageKitConfigured } from "@/lib/imagekit";
 
 export function ImageUpload({
   value,
@@ -26,8 +27,28 @@ export function ImageUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [optimizedUrls, setOptimizedUrls] = useState({ src: "", lqip: "" });
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+
+  // Sync preview with value and get optimized URLs
+  useEffect(() => {
+    if (value) {
+      setPreview(value);
+      if (!value.startsWith("data:") && value.includes("ik.imagekit.io")) {
+        const urls = getOptimizedImageUrl(value);
+        setOptimizedUrls(urls);
+        setIsImageLoaded(false);
+      } else {
+        setOptimizedUrls({ src: value, lqip: value, medium: value });
+        setIsImageLoaded(true);
+      }
+    } else {
+      setPreview(null);
+      setOptimizedUrls({ src: "", lqip: "", medium: "" });
+    }
+  }, [value]);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -134,10 +155,28 @@ export function ImageUpload({
             )}
             onClick={handleViewImage}
           >
+            {/* LQIP blurred background - shows while main image loads */}
+            {!preview.startsWith("data:") && optimizedUrls.lqip && (
+              <img
+                src={optimizedUrls.lqip}
+                alt=""
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-0 w-full h-full object-cover scale-110 transition-opacity duration-500",
+                  isImageLoaded ? "opacity-0" : "opacity-100 blur-xl"
+                )}
+              />
+            )}
+            {/* Main image - use medium quality for form previews */}
             <img
-              src={preview}
+              src={preview.startsWith("data:") ? preview : (optimizedUrls.medium || optimizedUrls.src || preview)}
               alt="Preview"
-              className="w-full h-full object-cover"
+              className={cn(
+                "w-full h-full object-cover transition-opacity duration-500",
+                !isImageLoaded && !preview.startsWith("data:") ? "opacity-0" : "opacity-100"
+              )}
+              onLoad={() => setIsImageLoaded(true)}
+              loading="lazy"
             />
             {/* Hover overlay with view hint */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
@@ -329,19 +368,20 @@ export function MultiImageUpload({
 
         {/* Image grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {value.map((url, index) => (
+          {value.map((url, index) => {
+            const urls = url.startsWith("data:") 
+              ? { src: url, lqip: url, thumbnail: url } 
+              : getOptimizedImageUrl(url);
+            return (
             <div
               key={index}
               className="relative aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer group"
               onClick={() => handleViewImage(index)}
             >
-              <img
-                src={url}
-                alt={`Image ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
+              {/* Render optimized thumbnail with LQIP */}
+              <MultiImageThumbnail url={url} urls={urls} index={index} />
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center z-10">
                 <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               {!disabled && (
@@ -349,7 +389,7 @@ export function MultiImageUpload({
                   type="button"
                   variant="destructive"
                   size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-20"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -360,7 +400,8 @@ export function MultiImageUpload({
                 </Button>
               )}
             </div>
-          ))}
+          );
+          })}
 
           {/* Add more buttons */}
           {value.length < maxImages && (
@@ -417,6 +458,40 @@ export function MultiImageUpload({
         initialIndex={viewerIndex}
         open={viewerOpen}
         onOpenChange={setViewerOpen}
+      />
+    </>
+  );
+}
+
+// Helper component for optimized thumbnails in MultiImageUpload
+function MultiImageThumbnail({ url, urls, index }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const isDataUrl = url.startsWith("data:");
+  
+  return (
+    <>
+      {/* LQIP blurred background - shows while thumbnail loads */}
+      {!isDataUrl && urls.lqip && (
+        <img
+          src={urls.lqip}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 w-full h-full object-cover scale-110 transition-opacity duration-500",
+            isLoaded ? "opacity-0" : "opacity-100 blur-xl"
+          )}
+        />
+      )}
+      {/* Thumbnail image */}
+      <img
+        src={isDataUrl ? url : (urls.thumbnail || url)}
+        alt={`Image ${index + 1}`}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+          !isLoaded && !isDataUrl ? "opacity-0" : "opacity-100"
+        )}
+        onLoad={() => setIsLoaded(true)}
+        loading="lazy"
       />
     </>
   );

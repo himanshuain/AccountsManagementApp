@@ -582,3 +582,36 @@
 .haptic-tap:active::after {
   opacity: 1;
 }
+
+/* ============================================
+   PREVENT COPYING (except inputs)
+   ============================================ */
+/* Disable text selection and copying on the entire app */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Allow selection only in inputs, textareas, and contenteditable elements */
+input,
+textarea,
+[contenteditable="true"],
+.selectable {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Also allow selection in code blocks if needed */
+code,
+pre {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}

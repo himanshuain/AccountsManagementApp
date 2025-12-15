@@ -46,6 +46,9 @@ cp .env.example .env.local
 4. Configure environment variables:
    - `BLOB_READ_WRITE_TOKEN`: Get from Vercel Dashboard > Storage > Blob
    - `APP_PIN`: Set your desired 6-digit PIN (default: 123456)
+   - `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`: Your ImageKit URL endpoint (e.g., https://ik.imagekit.io/your_id)
+   - `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`: Your ImageKit public key
+   - `IMAGEKIT_PRIVATE_KEY`: Your ImageKit private key (server-side only)
 
 5. Run the development server:
 ```bash
@@ -67,8 +70,11 @@ The default PIN is `123456`. Change it in your `.env.local` file for production.
 3. Configure environment variables:
    - `BLOB_READ_WRITE_TOKEN`
    - `APP_PIN`
+   - `NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT`
+   - `NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY`
+   - `IMAGEKIT_PRIVATE_KEY`
 
-4. Create Blob storage in Vercel:
+4. Create Blob storage in Vercel (or use ImageKit):
    - Go to Storage > Create Database > Blob
    - Copy the token to your environment variables
 

@@ -7,7 +7,6 @@ import {
   Search,
   Plus,
   Users,
-  Download,
   Phone,
   MapPin,
   IndianRupee,
@@ -44,7 +43,7 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { SupplierForm } from "@/components/SupplierForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { exportSuppliers, exportSupplierTransactionsPDF } from "@/lib/export";
+import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
@@ -306,15 +305,6 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleExport = () => {
-    try {
-      exportSuppliers(suppliers);
-      toast.success("Suppliers exported successfully");
-    } catch (error) {
-      toast.error("Failed to export suppliers");
-    }
-  };
-
   const openAddForm = () => {
     if (!isOnline) {
       toast.error("Cannot add supplier while offline");
@@ -332,16 +322,10 @@ export default function SuppliersPage() {
           <p className="text-muted-foreground text-sm">{suppliers.length} vyapari</p>
         </div>
         {suppliers.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPdfExportSheetOpen(true)}>
-              <FileText className="h-4 w-4 mr-1" />
-              PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-1" />
-              CSV
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => setPdfExportSheetOpen(true)}>
+            <FileText className="h-4 w-4 mr-1" />
+            PDF
+          </Button>
         )}
       </div>
 

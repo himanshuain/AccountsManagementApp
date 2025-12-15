@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 
 /**
  * Simple and reliable Image Viewer with touch gestures
@@ -22,6 +23,12 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
+
+  // Get optimized image URLs for ImageKit images
+  const optimizedUrls = useMemo(() => {
+    if (!src) return { src: "", lqip: "", medium: "" };
+    return getOptimizedImageUrl(src);
+  }, [src]);
 
   // Touch gesture state
   const touchState = useRef({
@@ -425,8 +432,21 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
         onWheel={handleWheel}
         onClick={handleBackdropClick}
       >
+        {/* LQIP blurred background for slow connections */}
+        {isLoading && optimizedUrls.lqip && src?.includes("ik.imagekit.io") && (
+          <img
+            src={optimizedUrls.lqip}
+            alt=""
+            aria-hidden="true"
+            className="max-w-full max-h-full object-contain blur-2xl scale-105 opacity-70"
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+            }}
+          />
+        )}
+
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
           </div>
         )}
@@ -434,10 +454,10 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imageRef}
-          src={src}
+          src={src?.includes("ik.imagekit.io") ? optimizedUrls.original : src}
           alt={alt}
           className={cn(
-            "max-w-full max-h-full object-contain select-none transition-opacity duration-300",
+            "max-w-full max-h-full object-contain select-none transition-opacity duration-500",
             isLoading ? "opacity-0" : "opacity-100"
           )}
           style={{
@@ -479,6 +499,13 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
   const containerRef = useRef(null);
   const portalContainerRef = useRef(null);
+
+  // Get optimized URLs for current image
+  const currentSrc = images[currentIndex];
+  const optimizedUrls = useMemo(() => {
+    if (!currentSrc) return { src: "", lqip: "", thumbnail: "" };
+    return getOptimizedImageUrl(currentSrc);
+  }, [currentSrc]);
 
   // Reset currentIndex when opening with a new initialIndex
   useEffect(() => {
@@ -778,8 +805,6 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
   if (!open || images.length === 0 || !mounted) return null;
 
-  const currentSrc = images[currentIndex];
-
   const content = (
     <div
       className="fixed inset-0 bg-black/95 flex flex-col"
@@ -851,18 +876,31 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
       >
+        {/* LQIP blurred background for slow connections */}
+        {isLoading && optimizedUrls.lqip && currentSrc?.includes("ik.imagekit.io") && (
+          <img
+            src={optimizedUrls.lqip}
+            alt=""
+            aria-hidden="true"
+            className="max-w-full max-h-full object-contain blur-2xl scale-105 opacity-70"
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+            }}
+          />
+        )}
+
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
           </div>
         )}
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={currentSrc}
+          src={currentSrc?.includes("ik.imagekit.io") ? optimizedUrls.original : currentSrc}
           alt={`Image ${currentIndex + 1}`}
           className={cn(
-            "max-w-full max-h-full object-contain select-none transition-opacity duration-300",
+            "max-w-full max-h-full object-contain select-none transition-opacity duration-500",
             isLoading ? "opacity-0" : "opacity-100"
           )}
           style={{
@@ -942,7 +980,12 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               onClick={() => setCurrentIndex(idx)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+              <img 
+                src={img.includes("ik.imagekit.io") ? getOptimizedImageUrl(img).thumbnail : img} 
+                alt={`Thumbnail ${idx + 1}`} 
+                className="w-full h-full object-cover" 
+                loading="lazy"
+              />
             </button>
           ))}
         </div>

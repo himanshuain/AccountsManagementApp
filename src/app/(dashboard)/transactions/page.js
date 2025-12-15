@@ -9,7 +9,6 @@ import {
   Filter,
   Image,
   List,
-  Download,
   Users,
   Store,
   SortAsc,
@@ -70,7 +69,6 @@ import { CustomerForm } from "@/components/CustomerForm";
 import { ImageGalleryViewer } from "@/components/ImageViewer";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { exportTransactions } from "@/lib/export";
 import { toast } from "sonner";
 
 const DATE_FILTERS = [
@@ -353,15 +351,6 @@ export default function TransactionsPage() {
     toast.success(`${images.length} bill(s) captured for ${supplierName}`);
   };
 
-  const handleExport = () => {
-    try {
-      exportTransactions(filteredTransactions, suppliers);
-      toast.success("Exported successfully");
-    } catch (error) {
-      toast.error("Export failed");
-    }
-  };
-
   const openAddForm = () => {
     if (!isOnline) {
       toast.error("Cannot add transaction while offline");
@@ -497,10 +486,6 @@ export default function TransactionsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setBulkDeleteDialogOpen(true)}
                 disabled={!isOnline}
