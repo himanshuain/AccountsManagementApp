@@ -1291,7 +1291,7 @@ export default function CustomersPage() {
           <button className="w-full flex items-center justify-between py-3 px-2 hover:bg-muted/50 rounded-lg transition-colors border border-amber-200">
             <div className="flex items-center gap-3 ">
               <Receipt className="h-5 w-5 text-amber-500" />
-              <span className="font-semibold text-amber-500">All Udhar Transactions</span>
+              <span className="font-bold text-amber-500 text-lg">All Udhar Transactions</span>
               <Badge variant="secondary" className="text-xs">
                 {udharList.length} txns
               </Badge>
@@ -2735,11 +2735,14 @@ export default function CustomersPage() {
       </Sheet>
 
       {/* All Receipts Sheet */}
-      <Sheet open={allReceiptsSheetOpen} onOpenChange={(open) => {
-        // Only close if gallery viewer is not open
-        if (!open && allReceiptsGalleryOpen) return;
-        setAllReceiptsSheetOpen(open);
-      }}>
+      <Sheet 
+        open={allReceiptsSheetOpen} 
+        onOpenChange={(open) => {
+          // Only allow closing via the X button, not via backdrop/escape when gallery might have just closed
+          if (!open) return; // Prevent automatic closing - use the X button instead
+          setAllReceiptsSheetOpen(open);
+        }}
+      >
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
           <SheetHeader className="p-4 border-b">
             <div className="flex items-center justify-between">
