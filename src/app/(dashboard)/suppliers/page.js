@@ -41,7 +41,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -89,19 +95,20 @@ export default function SuppliersPage() {
   const [transactionToPay, setTransactionToPay] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentReceipt, setPaymentReceipt] = useState(null);
-  
+
   // Bill gallery viewer
   const [billGalleryOpen, setBillGalleryOpen] = useState(false);
   const [billGalleryImages, setBillGalleryImages] = useState([]);
-  
+
   // Collapsible sections state
   const [profilesExpanded, setProfilesExpanded] = useState(true);
   const [transactionsExpanded, setTransactionsExpanded] = useState(false);
-  
+
   // All transactions section state
   const [allTxnSubTab, setAllTxnSubTab] = useState("list");
   const [allTxnStatusFilter, setAllTxnStatusFilter] = useState("all");
   const [allTxnSupplierFilter, setAllTxnSupplierFilter] = useState("all");
+  const [allTxnAmountSort, setAllTxnAmountSort] = useState("newest");
 
   // Calculate stats for each supplier
   const suppliersWithStats = useMemo(() => {
@@ -145,8 +152,16 @@ export default function SuppliersPage() {
     if (allTxnSupplierFilter !== "all") {
       filtered = filtered.filter(t => t.supplierId === allTxnSupplierFilter);
     }
+
+    // Sort based on selected option
+    if (allTxnAmountSort === "highest") {
+      return filtered.sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
+    } else if (allTxnAmountSort === "lowest") {
+      return filtered.sort((a, b) => (Number(a.amount) || 0) - (Number(b.amount) || 0));
+    }
+
     return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [transactions, allTxnStatusFilter, allTxnSupplierFilter]);
+  }, [transactions, allTxnStatusFilter, allTxnSupplierFilter, allTxnAmountSort]);
 
   const totalBillsCount = useMemo(() => {
     return allFilteredTransactions.reduce((count, t) => count + (t.billImages?.length || 0), 0);
@@ -299,7 +314,7 @@ export default function SuppliersPage() {
       toast.error("Failed to mark as paid");
     }
   };
-  
+
   const handleViewBillImages = (images, e) => {
     e?.stopPropagation();
     if (images && images.length > 0) {
@@ -383,7 +398,12 @@ export default function SuppliersPage() {
                 {filteredSuppliers.length}
               </Badge>
             </div>
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", profilesExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                profilesExpanded && "rotate-180"
+              )}
+            />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -404,7 +424,9 @@ export default function SuppliersPage() {
               </div>
               <h3 className="font-semibold mb-1">No vyapari yet</h3>
               <p className="text-muted-foreground text-sm mb-3">
-                {searchQuery ? "No vyapari match your search" : "Add your first vyapari to get started"}
+                {searchQuery
+                  ? "No vyapari match your search"
+                  : "Add your first vyapari to get started"}
               </p>
               {!searchQuery && (
                 <Button onClick={openAddForm} disabled={!isOnline} size="sm">
@@ -490,7 +512,12 @@ export default function SuppliersPage() {
                 </Badge>
               )}
             </div>
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", transactionsExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                transactionsExpanded && "rotate-180"
+              )}
+            />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -521,13 +548,26 @@ export default function SuppliersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {(allTxnStatusFilter !== "all" || allTxnSupplierFilter !== "all") && (
+              <Select value={allTxnAmountSort} onValueChange={setAllTxnAmountSort}>
+                <SelectTrigger className="w-[130px] h-9">
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="highest">Highest Amount</SelectItem>
+                  <SelectItem value="lowest">Lowest Amount</SelectItem>
+                </SelectContent>
+              </Select>
+              {(allTxnStatusFilter !== "all" ||
+                allTxnSupplierFilter !== "all" ||
+                allTxnAmountSort !== "newest") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setAllTxnStatusFilter("all");
                     setAllTxnSupplierFilter("all");
+                    setAllTxnAmountSort("newest");
                   }}
                 >
                   Clear
@@ -565,7 +605,7 @@ export default function SuppliersPage() {
                   <TransactionTable
                     transactions={allFilteredTransactions}
                     suppliers={suppliers}
-                    onEdit={(txn) => {
+                    onEdit={txn => {
                       if (!isOnline) {
                         toast.error("Cannot edit while offline");
                         return;
@@ -573,7 +613,7 @@ export default function SuppliersPage() {
                       setTransactionToEdit(txn);
                       setTransactionFormOpen(true);
                     }}
-                    onDelete={(txn) => {
+                    onDelete={txn => {
                       if (!isOnline) {
                         toast.error("Cannot delete while offline");
                         return;
@@ -587,10 +627,7 @@ export default function SuppliersPage() {
               </TabsContent>
 
               <TabsContent value="gallery" className="mt-4">
-                <BillGallery
-                  transactions={allFilteredTransactions}
-                  suppliers={suppliers}
-                />
+                <BillGallery transactions={allFilteredTransactions} suppliers={suppliers} />
               </TabsContent>
             </Tabs>
           </div>
@@ -598,8 +635,8 @@ export default function SuppliersPage() {
       </Collapsible>
 
       {/* Supplier Detail Drawer */}
-      <Sheet 
-        open={!!selectedSupplier} 
+      <Sheet
+        open={!!selectedSupplier}
         onOpenChange={open => {
           // Don't close if image viewer is open
           if (!open && (imageViewerOpen || billGalleryOpen)) return;
@@ -730,7 +767,21 @@ export default function SuppliersPage() {
                       </div>
                     </div>
                   </SheetHeader>
-
+      {/* UPI QR Code if available */}
+      {selectedSupplier.upiQrCode && (
+                          <div className="p-3 rounded-xl bg-muted/30">
+                            <p className="text-xs text-muted-foreground text-center mb-2">UPI QR Code</p>
+                            <img
+                              src={selectedSupplier.upiQrCode}
+                              alt="UPI QR"
+                              className="w-28 h-28 mx-auto rounded-lg cursor-pointer"
+                              onClick={() => {
+                                setImageViewerSrc(selectedSupplier.upiQrCode);
+                                setImageViewerOpen(true);
+                              }}
+                            />
+                          </div>
+                        )}
                   <ScrollArea className="flex-1 h-[calc(90vh-100px)]">
                     <div className="p-4 space-y-4">
                       {/* Stats */}
@@ -774,7 +825,7 @@ export default function SuppliersPage() {
                             Add
                           </Button>
                         </div>
-
+                  
                         {supplierTransactions.length === 0 ? (
                           <div className="text-center py-8 text-muted-foreground">
                             <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -960,7 +1011,7 @@ export default function SuppliersPage() {
                                                           variant="ghost"
                                                           size="sm"
                                                           className="h-6 px-2 text-xs text-blue-600"
-                                                          onClick={(e) => {
+                                                          onClick={e => {
                                                             e.stopPropagation();
                                                             setImageViewerSrc(payment.receiptUrl);
                                                             setImageViewerOpen(true);
@@ -998,22 +1049,6 @@ export default function SuppliersPage() {
                           <p className="text-sm">{selectedSupplier.notes}</p>
                         </div>
                       )}
-
-                      {/* UPI QR Code if available */}
-                      {selectedSupplier.upiQrCode && (
-                        <div className="p-3 rounded-xl bg-muted/30">
-                          <p className="text-xs text-muted-foreground mb-2">UPI QR Code</p>
-                          <img
-                            src={selectedSupplier.upiQrCode}
-                            alt="UPI QR"
-                            className="w-28 h-28 mx-auto rounded-lg cursor-pointer"
-                            onClick={() => {
-                              setImageViewerSrc(selectedSupplier.upiQrCode);
-                              setImageViewerOpen(true);
-                            }}
-                          />
-                        </div>
-                      )}
                     </div>
                   </ScrollArea>
                 </>
@@ -1024,12 +1059,12 @@ export default function SuppliersPage() {
 
       {/* Image Viewer */}
       <ImageViewer open={imageViewerOpen} onOpenChange={setImageViewerOpen} src={imageViewerSrc} />
-      
+
       {/* Bill Gallery Viewer */}
-      <ImageGalleryViewer 
-        open={billGalleryOpen} 
-        onOpenChange={setBillGalleryOpen} 
-        images={billGalleryImages} 
+      <ImageGalleryViewer
+        open={billGalleryOpen}
+        onOpenChange={setBillGalleryOpen}
+        images={billGalleryImages}
       />
 
       {/* Supplier Form (Add/Edit) */}

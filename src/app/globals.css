@@ -615,3 +615,376 @@ pre {
   -ms-user-select: text;
   user-select: text;
 }
+
+/* ============================================
+   SMOOTH ANIMATIONS FOR BETTER UX
+   ============================================ */
+
+/* Global smooth transitions */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Button animations */
+button,
+[role="button"],
+.btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Card and interactive element animations */
+.card,
+[data-slot="card"] {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s ease;
+}
+
+/* Slide up animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Pop in animation */
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: popIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Smooth bounce animation */
+@keyframes smoothBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-smooth-bounce {
+  animation: smoothBounce 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse glow effect */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(var(--primary) / 0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Staggered list item animations */
+.stagger-item {
+  opacity: 0;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.3s; }
+.stagger-item:nth-child(7) { animation-delay: 0.35s; }
+.stagger-item:nth-child(8) { animation-delay: 0.4s; }
+.stagger-item:nth-child(9) { animation-delay: 0.45s; }
+.stagger-item:nth-child(10) { animation-delay: 0.5s; }
+
+/* Badge and chip animations */
+.badge,
+[data-slot="badge"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Avatar animations */
+.avatar,
+[data-slot="avatar"] {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar:hover,
+[data-slot="avatar"]:hover {
+  transform: scale(1.05);
+}
+
+/* Input focus animations */
+input,
+textarea,
+select,
+[data-slot="input"],
+[data-slot="textarea"] {
+  transition: border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              background-color 0.2s ease;
+}
+
+/* Collapsible smooth animation */
+[data-state="open"] > [data-collapsible-content],
+[data-state="closed"] > [data-collapsible-content] {
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sheet/Dialog backdrop animation */
+[data-overlay] {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sheet content slide animation */
+[data-state="open"][data-side="bottom"] {
+  animation: slideUpSheet 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUpSheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+[data-state="open"][data-side="right"] {
+  animation: slideInRightSheet 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInRightSheet {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Select dropdown animation */
+[data-state="open"][data-radix-select-content] {
+  animation: selectOpen 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes selectOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Tab indicator animation */
+[data-state="active"][role="tab"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Image load animation */
+.img-load {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.img-load.loaded {
+  opacity: 1;
+}
+
+/* Ripple effect for touch */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, hsl(var(--foreground) / 0.1) 10%, transparent 70%);
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ripple:active::after {
+  transform: scale(2);
+  opacity: 1;
+  transition: transform 0s, opacity 0s;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Skeleton wave animation */
+@keyframes skeletonWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonWave 1.5s ease-in-out infinite;
+}
+
+/* Number counter animation */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-count-up {
+  animation: countUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Toast notification animation */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast {
+  animation: toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Floating label animation */
+.floating-label {
+  transition: transform 0.2s ease, font-size 0.2s ease, color 0.2s ease;
+}
+
+/* Progress bar animation */
+.progress-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expand animation for details/accordion */
+@keyframes expand {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.animate-expand {
+  animation: expand 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+}

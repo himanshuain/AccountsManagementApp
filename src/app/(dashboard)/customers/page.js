@@ -179,6 +179,7 @@ export default function CustomersPage() {
   // All udhar section filters
   const [udharStatusFilter, setUdharStatusFilter] = useState("all");
   const [udharCustomerFilter, setUdharCustomerFilter] = useState("all");
+  const [udharAmountSort, setUdharAmountSort] = useState("newest");
   
   // All receipts sheet state
   const [allReceiptsSheetOpen, setAllReceiptsSheetOpen] = useState(false);
@@ -322,8 +323,23 @@ export default function CustomersPage() {
       filtered = filtered.filter(u => u.customerId === udharCustomerFilter);
     }
     
+    // Sort based on selected option
+    if (udharAmountSort === "highest") {
+      return filtered.sort((a, b) => {
+        const totalA = a.amount || (a.cashAmount || 0) + (a.onlineAmount || 0);
+        const totalB = b.amount || (b.cashAmount || 0) + (b.onlineAmount || 0);
+        return totalB - totalA;
+      });
+    } else if (udharAmountSort === "lowest") {
+      return filtered.sort((a, b) => {
+        const totalA = a.amount || (a.cashAmount || 0) + (a.onlineAmount || 0);
+        const totalB = b.amount || (b.cashAmount || 0) + (b.onlineAmount || 0);
+        return totalA - totalB;
+      });
+    }
+    
     return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [udharList, udharStatusFilter, udharCustomerFilter]);
+  }, [udharList, udharStatusFilter, udharCustomerFilter, udharAmountSort]);
 
   // Collect all receipts/bills from udhar for the "All Receipts" view
   const allReceipts = useMemo(() => {
@@ -1351,13 +1367,24 @@ export default function CustomersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {(udharStatusFilter !== "all" || udharCustomerFilter !== "all") && (
+              <Select value={udharAmountSort} onValueChange={setUdharAmountSort}>
+                <SelectTrigger className="w-[130px] h-9">
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="highest">Highest Amount</SelectItem>
+                  <SelectItem value="lowest">Lowest Amount</SelectItem>
+                </SelectContent>
+              </Select>
+              {(udharStatusFilter !== "all" || udharCustomerFilter !== "all" || udharAmountSort !== "newest") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setUdharStatusFilter("all");
                     setUdharCustomerFilter("all");
+                    setUdharAmountSort("newest");
                   }}
                 >
                   Clear
