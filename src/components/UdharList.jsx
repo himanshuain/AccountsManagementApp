@@ -24,13 +24,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,7 +40,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { compressImage } from "@/lib/image-compression";
-import { ImageViewer } from "./ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
 
 export function UdharList({
   udharList,
@@ -60,8 +53,8 @@ export function UdharList({
   showCustomer = true,
   loading = false,
 }) {
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryViewerOpen, setGalleryViewerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [udharToDelete, setUdharToDelete] = useState(null);
   const [depositSheetOpen, setDepositSheetOpen] = useState(false);
@@ -108,9 +101,9 @@ export function UdharList({
   };
 
   const handleViewImages = (images, e) => {
-    e.stopPropagation();
-    setSelectedImages(images);
-    setImageDialogOpen(true);
+    e?.stopPropagation();
+    setGalleryImages(images);
+    setGalleryViewerOpen(true);
   };
 
   const handleDeleteClick = (udhar, e) => {
@@ -496,7 +489,7 @@ export function UdharList({
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 pt-2 border-t flex-wrap">
                       {!isPaid && (
                         <>
                           <Button
@@ -519,15 +512,28 @@ export function UdharList({
                           </Button>
                         </>
                       )}
-                      {udhar.khataPhotos?.length > 0 && (
+                      {(udhar.khataPhotos?.length > 0 || udhar.billImages?.length > 0) && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={e => handleViewImages(udhar.khataPhotos, e)}
+                          onClick={e => handleViewImages([...(udhar.khataPhotos || []), ...(udhar.billImages || [])], e)}
                           className="h-9 px-3 text-xs gap-1"
                         >
                           <ImageIcon className="h-3.5 w-3.5" />
-                          Photos
+                          Photos ({(udhar.khataPhotos?.length || 0) + (udhar.billImages?.length || 0)})
+                        </Button>
+                      )}
+                      {onEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={e => {
+                            e.stopPropagation();
+                            onEdit(udhar);
+                          }}
+                          className="h-9 px-3 text-xs gap-1"
+                        >
+                          Edit
                         </Button>
                       )}
                       <Button
@@ -556,21 +562,12 @@ export function UdharList({
         />
       </div>
 
-      {/* Image Preview Dialog */}
-      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Photos</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {selectedImages.map((url, index) => (
-              <div key={index} className="aspect-square rounded-lg overflow-hidden bg-muted">
-                <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Image Gallery Viewer for full-screen viewing */}
+      <ImageGalleryViewer
+        images={galleryImages}
+        open={galleryViewerOpen}
+        onOpenChange={setGalleryViewerOpen}
+      />
 
       {/* Collect Sheet */}
       <Sheet

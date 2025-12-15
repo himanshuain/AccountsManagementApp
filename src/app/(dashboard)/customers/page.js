@@ -61,12 +61,15 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { compressImage } from "@/lib/image-compression";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "@/components/CustomerForm";
 import { UdharForm } from "@/components/UdharForm";
+import { UdharList } from "@/components/UdharList";
 import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,6 +90,7 @@ export default function CustomersPage() {
   const {
     udharList,
     addUdhar,
+    updateUdhar,
     deleteUdhar,
     recordDeposit,
     markFullPaid,
@@ -167,6 +171,23 @@ export default function CustomersPage() {
   // Payment deletion state
   const [deletePaymentDialogOpen, setDeletePaymentDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState(null);
+  
+  // Collapsible sections state
+  const [customersExpanded, setCustomersExpanded] = useState(true);
+  const [udharExpanded, setUdharExpanded] = useState(false);
+  
+  // All udhar section filters
+  const [udharStatusFilter, setUdharStatusFilter] = useState("all");
+  const [udharCustomerFilter, setUdharCustomerFilter] = useState("all");
+  
+  // All receipts sheet state
+  const [allReceiptsSheetOpen, setAllReceiptsSheetOpen] = useState(false);
+  const [allReceiptsGalleryOpen, setAllReceiptsGalleryOpen] = useState(false);
+  const [allReceiptsGalleryImages, setAllReceiptsGalleryImages] = useState([]);
+  const [allReceiptsGalleryInitialIndex, setAllReceiptsGalleryInitialIndex] = useState(0);
+  
+  // Udhar editing state
+  const [udharToEdit, setUdharToEdit] = useState(null);
 
   // Auto-focus payment input and scroll into view
   useEffect(() => {
@@ -278,6 +299,91 @@ export default function CustomersPage() {
     loadMoreRef: customersLoadMoreRef,
     remainingCount: customersRemaining,
   } = useProgressiveList(filteredCustomers, 15, 15);
+
+  // Filtered udhar for the "All Udhar" section
+  const filteredUdharList = useMemo(() => {
+    let filtered = [...udharList];
+    
+    if (udharStatusFilter === "pending") {
+      filtered = filtered.filter(u => {
+        const total = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+        const paid = u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+        return paid < total;
+      });
+    } else if (udharStatusFilter === "paid") {
+      filtered = filtered.filter(u => {
+        const total = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+        const paid = u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+        return paid >= total;
+      });
+    }
+    
+    if (udharCustomerFilter !== "all") {
+      filtered = filtered.filter(u => u.customerId === udharCustomerFilter);
+    }
+    
+    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [udharList, udharStatusFilter, udharCustomerFilter]);
+
+  // Collect all receipts/bills from udhar for the "All Receipts" view
+  const allReceipts = useMemo(() => {
+    const receipts = [];
+    udharList.forEach(udhar => {
+      // Add khata/bill photos
+      if (udhar.khataPhotos?.length > 0) {
+        udhar.khataPhotos.forEach(photo => {
+          receipts.push({
+            url: photo,
+            type: "bill",
+            date: udhar.date,
+            customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+            amount: udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0),
+          });
+        });
+      }
+      if (udhar.billImages?.length > 0) {
+        udhar.billImages.forEach(photo => {
+          receipts.push({
+            url: photo,
+            type: "bill",
+            date: udhar.date,
+            customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+            amount: udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0),
+          });
+        });
+      }
+      // Add payment receipts
+      if (udhar.payments?.length > 0) {
+        udhar.payments.forEach(payment => {
+          if (payment.receiptUrl) {
+            receipts.push({
+              url: payment.receiptUrl,
+              type: "receipt",
+              date: payment.date,
+              customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+              amount: payment.amount,
+            });
+          }
+        });
+      }
+    });
+    // Sort by date, newest first
+    return receipts.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [udharList, customers]);
+
+  // Count filtered receipts for the section badge
+  const allUdharReceiptsCount = useMemo(() => {
+    let count = 0;
+    filteredUdharList.forEach(u => {
+      count += (u.khataPhotos?.length || 0) + (u.billImages?.length || 0);
+      if (u.payments) {
+        u.payments.forEach(p => {
+          if (p.receiptUrl) count++;
+        });
+      }
+    });
+    return count;
+  }, [filteredUdharList]);
 
   // Quick add udhar for a customer
   const handleQuickAdd = async () => {
@@ -766,60 +872,73 @@ export default function CustomersPage() {
           );
         })()}
 
-      {/* Customer List */}
-      {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Card key={i} className="border-l-4 border-l-muted">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-5 w-32" />
-                      <Skeleton className="h-4 w-12 rounded-full" />
+      {/* Customer Profiles Section - Collapsible */}
+      <Collapsible open={customersExpanded} onOpenChange={setCustomersExpanded}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 rounded-lg transition-colors">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-orange-500" />
+              <span className="font-semibold">Customer Profiles</span>
+              <Badge variant="secondary" className="text-xs">
+                {filteredCustomers.length}
+              </Badge>
+            </div>
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", customersExpanded && "rotate-180")} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          {/* Customer List */}
+          {loading ? (
+            <div className="space-y-2 py-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Card key={i} className="border-l-4 border-l-muted">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-12 rounded-full" />
+                        </div>
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                      <Skeleton className="h-5 w-5" />
                     </div>
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                  <Skeleton className="h-5 w-5" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : filteredCustomers.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            {searchQuery ? (
-              <>
-                <p>No customers found</p>
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => setSearchQuery("")}
-                >
-                  Clear search
-                </Button>
-              </>
-            ) : (
-              <>
-                <p>No customers yet</p>
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => setCustomerFormOpen(true)}
-                  disabled={!isOnline}
-                >
-                  Add your first customer
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              {searchQuery ? (
+                <>
+                  <p>No customers found</p>
+                  <Button
+                    variant="link"
+                    className="mt-2"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    Clear search
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p>No customers yet</p>
+                  <Button
+                    variant="link"
+                    className="mt-2"
+                    onClick={() => setCustomerFormOpen(true)}
+                    disabled={!isOnline}
+                  >
+                    Add your first customer
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6 py-2">
           {visibleCustomers.map((customer) => {
             const isExpanded = expandedCustomerId === customer.id;
 
@@ -1161,8 +1280,135 @@ export default function CustomersPage() {
             remainingCount={customersRemaining}
             onLoadMore={loadMoreCustomers}
           />
-        </div>
-      )}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* All Udhar & Receipts Section - Collapsible */}
+      <Collapsible open={udharExpanded} onOpenChange={setUdharExpanded}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-3 px-2 hover:bg-muted/50 rounded-lg transition-colors border border-amber-200">
+            <div className="flex items-center gap-3 ">
+              <Receipt className="h-5 w-5 text-amber-500" />
+              <span className="font-semibold text-amber-500">All Udhar Transactions</span>
+              <Badge variant="secondary" className="text-xs">
+                {udharList.length} txns
+              </Badge>
+              {allReceipts.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {allReceipts.length} receipts
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", udharExpanded && "rotate-180")} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="space-y-4 py-2">
+            {/* Stats Header with All Receipts button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="text-sm px-3 py-1">
+                  {filteredUdharList.length} Transaction{filteredUdharList.length !== 1 ? "s" : ""}
+                </Badge>
+              </div>
+              {allReceipts.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setAllReceiptsSheetOpen(true)}
+                >
+                  <Receipt className="h-4 w-4" />
+                  All Receipts ({allReceipts.length})
+                </Button>
+              )}
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <Select value={udharStatusFilter} onValueChange={setUdharStatusFilter}>
+                <SelectTrigger className="w-[120px] h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={udharCustomerFilter} onValueChange={setUdharCustomerFilter}>
+                <SelectTrigger className="w-[150px] h-9">
+                  <SelectValue placeholder="Customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {customers.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(udharStatusFilter !== "all" || udharCustomerFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setUdharStatusFilter("all");
+                    setUdharCustomerFilter("all");
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Udhar List */}
+            <UdharList
+              udharList={filteredUdharList}
+              customers={customers}
+              onEdit={(udhar) => {
+                if (!isOnline) {
+                  toast.error("Cannot edit while offline");
+                  return;
+                }
+                setUdharToEdit(udhar);
+                setUdharFormOpen(true);
+              }}
+              onDelete={async (udhar) => {
+                if (!isOnline) {
+                  toast.error("Cannot delete while offline");
+                  return;
+                }
+                const result = await deleteUdhar(udhar.id);
+                if (result.success) {
+                  toast.success("Udhar deleted");
+                } else {
+                  toast.error("Failed to delete");
+                }
+              }}
+              onDeposit={async (id, amount, receiptUrl) => {
+                if (!isOnline) {
+                  toast.error("Cannot record deposit while offline");
+                  return;
+                }
+                await recordDeposit(id, amount, receiptUrl);
+              }}
+              onFullPaid={async (id) => {
+                if (!isOnline) {
+                  toast.error("Cannot mark as paid while offline");
+                  return;
+                }
+                await markFullPaid(id);
+              }}
+              onDeletePayment={deletePayment}
+              loading={udharLoading}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Customer Form - Only show when NOT editing */}
       {!editingCustomer && (
@@ -1190,11 +1436,30 @@ export default function CustomersPage() {
       {/* Udhar Form */}
       <UdharForm
         open={udharFormOpen}
-        onOpenChange={setUdharFormOpen}
-        onSubmit={addUdhar}
+        onOpenChange={(open) => {
+          setUdharFormOpen(open);
+          if (!open) {
+            setUdharToEdit(null);
+          }
+        }}
+        onSubmit={udharToEdit 
+          ? async (data) => {
+              const result = await updateUdhar(udharToEdit.id, data);
+              if (result.success) {
+                toast.success("Udhar updated");
+                setUdharToEdit(null);
+              } else {
+                toast.error("Failed to update");
+              }
+              return result;
+            }
+          : addUdhar
+        }
         onAddCustomer={addCustomer}
         customers={customers}
         defaultCustomerId={selectedCustomerId}
+        initialData={udharToEdit}
+        title={udharToEdit ? "Edit Udhar" : "Add Udhar"}
       />
 
       {/* Quick Add Udhar Sheet - slides from top */}
@@ -2468,6 +2733,84 @@ export default function CustomersPage() {
           })()}
         </SheetContent>
       </Sheet>
+
+      {/* All Receipts Sheet */}
+      <Sheet open={allReceiptsSheetOpen} onOpenChange={(open) => {
+        // Only close if gallery viewer is not open
+        if (!open && allReceiptsGalleryOpen) return;
+        setAllReceiptsSheetOpen(open);
+      }}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
+          <SheetHeader className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                All Receipts & Bills ({allReceipts.length})
+              </SheetTitle>
+              <Button variant="ghost" size="icon" onClick={() => setAllReceiptsSheetOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(85vh-80px)]">
+            <div className="p-4">
+              {allReceipts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No receipts or bills found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {allReceipts.map((receipt, idx) => (
+                    <div
+                      key={idx}
+                      className="relative rounded-lg overflow-hidden border bg-muted cursor-pointer"
+                      onClick={() => {
+                        setAllReceiptsGalleryImages(allReceipts.map(r => r.url));
+                        setAllReceiptsGalleryInitialIndex(idx);
+                        setAllReceiptsGalleryOpen(true);
+                      }}
+                    >
+                      <div className="aspect-square">
+                        <img
+                          src={receipt.url}
+                          alt={`${receipt.type} ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {/* Info always visible */}
+                      <div className="p-2 bg-card border-t">
+                        <p className="text-xs font-medium truncate">{receipt.customerName}</p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-xs text-muted-foreground">₹{receipt.amount?.toLocaleString()}</span>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] px-1.5 py-0 ${
+                              receipt.type === "receipt" 
+                                ? "bg-green-100 text-green-700" 
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {receipt.type === "receipt" ? "Receipt" : "Bill"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* All Receipts Gallery Viewer */}
+      <ImageGalleryViewer
+        images={allReceiptsGalleryImages}
+        initialIndex={allReceiptsGalleryInitialIndex}
+        open={allReceiptsGalleryOpen}
+        onOpenChange={setAllReceiptsGalleryOpen}
+      />
 
       {/* Image Viewer */}
       <ImageViewer
