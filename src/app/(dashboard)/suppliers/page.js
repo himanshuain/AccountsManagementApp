@@ -1,12 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Search,
   Plus,
   Users,
+  User,
   Phone,
   MapPin,
   IndianRupee,
@@ -25,6 +27,7 @@ import {
   Receipt,
   List,
   Filter,
+  ExternalLink,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,6 +67,8 @@ import { BillGallery } from "@/components/BillGallery";
 import { TransactionTable } from "@/components/TransactionTable";
 
 export default function SuppliersPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const isOnline = useOnlineStatus();
   const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
   const {
@@ -84,6 +89,9 @@ export default function SuppliersPage() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
   const [pdfExportSheetOpen, setPdfExportSheetOpen] = useState(false);
+  
+  // Ref to track if image viewer was just closed (to prevent drawer from closing)
+  const imageViewerJustClosedRef = useRef(false);
   const [expandedTransactionId, setExpandedTransactionId] = useState(null);
 
   // Transaction management states
@@ -143,6 +151,19 @@ export default function SuppliersPage() {
     );
   }, [suppliersWithStats, searchQuery]);
 
+  // Handle opening supplier from URL query parameter (e.g., from global search)
+  useEffect(() => {
+    const openSupplierId = searchParams.get("open");
+    if (openSupplierId && suppliersWithStats.length > 0 && !loading) {
+      const supplierToOpen = suppliersWithStats.find(s => s.id === openSupplierId);
+      if (supplierToOpen) {
+        setSelectedSupplier(supplierToOpen);
+        // Clear the query parameter from URL without triggering a navigation
+        router.replace("/suppliers", { scroll: false });
+      }
+    }
+  }, [searchParams, suppliersWithStats, loading, router]);
+
   // All filtered transactions for the transactions section
   const allFilteredTransactions = useMemo(() => {
     let filtered = [...transactions];
@@ -193,6 +214,10 @@ export default function SuppliersPage() {
     const result = await updateSupplier(editingSupplier.id, data);
     if (result.success) {
       toast.success("Supplier updated successfully");
+      // Update the selected supplier with the new data to keep drawer content fresh
+      if (selectedSupplier?.id === editingSupplier.id) {
+        setSelectedSupplier(prev => ({ ...prev, ...data }));
+      }
       setEditingSupplier(null);
       setSupplierFormOpen(false);
     } else {
@@ -234,7 +259,7 @@ export default function SuppliersPage() {
   const handleEditSupplier = supplier => {
     setEditingSupplier(supplier);
     setSupplierFormOpen(true);
-    setSelectedSupplier(null);
+    // Don't close the drawer - keep selectedSupplier so we can return to it after editing
   };
 
   // Transaction handlers
@@ -638,8 +663,12 @@ export default function SuppliersPage() {
       <Sheet
         open={!!selectedSupplier}
         onOpenChange={open => {
-          // Don't close if image viewer is open
-          if (!open && (imageViewerOpen || billGalleryOpen)) return;
+          // Don't close if image viewer, bill gallery, or supplier form is open
+          // Also don't close if image viewer was just closed (ref check)
+          if (!open && (imageViewerOpen || billGalleryOpen || supplierFormOpen || imageViewerJustClosedRef.current)) {
+            imageViewerJustClosedRef.current = false;
+            return;
+          }
           if (!open) setSelectedSupplier(null);
         }}
       >
@@ -767,23 +796,34 @@ export default function SuppliersPage() {
                       </div>
                     </div>
                   </SheetHeader>
-      {/* UPI QR Code if available */}
-      {selectedSupplier.upiQrCode && (
-                          <div className="p-3 rounded-xl bg-muted/30">
-                            <p className="text-xs text-muted-foreground text-center mb-2">UPI QR Code</p>
-                            <img
-                              src={selectedSupplier.upiQrCode}
-                              alt="UPI QR"
-                              className="w-28 h-28 mx-auto rounded-lg cursor-pointer"
-                              onClick={() => {
-                                setImageViewerSrc(selectedSupplier.upiQrCode);
-                                setImageViewerOpen(true);
-                              }}
-                            />
-                          </div>
-                        )}
                   <ScrollArea className="flex-1 h-[calc(90vh-100px)]">
                     <div className="p-4 space-y-4">
+                      {/* UPI QR Code if available */}
+                      {selectedSupplier.upiQrCode && (
+                        <div className="p-4 rounded-xl bg-muted/30 text-center">
+                          <p className="text-xs text-muted-foreground mb-2">UPI QR Code</p>
+                          <img
+                            src={selectedSupplier.upiQrCode}
+                            alt="UPI QR"
+                            className="w-32 h-32 mx-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => {
+                              setImageViewerSrc(selectedSupplier.upiQrCode);
+                              setImageViewerOpen(true);
+                            }}
+                          />
+                          {selectedSupplier.upiId && (
+                            <a
+                              href={`upi://pay?pa=${encodeURIComponent(selectedSupplier.upiId)}&pn=${encodeURIComponent(selectedSupplier.companyName || selectedSupplier.name || '')}`}
+                              className="inline-flex items-center gap-1 text-xs font-mono text-primary mt-2 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {selectedSupplier.upiId}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-2">
                         <div className="p-3 rounded-xl bg-muted/50 text-center">
@@ -805,6 +845,49 @@ export default function SuppliersPage() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Profile Details */}
+                      {(selectedSupplier.name || selectedSupplier.address || selectedSupplier.gstNumber || (selectedSupplier.upiId && !selectedSupplier.upiQrCode)) && (
+                        <div className="rounded-xl border bg-card p-4 space-y-3">
+                          <h3 className="font-semibold text-sm flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            Profile Details
+                          </h3>
+                          <div className="grid gap-3 text-sm">
+                            {selectedSupplier.name && (
+                              <div className="flex items-start gap-3">
+                                <span className="text-muted-foreground min-w-[80px]">Contact:</span>
+                                <span className="font-medium">{selectedSupplier.name}</span>
+                              </div>
+                            )}
+                            {selectedSupplier.address && (
+                              <div className="flex items-start gap-3">
+                                <span className="text-muted-foreground min-w-[80px]">Address:</span>
+                                <span className="font-medium">{selectedSupplier.address}</span>
+                              </div>
+                            )}
+                            {selectedSupplier.gstNumber && (
+                              <div className="flex items-start gap-3">
+                                <span className="text-muted-foreground min-w-[80px]">GST No:</span>
+                                <span className="font-medium font-mono">{selectedSupplier.gstNumber}</span>
+                              </div>
+                            )}
+                            {/* Only show UPI ID here if there's no QR code */}
+                            {selectedSupplier.upiId && !selectedSupplier.upiQrCode && (
+                              <div className="flex items-start gap-3">
+                                <span className="text-muted-foreground min-w-[80px]">UPI ID:</span>
+                                <a
+                                  href={`upi://pay?pa=${encodeURIComponent(selectedSupplier.upiId)}&pn=${encodeURIComponent(selectedSupplier.companyName || selectedSupplier.name || '')}`}
+                                  className="font-medium font-mono text-primary hover:underline inline-flex items-center gap-1"
+                                >
+                                  {selectedSupplier.upiId}
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Transactions Section */}
                       <div>
@@ -1058,7 +1141,20 @@ export default function SuppliersPage() {
       </Sheet>
 
       {/* Image Viewer */}
-      <ImageViewer open={imageViewerOpen} onOpenChange={setImageViewerOpen} src={imageViewerSrc} />
+      <ImageViewer 
+        open={imageViewerOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            imageViewerJustClosedRef.current = true;
+            // Reset the ref after a short delay
+            setTimeout(() => {
+              imageViewerJustClosedRef.current = false;
+            }, 100);
+          }
+          setImageViewerOpen(open);
+        }} 
+        src={imageViewerSrc} 
+      />
 
       {/* Bill Gallery Viewer */}
       <ImageGalleryViewer

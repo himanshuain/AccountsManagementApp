@@ -164,6 +164,9 @@ export default function CustomersPage() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
   
+  // Ref to track if image viewer was just closed (to prevent drawer from closing)
+  const imageViewerJustClosedRef = useRef(false);
+  
   // Gallery viewer state (for multiple images)
   const [galleryViewerOpen, setGalleryViewerOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
@@ -2074,7 +2077,14 @@ export default function CustomersPage() {
       {/* Customer Detail Drawer */}
       <Sheet
         open={!!selectedCustomer}
-        onOpenChange={(open) => !open && setSelectedCustomer(null)}
+        onOpenChange={(open) => {
+          // Don't close if image viewer or gallery viewer is open or was just closed
+          if (!open && (imageViewerOpen || galleryViewerOpen || imageViewerJustClosedRef.current)) {
+            imageViewerJustClosedRef.current = false;
+            return;
+          }
+          if (!open) setSelectedCustomer(null);
+        }}
       >
         <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] p-0" hideClose>
           {selectedCustomer && (
@@ -2847,7 +2857,16 @@ export default function CustomersPage() {
         src={imageViewerSrc}
         alt="Profile Picture"
         open={imageViewerOpen}
-        onOpenChange={setImageViewerOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            imageViewerJustClosedRef.current = true;
+            // Reset the ref after a short delay
+            setTimeout(() => {
+              imageViewerJustClosedRef.current = false;
+            }, 100);
+          }
+          setImageViewerOpen(open);
+        }}
       />
       
       {/* Gallery Viewer for multiple images */}

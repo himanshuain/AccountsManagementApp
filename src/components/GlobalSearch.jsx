@@ -213,13 +213,13 @@ export function GlobalSearch({ className }) {
   const handleSupplierClick = (supplier) => {
     setIsOpen(false);
     setQuery("");
-    router.push(`/suppliers/${supplier.id}`);
+    router.push(`/suppliers?open=${supplier.id}`);
   };
 
   const handleTransactionClick = (transaction) => {
     setIsOpen(false);
     setQuery("");
-    router.push(`/suppliers/${transaction.supplierId}`);
+    router.push(`/suppliers?open=${transaction.supplierId}`);
   };
 
   const handleCustomerClick = (customer) => {
