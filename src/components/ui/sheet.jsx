@@ -88,14 +88,15 @@ const SheetContent = React.forwardRef(
         // The drag handle is the div with the rounded bar at the top
         const dragHandle = e.target.closest("[data-drag-handle]");
         const isFromDragHandle = !!dragHandle;
+        const sheetSwipeMargin = 120;
 
         // Also check if touch started in the header area (first ~60px of the sheet)
         // This provides a larger touch target for closing
         const sheetContent = e.currentTarget;
         const rect = sheetContent.getBoundingClientRect();
         const touchY = e.touches[0].clientY;
-        const isNearTop = side === "bottom" && touchY - rect.top < 60;
-        const isNearBottom = side === "top" && rect.bottom - touchY < 60;
+        const isNearTop = side === "bottom" && touchY - rect.top < sheetSwipeMargin;
+        const isNearBottom = side === "top" && rect.bottom - touchY < sheetSwipeMargin;
 
         // Only allow swipe from drag handle area or very top of sheet
         const canSwipe = isFromDragHandle || isNearTop || isNearBottom;
