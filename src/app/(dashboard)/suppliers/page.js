@@ -49,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Autocomplete } from "@/components/ui/autocomplete";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -747,7 +748,7 @@ export default function SuppliersPage() {
                           {/* Row 3: Last transaction info */}
                           {lastTxn && (
                             <p className="mt-0.5 text-xs text-muted-foreground">
-                              Last: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
+                              Latest Vypari bill of: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
                               {supplier.transactionCount > 1 && ` · ${supplier.transactionCount} txns`}
                             </p>
                           )}
@@ -785,9 +786,9 @@ export default function SuppliersPage() {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-3">
             {/* Filter Chips - One-tap toggles */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto px-1 pb-2 pt-2 scrollbar-none">
               <Button
                 variant={allTxnStatusFilter === "all" ? "default" : "outline"}
                 size="sm"
@@ -847,23 +848,22 @@ export default function SuppliersPage() {
                 <CheckCircle className="mr-1 h-3 w-3" />
                 All Paid Up
               </Button>
-              {/* Supplier filter as dropdown - More Filters */}
-              <Select value={allTxnSupplierFilter} onValueChange={(val) => {
-                haptics.light();
-                setAllTxnSupplierFilter(val);
-              }}>
-                <SelectTrigger className="h-8 w-auto shrink-0 rounded-full border-dashed px-3 text-xs">
-                  <SelectValue placeholder="Vyapari" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Vyapari</SelectItem>
-                  {suppliers.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.companyName || s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Vyapari filter as autocomplete */}
+              <Autocomplete
+                options={[{ id: "all", companyName: "All Vyapari" }, ...suppliers]}
+                value={allTxnSupplierFilter}
+                onValueChange={(val) => {
+                  haptics.light();
+                  setAllTxnSupplierFilter(val || "all");
+                }}
+                placeholder="All Vyapari"
+                searchPlaceholder="Search vyapari..."
+                emptyText="No vyapari found"
+                className="w-[160px] shrink-0"
+                triggerClassName="h-8 rounded-full border-dashed px-3 text-xs"
+                getOptionLabel={(opt) => opt?.companyName || opt?.name || ""}
+                getOptionValue={(opt) => opt?.id || ""}
+              />
             </div>
 
             {/* Stats + View toggle */}

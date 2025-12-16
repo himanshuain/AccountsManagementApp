@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * Autocomplete Select Component
  * A searchable dropdown with autocomplete functionality
+ * Uses portal to escape overflow containers
  */
 export function Autocomplete({
   options = [],
@@ -18,13 +20,16 @@ export function Autocomplete({
   disabled = false,
   className,
   triggerClassName,
+  dropdownClassName,
   renderOption,
   getOptionLabel = option => option?.label || option?.name || option?.companyName || "",
   getOptionValue = option => option?.value || option?.id || "",
 }) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const containerRef = React.useRef(null);
+  const [dropdownPosition, setDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = React.useRef(null);
+  const dropdownRef = React.useRef(null);
   const inputRef = React.useRef(null);
 
   // Find selected option
@@ -43,10 +48,27 @@ export function Autocomplete({
     });
   }, [options, searchQuery, getOptionLabel, getOptionValue]);
 
+  // Calculate dropdown position when opened
+  React.useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: Math.max(rect.width, 200), // Minimum width of 200px
+      });
+    }
+  }, [open]);
+
   // Close on outside click
   React.useEffect(() => {
     const handleClickOutside = event => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        triggerRef.current && 
+        !triggerRef.current.contains(event.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
         setOpen(false);
         setSearchQuery("");
       }
@@ -70,6 +92,28 @@ export function Autocomplete({
     }
   }, [open]);
 
+  // Close on scroll outside dropdown (to prevent misaligned dropdown)
+  React.useEffect(() => {
+    const handleScroll = (e) => {
+      // Don't close if scrolling inside the dropdown
+      if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
+        return;
+      }
+      if (open) {
+        setOpen(false);
+        setSearchQuery("");
+      }
+    };
+
+    if (open) {
+      window.addEventListener("scroll", handleScroll, true);
+    }
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [open]);
+
   const handleSelect = optValue => {
     onValueChange(optValue === value ? "" : optValue);
     setOpen(false);
@@ -77,9 +121,10 @@ export function Autocomplete({
   };
 
   return (
-    <div ref={containerRef} className={cn("relative w-full", className)}>
+    <div className={cn("relative", className)}>
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
@@ -102,9 +147,20 @@ export function Autocomplete({
         />
       </button>
 
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
+      {/* Dropdown - Rendered via Portal */}
+      {open && typeof window !== "undefined" && createPortal(
+        <div 
+          ref={dropdownRef}
+          className={cn(
+            "fixed z-[100] rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95",
+            dropdownClassName
+          )}
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+          }}
+        >
           {/* Search Input */}
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -164,7 +220,8 @@ export function Autocomplete({
               })
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
