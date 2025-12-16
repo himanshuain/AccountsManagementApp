@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Store, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PinInput } from "@/components/PinInput";
-import { verifyPin, isAuthenticated } from "@/lib/auth";
+import { verifyPin, verifySession } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,12 +14,16 @@ export default function LoginPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check if already authenticated
-    if (isAuthenticated()) {
-      router.replace("/");
-    } else {
-      setIsChecking(false);
-    }
+    // Check if already authenticated (verify with server)
+    const checkAuth = async () => {
+      const result = await verifySession();
+      if (result.authenticated) {
+        router.replace("/");
+      } else {
+        setIsChecking(false);
+      }
+    };
+    checkAuth();
   }, [router]);
 
   const handlePinComplete = async pin => {

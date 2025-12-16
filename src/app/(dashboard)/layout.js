@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useState, Suspense, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Store } from "lucide-react";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, verifySession } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { OfflineBlocker } from "@/components/OfflineBlocker";
@@ -15,36 +15,72 @@ export default function DashboardLayout({ children }) {
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   const [isRehydrating, setIsRehydrating] = useState(false);
+  const lastServerCheckRef = useRef(0);
 
-  // Check authentication
-  const checkAuth = useCallback(() => {
+  // Quick local auth check (for initial render)
+  const checkAuthLocal = useCallback(() => {
     const authed = isAuthenticated();
     if (!authed) {
       router.replace("/login");
-    } else {
-      setIsAuthed(true);
-      setIsChecking(false);
-      setIsRehydrating(false);
+      return false;
+    }
+    return true;
+  }, [router]);
+
+  // Full server-side session verification
+  const verifySessionWithServer = useCallback(async () => {
+    try {
+      const result = await verifySession();
+      if (!result.authenticated) {
+        // Session invalidated (password changed on another device)
+        router.replace("/login");
+        return false;
+      }
+      lastServerCheckRef.current = Date.now();
+      return true;
+    } catch {
+      // On error, keep user logged in if local cookie exists
+      return isAuthenticated();
     }
   }, [router]);
 
+  // Initial auth check
   useEffect(() => {
-    // Initial auth check with small delay
-    const timer = setTimeout(checkAuth, 50);
+    const initAuth = async () => {
+      // Quick local check first
+      if (!checkAuthLocal()) return;
+      
+      // Then verify with server
+      const isValid = await verifySessionWithServer();
+      if (isValid) {
+        setIsAuthed(true);
+        setIsChecking(false);
+      }
+    };
+
+    const timer = setTimeout(initAuth, 50);
     return () => clearTimeout(timer);
-  }, [checkAuth]);
+  }, [checkAuthLocal, verifySessionWithServer]);
 
   // Handle visibility change for PWA resume
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === "visible") {
         // App is now visible (resumed from background)
-        // Show brief rehydrating state to prevent freeze appearance
         setIsRehydrating(true);
+
+        // Check if we need to verify with server (throttle to every 30 seconds)
+        const timeSinceLastCheck = Date.now() - lastServerCheckRef.current;
+        if (timeSinceLastCheck > 30000) {
+          // Verify session with server when resuming
+          const isValid = await verifySessionWithServer();
+          if (!isValid) {
+            return; // Will redirect to login
+          }
+        }
 
         // Quick revalidation
         requestAnimationFrame(() => {
-          // Allow React to update
           setTimeout(() => {
             setIsRehydrating(false);
           }, 100);
@@ -53,13 +89,14 @@ export default function DashboardLayout({ children }) {
     };
 
     // Handle page show event (for PWA back/forward cache)
-    const handlePageShow = event => {
+    const handlePageShow = async (event) => {
       if (event.persisted) {
-        // Page was restored from cache
+        // Page was restored from cache - always verify with server
         setIsRehydrating(true);
-        setTimeout(() => {
-          checkAuth();
-        }, 50);
+        const isValid = await verifySessionWithServer();
+        if (isValid) {
+          setIsRehydrating(false);
+        }
       }
     };
 
@@ -70,7 +107,7 @@ export default function DashboardLayout({ children }) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pageshow", handlePageShow);
     };
-  }, [checkAuth]);
+  }, [verifySessionWithServer]);
 
   // Loading state during auth check
   if (isChecking) {
