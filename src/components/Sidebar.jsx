@@ -218,7 +218,9 @@ export function Sidebar() {
             <Activity className="h-4 w-4" />
             <span>Storage</span>
             {storageInfo?.fileCount && (
-              <span className="text-xs text-muted-foreground">({storageInfo.fileCount} photos)</span>
+              <span className="text-xs text-muted-foreground">
+                ({storageInfo.fileCount} photos)
+              </span>
             )}
           </div>
           {storageLoading ? (
@@ -242,11 +244,6 @@ export function Sidebar() {
                 {storageInfo.usedFormatted} / {storageInfo.totalFormatted} (
                 {storageInfo.usedPercentage}%)
               </p>
-              {isBandwidth && storageInfo.storageFormatted && (
-                <p className="text-xs text-muted-foreground">
-                  Storage: {storageInfo.storageFormatted}
-                </p>
-              )}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Unable to load</p>

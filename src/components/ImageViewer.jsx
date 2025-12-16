@@ -261,7 +261,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     if (!src) return;
 
     try {
-      const response = await fetch(src);
+      const response = await fetch(src?.url);
       const blob = await response.blob();
       const file = new File([blob], "image.jpg", { type: blob.type });
 
@@ -294,7 +294,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     if (!src) return;
 
     try {
-      const response = await fetch(src);
+      const response = await fetch(src?.url);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -761,7 +761,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     if (!src) return;
 
     try {
-      const response = await fetch(src);
+      const response = await fetch(src?.url);
       const blob = await response.blob();
       const file = new File([blob], "image.jpg", { type: blob.type });
 
@@ -787,7 +787,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     if (!src) return;
 
     try {
-      const response = await fetch(src);
+      const response = await fetch(src?.url);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -974,7 +974,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
       {/* Info overlay - shows transaction info when available */}
       {showInfo && currentImage.amount !== undefined && (
-        <div 
+        <div
           className="absolute bottom-24 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-xl p-3 text-white"
           style={{ zIndex: 2147483647, pointerEvents: "auto" }}
           onClick={() => setShowInfo(false)}
@@ -996,17 +996,19 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               )}
             </div>
             {currentImage.type && (
-              <span className={cn(
-                "text-xs px-2 py-1 rounded-full",
-                currentImage.type === "receipt" 
-                  ? "bg-green-500/30 text-green-300" 
-                  : "bg-amber-500/30 text-amber-300"
-              )}>
+              <span
+                className={cn(
+                  "text-xs px-2 py-1 rounded-full",
+                  currentImage.type === "receipt"
+                    ? "bg-green-500/30 text-green-300"
+                    : "bg-amber-500/30 text-amber-300"
+                )}
+              >
                 {currentImage.type === "receipt" ? "Receipt" : "Khata"}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-white/40 mt-1 text-center">Tap to hide info</p>
+          <p className="text-[10px] text-white/40 my-1 text-center">Tap to hide info</p>
         </div>
       )}
 
@@ -1042,7 +1044,11 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={imgUrl?.includes?.("ik.imagekit.io") ? getOptimizedImageUrl(imgUrl).thumbnail : imgUrl}
+                  src={
+                    imgUrl?.includes?.("ik.imagekit.io")
+                      ? getOptimizedImageUrl(imgUrl).thumbnail
+                      : imgUrl
+                  }
                   alt={`Thumbnail ${idx + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"

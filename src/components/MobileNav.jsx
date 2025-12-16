@@ -290,11 +290,6 @@ export function MobileNav() {
                           {storageInfo.usedFormatted} / {storageInfo.totalFormatted} (
                           {storageInfo.usedPercentage}%)
                         </p>
-                        {isBandwidth && storageInfo.storageFormatted && (
-                          <p className="text-xs text-muted-foreground">
-                            Storage: {storageInfo.storageFormatted}
-                          </p>
-                        )}
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">Unable to load</p>
