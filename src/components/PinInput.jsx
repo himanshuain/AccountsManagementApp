@@ -28,7 +28,7 @@ export function PinInput({ length = 6, onComplete, error = false }) {
     }
 
     // Check if complete
-    if (newValues.every((v) => v !== "") && !hasSubmitted) {
+    if (newValues.every(v => v !== "") && !hasSubmitted) {
       setHasSubmitted(true);
       onComplete?.(newValues.join(""));
     }
@@ -53,14 +53,11 @@ export function PinInput({ length = 6, onComplete, error = false }) {
     }
   };
 
-  const handlePaste = (e) => {
+  const handlePaste = e => {
     e.preventDefault();
     if (hasSubmitted) return;
 
-    const pastedData = e.clipboardData
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, length);
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
 
     if (pastedData) {
       const newValues = Array(length).fill("");
@@ -70,7 +67,7 @@ export function PinInput({ length = 6, onComplete, error = false }) {
       setValues(newValues);
 
       // Focus appropriate input
-      const nextEmptyIndex = newValues.findIndex((v) => v === "");
+      const nextEmptyIndex = newValues.findIndex(v => v === "");
       if (nextEmptyIndex !== -1) {
         inputRefs.current[nextEmptyIndex]?.focus();
       } else {
@@ -98,28 +95,24 @@ export function PinInput({ length = 6, onComplete, error = false }) {
   }, [error]);
 
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="flex justify-center gap-3">
       {values.map((value, index) => (
         <input
           key={index}
-          ref={(el) => (inputRefs.current[index] = el)}
+          ref={el => (inputRefs.current[index] = el)}
           type="text"
           inputMode="numeric"
           maxLength={1}
           value={value}
-          onChange={(e) => handleChange(index, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(index, e)}
+          onChange={e => handleChange(index, e.target.value)}
+          onKeyDown={e => handleKeyDown(index, e)}
           onPaste={handlePaste}
           className={cn(
-            "w-12 h-14 text-center text-2xl font-semibold rounded-lg border-2",
+            "h-14 w-12 rounded-lg border-2 text-center text-2xl font-semibold",
             "bg-background transition-all duration-200",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
+            "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary",
             "pin-input",
-            error
-              ? "border-destructive animate-shake"
-              : value
-                ? "border-primary"
-                : "border-input",
+            error ? "animate-shake border-destructive" : value ? "border-primary" : "border-input"
           )}
         />
       ))}

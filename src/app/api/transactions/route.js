@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // Helper to convert camelCase to snake_case
-const toSnakeCase = (obj) => {
+const toSnakeCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(toSnakeCase);
 
@@ -17,14 +17,12 @@ const toSnakeCase = (obj) => {
 };
 
 // Helper to convert snake_case to camelCase
-const toCamelCase = (obj) => {
+const toCamelCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(toCamelCase);
 
   return Object.keys(obj).reduce((acc, key) => {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
-      letter.toUpperCase(),
-    );
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     acc[camelKey] = toCamelCase(obj[key]);
     return acc;
   }, {});
@@ -35,17 +33,14 @@ export async function GET(request) {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
         { success: false, error: "Database not configured", data: [] },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
     const { searchParams } = new URL(request.url);
     const supplierId = searchParams.get("supplierId");
 
-    let query = supabase
-      .from("transactions")
-      .select("*")
-      .order("updated_at", { ascending: false });
+    let query = supabase.from("transactions").select("*").order("updated_at", { ascending: false });
 
     if (supplierId) {
       query = query.eq("supplier_id", supplierId);
@@ -55,10 +50,7 @@ export async function GET(request) {
 
     if (error) {
       console.error("Load transactions failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message, data: [] },
-        { status: 500 },
-      );
+      return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -68,14 +60,11 @@ export async function GET(request) {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
         },
-      },
+      }
     );
   } catch (error) {
     console.error("Load transactions failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message, data: [] },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
   }
 }
 
@@ -84,7 +73,7 @@ export async function POST(request) {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
         { success: false, error: "Database not configured" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -117,10 +106,7 @@ export async function POST(request) {
 
     if (error) {
       console.error("Create transaction failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -129,9 +115,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Create transaction failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

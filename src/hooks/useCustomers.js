@@ -30,7 +30,7 @@ export function useCustomers() {
 
   // Add customer mutation - directly to cloud
   const addMutation = useMutation({
-    mutationFn: async (customerData) => {
+    mutationFn: async customerData => {
       const response = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,7 +68,7 @@ export function useCustomers() {
 
   // Delete customer mutation - directly to cloud
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
+    mutationFn: async id => {
       const response = await fetch(`/api/customers/${id}`, {
         method: "DELETE",
       });
@@ -84,7 +84,7 @@ export function useCustomers() {
   });
 
   const addCustomer = useCallback(
-    async (customerData) => {
+    async customerData => {
       try {
         const result = await addMutation.mutateAsync(customerData);
         return { success: true, data: result.data };
@@ -92,7 +92,7 @@ export function useCustomers() {
         return { success: false, error: err.message };
       }
     },
-    [addMutation],
+    [addMutation]
   );
 
   const updateCustomer = useCallback(
@@ -104,11 +104,11 @@ export function useCustomers() {
         return { success: false, error: err.message };
       }
     },
-    [updateMutation],
+    [updateMutation]
   );
 
   const deleteCustomer = useCallback(
-    async (id) => {
+    async id => {
       try {
         await deleteMutation.mutateAsync(id);
         return { success: true };
@@ -116,29 +116,27 @@ export function useCustomers() {
         return { success: false, error: err.message };
       }
     },
-    [deleteMutation],
+    [deleteMutation]
   );
 
   const searchCustomers = useCallback(
-    (query) => {
+    query => {
       if (!query.trim()) {
         return customers;
       }
       const lowerQuery = query.toLowerCase();
       return customers.filter(
-        (c) =>
-          c.name?.toLowerCase().includes(lowerQuery) ||
-          c.phone?.includes(query),
+        c => c.name?.toLowerCase().includes(lowerQuery) || c.phone?.includes(query)
       );
     },
-    [customers],
+    [customers]
   );
 
   const getCustomerById = useCallback(
-    (id) => {
-      return customers.find((c) => c.id === id) || null;
+    id => {
+      return customers.find(c => c.id === id) || null;
     },
-    [customers],
+    [customers]
   );
 
   const refresh = useCallback(() => {

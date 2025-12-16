@@ -2,15 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Search,
-  User,
-  Receipt,
-  X,
-  ArrowRight,
-  Users,
-  Banknote,
-} from "lucide-react";
+import { Search, User, Receipt, X, ArrowRight, Users, Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,7 +30,7 @@ export function GlobalSearch({ className }) {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const handleClickOutside = e => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
       }
@@ -49,7 +41,7 @@ export function GlobalSearch({ className }) {
 
   // Keyboard shortcut to focus search (Cmd/Ctrl + K)
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = e => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         inputRef.current?.focus();
@@ -70,21 +62,19 @@ export function GlobalSearch({ className }) {
       if (!isOpen) return;
 
       try {
-        const [suppliersRes, customersRes, transactionsRes, udharRes] =
-          await Promise.all([
-            fetch("/api/suppliers"),
-            fetch("/api/customers"),
-            fetch("/api/transactions"),
-            fetch("/api/udhar"),
-          ]);
+        const [suppliersRes, customersRes, transactionsRes, udharRes] = await Promise.all([
+          fetch("/api/suppliers"),
+          fetch("/api/customers"),
+          fetch("/api/transactions"),
+          fetch("/api/udhar"),
+        ]);
 
-        const [suppliersData, customersData, transactionsData, udharData] =
-          await Promise.all([
-            suppliersRes.json(),
-            customersRes.json(),
-            transactionsRes.json(),
-            udharRes.json(),
-          ]);
+        const [suppliersData, customersData, transactionsData, udharData] = await Promise.all([
+          suppliersRes.json(),
+          customersRes.json(),
+          transactionsRes.json(),
+          udharRes.json(),
+        ]);
 
         setAllData({
           suppliers: suppliersData.data || [],
@@ -120,30 +110,28 @@ export function GlobalSearch({ className }) {
         // Search suppliers
         const matchedSuppliers = allData.suppliers
           .filter(
-            (s) =>
+            s =>
               s.name?.toLowerCase().includes(lowerQuery) ||
               s.companyName?.toLowerCase().includes(lowerQuery) ||
               s.phone?.includes(query) ||
-              s.gstNumber?.toLowerCase().includes(lowerQuery),
+              s.gstNumber?.toLowerCase().includes(lowerQuery)
           )
           .slice(0, 5);
 
         // Search customers
         const matchedCustomers = allData.customers
           .filter(
-            (c) =>
+            c =>
               c.name?.toLowerCase().includes(lowerQuery) ||
               c.phone?.includes(query) ||
-              c.address?.toLowerCase().includes(lowerQuery),
+              c.address?.toLowerCase().includes(lowerQuery)
           )
           .slice(0, 5);
 
         // Search transactions
         const matchedTransactions = allData.transactions
-          .filter((t) => {
-            const supplier = allData.suppliers.find(
-              (s) => s.id === t.supplierId,
-            );
+          .filter(t => {
+            const supplier = allData.suppliers.find(s => s.id === t.supplierId);
             const supplierName = supplier?.name?.toLowerCase() || "";
             const amount = t.amount?.toString() || "";
             const notes = t.notes?.toLowerCase() || "";
@@ -158,15 +146,11 @@ export function GlobalSearch({ className }) {
 
         // Search udhar
         const matchedUdhar = allData.udhar
-          .filter((u) => {
-            const customer = allData.customers.find(
-              (c) => c.id === u.customerId,
-            );
+          .filter(u => {
+            const customer = allData.customers.find(c => c.id === u.customerId);
             const customerName = customer?.name?.toLowerCase() || "";
             const amount =
-              (
-                u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0)
-              ).toString() || "";
+              (u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0)).toString() || "";
             const notes = u.notes?.toLowerCase() || "";
 
             return (
@@ -178,19 +162,15 @@ export function GlobalSearch({ className }) {
           .slice(0, 5);
 
         // Add supplier info to transactions
-        const transactionsWithSupplier = matchedTransactions.map((t) => ({
+        const transactionsWithSupplier = matchedTransactions.map(t => ({
           ...t,
-          supplierName:
-            allData.suppliers.find((s) => s.id === t.supplierId)?.name ||
-            "Unknown",
+          supplierName: allData.suppliers.find(s => s.id === t.supplierId)?.name || "Unknown",
         }));
 
         // Add customer info to udhar
-        const udharWithCustomer = matchedUdhar.map((u) => ({
+        const udharWithCustomer = matchedUdhar.map(u => ({
           ...u,
-          customerName:
-            allData.customers.find((c) => c.id === u.customerId)?.name ||
-            "Unknown",
+          customerName: allData.customers.find(c => c.id === u.customerId)?.name || "Unknown",
         }));
 
         setResults({
@@ -210,35 +190,35 @@ export function GlobalSearch({ className }) {
     return () => clearTimeout(debounce);
   }, [query, allData]);
 
-  const handleSupplierClick = (supplier) => {
+  const handleSupplierClick = supplier => {
     setIsOpen(false);
     setQuery("");
     router.push(`/suppliers?open=${supplier.id}`);
   };
 
-  const handleTransactionClick = (transaction) => {
+  const handleTransactionClick = transaction => {
     setIsOpen(false);
     setQuery("");
     router.push(`/suppliers?open=${transaction.supplierId}`);
   };
 
-  const handleCustomerClick = (customer) => {
+  const handleCustomerClick = customer => {
     setIsOpen(false);
     setQuery("");
     router.push(`/customers?open=${customer.id}`);
   };
 
-  const handleUdharClick = (udhar) => {
+  const handleUdharClick = udhar => {
     setIsOpen(false);
     setQuery("");
     router.push(`/customers?open=${udhar.customerId}`);
   };
 
-  const getInitials = (name) => {
+  const getInitials = name => {
     return (
       name
         ?.split(" ")
-        .map((n) => n[0])
+        .map(n => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2) || "??"
@@ -260,15 +240,15 @@ export function GlobalSearch({ className }) {
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           ref={inputRef}
           type="text"
           placeholder="Search..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          className="pl-9 pr-9 h-10 bg-muted/50 border-muted focus:bg-background"
+          className="h-10 border-muted bg-muted/50 pl-9 pr-9 focus:bg-background"
         />
         {query && (
           <button
@@ -285,7 +265,7 @@ export function GlobalSearch({ className }) {
 
       {/* Search Results Dropdown */}
       {isOpen && query && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-lg shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[70vh] overflow-hidden overflow-y-auto rounded-lg border bg-card shadow-lg">
           {isSearching ? (
             <div className="p-4 text-center text-muted-foreground">
               <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-primary border-r-transparent" />
@@ -293,46 +273,40 @@ export function GlobalSearch({ className }) {
             </div>
           ) : !hasResults ? (
             <div className="p-4 text-center text-muted-foreground">
-              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">
-                No results found for &quot;{query}&quot;
-              </p>
+              <Search className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              <p className="text-sm">No results found for &quot;{query}&quot;</p>
             </div>
           ) : (
             <>
               {/* Customers Section */}
               {results.customers.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 bg-amber-500/10 border-b">
+                  <div className="border-b bg-amber-500/10 px-3 py-2">
                     <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
                       <Users className="h-3 w-3" />
                       CUSTOMERS
                     </div>
                   </div>
-                  {results.customers.map((customer) => (
+                  {results.customers.map(customer => (
                     <button
                       key={customer.id}
                       onClick={() => handleCustomerClick(customer)}
-                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
                       <Avatar className="h-9 w-9">
                         <AvatarImage src={customer.profilePicture} />
-                        <AvatarFallback className="text-xs bg-amber-100 text-amber-700">
+                        <AvatarFallback className="bg-amber-100 text-xs text-amber-700">
                           {getInitials(customer.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {customer.name}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{customer.name}</p>
                         {customer.phone && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {customer.phone}
-                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{customer.phone}</p>
                         )}
                       </div>
                       {customer.totalPending > 0 && (
-                        <Badge className="bg-amber-100 text-amber-700 text-[10px]">
+                        <Badge className="bg-amber-100 text-[10px] text-amber-700">
                           ₹{customer.totalPending?.toLocaleString()}
                         </Badge>
                       )}
@@ -345,30 +319,29 @@ export function GlobalSearch({ className }) {
               {/* Udhar Section */}
               {results.udhar.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 bg-amber-500/10 border-b border-t">
+                  <div className="border-b border-t bg-amber-500/10 px-3 py-2">
                     <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
                       <Banknote className="h-3 w-3" />
                       UDHAR
                     </div>
                   </div>
-                  {results.udhar.map((udhar) => (
+                  {results.udhar.map(udhar => (
                     <button
                       key={udhar.id}
                       onClick={() => handleUdharClick(udhar)}
-                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
-                      <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
                         <Banknote className="h-4 w-4 text-amber-700" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">
                           ₹
                           {(
-                            udhar.amount ||
-                            (udhar.cashAmount || 0) + (udhar.onlineAmount || 0)
+                            udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0)
                           ).toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="truncate text-xs text-muted-foreground">
                           {udhar.customerName} •{" "}
                           {new Date(udhar.date).toLocaleDateString("en-IN", {
                             day: "numeric",
@@ -377,10 +350,7 @@ export function GlobalSearch({ className }) {
                         </p>
                       </div>
                       <Badge
-                        className={cn(
-                          "text-[10px]",
-                          paymentStatusColors[udhar.paymentStatus],
-                        )}
+                        className={cn("text-[10px]", paymentStatusColors[udhar.paymentStatus])}
                       >
                         {udhar.paymentStatus}
                       </Badge>
@@ -392,30 +362,28 @@ export function GlobalSearch({ className }) {
               {/* Suppliers Section */}
               {results.suppliers.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 bg-muted/50 border-b border-t">
+                  <div className="border-b border-t bg-muted/50 px-3 py-2">
                     <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                       <User className="h-3 w-3" />
                       SUPPLIERS
                     </div>
                   </div>
-                  {results.suppliers.map((supplier) => (
+                  {results.suppliers.map(supplier => (
                     <button
                       key={supplier.id}
                       onClick={() => handleSupplierClick(supplier)}
-                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
                       <Avatar className="h-9 w-9">
                         <AvatarImage src={supplier.profilePicture} />
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        <AvatarFallback className="bg-primary/10 text-xs text-primary">
                           {getInitials(supplier.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {supplier.name}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{supplier.name}</p>
                         {supplier.companyName && (
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="truncate text-xs text-muted-foreground">
                             {supplier.companyName}
                           </p>
                         )}
@@ -429,40 +397,37 @@ export function GlobalSearch({ className }) {
               {/* Transactions Section */}
               {results.transactions.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 bg-muted/50 border-b border-t">
+                  <div className="border-b border-t bg-muted/50 px-3 py-2">
                     <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                       <Receipt className="h-3 w-3" />
                       TRANSACTIONS
                     </div>
                   </div>
-                  {results.transactions.map((transaction) => (
+                  {results.transactions.map(transaction => (
                     <button
                       key={transaction.id}
                       onClick={() => handleTransactionClick(transaction)}
-                      className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
-                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
                         <Receipt className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">
                           ₹{transaction.amount?.toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="truncate text-xs text-muted-foreground">
                           {transaction.supplierName} •{" "}
-                          {new Date(transaction.date).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "numeric",
-                              month: "short",
-                            },
-                          )}
+                          {new Date(transaction.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                          })}
                         </p>
                       </div>
                       <Badge
                         className={cn(
                           "text-[10px]",
-                          paymentStatusColors[transaction.paymentStatus],
+                          paymentStatusColors[transaction.paymentStatus]
                         )}
                       >
                         {transaction.paymentStatus}

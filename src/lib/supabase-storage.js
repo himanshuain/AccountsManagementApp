@@ -10,12 +10,10 @@ export async function uploadImageToSupabase(file, folder = "general") {
 
   try {
     const filename = `${folder}/${Date.now()}-${file.name || "image.jpg"}`;
-    const { data, error } = await supabase.storage
-      .from("images")
-      .upload(filename, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+    const { data, error } = await supabase.storage.from("images").upload(filename, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
 
     if (error) {
       console.error("[Supabase] Image upload error:", error);
@@ -34,11 +32,7 @@ export async function uploadImageToSupabase(file, folder = "general") {
   }
 }
 
-export async function uploadImageFromBase64ToSupabase(
-  base64Data,
-  filename,
-  folder = "general",
-) {
+export async function uploadImageFromBase64ToSupabase(base64Data, filename, folder = "general") {
   if (!isSupabaseConfigured()) {
     return null;
   }

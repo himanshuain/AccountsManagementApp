@@ -347,20 +347,20 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
   const content = (
     <div
-      className="fixed inset-0 bg-black/95 flex flex-col"
+      className="fixed inset-0 flex flex-col bg-black/95"
       style={{ zIndex: 2147483647, pointerEvents: "auto" }}
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0"
+        className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-3"
         style={{ zIndex: 2147483647, pointerEvents: "auto" }}
       >
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-white/20 h-10 w-10"
+          className="h-10 w-10 text-white hover:bg-white/20"
           onClick={handleClose}
           style={{ pointerEvents: "auto" }}
         >
@@ -371,20 +371,20 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleZoomOut}
             disabled={scale <= 1}
             style={{ pointerEvents: "auto" }}
           >
             <ZoomOut className="h-5 w-5" />
           </Button>
-          <span className="text-white text-sm min-w-[50px] text-center">
+          <span className="min-w-[50px] text-center text-sm text-white">
             {Math.round(scale * 100)}%
           </span>
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleZoomIn}
             disabled={scale >= 5}
             style={{ pointerEvents: "auto" }}
@@ -394,7 +394,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleRotate}
             style={{ pointerEvents: "auto" }}
           >
@@ -403,7 +403,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleDownload}
             style={{ pointerEvents: "auto" }}
           >
@@ -412,7 +412,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleShare}
             style={{ pointerEvents: "auto" }}
           >
@@ -424,7 +424,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden"
+        className="flex flex-1 items-center justify-center overflow-hidden"
         style={{ touchAction: "none", pointerEvents: "auto" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -438,7 +438,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             src={optimizedUrls.lqip}
             alt=""
             aria-hidden="true"
-            className="max-w-full max-h-full object-contain blur-2xl scale-105 opacity-70"
+            className="max-h-full max-w-full scale-105 object-contain opacity-70 blur-2xl"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
             }}
@@ -446,8 +446,8 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
         )}
 
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
           </div>
         )}
 
@@ -457,7 +457,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           src={src?.includes("ik.imagekit.io") ? optimizedUrls.original : src}
           alt={alt}
           className={cn(
-            "max-w-full max-h-full object-contain select-none transition-opacity duration-500",
+            "max-h-full max-w-full select-none object-contain transition-opacity duration-500",
             isLoading ? "opacity-0" : "opacity-100"
           )}
           style={{
@@ -475,7 +475,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
       {/* Hint text */}
       {scale === 1 && (
-        <div className="absolute bottom-6 left-0 right-0 text-center text-white/50 text-sm pointer-events-none">
+        <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm text-white/50">
           Double tap to zoom • Swipe down to close
         </div>
       )}
@@ -825,20 +825,20 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
   const content = (
     <div
-      className="fixed inset-0 bg-black/95 flex flex-col"
+      className="fixed inset-0 flex flex-col bg-black/95"
       style={{ zIndex: 2147483647, pointerEvents: "auto" }}
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0"
+        className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-3"
         style={{ zIndex: 2147483647, pointerEvents: "auto" }}
       >
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-white/20 h-10 w-10"
+          className="h-10 w-10 text-white hover:bg-white/20"
           onClick={handleClose}
           style={{ pointerEvents: "auto" }}
         >
@@ -847,7 +847,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
         <div className="flex items-center gap-2">
           {normalizedImages.length > 1 && (
-            <span className="text-white text-sm">
+            <span className="text-sm text-white">
               {currentIndex + 1} / {normalizedImages.length}
             </span>
           )}
@@ -857,7 +857,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={() => setRotation(prev => (prev + 90) % 360)}
             style={{ pointerEvents: "auto" }}
           >
@@ -866,7 +866,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleDownload}
             style={{ pointerEvents: "auto" }}
           >
@@ -875,7 +875,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20 h-10 w-10"
+            className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleShare}
             style={{ pointerEvents: "auto" }}
           >
@@ -887,7 +887,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden"
+        className="flex flex-1 items-center justify-center overflow-hidden"
         style={{ touchAction: "none", pointerEvents: "auto" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -900,7 +900,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             src={optimizedUrls.lqip}
             alt=""
             aria-hidden="true"
-            className="max-w-full max-h-full object-contain blur-2xl scale-105 opacity-70"
+            className="max-h-full max-w-full scale-105 object-contain opacity-70 blur-2xl"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
             }}
@@ -908,8 +908,8 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         )}
 
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
           </div>
         )}
 
@@ -918,7 +918,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           src={currentSrc?.includes("ik.imagekit.io") ? optimizedUrls.original : currentSrc}
           alt={`Image ${currentIndex + 1}`}
           className={cn(
-            "max-w-full max-h-full object-contain select-none transition-opacity duration-500",
+            "max-h-full max-w-full select-none object-contain transition-opacity duration-500",
             isLoading ? "opacity-0" : "opacity-100"
           )}
           style={{
@@ -939,11 +939,11 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         <>
           {currentIndex > 0 && (
             <button
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
               style={{ zIndex: 2147483647, pointerEvents: "auto" }}
               onClick={handlePrev}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -955,11 +955,11 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           )}
           {currentIndex < normalizedImages.length - 1 && (
             <button
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
               style={{ zIndex: 2147483647, pointerEvents: "auto" }}
               onClick={handleNext}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -975,7 +975,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       {/* Info overlay - shows transaction info when available */}
       {showInfo && currentImage.amount !== undefined && (
         <div
-          className="absolute bottom-24 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-xl p-3 text-white"
+          className="absolute bottom-24 left-4 right-4 rounded-xl bg-black/70 p-3 text-white backdrop-blur-sm"
           style={{ zIndex: 2147483647, pointerEvents: "auto" }}
           onClick={() => setShowInfo(false)}
         >
@@ -998,7 +998,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             {currentImage.type && (
               <span
                 className={cn(
-                  "text-xs px-2 py-1 rounded-full",
+                  "rounded-full px-2 py-1 text-xs",
                   currentImage.type === "receipt"
                     ? "bg-green-500/30 text-green-300"
                     : "bg-amber-500/30 text-amber-300"
@@ -1008,13 +1008,13 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               </span>
             )}
           </div>
-          <p className="text-[10px] text-white/40 my-1 text-center">Tap to hide info</p>
+          <p className="my-1 text-center text-[10px] text-white/40">Tap to hide info</p>
         </div>
       )}
 
       {/* Hint text */}
       {scale === 1 && !currentImage.amount && (
-        <div className="absolute bottom-6 left-0 right-0 text-center text-white/50 text-sm pointer-events-none">
+        <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm text-white/50">
           Double tap to zoom • Swipe to navigate • Swipe down to close
         </div>
       )}
@@ -1022,7 +1022,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       {/* Thumbnail strip for multiple images */}
       {normalizedImages.length > 1 && (
         <div
-          className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto"
+          className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4"
           style={{ zIndex: 2147483647, pointerEvents: "auto" }}
         >
           {normalizedImages.slice(0, 8).map((img, idx) => {
@@ -1031,9 +1031,9 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               <button
                 key={idx}
                 className={cn(
-                  "w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
+                  "h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                   idx === currentIndex
-                    ? "border-white scale-110"
+                    ? "scale-110 border-white"
                     : "border-transparent opacity-60 hover:opacity-100"
                 )}
                 style={{ pointerEvents: "auto" }}
@@ -1050,14 +1050,14 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
                       : imgUrl
                   }
                   alt={`Thumbnail ${idx + 1}`}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                   loading="lazy"
                 />
               </button>
             );
           })}
           {normalizedImages.length > 8 && (
-            <div className="w-12 h-12 rounded-lg bg-black/50 flex items-center justify-center text-white text-xs flex-shrink-0">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-black/50 text-xs text-white">
               +{normalizedImages.length - 8}
             </div>
           )}

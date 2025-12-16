@@ -39,7 +39,7 @@ export function DeleteConfirmDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
               <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <DialogTitle>{title}</DialogTitle>
@@ -47,26 +47,16 @@ export function DeleteConfirmDialog({
           <DialogDescription className="pt-2">
             {description}
             {itemName && (
-              <span className="block mt-2 font-medium text-foreground">
-                &quot;{itemName}&quot;
-              </span>
+              <span className="mt-2 block font-medium text-foreground">&quot;{itemName}&quot;</span>
             )}
           </DialogDescription>
         </DialogHeader>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isDeleting}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={isDeleting}
-          >
+          <Button variant="destructive" onClick={handleConfirm} disabled={isDeleting}>
             {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
           </Button>

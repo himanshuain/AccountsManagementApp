@@ -175,17 +175,17 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-card/95 backdrop-blur-sm border-r">
+    <aside className="hidden border-r bg-card/95 backdrop-blur-sm lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       {/* Logo */}
-      <div className="h-16 flex items-center gap-2 px-6 border-b">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+      <div className="flex h-16 items-center gap-2 border-b px-6">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
           <Store className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="font-semibold text-lg">Shop Manager</span>
+        <span className="text-lg font-semibold">Shop Manager</span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-4 space-y-1">
+      <nav className="flex-1 space-y-1 px-4 py-4">
         {navItems.map(item => {
           const isActive =
             pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -194,7 +194,7 @@ export function Sidebar() {
             <Link key={item.href} href={item.href}>
               <div
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -209,7 +209,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-4 space-y-4">
+      <div className="space-y-4 p-4">
         <Separator />
 
         {/* Storage Usage */}
@@ -224,18 +224,18 @@ export function Sidebar() {
             )}
           </div>
           {storageLoading ? (
-            <div className="h-2 bg-muted rounded-full animate-pulse" />
+            <div className="h-2 animate-pulse rounded-full bg-muted" />
           ) : storageInfo ? (
             <div className="space-y-1">
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all",
                     storageInfo.usedPercentage > 80
                       ? "bg-destructive"
                       : storageInfo.usedPercentage > 50
-                      ? "bg-amber-500"
-                      : "bg-green-500"
+                        ? "bg-amber-500"
+                        : "bg-green-500"
                   )}
                   style={{ width: `${Math.min(storageInfo.usedPercentage, 100)}%` }}
                 />
@@ -275,7 +275,7 @@ export function Sidebar() {
           className="w-full justify-start text-muted-foreground"
           onClick={() => setPasswordSheetOpen(true)}
         >
-          <Key className="h-4 w-4 mr-2" />
+          <Key className="mr-2 h-4 w-4" />
           Change Password
         </Button>
 
@@ -287,7 +287,7 @@ export function Sidebar() {
               className="w-full justify-start text-muted-foreground hover:text-destructive"
               disabled={isClearing}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="mr-2 h-4 w-4" />
               {isClearing ? "Clearing..." : "Clear Site Data"}
             </Button>
           </AlertDialogTrigger>
@@ -311,7 +311,7 @@ export function Sidebar() {
           className="w-full justify-start text-muted-foreground"
           onClick={handleLogout}
         >
-          <LogOut className="h-4 w-4 mr-2" />
+          <LogOut className="mr-2 h-4 w-4" />
           Logout
         </Button>
       </div>
@@ -364,7 +364,7 @@ export function Sidebar() {
             )}
 
             {isChangingPassword && (
-              <p className="text-center text-sm text-muted-foreground mt-4">Changing PIN...</p>
+              <p className="mt-4 text-center text-sm text-muted-foreground">Changing PIN...</p>
             )}
           </div>
           <div className="flex gap-3 pb-6">

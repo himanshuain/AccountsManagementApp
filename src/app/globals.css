@@ -110,19 +110,11 @@
 
 /* Gradient backgrounds */
 .gradient-primary {
-  background: linear-gradient(
-    135deg,
-    hsl(217 91% 60%) 0%,
-    hsl(199 89% 48%) 100%
-  );
+  background: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(199 89% 48%) 100%);
 }
 
 .gradient-card {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--card)) 0%,
-    hsl(var(--accent)) 100%
-  );
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--accent)) 100%);
 }
 
 /* Animated gradient background */
@@ -254,11 +246,7 @@
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.3),
-    transparent 50%
-  );
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.3), transparent 50%);
   z-index: -1;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -270,11 +258,7 @@
 
 /* Dark mode specific glow */
 .dark .glow-effect:hover::before {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.2),
-    transparent 50%
-  );
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.2), transparent 50%);
 }
 
 /* Custom scrollbar */
@@ -640,9 +624,10 @@ button:active:not(:disabled),
 /* Card and interactive element animations */
 .card,
 [data-slot="card"] {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.2s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s ease;
 }
 
 /* Slide up animation */
@@ -714,7 +699,8 @@ button:active:not(:disabled),
 
 /* Smooth bounce animation */
 @keyframes smoothBounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -728,7 +714,8 @@ button:active:not(:disabled),
 
 /* Pulse glow effect */
 @keyframes pulseGlow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
   }
   50% {
@@ -746,16 +733,36 @@ button:active:not(:disabled),
   animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.stagger-item:nth-child(1) { animation-delay: 0.05s; }
-.stagger-item:nth-child(2) { animation-delay: 0.1s; }
-.stagger-item:nth-child(3) { animation-delay: 0.15s; }
-.stagger-item:nth-child(4) { animation-delay: 0.2s; }
-.stagger-item:nth-child(5) { animation-delay: 0.25s; }
-.stagger-item:nth-child(6) { animation-delay: 0.3s; }
-.stagger-item:nth-child(7) { animation-delay: 0.35s; }
-.stagger-item:nth-child(8) { animation-delay: 0.4s; }
-.stagger-item:nth-child(9) { animation-delay: 0.45s; }
-.stagger-item:nth-child(10) { animation-delay: 0.5s; }
+.stagger-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.stagger-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.stagger-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.stagger-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.stagger-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.stagger-item:nth-child(6) {
+  animation-delay: 0.3s;
+}
+.stagger-item:nth-child(7) {
+  animation-delay: 0.35s;
+}
+.stagger-item:nth-child(8) {
+  animation-delay: 0.4s;
+}
+.stagger-item:nth-child(9) {
+  animation-delay: 0.45s;
+}
+.stagger-item:nth-child(10) {
+  animation-delay: 0.5s;
+}
 
 /* Badge and chip animations */
 .badge,
@@ -766,8 +773,9 @@ button:active:not(:disabled),
 /* Avatar animations */
 .avatar,
 [data-slot="avatar"] {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .avatar:hover,
@@ -781,16 +789,18 @@ textarea,
 select,
 [data-slot="input"],
 [data-slot="textarea"] {
-  transition: border-color 0.2s ease,
-              box-shadow 0.2s ease,
-              background-color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
 }
 
 /* Collapsible smooth animation */
 [data-state="open"] > [data-collapsible-content],
 [data-state="closed"] > [data-collapsible-content] {
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Sheet/Dialog backdrop animation */
@@ -869,14 +879,17 @@ select,
   background: radial-gradient(circle, hsl(var(--foreground) / 0.1) 10%, transparent 70%);
   transform: scale(0);
   opacity: 0;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ripple:active::after {
   transform: scale(2);
   opacity: 1;
-  transition: transform 0s, opacity 0s;
+  transition:
+    transform 0s,
+    opacity 0s;
 }
 
 /* Smooth scroll behavior */
@@ -888,7 +901,7 @@ html {
   html {
     scroll-behavior: auto;
   }
-  
+
   *,
   *::before,
   *::after {
@@ -964,7 +977,10 @@ html {
 
 /* Floating label animation */
 .floating-label {
-  transition: transform 0.2s ease, font-size 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    font-size 0.2s ease,
+    color 0.2s ease;
 }
 
 /* Progress bar animation */

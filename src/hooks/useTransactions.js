@@ -8,9 +8,7 @@ const TRANSACTIONS_KEY = ["transactions"];
 export function useTransactions(supplierId = null) {
   const queryClient = useQueryClient();
 
-  const queryKey = supplierId
-    ? [...TRANSACTIONS_KEY, { supplierId }]
-    : TRANSACTIONS_KEY;
+  const queryKey = supplierId ? [...TRANSACTIONS_KEY, { supplierId }] : TRANSACTIONS_KEY;
 
   // Fetch transactions directly from cloud API
   const {
@@ -21,9 +19,7 @@ export function useTransactions(supplierId = null) {
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      const url = supplierId
-        ? `/api/transactions?supplierId=${supplierId}`
-        : "/api/transactions";
+      const url = supplierId ? `/api/transactions?supplierId=${supplierId}` : "/api/transactions";
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch transactions");
@@ -37,7 +33,7 @@ export function useTransactions(supplierId = null) {
 
   // Add transaction mutation - directly to cloud
   const addMutation = useMutation({
-    mutationFn: async (transactionData) => {
+    mutationFn: async transactionData => {
       const response = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,7 +71,7 @@ export function useTransactions(supplierId = null) {
 
   // Delete transaction mutation - directly to cloud
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
+    mutationFn: async id => {
       const response = await fetch(`/api/transactions/${id}`, {
         method: "DELETE",
       });
@@ -91,7 +87,7 @@ export function useTransactions(supplierId = null) {
   });
 
   const addTransaction = useCallback(
-    async (transactionData) => {
+    async transactionData => {
       try {
         await addMutation.mutateAsync(transactionData);
         return { success: true };
@@ -99,7 +95,7 @@ export function useTransactions(supplierId = null) {
         return { success: false, error: err.message };
       }
     },
-    [addMutation],
+    [addMutation]
   );
 
   const updateTransaction = useCallback(
@@ -111,11 +107,11 @@ export function useTransactions(supplierId = null) {
         return { success: false, error: err.message };
       }
     },
-    [updateMutation],
+    [updateMutation]
   );
 
   const deleteTransaction = useCallback(
-    async (id) => {
+    async id => {
       try {
         await deleteMutation.mutateAsync(id);
         return { success: true };
@@ -123,15 +119,14 @@ export function useTransactions(supplierId = null) {
         return { success: false, error: err.message };
       }
     },
-    [deleteMutation],
+    [deleteMutation]
   );
 
   // Record a partial payment for a transaction
   const recordPayment = useCallback(
     async (id, amount, receiptUrl = null) => {
-      const transaction = transactions.find((t) => t.id === id);
-      if (!transaction)
-        return { success: false, error: "Transaction not found" };
+      const transaction = transactions.find(t => t.id === id);
+      if (!transaction) return { success: false, error: "Transaction not found" };
 
       const totalAmount = transaction.amount || 0;
       const currentPaid = transaction.paidAmount || 0;
@@ -152,15 +147,14 @@ export function useTransactions(supplierId = null) {
 
       return await updateTransaction(id, updates);
     },
-    [transactions, updateTransaction],
+    [transactions, updateTransaction]
   );
 
   // Mark transaction as fully paid
   const markFullPaid = useCallback(
     async (id, receiptUrl = null) => {
-      const transaction = transactions.find((t) => t.id === id);
-      if (!transaction)
-        return { success: false, error: "Transaction not found" };
+      const transaction = transactions.find(t => t.id === id);
+      if (!transaction) return { success: false, error: "Transaction not found" };
 
       const totalAmount = transaction.amount || 0;
       const currentPaid = transaction.paidAmount || 0;
@@ -184,13 +178,11 @@ export function useTransactions(supplierId = null) {
         payments: payments,
       });
     },
-    [transactions, updateTransaction],
+    [transactions, updateTransaction]
   );
 
   const getPendingPayments = useCallback(() => {
-    return transactions.filter(
-      (t) => t.paymentStatus === "pending" || t.paymentStatus === "partial",
-    );
+    return transactions.filter(t => t.paymentStatus === "pending" || t.paymentStatus === "partial");
   }, [transactions]);
 
   const getRecentTransactions = useCallback(
@@ -199,7 +191,7 @@ export function useTransactions(supplierId = null) {
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
         .slice(0, limit);
     },
-    [transactions],
+    [transactions]
   );
 
   const refresh = useCallback(() => {

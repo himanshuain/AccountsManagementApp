@@ -30,7 +30,7 @@ export function useSuppliers() {
 
   // Add supplier mutation - directly to cloud
   const addMutation = useMutation({
-    mutationFn: async (supplierData) => {
+    mutationFn: async supplierData => {
       const response = await fetch("/api/suppliers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,7 +68,7 @@ export function useSuppliers() {
 
   // Delete supplier mutation - directly to cloud
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
+    mutationFn: async id => {
       const response = await fetch(`/api/suppliers/${id}`, {
         method: "DELETE",
       });
@@ -84,7 +84,7 @@ export function useSuppliers() {
   });
 
   const addSupplier = useCallback(
-    async (supplierData) => {
+    async supplierData => {
       try {
         await addMutation.mutateAsync(supplierData);
         return { success: true };
@@ -92,7 +92,7 @@ export function useSuppliers() {
         return { success: false, error: err.message };
       }
     },
-    [addMutation],
+    [addMutation]
   );
 
   const updateSupplier = useCallback(
@@ -104,11 +104,11 @@ export function useSuppliers() {
         return { success: false, error: err.message };
       }
     },
-    [updateMutation],
+    [updateMutation]
   );
 
   const deleteSupplier = useCallback(
-    async (id) => {
+    async id => {
       try {
         await deleteMutation.mutateAsync(id);
         return { success: true };
@@ -116,30 +116,30 @@ export function useSuppliers() {
         return { success: false, error: err.message };
       }
     },
-    [deleteMutation],
+    [deleteMutation]
   );
 
   const searchSuppliers = useCallback(
-    (query) => {
+    query => {
       if (!query.trim()) {
         return suppliers;
       }
       const lowerQuery = query.toLowerCase();
       return suppliers.filter(
-        (s) =>
+        s =>
           s.name?.toLowerCase().includes(lowerQuery) ||
           s.companyName?.toLowerCase().includes(lowerQuery) ||
-          s.phone?.includes(query),
+          s.phone?.includes(query)
       );
     },
-    [suppliers],
+    [suppliers]
   );
 
   const getSupplierById = useCallback(
-    (id) => {
-      return suppliers.find((s) => s.id === id) || null;
+    id => {
+      return suppliers.find(s => s.id === id) || null;
     },
-    [suppliers],
+    [suppliers]
   );
 
   const refresh = useCallback(() => {

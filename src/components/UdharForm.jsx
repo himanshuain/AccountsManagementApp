@@ -6,12 +6,7 @@ import { Loader2, UserPlus, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import { Autocomplete } from "@/components/ui/autocomplete";
@@ -30,11 +25,9 @@ export function UdharForm({
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [khataPhotos, setKhataPhotos] = useState(
-    initialData?.khataPhotos || [],
-  );
+  const [khataPhotos, setKhataPhotos] = useState(initialData?.khataPhotos || []);
   const [selectedCustomerId, setSelectedCustomerId] = useState(
-    initialData?.customerId || defaultCustomerId || "",
+    initialData?.customerId || defaultCustomerId || ""
   );
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
 
@@ -61,8 +54,7 @@ export function UdharForm({
         setSelectedCustomerId(initialData.customerId || "");
         // Calculate total from old cash+online or use amount directly
         const totalAmount =
-          initialData.amount ||
-          (initialData.cashAmount || 0) + (initialData.onlineAmount || 0);
+          initialData.amount || (initialData.cashAmount || 0) + (initialData.onlineAmount || 0);
         reset({
           date: initialData.date || new Date().toISOString().split("T")[0],
           amount: totalAmount || "",
@@ -77,7 +69,7 @@ export function UdharForm({
     }
   }, [open, initialData, defaultCustomerId, reset]);
 
-  const handleFormSubmit = async (data) => {
+  const handleFormSubmit = async data => {
     if (!selectedCustomerId) {
       return;
     }
@@ -108,9 +100,7 @@ export function UdharForm({
   const handleClose = () => {
     if (!isSubmitting) {
       if (isDirty || khataPhotos.length > 0) {
-        if (
-          !confirm("You have unsaved changes. Are you sure you want to close?")
-        ) {
+        if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
           return;
         }
       }
@@ -121,7 +111,7 @@ export function UdharForm({
     }
   };
 
-  const handleNewCustomer = async (customerData) => {
+  const handleNewCustomer = async customerData => {
     const result = await onAddCustomer(customerData);
     if (result.success) {
       setSelectedCustomerId(result.data.id);
@@ -133,18 +123,14 @@ export function UdharForm({
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent
-          side="bottom"
-          className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
-          hideClose
-        >
+        <SheetContent side="bottom" className="flex h-[90vh] flex-col rounded-t-2xl p-0" hideClose>
           {/* Drag handle */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          <div className="flex justify-center pb-2 pt-3">
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
           {/* Header with action buttons */}
-          <SheetHeader className="px-4 pb-3 border-b">
+          <SheetHeader className="border-b px-4 pb-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -153,10 +139,10 @@ export function UdharForm({
                 disabled={isSubmitting}
                 className="h-9 px-3"
               >
-                <X className="h-4 w-4 mr-1" />
+                <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="text-base font-semibold flex-1 text-center">
+              <SheetTitle className="flex-1 text-center text-base font-semibold">
                 {title}
               </SheetTitle>
               <Button
@@ -169,7 +155,7 @@ export function UdharForm({
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-1" />
+                    <Check className="mr-1 h-4 w-4" />
                     {initialData ? "Save" : "Add"}
                   </>
                 )}
@@ -177,13 +163,10 @@ export function UdharForm({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-safe">
-            <form
-              onSubmit={handleSubmit(handleFormSubmit)}
-              className="space-y-5 py-4"
-            >
+          <div className="pb-safe flex-1 overflow-y-auto px-6">
+            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
               {!isOnline && (
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
                   You&apos;re offline. Saving is disabled.
                 </div>
               )}
@@ -201,8 +184,8 @@ export function UdharForm({
                       searchPlaceholder="Search customer..."
                       emptyText="No customer found"
                       disabled={!!defaultCustomerId || !isOnline}
-                      getOptionLabel={(opt) => opt?.name || ""}
-                      getOptionValue={(opt) => opt?.id || ""}
+                      getOptionLabel={opt => opt?.name || ""}
+                      getOptionValue={opt => opt?.id || ""}
                       triggerClassName="h-12 text-base"
                     />
                   </div>
@@ -218,9 +201,7 @@ export function UdharForm({
                   </Button>
                 </div>
                 {!selectedCustomerId && (
-                  <p className="text-xs text-muted-foreground">
-                    Select a customer or add new
-                  </p>
+                  <p className="text-xs text-muted-foreground">Select a customer or add new</p>
                 )}
               </div>
 
@@ -246,13 +227,11 @@ export function UdharForm({
                   inputMode="numeric"
                   {...register("amount", { required: "Amount is required" })}
                   placeholder="Enter amount"
-                  className="text-2xl h-16 font-bold"
+                  className="h-16 text-2xl font-bold"
                   disabled={!isOnline}
                 />
                 {errors.amount && (
-                  <p className="text-xs text-destructive">
-                    {errors.amount.message}
-                  </p>
+                  <p className="text-xs text-destructive">{errors.amount.message}</p>
                 )}
               </div>
 
@@ -266,11 +245,7 @@ export function UdharForm({
                   disabled={!isOnline}
                   className="h-12"
                 />
-                {errors.date && (
-                  <p className="text-xs text-destructive">
-                    {errors.date.message}
-                  </p>
-                )}
+                {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
               </div>
 
               {/* Description */}

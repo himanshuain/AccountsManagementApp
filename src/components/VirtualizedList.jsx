@@ -5,7 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 
 /**
  * VirtualizedList - Renders only visible items for performance with large lists
- * 
+ *
  * @param {Array} items - Array of items to render
  * @param {Function} renderItem - Function to render each item: (item, index) => JSX
  * @param {number} estimateSize - Estimated height of each item in pixels
@@ -63,11 +63,7 @@ export function VirtualizedList({
   }
 
   return (
-    <div
-      ref={parentRef}
-      className={`overflow-auto ${className}`}
-      style={{ contain: "strict" }}
-    >
+    <div ref={parentRef} className={`overflow-auto ${className}`} style={{ contain: "strict" }}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -75,7 +71,7 @@ export function VirtualizedList({
           position: "relative",
         }}
       >
-        {virtualItems.map((virtualItem) => (
+        {virtualItems.map(virtualItem => (
           <div
             key={virtualItem.key}
             data-index={virtualItem.index}
@@ -92,11 +88,9 @@ export function VirtualizedList({
           </div>
         ))}
       </div>
-      
+
       {loading && (
-        <div className="py-4 text-center text-muted-foreground text-sm">
-          Loading more...
-        </div>
+        <div className="py-4 text-center text-sm text-muted-foreground">Loading more...</div>
       )}
     </div>
   );
@@ -106,20 +100,15 @@ export function VirtualizedList({
  * Simple virtualized list that works with dynamic heights
  * Uses a simpler approach with intersection observer
  */
-export function SimpleVirtualList({
-  items = [],
-  renderItem,
-  batchSize = 20,
-  className = "",
-}) {
+export function SimpleVirtualList({ items = [], renderItem, batchSize = 20, className = "" }) {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const loadMoreRef = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => {
+      entries => {
         if (entries[0].isIntersecting && visibleCount < items.length) {
-          setVisibleCount((prev) => Math.min(prev + batchSize, items.length));
+          setVisibleCount(prev => Math.min(prev + batchSize, items.length));
         }
       },
       { threshold: 0.1 }
@@ -144,12 +133,9 @@ export function SimpleVirtualList({
   return (
     <div className={className}>
       {visibleItems.map((item, index) => renderItem(item, index))}
-      
+
       {visibleCount < items.length && (
-        <div 
-          ref={loadMoreRef} 
-          className="py-4 text-center text-muted-foreground text-sm"
-        >
+        <div ref={loadMoreRef} className="py-4 text-center text-sm text-muted-foreground">
           Scroll for more ({items.length - visibleCount} remaining)
         </div>
       )}
@@ -158,4 +144,3 @@ export function SimpleVirtualList({
 }
 
 export default VirtualizedList;
-

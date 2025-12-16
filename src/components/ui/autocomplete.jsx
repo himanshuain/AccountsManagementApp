@@ -19,8 +19,8 @@ export function Autocomplete({
   className,
   triggerClassName,
   renderOption,
-  getOptionLabel = (option) => option?.label || option?.name || option?.companyName || "",
-  getOptionValue = (option) => option?.value || option?.id || "",
+  getOptionLabel = option => option?.label || option?.name || option?.companyName || "",
+  getOptionValue = option => option?.value || option?.id || "",
 }) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -29,14 +29,14 @@ export function Autocomplete({
 
   // Find selected option
   const selectedOption = React.useMemo(() => {
-    return options.find((opt) => getOptionValue(opt) === value);
+    return options.find(opt => getOptionValue(opt) === value);
   }, [options, value, getOptionValue]);
 
   // Filter options based on search
   const filteredOptions = React.useMemo(() => {
     if (!searchQuery.trim()) return options;
     const query = searchQuery.toLowerCase();
-    return options.filter((opt) => {
+    return options.filter(opt => {
       const label = getOptionLabel(opt).toLowerCase();
       const optValue = String(getOptionValue(opt)).toLowerCase();
       return label.includes(query) || optValue.includes(query);
@@ -45,7 +45,7 @@ export function Autocomplete({
 
   // Close on outside click
   React.useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = event => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setOpen(false);
         setSearchQuery("");
@@ -70,7 +70,7 @@ export function Autocomplete({
     }
   }, [open]);
 
-  const handleSelect = (optValue) => {
+  const handleSelect = optValue => {
     onValueChange(optValue === value ? "" : optValue);
     setOpen(false);
     setSearchQuery("");
@@ -91,10 +91,15 @@ export function Autocomplete({
           triggerClassName
         )}
       >
-        <span className="truncate text-left flex-1">
+        <span className="flex-1 truncate text-left">
           {selectedOption ? getOptionLabel(selectedOption) : placeholder}
         </span>
-        <ChevronDown className={cn("ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
+        <ChevronDown
+          className={cn(
+            "ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform",
+            open && "rotate-180"
+          )}
+        />
       </button>
 
       {/* Dropdown */}
@@ -108,14 +113,14 @@ export function Autocomplete({
               type="text"
               placeholder={searchPlaceholder}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="p-1 hover:bg-muted rounded"
+                className="rounded p-1 hover:bg-muted"
               >
                 <X className="h-4 w-4 opacity-50" />
               </button>
@@ -125,11 +130,9 @@ export function Autocomplete({
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto p-1">
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                {emptyText}
-              </div>
+              <div className="py-6 text-center text-sm text-muted-foreground">{emptyText}</div>
             ) : (
-              filteredOptions.map((option) => {
+              filteredOptions.map(option => {
                 const optValue = getOptionValue(option);
                 const optLabel = getOptionLabel(option);
                 const isSelected = optValue === value;

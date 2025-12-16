@@ -43,7 +43,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${outfit.variable} ${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
+        className={`${outfit.variable} ${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <QueryProvider>
           <ThemeProvider

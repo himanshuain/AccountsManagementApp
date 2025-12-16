@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import {
-  Upload,
-  X,
-  Image as ImageIcon,
-  Loader2,
-  Camera,
-  ImagePlus,
-  Expand,
-} from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
@@ -50,7 +42,7 @@ export function ImageUpload({
     }
   }, [value]);
 
-  const handleFileSelect = async (e) => {
+  const handleFileSelect = async e => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -67,7 +59,7 @@ export function ImageUpload({
 
       // Create local preview from compressed file
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         setPreview(e.target.result);
       };
       reader.readAsDataURL(compressedFile);
@@ -87,9 +79,9 @@ export function ImageUpload({
         setPreview(url);
       } else {
         // Keep local preview for offline mode
-        const localUrl = await new Promise((resolve) => {
+        const localUrl = await new Promise(resolve => {
           const r = new FileReader();
-          r.onload = (e) => resolve(e.target.result);
+          r.onload = e => resolve(e.target.result);
           r.readAsDataURL(compressedFile);
         });
         onChange?.(localUrl);
@@ -104,7 +96,7 @@ export function ImageUpload({
     }
   };
 
-  const handleRemove = (e) => {
+  const handleRemove = e => {
     e.stopPropagation();
     setPreview(null);
     onChange?.(null);
@@ -112,7 +104,7 @@ export function ImageUpload({
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
 
-  const handleViewImage = (e) => {
+  const handleViewImage = e => {
     e.stopPropagation();
     if (preview) {
       setViewerOpen(true);
@@ -150,8 +142,8 @@ export function ImageUpload({
         {preview ? (
           <div
             className={cn(
-              "relative rounded-lg overflow-hidden border bg-muted cursor-pointer group",
-              aspectClasses[aspectRatio],
+              "group relative cursor-pointer overflow-hidden rounded-lg border bg-muted",
+              aspectClasses[aspectRatio]
             )}
             onClick={handleViewImage}
           >
@@ -162,33 +154,37 @@ export function ImageUpload({
                 alt=""
                 aria-hidden="true"
                 className={cn(
-                  "absolute inset-0 w-full h-full object-cover scale-110 transition-opacity duration-500",
+                  "absolute inset-0 h-full w-full scale-110 object-cover transition-opacity duration-500",
                   isImageLoaded ? "opacity-0" : "opacity-100 blur-xl"
                 )}
               />
             )}
             {/* Main image - use medium quality for form previews */}
             <img
-              src={preview.startsWith("data:") ? preview : (optimizedUrls.medium || optimizedUrls.src || preview)}
+              src={
+                preview.startsWith("data:")
+                  ? preview
+                  : optimizedUrls.medium || optimizedUrls.src || preview
+              }
               alt="Preview"
               className={cn(
-                "w-full h-full object-cover transition-opacity duration-500",
+                "h-full w-full object-cover transition-opacity duration-500",
                 !isImageLoaded && !preview.startsWith("data:") ? "opacity-0" : "opacity-100"
               )}
               onLoad={() => setIsImageLoaded(true)}
               loading="lazy"
             />
             {/* Hover overlay with view hint */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-              <Expand className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+              <Expand className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
             {!disabled && (
               <Button
                 type="button"
                 variant="destructive"
                 size="icon"
-                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
+                className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={e => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleRemove(e);
@@ -198,8 +194,8 @@ export function ImageUpload({
               </Button>
             )}
             {isUploading && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 text-white animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
               </div>
             )}
           </div>
@@ -208,20 +204,18 @@ export function ImageUpload({
             className={cn(
               "w-full rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50",
               "flex flex-col items-center justify-center gap-3 p-4",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              aspectClasses[aspectRatio],
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              aspectClasses[aspectRatio]
             )}
           >
             {isUploading ? (
-              <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
                 <div className="rounded-full bg-primary/10 p-3">
                   <ImageIcon className="h-6 w-6 text-primary" />
                 </div>
-                <span className="text-sm text-muted-foreground text-center">
-                  {placeholder}
-                </span>
+                <span className="text-center text-sm text-muted-foreground">{placeholder}</span>
                 {/* Camera and Gallery buttons */}
                 <div className="flex gap-2">
                   <Button
@@ -254,22 +248,12 @@ export function ImageUpload({
       </div>
 
       {/* Image Viewer */}
-      <ImageViewer
-        src={preview}
-        alt="Preview"
-        open={viewerOpen}
-        onOpenChange={setViewerOpen}
-      />
+      <ImageViewer src={preview} alt="Preview" open={viewerOpen} onOpenChange={setViewerOpen} />
     </>
   );
 }
 
-export function MultiImageUpload({
-  value = [],
-  onChange,
-  maxImages = 5,
-  disabled = false,
-}) {
+export function MultiImageUpload({ value = [], onChange, maxImages = 5, disabled = false }) {
   const [isUploading, setIsUploading] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -297,9 +281,9 @@ export function MultiImageUpload({
         });
 
         // Create local preview first
-        const localUrl = await new Promise((resolve) => {
+        const localUrl = await new Promise(resolve => {
           const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target.result);
+          reader.onload = e => resolve(e.target.result);
           reader.readAsDataURL(compressedFile);
         });
 
@@ -333,12 +317,12 @@ export function MultiImageUpload({
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
 
-  const handleRemove = (index) => {
+  const handleRemove = index => {
     const newValue = value.filter((_, i) => i !== index);
     onChange?.(newValue);
   };
 
-  const handleViewImage = (index) => {
+  const handleViewImage = index => {
     setViewerIndex(index);
     setViewerOpen(true);
   };
@@ -352,7 +336,7 @@ export function MultiImageUpload({
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={(e) => handleFilesSelect(e, true)}
+          onChange={e => handleFilesSelect(e, true)}
           className="hidden"
           disabled={disabled || isUploading}
         />
@@ -361,46 +345,46 @@ export function MultiImageUpload({
           type="file"
           accept="image/*"
           multiple
-          onChange={(e) => handleFilesSelect(e, false)}
+          onChange={e => handleFilesSelect(e, false)}
           className="hidden"
           disabled={disabled || isUploading}
         />
 
         {/* Image grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {value.map((url, index) => {
-            const urls = url.startsWith("data:") 
-              ? { src: url, lqip: url, thumbnail: url } 
+            const urls = url.startsWith("data:")
+              ? { src: url, lqip: url, thumbnail: url }
               : getOptimizedImageUrl(url);
             return (
-            <div
-              key={index}
-              className="relative aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer group"
-              onClick={() => handleViewImage(index)}
-            >
-              {/* Render optimized thumbnail with LQIP */}
-              <MultiImageThumbnail url={url} urls={urls} index={index} />
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center z-10">
-                <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div
+                key={index}
+                className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border bg-muted"
+                onClick={() => handleViewImage(index)}
+              >
+                {/* Render optimized thumbnail with LQIP */}
+                <MultiImageThumbnail url={url} urls={urls} index={index} />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                  <Expand className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+                {!disabled && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute right-1 top-1 z-20 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRemove(index);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
-              {!disabled && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleRemove(index);
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          );
+            );
           })}
 
           {/* Add more buttons */}
@@ -409,11 +393,11 @@ export function MultiImageUpload({
               className={cn(
                 "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
                 "flex flex-col items-center justify-center gap-2 p-2",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "disabled:cursor-not-allowed disabled:opacity-50"
               )}
             >
               {isUploading ? (
-                <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               ) : (
                 <>
                   <div className="flex gap-1">
@@ -438,9 +422,7 @@ export function MultiImageUpload({
                       <ImagePlus className="h-4 w-4" />
                     </Button>
                   </div>
-                  <span className="text-[10px] text-muted-foreground text-center">
-                    Add Photo
-                  </span>
+                  <span className="text-center text-[10px] text-muted-foreground">Add Photo</span>
                 </>
               )}
             </div>
@@ -467,7 +449,7 @@ export function MultiImageUpload({
 function MultiImageThumbnail({ url, urls, index }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const isDataUrl = url.startsWith("data:");
-  
+
   return (
     <>
       {/* LQIP blurred background - shows while thumbnail loads */}
@@ -477,17 +459,17 @@ function MultiImageThumbnail({ url, urls, index }) {
           alt=""
           aria-hidden="true"
           className={cn(
-            "absolute inset-0 w-full h-full object-cover scale-110 transition-opacity duration-500",
+            "absolute inset-0 h-full w-full scale-110 object-cover transition-opacity duration-500",
             isLoaded ? "opacity-0" : "opacity-100 blur-xl"
           )}
         />
       )}
       {/* Thumbnail image */}
       <img
-        src={isDataUrl ? url : (urls.thumbnail || url)}
+        src={isDataUrl ? url : urls.thumbnail || url}
         alt={`Image ${index + 1}`}
         className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+          "absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
           !isLoaded && !isDataUrl ? "opacity-0" : "opacity-100"
         )}
         onLoad={() => setIsLoaded(true)}

@@ -13,10 +13,7 @@ export async function POST(request) {
     const folder = formData.get("folder") || "general";
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: "No file provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "No file provided" }, { status: 400 });
     }
 
     // Check if ImageKit is configured
@@ -46,10 +43,7 @@ export async function POST(request) {
     return NextResponse.json({ success: true, url });
   } catch (error) {
     console.error("Upload failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -63,23 +57,23 @@ async function uploadToImageKit(file, folder, privateKey, publicKey) {
     const buffer = Buffer.from(arrayBuffer);
     const mimeType = file.type || "image/jpeg";
     const base64WithPrefix = `data:${mimeType};base64,${buffer.toString("base64")}`;
-    
+
     // Generate unique filename
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     const extension = file.name?.split(".").pop() || "jpg";
     const fileName = `${timestamp}-${randomStr}.${extension}`;
-    
+
     // Create auth signature (Basic auth with private key)
     const authString = Buffer.from(`${privateKey}:`).toString("base64");
-    
+
     // Build form data for ImageKit upload API
     const formData = new FormData();
     formData.append("file", base64WithPrefix);
     formData.append("fileName", fileName);
     formData.append("folder", `/${folder}`);
     formData.append("useUniqueFileName", "true");
-    
+
     // Upload to ImageKit
     const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
       method: "POST",

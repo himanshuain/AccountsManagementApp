@@ -77,7 +77,7 @@ function ShareTargetContent() {
     checkForSharedFiles();
   }, [searchParams]);
 
-  const handleFileSelect = async (e) => {
+  const handleFileSelect = async e => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -90,11 +90,11 @@ function ShareTargetContent() {
         name: file.name,
       });
     }
-    setSharedImages((prev) => [...prev, ...newImages]);
+    setSharedImages(prev => [...prev, ...newImages]);
   };
 
-  const handleRemoveImage = (index) => {
-    setSharedImages((prev) => {
+  const handleRemoveImage = index => {
+    setSharedImages(prev => {
       const newImages = [...prev];
       URL.revokeObjectURL(newImages[index].url);
       newImages.splice(index, 1);
@@ -146,7 +146,7 @@ function ShareTargetContent() {
             type: shareType,
             images: uploadedUrls,
             timestamp: Date.now(),
-          }),
+          })
         );
 
         toast.success(`${uploadedUrls.length} image(s) ready to attach`);
@@ -164,15 +164,15 @@ function ShareTargetContent() {
 
   const handleCancel = () => {
     // Clean up blob URLs
-    sharedImages.forEach((img) => URL.revokeObjectURL(img.url));
+    sharedImages.forEach(img => URL.revokeObjectURL(img.url));
     router.push("/");
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading shared content...</p>
         </div>
       </div>
@@ -181,7 +181,7 @@ function ShareTargetContent() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-md mx-auto space-y-4">
+      <div className="mx-auto max-w-md space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">Share to Shop Manager</h1>
@@ -193,7 +193,7 @@ function ShareTargetContent() {
         {/* Shared Images */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <ImageIcon className="h-4 w-4" />
               Shared Images
             </CardTitle>
@@ -204,17 +204,13 @@ function ShareTargetContent() {
                 {sharedImages.map((img, index) => (
                   <div
                     key={index}
-                    className="relative aspect-square rounded-lg overflow-hidden border bg-muted"
+                    className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
                   >
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="absolute top-1 right-1 h-6 w-6"
+                      className="absolute right-1 top-1 h-6 w-6"
                       onClick={() => handleRemoveImage(index)}
                     >
                       <X className="h-3 w-3" />
@@ -223,9 +219,9 @@ function ShareTargetContent() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <ImageIcon className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground mb-4">
+              <div className="py-8 text-center">
+                <ImageIcon className="mx-auto mb-2 h-12 w-12 text-muted-foreground/50" />
+                <p className="mb-4 text-sm text-muted-foreground">
                   No images shared. You can add images manually.
                 </p>
                 <label>
@@ -238,7 +234,7 @@ function ShareTargetContent() {
                   />
                   <Button variant="outline" asChild>
                     <span>
-                      <Upload className="h-4 w-4 mr-2" />
+                      <Upload className="mr-2 h-4 w-4" />
                       Select Images
                     </span>
                   </Button>
@@ -256,14 +252,9 @@ function ShareTargetContent() {
                     onChange={handleFileSelect}
                     className="hidden"
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="w-full"
-                  >
+                  <Button variant="outline" size="sm" asChild className="w-full">
                     <span>
-                      <Upload className="h-4 w-4 mr-2" />
+                      <Upload className="mr-2 h-4 w-4" />
                       Add More
                     </span>
                   </Button>
@@ -275,7 +266,7 @@ function ShareTargetContent() {
 
         {/* Options */}
         <Card>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="space-y-4 pt-6">
             {/* Supplier Selection */}
             <div className="space-y-2">
               <Label>Select Supplier</Label>
@@ -288,7 +279,7 @@ function ShareTargetContent() {
                   <SelectValue placeholder="Choose a supplier..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map((supplier) => (
+                  {suppliers.map(supplier => (
                     <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.companyName || supplier.name}
                     </SelectItem>
@@ -315,28 +306,22 @@ function ShareTargetContent() {
 
         {/* Actions */}
         <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={handleCancel}
-            className="flex-1 h-12"
-          >
+          <Button variant="outline" onClick={handleCancel} className="h-12 flex-1">
             Cancel
           </Button>
           <Button
             onClick={handleSave}
-            disabled={
-              isProcessing || !selectedSupplierId || sharedImages.length === 0
-            }
-            className="flex-1 h-12"
+            disabled={isProcessing || !selectedSupplierId || sharedImages.length === 0}
+            className="h-12 flex-1"
           >
             {isProcessing ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : (
               <>
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="mr-2 h-4 w-4" />
                 Continue
               </>
             )}
@@ -344,9 +329,8 @@ function ShareTargetContent() {
         </div>
 
         {/* Instructions */}
-        <p className="text-xs text-center text-muted-foreground">
-          Share images from your UPI app or gallery to attach them as payment
-          receipts or bills.
+        <p className="text-center text-xs text-muted-foreground">
+          Share images from your UPI app or gallery to attach them as payment receipts or bills.
         </p>
       </div>
     </div>
@@ -357,7 +341,7 @@ export default function ShareTargetPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex min-h-screen items-center justify-center bg-background">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       }

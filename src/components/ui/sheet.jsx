@@ -17,8 +17,8 @@ const SheetPortal = SheetPrimitive.Portal;
 const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className,
+      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
     )}
     {...props}
     ref={ref}
@@ -32,13 +32,13 @@ const useSwipeClose = (onClose, side) => {
   const touchCurrentRef = React.useRef({ y: 0, x: 0 });
   const startTimeRef = React.useRef(0);
 
-  const handleTouchStart = React.useCallback((e) => {
+  const handleTouchStart = React.useCallback(e => {
     touchStartRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
     touchCurrentRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
     startTimeRef.current = Date.now();
   }, []);
 
-  const handleTouchMove = React.useCallback((e) => {
+  const handleTouchMove = React.useCallback(e => {
     touchCurrentRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
   }, []);
 
@@ -85,13 +85,22 @@ const sheetVariants = cva(
     defaultVariants: {
       side: "right",
     },
-  },
+  }
 );
 
 const SheetContent = React.forwardRef(
   (
-    { side = "right", className, children, hideClose = false, onOpenChange, onSwipeClose, disableSwipeClose = false, ...props },
-    ref,
+    {
+      side = "right",
+      className,
+      children,
+      hideClose = false,
+      onOpenChange,
+      onSwipeClose,
+      disableSwipeClose = false,
+      ...props
+    },
+    ref
   ) => {
     const contentRef = React.useRef(null);
     const handleClose = React.useCallback(() => {
@@ -102,7 +111,7 @@ const SheetContent = React.forwardRef(
         return;
       }
       // Trigger close via the close button programmatically
-      const closeButton = document.querySelector('[data-sheet-close]');
+      const closeButton = document.querySelector("[data-sheet-close]");
       if (closeButton) {
         closeButton.click();
       }
@@ -115,56 +124,71 @@ const SheetContent = React.forwardRef(
     const touchStartRef = React.useRef({ y: 0, x: 0, scrollTop: 0 });
     const [isDragging, setIsDragging] = React.useState(false);
 
-    const handleContentTouchStart = React.useCallback((e) => {
-      // Skip if swipe close is disabled
-      if (disableSwipeClose) return;
-      
-      const scrollableParent = e.target.closest('[data-scroll-area]') || 
-                               e.target.closest('.overflow-y-auto') ||
-                               e.target.closest('.overflow-auto');
-      const scrollTop = scrollableParent?.scrollTop || 0;
-      
-      touchStartRef.current = { 
-        y: e.touches[0].clientY, 
-        x: e.touches[0].clientX,
-        scrollTop 
-      };
-      setIsDragging(false);
-    }, [disableSwipeClose]);
+    const handleContentTouchStart = React.useCallback(
+      e => {
+        // Skip if swipe close is disabled
+        if (disableSwipeClose) return;
 
-    const handleContentTouchMove = React.useCallback((e) => {
-      // Skip if swipe close is disabled
-      if (disableSwipeClose) return;
-      
-      const deltaY = e.touches[0].clientY - touchStartRef.current.y;
-      const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
-      
-      // Check if we're at the top of scroll and swiping down (for bottom sheet)
-      // or at bottom and swiping up (for top sheet)
-      if (side === "bottom" && deltaY > 10 && deltaX < 50 && touchStartRef.current.scrollTop <= 0) {
-        setIsDragging(true);
-      } else if (side === "top" && deltaY < -10 && deltaX < 50) {
-        setIsDragging(true);
-      }
-    }, [side, disableSwipeClose]);
+        const scrollableParent =
+          e.target.closest("[data-scroll-area]") ||
+          e.target.closest(".overflow-y-auto") ||
+          e.target.closest(".overflow-auto");
+        const scrollTop = scrollableParent?.scrollTop || 0;
 
-    const handleContentTouchEnd = React.useCallback((e) => {
-      // Skip if swipe close is disabled
-      if (disableSwipeClose) return;
-      if (!isDragging) return;
-      
-      const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
-      const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartRef.current.x);
-      
-      // Close if swiped enough (80px or more) in the correct direction
-      if (side === "bottom" && deltaY > 80 && deltaX < 100) {
-        handleClose();
-      } else if (side === "top" && deltaY < -80 && deltaX < 100) {
-        handleClose();
-      }
-      
-      setIsDragging(false);
-    }, [isDragging, side, handleClose, disableSwipeClose]);
+        touchStartRef.current = {
+          y: e.touches[0].clientY,
+          x: e.touches[0].clientX,
+          scrollTop,
+        };
+        setIsDragging(false);
+      },
+      [disableSwipeClose]
+    );
+
+    const handleContentTouchMove = React.useCallback(
+      e => {
+        // Skip if swipe close is disabled
+        if (disableSwipeClose) return;
+
+        const deltaY = e.touches[0].clientY - touchStartRef.current.y;
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+
+        // Check if we're at the top of scroll and swiping down (for bottom sheet)
+        // or at bottom and swiping up (for top sheet)
+        if (
+          side === "bottom" &&
+          deltaY > 10 &&
+          deltaX < 50 &&
+          touchStartRef.current.scrollTop <= 0
+        ) {
+          setIsDragging(true);
+        } else if (side === "top" && deltaY < -10 && deltaX < 50) {
+          setIsDragging(true);
+        }
+      },
+      [side, disableSwipeClose]
+    );
+
+    const handleContentTouchEnd = React.useCallback(
+      e => {
+        // Skip if swipe close is disabled
+        if (disableSwipeClose) return;
+        if (!isDragging) return;
+
+        const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+        const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartRef.current.x);
+
+        // Close if swiped enough (80px or more) in the correct direction
+        if (side === "bottom" && deltaY > 80 && deltaX < 100) {
+          handleClose();
+        } else if (side === "top" && deltaY < -80 && deltaX < 100) {
+          handleClose();
+        }
+
+        setIsDragging(false);
+      },
+      [isDragging, side, handleClose, disableSwipeClose]
+    );
 
     return (
       <SheetPortal>
@@ -178,9 +202,9 @@ const SheetContent = React.forwardRef(
           {...props}
         >
           {!hideClose && (
-            <SheetPrimitive.Close 
+            <SheetPrimitive.Close
               data-sheet-close
-              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary z-20"
+              className="absolute right-4 top-4 z-20 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
@@ -196,27 +220,18 @@ const SheetContent = React.forwardRef(
         </SheetPrimitive.Content>
       </SheetPortal>
     );
-  },
+  }
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({ className, ...props }) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-2 text-center sm:text-left",
-      className,
-    )}
-    {...props}
-  />
+  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
 const SheetFooter = ({ className, ...props }) => (
   <div
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className,
-    )}
+    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
     {...props}
   />
 );

@@ -24,14 +24,14 @@ export function useContactPicker() {
       // Request contact with phone number
       const props = ["tel", "name"];
       const opts = { multiple: false };
-      
+
       const contacts = await navigator.contacts.select(props, opts);
-      
+
       if (contacts && contacts.length > 0) {
         const contact = contacts[0];
         const phone = contact.tel && contact.tel.length > 0 ? contact.tel[0] : null;
         const name = contact.name && contact.name.length > 0 ? contact.name[0] : null;
-        
+
         // Clean phone number - remove spaces, dashes, country codes
         let cleanedPhone = phone;
         if (phone) {
@@ -47,14 +47,14 @@ export function useContactPicker() {
             cleanedPhone = cleanedPhone.slice(-10);
           }
         }
-        
+
         return {
           name,
           phone: cleanedPhone,
           rawPhone: phone,
         };
       }
-      
+
       return null;
     } catch (error) {
       if (error.name !== "InvalidStateError" && error.name !== "AbortError") {
@@ -86,4 +86,3 @@ export function useContactPicker() {
 }
 
 export default useContactPicker;
-

@@ -14,37 +14,35 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
   const initials =
     displayName
       ?.split(" ")
-      .map((n) => n[0])
+      .map(n => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2) || "??";
 
   return (
     <Link href={`/suppliers/${supplier.id}`}>
-      <Card className="group hover:shadow-md transition-all hover:border-primary/50 cursor-pointer card-lift hw-accelerate">
+      <Card className="card-lift hw-accelerate group cursor-pointer transition-all hover:border-primary/50 hover:shadow-md">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             {/* Avatar */}
             <Avatar className="h-12 w-12 border-2 border-primary/10">
               <AvatarImage src={supplier.profilePicture} alt={displayName} />
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              <AvatarFallback className="bg-primary/10 font-semibold text-primary">
                 {initials}
               </AvatarFallback>
             </Avatar>
 
             {/* Info */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                <h3 className="truncate text-base font-semibold transition-colors group-hover:text-primary">
                   {displayName}
                 </h3>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
               </div>
 
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                {secondaryName && (
-                  <span className="truncate">{secondaryName}</span>
-                )}
+              <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                {secondaryName && <span className="truncate">{secondaryName}</span>}
                 {supplier.phone && (
                   <div className="flex items-center gap-1">
                     <Phone className="h-3 w-3" />
@@ -54,7 +52,7 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
               </div>
 
               {/* Transaction count */}
-              <div className="flex items-center gap-2 mt-2">
+              <div className="mt-2 flex items-center gap-2">
                 {transactionCount > 0 && (
                   <Badge variant="secondary" className="text-xs">
                     {transactionCount} transaction
@@ -63,11 +61,8 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
                 )}
                 {/* Sync status indicator */}
                 {supplier.syncStatus === "pending" && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs text-amber-600 border-amber-500/30"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse mr-1" />
+                  <Badge variant="outline" className="border-amber-500/30 text-xs text-amber-600">
+                    <div className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
                     Syncing
                   </Badge>
                 )}
@@ -85,10 +80,10 @@ export function SupplierCardSkeleton() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full skeleton-shimmer" />
+          <div className="skeleton-shimmer h-12 w-12 rounded-full" />
           <div className="flex-1 space-y-2">
-            <div className="h-5 w-32 rounded skeleton-shimmer" />
-            <div className="h-4 w-24 rounded skeleton-shimmer" />
+            <div className="skeleton-shimmer h-5 w-32 rounded" />
+            <div className="skeleton-shimmer h-4 w-24 rounded" />
           </div>
         </div>
       </CardContent>

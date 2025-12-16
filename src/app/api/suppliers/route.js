@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // Helper to convert camelCase to snake_case
-const toSnakeCase = (obj) => {
+const toSnakeCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(toSnakeCase);
 
@@ -17,14 +17,12 @@ const toSnakeCase = (obj) => {
 };
 
 // Helper to convert snake_case to camelCase
-const toCamelCase = (obj) => {
+const toCamelCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(toCamelCase);
 
   return Object.keys(obj).reduce((acc, key) => {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
-      letter.toUpperCase(),
-    );
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     acc[camelKey] = toCamelCase(obj[key]);
     return acc;
   }, {});
@@ -35,7 +33,7 @@ export async function GET() {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
         { success: false, error: "Database not configured", data: [] },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -46,10 +44,7 @@ export async function GET() {
 
     if (error) {
       console.error("Load suppliers failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message, data: [] },
-        { status: 500 },
-      );
+      return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -59,14 +54,11 @@ export async function GET() {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
         },
-      },
+      }
     );
   } catch (error) {
     console.error("Load suppliers failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message, data: [] },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
   }
 }
 
@@ -75,7 +67,7 @@ export async function POST(request) {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
         { success: false, error: "Database not configured" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -99,10 +91,7 @@ export async function POST(request) {
 
     if (error) {
       console.error("Create supplier failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -111,9 +100,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Create supplier failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -89,7 +89,7 @@ export default function SuppliersPage() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
   const [pdfExportSheetOpen, setPdfExportSheetOpen] = useState(false);
-  
+
   // Ref to track if image viewer was just closed (to prevent drawer from closing)
   const imageViewerJustClosedRef = useRef(false);
   const [expandedTransactionId, setExpandedTransactionId] = useState(null);
@@ -386,16 +386,16 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="space-y-6 p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Vyapari</h1>
-          <p className="text-muted-foreground text-sm">{suppliers.length} vyapari</p>
+          <p className="text-sm text-muted-foreground">{suppliers.length} vyapari</p>
         </div>
         {suppliers.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => setPdfExportSheetOpen(true)}>
-            <FileText className="h-4 w-4 mr-1" />
+            <FileText className="mr-1 h-4 w-4" />
             PDF
           </Button>
         )}
@@ -403,7 +403,7 @@ export default function SuppliersPage() {
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search vyapari..."
           value={searchQuery}
@@ -415,7 +415,7 @@ export default function SuppliersPage() {
       {/* Profiles Section - Collapsible */}
       <Collapsible open={profilesExpanded} onOpenChange={setProfilesExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 rounded-lg transition-colors">
+          <button className="flex w-full items-center justify-between rounded-lg px-1 py-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-emerald-500" />
               <span className="font-semibold">Vyapari Profiles</span>
@@ -434,47 +434,47 @@ export default function SuppliersPage() {
         <CollapsibleContent>
           {/* Instagram Story-like Vyapari Grid */}
           {loading ? (
-            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-4 py-2">
+            <div className="grid grid-cols-4 gap-4 py-2 sm:grid-cols-6 lg:grid-cols-8">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted animate-pulse" />
-                  <div className="h-3 w-12 bg-muted rounded animate-pulse" />
+                  <div className="h-16 w-16 animate-pulse rounded-full bg-muted sm:h-20 sm:w-20" />
+                  <div className="h-3 w-12 animate-pulse rounded bg-muted" />
                 </div>
               ))}
             </div>
           ) : filteredSuppliers.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
                 <Users className="h-6 w-6 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold mb-1">No vyapari yet</h3>
-              <p className="text-muted-foreground text-sm mb-3">
+              <h3 className="mb-1 font-semibold">No vyapari yet</h3>
+              <p className="mb-3 text-sm text-muted-foreground">
                 {searchQuery
                   ? "No vyapari match your search"
                   : "Add your first vyapari to get started"}
               </p>
               {!searchQuery && (
                 <Button onClick={openAddForm} disabled={!isOnline} size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="mr-1 h-4 w-4" />
                   Add Vyapari
                 </Button>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-5 py-2">
+            <div className="grid grid-cols-3 gap-4 py-2 sm:grid-cols-4 sm:gap-5 md:grid-cols-5 lg:grid-cols-6">
               {/* Add New Vyapari Circle */}
               <button
                 onClick={openAddForm}
                 disabled={!isOnline}
-                className="flex flex-col items-center gap-2 group"
+                className="group flex flex-col items-center gap-2"
               >
                 <div
-                  className="w-18 h-18 sm:w-20 sm:h-20 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 group-hover:border-primary transition-all"
+                  className="w-18 h-18 flex items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-primary/5 transition-all group-hover:border-primary group-hover:bg-primary/10 sm:h-20 sm:w-20"
                   style={{ width: "72px", height: "72px" }}
                 >
-                  <Plus className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                  <Plus className="h-7 w-7 text-primary sm:h-8 sm:w-8" />
                 </div>
-                <span className="text-xs font-medium text-muted-foreground text-center w-full">
+                <span className="w-full text-center text-xs font-medium text-muted-foreground">
                   Add New
                 </span>
               </button>
@@ -484,7 +484,7 @@ export default function SuppliersPage() {
                 <button
                   key={supplier.id}
                   onClick={() => handleSupplierClick(supplier)}
-                  className="flex flex-col items-center gap-2 group"
+                  className="group flex flex-col items-center gap-2"
                 >
                   <div
                     className={cn(
@@ -495,15 +495,15 @@ export default function SuppliersPage() {
                     )}
                     style={{ width: "72px", height: "72px" }}
                   >
-                    <div className="w-full h-full rounded-full bg-background p-0.5">
+                    <div className="h-full w-full rounded-full bg-background p-0.5">
                       {supplier.profilePicture ? (
                         <img
                           src={supplier.profilePicture}
                           alt={supplier.companyName}
-                          className="w-full h-full rounded-full object-cover"
+                          className="h-full w-full rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
                           <span className="text-xl font-bold text-primary">
                             {supplier.companyName?.charAt(0).toUpperCase()}
                           </span>
@@ -511,7 +511,7 @@ export default function SuppliersPage() {
                       )}
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-center w-full max-w-[80px] leading-tight line-clamp-2">
+                  <span className="line-clamp-2 w-full max-w-[80px] text-center text-xs font-medium leading-tight">
                     {supplier.companyName}
                   </span>
                 </button>
@@ -524,7 +524,7 @@ export default function SuppliersPage() {
       {/* All Transactions & Bills Section - Collapsible */}
       <Collapsible open={transactionsExpanded} onOpenChange={setTransactionsExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 rounded-lg transition-colors">
+          <button className="flex w-full items-center justify-between rounded-lg px-1 py-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-3">
               <Receipt className="h-5 w-5 text-purple-500" />
               <span className="font-semibold">All Transactions & Bills</span>
@@ -548,9 +548,9 @@ export default function SuppliersPage() {
         <CollapsibleContent>
           <div className="space-y-4 py-2">
             {/* Filters */}
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={allTxnStatusFilter} onValueChange={setAllTxnStatusFilter}>
-                <SelectTrigger className="w-[120px] h-9">
+                <SelectTrigger className="h-9 w-[120px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -561,7 +561,7 @@ export default function SuppliersPage() {
                 </SelectContent>
               </Select>
               <Select value={allTxnSupplierFilter} onValueChange={setAllTxnSupplierFilter}>
-                <SelectTrigger className="w-[150px] h-9">
+                <SelectTrigger className="h-9 w-[150px]">
                   <SelectValue placeholder="Supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -574,7 +574,7 @@ export default function SuppliersPage() {
                 </SelectContent>
               </Select>
               <Select value={allTxnAmountSort} onValueChange={setAllTxnAmountSort}>
-                <SelectTrigger className="w-[130px] h-9">
+                <SelectTrigger className="h-9 w-[130px]">
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
@@ -611,7 +611,7 @@ export default function SuppliersPage() {
                   <ImageIcon className="h-4 w-4" />
                   Bills
                   {totalBillsCount > 0 && (
-                    <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                    <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-xs text-primary">
                       {totalBillsCount}
                     </span>
                   )}
@@ -622,7 +622,7 @@ export default function SuppliersPage() {
                 {allFilteredTransactions.length === 0 ? (
                   <Card>
                     <CardContent className="py-8 text-center text-muted-foreground">
-                      <Receipt className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <Receipt className="mx-auto mb-2 h-8 w-8 opacity-50" />
                       <p>No transactions found</p>
                     </CardContent>
                   </Card>
@@ -665,14 +665,20 @@ export default function SuppliersPage() {
         onOpenChange={open => {
           // Don't close if image viewer, bill gallery, or supplier form is open
           // Also don't close if image viewer was just closed (ref check)
-          if (!open && (imageViewerOpen || billGalleryOpen || supplierFormOpen || imageViewerJustClosedRef.current)) {
+          if (
+            !open &&
+            (imageViewerOpen ||
+              billGalleryOpen ||
+              supplierFormOpen ||
+              imageViewerJustClosedRef.current)
+          ) {
             imageViewerJustClosedRef.current = false;
             return;
           }
           if (!open) setSelectedSupplier(null);
         }}
       >
-        <SheetContent side="bottom" className="rounded-t-2xl h-[90vh] p-0" hideClose>
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0" hideClose>
           {selectedSupplier &&
             (() => {
               const supplierTransactions = transactions
@@ -690,17 +696,17 @@ export default function SuppliersPage() {
               return (
                 <>
                   {/* Drag handle */}
-                  <div className="flex justify-center pt-3 pb-2">
-                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                  <div className="flex justify-center pb-2 pt-3">
+                    <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
                   </div>
 
                   {/* Header with profile and actions */}
-                  <SheetHeader className="px-4 pb-3 border-b">
+                  <SheetHeader className="border-b px-4 pb-3">
                     <div className="flex items-center gap-3">
                       {/* Profile Picture */}
                       <div
                         className={cn(
-                          "w-14 h-14 rounded-full p-0.5 flex-shrink-0 cursor-pointer",
+                          "h-14 w-14 flex-shrink-0 cursor-pointer rounded-full p-0.5",
                           selectedSupplier.pendingAmount > 0
                             ? "bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500"
                             : "bg-gradient-to-tr from-green-400 via-emerald-500 to-teal-500"
@@ -712,15 +718,15 @@ export default function SuppliersPage() {
                           }
                         }}
                       >
-                        <div className="w-full h-full rounded-full bg-background p-0.5">
+                        <div className="h-full w-full rounded-full bg-background p-0.5">
                           {selectedSupplier.profilePicture ? (
                             <img
                               src={selectedSupplier.profilePicture}
                               alt={selectedSupplier.name}
-                              className="w-full h-full rounded-full object-cover"
+                              className="h-full w-full rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
                               <span className="text-xl font-bold text-primary">
                                 {selectedSupplier.name?.charAt(0).toUpperCase()}
                               </span>
@@ -730,15 +736,16 @@ export default function SuppliersPage() {
                       </div>
 
                       {/* Name and info */}
-                      <div className="flex-1 min-w-0">
-                        <SheetTitle className="text-xl font-bold truncate pb-2">
+                      <div className="min-w-0 flex-1">
+                        <SheetTitle className="truncate pb-2 text-xl font-bold">
                           {selectedSupplier.companyName}
                         </SheetTitle>
                         {selectedSupplier.phone && (
                           <a
                             href={`tel:${selectedSupplier.phone}`}
-                            className="text-medium text-primary items-center gap-1"
+                            className="inline-flex w-fit items-center gap-1 text-sm text-primary"
                           >
+                            <Phone className="h-3 w-3" />
                             {selectedSupplier.phone}
                           </a>
                         )}
@@ -776,7 +783,7 @@ export default function SuppliersPage() {
                                 }
                               }}
                             >
-                              <FileText className="h-4 w-4 mr-2" />
+                              <FileText className="mr-2 h-4 w-4" />
                               Export PDF
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -788,7 +795,7 @@ export default function SuppliersPage() {
                               }}
                               disabled={!isOnline}
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete Vyapari
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -796,16 +803,16 @@ export default function SuppliersPage() {
                       </div>
                     </div>
                   </SheetHeader>
-                  <ScrollArea className="flex-1 h-[calc(90vh-100px)]">
-                    <div className="p-4 space-y-4">
+                  <ScrollArea className="h-[calc(90vh-100px)] flex-1">
+                    <div className="space-y-4 p-4">
                       {/* UPI QR Code if available */}
                       {selectedSupplier.upiQrCode && (
-                        <div className="p-4 rounded-xl bg-muted/30 text-center">
-                          <p className="text-xs text-muted-foreground mb-2">UPI QR Code</p>
+                        <div className="rounded-xl bg-muted/30 p-4 text-center">
+                          <p className="mb-2 text-xs text-muted-foreground">UPI QR Code</p>
                           <img
                             src={selectedSupplier.upiQrCode}
                             alt="UPI QR"
-                            className="w-32 h-32 mx-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            className="mx-auto h-32 w-32 cursor-pointer rounded-lg transition-opacity hover:opacity-90"
                             onClick={() => {
                               setImageViewerSrc(selectedSupplier.upiQrCode);
                               setImageViewerOpen(true);
@@ -813,9 +820,9 @@ export default function SuppliersPage() {
                           />
                           {selectedSupplier.upiId && (
                             <a
-                              href={`upi://pay?pa=${encodeURIComponent(selectedSupplier.upiId)}&pn=${encodeURIComponent(selectedSupplier.companyName || selectedSupplier.name || '')}`}
-                              className="inline-flex items-center gap-1 text-xs font-mono text-primary mt-2 hover:underline"
-                              onClick={(e) => e.stopPropagation()}
+                              href={`upi://pay?pa=${encodeURIComponent(selectedSupplier.upiId)}&pn=${encodeURIComponent(selectedSupplier.companyName || selectedSupplier.name || "")}`}
+                              className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+                              onClick={e => e.stopPropagation()}
                             >
                               {selectedSupplier.upiId}
                               <ExternalLink className="h-3 w-3" />
@@ -826,19 +833,19 @@ export default function SuppliersPage() {
 
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="p-3 rounded-xl bg-muted/50 text-center">
+                        <div className="rounded-xl bg-muted/50 p-3 text-center">
                           <p className="text-[10px] text-muted-foreground">Total</p>
                           <p className="text-lg font-bold">
                             ₹{(selectedSupplier.totalAmount || 0).toLocaleString()}
                           </p>
                         </div>
-                        <div className="p-3 rounded-xl bg-green-500/10 text-center">
+                        <div className="rounded-xl bg-green-500/10 p-3 text-center">
                           <p className="text-[10px] text-green-600">Paid</p>
                           <p className="text-lg font-bold text-green-600">
                             ₹{(selectedSupplier.paidAmount || 0).toLocaleString()}
                           </p>
                         </div>
-                        <div className="p-3 rounded-xl bg-amber-500/10 text-center">
+                        <div className="rounded-xl bg-amber-500/10 p-3 text-center">
                           <p className="text-[10px] text-amber-600">Pending</p>
                           <p className="text-lg font-bold text-amber-600">
                             ₹{(selectedSupplier.pendingAmount || 0).toLocaleString()}
@@ -847,38 +854,43 @@ export default function SuppliersPage() {
                       </div>
 
                       {/* Profile Details */}
-                      {(selectedSupplier.name || selectedSupplier.address || selectedSupplier.gstNumber || (selectedSupplier.upiId && !selectedSupplier.upiQrCode)) && (
-                        <div className="rounded-xl border bg-card p-4 space-y-3">
-                          <h3 className="font-semibold text-sm flex items-center gap-2">
+                      {(selectedSupplier.name ||
+                        selectedSupplier.address ||
+                        selectedSupplier.gstNumber ||
+                        (selectedSupplier.upiId && !selectedSupplier.upiQrCode)) && (
+                        <div className="space-y-3 rounded-xl border bg-card p-4">
+                          <h3 className="flex items-center gap-2 text-sm font-semibold">
                             <User className="h-4 w-4 text-muted-foreground" />
                             Profile Details
                           </h3>
                           <div className="grid gap-3 text-sm">
                             {selectedSupplier.name && (
                               <div className="flex items-start gap-3">
-                                <span className="text-muted-foreground min-w-[80px]">Contact:</span>
+                                <span className="min-w-[80px] text-muted-foreground">Contact:</span>
                                 <span className="font-medium">{selectedSupplier.name}</span>
                               </div>
                             )}
                             {selectedSupplier.address && (
                               <div className="flex items-start gap-3">
-                                <span className="text-muted-foreground min-w-[80px]">Address:</span>
+                                <span className="min-w-[80px] text-muted-foreground">Address:</span>
                                 <span className="font-medium">{selectedSupplier.address}</span>
                               </div>
                             )}
                             {selectedSupplier.gstNumber && (
                               <div className="flex items-start gap-3">
-                                <span className="text-muted-foreground min-w-[80px]">GST No:</span>
-                                <span className="font-medium font-mono">{selectedSupplier.gstNumber}</span>
+                                <span className="min-w-[80px] text-muted-foreground">GST No:</span>
+                                <span className="font-mono font-medium">
+                                  {selectedSupplier.gstNumber}
+                                </span>
                               </div>
                             )}
                             {/* Only show UPI ID here if there's no QR code */}
                             {selectedSupplier.upiId && !selectedSupplier.upiQrCode && (
                               <div className="flex items-start gap-3">
-                                <span className="text-muted-foreground min-w-[80px]">UPI ID:</span>
+                                <span className="min-w-[80px] text-muted-foreground">UPI ID:</span>
                                 <a
-                                  href={`upi://pay?pa=${encodeURIComponent(selectedSupplier.upiId)}&pn=${encodeURIComponent(selectedSupplier.companyName || selectedSupplier.name || '')}`}
-                                  className="font-medium font-mono text-primary hover:underline inline-flex items-center gap-1"
+                                  href={`upi://pay?pa=${encodeURIComponent(selectedSupplier.upiId)}&pn=${encodeURIComponent(selectedSupplier.companyName || selectedSupplier.name || "")}`}
+                                  className="inline-flex items-center gap-1 font-mono font-medium text-primary hover:underline"
                                 >
                                   {selectedSupplier.upiId}
                                   <ExternalLink className="h-3 w-3" />
@@ -891,7 +903,7 @@ export default function SuppliersPage() {
 
                       {/* Transactions Section */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="mb-3 flex items-center justify-between">
                           <h3 className="font-semibold">
                             Transactions ({supplierTransactions.length})
                           </h3>
@@ -904,14 +916,14 @@ export default function SuppliersPage() {
                             }}
                             disabled={!isOnline}
                           >
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="mr-1 h-4 w-4" />
                             Add
                           </Button>
                         </div>
-                  
+
                         {supplierTransactions.length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <IndianRupee className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                          <div className="py-8 text-center text-muted-foreground">
+                            <IndianRupee className="mx-auto mb-2 h-10 w-10 opacity-50" />
                             <p>No transactions yet</p>
                           </div>
                         ) : (
@@ -934,16 +946,18 @@ export default function SuppliersPage() {
                                     isPaid
                                       ? "border-l-4 border-l-green-500"
                                       : isPartial
-                                      ? "border-l-4 border-l-blue-500"
-                                      : "border-l-4 border-l-amber-500",
-                                    isExpanded && "ring-2 ring-primary/20 shadow-md"
+                                        ? "border-l-4 border-l-blue-500"
+                                        : "border-l-4 border-l-amber-500",
+                                    isExpanded && "shadow-md ring-2 ring-primary/20"
                                   )}
                                 >
                                   <CardContent className="p-0">
                                     <div
                                       className={cn(
                                         "p-3 transition-colors",
-                                        isExpanded ? "bg-primary/5" : hasPayments && "cursor-pointer hover:bg-muted/30"
+                                        isExpanded
+                                          ? "bg-primary/5"
+                                          : hasPayments && "cursor-pointer hover:bg-muted/30"
                                       )}
                                       onClick={() =>
                                         hasPayments &&
@@ -952,7 +966,7 @@ export default function SuppliersPage() {
                                     >
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <div className="flex items-center gap-2 mb-0.5">
+                                          <div className="mb-0.5 flex items-center gap-2">
                                             <span className="text-lg font-bold">
                                               ₹{amount.toLocaleString()}
                                             </span>
@@ -963,8 +977,8 @@ export default function SuppliersPage() {
                                                 isPaid
                                                   ? "bg-green-100 text-green-700"
                                                   : isPartial
-                                                  ? "bg-blue-100 text-blue-700"
-                                                  : "bg-amber-100 text-amber-700"
+                                                    ? "bg-blue-100 text-blue-700"
+                                                    : "bg-amber-100 text-amber-700"
                                               )}
                                             >
                                               {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
@@ -990,7 +1004,7 @@ export default function SuppliersPage() {
                                       {/* Progress bar for partial */}
                                       {isPartial && (
                                         <div className="mt-2">
-                                          <div className="flex items-center justify-between text-xs mb-1">
+                                          <div className="mb-1 flex items-center justify-between text-xs">
                                             <span className="text-green-600">
                                               Paid: ₹{paid.toLocaleString()}
                                             </span>
@@ -998,9 +1012,9 @@ export default function SuppliersPage() {
                                               Pending: ₹{pending.toLocaleString()}
                                             </span>
                                           </div>
-                                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                                             <div
-                                              className="h-full bg-green-500 rounded-full"
+                                              className="h-full rounded-full bg-green-500"
                                               style={{ width: `${(paid / amount) * 100}%` }}
                                             />
                                           </div>
@@ -1009,7 +1023,7 @@ export default function SuppliersPage() {
                                     </div>
 
                                     {/* Action Buttons - Always visible */}
-                                    <div className="px-3 py-2 border-t bg-muted/10 flex items-center gap-2 flex-wrap">
+                                    <div className="flex flex-wrap items-center gap-2 border-t bg-muted/10 px-3 py-2">
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -1017,18 +1031,18 @@ export default function SuppliersPage() {
                                         onClick={e => handleEditTransaction(txn, e)}
                                         disabled={!isOnline}
                                       >
-                                        <Edit className="h-3 w-3 mr-1" />
+                                        <Edit className="mr-1 h-3 w-3" />
                                         Edit
                                       </Button>
                                       {!isPaid && (
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50"
+                                          className="h-8 border-green-200 text-xs text-green-600 hover:bg-green-50"
                                           onClick={e => handlePayTransaction(txn, e)}
                                           disabled={!isOnline}
                                         >
-                                          <CreditCard className="h-3 w-3 mr-1" />
+                                          <CreditCard className="mr-1 h-3 w-3" />
                                           Pay
                                         </Button>
                                       )}
@@ -1036,30 +1050,30 @@ export default function SuppliersPage() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                                          className="h-8 border-blue-200 text-xs text-blue-600 hover:bg-blue-50"
                                           onClick={e => handleViewBillImages(txn.billImages, e)}
                                         >
-                                          <ImageIcon className="h-3 w-3 mr-1" />
+                                          <ImageIcon className="mr-1 h-3 w-3" />
                                           Photos ({txn.billImages.length})
                                         </Button>
                                       )}
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-8 text-xs text-destructive border-destructive/20 hover:bg-destructive/10"
+                                        className="h-8 border-destructive/20 text-xs text-destructive hover:bg-destructive/10"
                                         onClick={e => handleDeleteTransaction(txn, e)}
                                         disabled={!isOnline}
                                       >
-                                        <Trash2 className="h-3 w-3 mr-1" />
+                                        <Trash2 className="mr-1 h-3 w-3" />
                                         Delete
                                       </Button>
                                     </div>
 
                                     {/* Expanded Section - Payment History */}
                                     {isExpanded && hasPayments && (
-                                      <div className="px-3 pb-3 border-t bg-primary/5">
+                                      <div className="border-t bg-primary/5 px-3 pb-3">
                                         <div className="pt-3">
-                                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                                          <p className="mb-2 text-xs font-medium text-muted-foreground">
                                             Payment History
                                           </p>
                                           <div className="space-y-0">
@@ -1067,19 +1081,19 @@ export default function SuppliersPage() {
                                               .sort((a, b) => new Date(b.date) - new Date(a.date))
                                               .map((payment, index, arr) => (
                                                 <div key={payment.id} className="flex">
-                                                  <div className="flex flex-col items-center mr-3">
+                                                  <div className="mr-3 flex flex-col items-center">
                                                     <div
                                                       className={cn(
-                                                        "w-3 h-3 rounded-full flex items-center justify-center",
+                                                        "flex h-3 w-3 items-center justify-center rounded-full",
                                                         index === 0
                                                           ? "bg-green-500"
                                                           : "bg-green-400"
                                                       )}
                                                     >
-                                                      <CheckCircle2 className="w-2 h-2 text-white" />
+                                                      <CheckCircle2 className="h-2 w-2 text-white" />
                                                     </div>
                                                     {index < arr.length - 1 && (
-                                                      <div className="w-0.5 h-full min-h-[20px] bg-green-300" />
+                                                      <div className="h-full min-h-[20px] w-0.5 bg-green-300" />
                                                     )}
                                                   </div>
                                                   <div className="flex-1 pb-2">
@@ -1101,7 +1115,7 @@ export default function SuppliersPage() {
                                                             setImageViewerOpen(true);
                                                           }}
                                                         >
-                                                          <Receipt className="h-3 w-3 mr-1" />
+                                                          <Receipt className="mr-1 h-3 w-3" />
                                                           Receipt
                                                         </Button>
                                                       )}
@@ -1128,8 +1142,8 @@ export default function SuppliersPage() {
 
                       {/* Notes */}
                       {selectedSupplier.notes && (
-                        <div className="p-3 rounded-xl bg-muted/30">
-                          <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                        <div className="rounded-xl bg-muted/30 p-3">
+                          <p className="mb-1 text-xs text-muted-foreground">Notes</p>
                           <p className="text-sm">{selectedSupplier.notes}</p>
                         </div>
                       )}
@@ -1142,9 +1156,9 @@ export default function SuppliersPage() {
       </Sheet>
 
       {/* Image Viewer */}
-      <ImageViewer 
-        open={imageViewerOpen} 
-        onOpenChange={(open) => {
+      <ImageViewer
+        open={imageViewerOpen}
+        onOpenChange={open => {
           if (!open) {
             imageViewerJustClosedRef.current = true;
             // Reset the ref after a short delay
@@ -1153,8 +1167,8 @@ export default function SuppliersPage() {
             }, 100);
           }
           setImageViewerOpen(open);
-        }} 
-        src={imageViewerSrc} 
+        }}
+        src={imageViewerSrc}
       />
 
       {/* Bill Gallery Viewer */}
@@ -1213,10 +1227,10 @@ export default function SuppliersPage() {
 
       {/* Payment Sheet */}
       <Sheet open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen}>
-        <SheetContent side="top" className="rounded-b-2xl h-auto max-h-[70vh] p-0" hideClose>
+        <SheetContent side="top" className="h-auto max-h-[70vh] rounded-b-2xl p-0" hideClose>
           {/* Drag handle */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          <div className="flex justify-center pb-2 pt-3">
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
           <SheetHeader className="px-4 pb-2">
@@ -1224,9 +1238,9 @@ export default function SuppliersPage() {
           </SheetHeader>
 
           {transactionToPay && (
-            <div className="px-4 pb-6 space-y-4">
+            <div className="space-y-4 px-4 pb-6">
               {/* Summary */}
-              <div className="p-3 rounded-xl bg-muted/50 space-y-2">
+              <div className="space-y-2 rounded-xl bg-muted/50 p-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Amount</span>
                   <span className="font-semibold">
@@ -1239,7 +1253,7 @@ export default function SuppliersPage() {
                     ₹{Number(transactionToPay.paidAmount || 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm border-t pt-2">
+                <div className="flex justify-between border-t pt-2 text-sm">
                   <span className="text-muted-foreground">Pending</span>
                   <span className="font-semibold text-amber-600">
                     ₹
@@ -1284,15 +1298,15 @@ export default function SuppliersPage() {
                   onClick={handleRecordPayment}
                   disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
+                  <CreditCard className="mr-2 h-4 w-4" />
                   Record Payment
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 text-green-600 border-green-200 hover:bg-green-50"
+                  className="flex-1 border-green-200 text-green-600 hover:bg-green-50"
                   onClick={handleMarkFullPaid}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <CheckCircle className="mr-2 h-4 w-4" />
                   Mark Full Paid
                 </Button>
               </div>
@@ -1303,21 +1317,21 @@ export default function SuppliersPage() {
 
       {/* PDF Export Sheet */}
       <Sheet open={pdfExportSheetOpen} onOpenChange={setPdfExportSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl h-[70vh] p-0" hideClose>
+        <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl p-0" hideClose>
           {/* Drag handle */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          <div className="flex justify-center pb-2 pt-3">
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
-          <SheetHeader className="px-4 pb-3 border-b">
+          <SheetHeader className="border-b px-4 pb-3">
             <SheetTitle className="text-lg">Export PDF Report</SheetTitle>
             <p className="text-sm text-muted-foreground">
               Select a vyapari to export their transaction report
             </p>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 h-[calc(70vh-100px)]">
-            <div className="p-4 space-y-2">
+          <ScrollArea className="h-[calc(70vh-100px)] flex-1">
+            <div className="space-y-2 p-4">
               {suppliersWithStats.map(supplier => {
                 const supplierTransactions = transactions.filter(t => t.supplierId === supplier.id);
                 return (
@@ -1337,26 +1351,26 @@ export default function SuppliersPage() {
                         toast.error("Failed to export PDF");
                       }
                     }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 active:scale-[0.99] transition-all text-left"
+                    className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all hover:bg-muted/50 active:scale-[0.99]"
                   >
                     {/* Avatar */}
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-full p-0.5 flex-shrink-0",
+                        "h-12 w-12 flex-shrink-0 rounded-full p-0.5",
                         supplier.pendingAmount > 0
                           ? "bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500"
                           : "bg-gradient-to-tr from-green-400 via-emerald-500 to-teal-500"
                       )}
                     >
-                      <div className="w-full h-full rounded-full bg-background p-0.5">
+                      <div className="h-full w-full rounded-full bg-background p-0.5">
                         {supplier.profilePicture ? (
                           <img
                             src={supplier.profilePicture}
                             alt={supplier.companyName}
-                            className="w-full h-full rounded-full object-cover"
+                            className="h-full w-full rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                          <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
                             <span className="text-lg font-bold text-primary">
                               {supplier.companyName?.charAt(0).toUpperCase()}
                             </span>
@@ -1366,8 +1380,8 @@ export default function SuppliersPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{supplier.companyName}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{supplier.companyName}</p>
                       <p className="text-xs text-muted-foreground">
                         {supplierTransactions.length} transactions • ₹
                         {supplier.totalAmount.toLocaleString()}

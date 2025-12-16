@@ -13,12 +13,10 @@ export async function GET() {
     }
 
     // Get list of all files in the images bucket
-    const { data: files, error } = await supabase.storage
-      .from("images")
-      .list("", {
-        limit: 1000,
-        offset: 0,
-      });
+    const { data: files, error } = await supabase.storage.from("images").list("", {
+      limit: 1000,
+      offset: 0,
+    });
 
     if (error) {
       console.error("[Storage API] Error fetching storage info:", error);
@@ -98,4 +96,3 @@ function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
-

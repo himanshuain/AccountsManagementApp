@@ -118,18 +118,18 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "bu
   const TileButton = () => (
     <Card
       className={cn(
-        "cursor-pointer transition-colors border-2",
+        "cursor-pointer border-2 transition-colors",
         disabled || suppliers.length === 0
-          ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-primary/5 hover:border-primary/50 border-primary/20 bg-primary/5"
+          ? "cursor-not-allowed opacity-50"
+          : "border-primary/20 bg-primary/5 hover:border-primary/50 hover:bg-primary/5"
       )}
       onClick={disabled || suppliers.length === 0 ? undefined : handleOpen}
     >
-      <CardContent className="p-4 flex flex-col items-center justify-center gap-2 h-full min-h-[100px]">
+      <CardContent className="flex h-full min-h-[100px] flex-col items-center justify-center gap-2 p-4">
         <div className="rounded-full bg-primary p-3">
           <Camera className="h-6 w-6 text-primary-foreground" />
         </div>
-        <span className="text-sm font-medium text-center">Capture Bills</span>
+        <span className="text-center text-sm font-medium">Capture Bills</span>
         <span className="text-[10px] text-muted-foreground">Vyapari bills</span>
       </CardContent>
     </Card>
@@ -181,10 +181,10 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "bu
                             <img
                               src={supplier.profilePicture}
                               alt=""
-                              className="w-6 h-6 rounded-full object-cover"
+                              className="h-6 w-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-medium">
                               {supplier.name?.charAt(0)}
                             </div>
                           )}
@@ -217,16 +217,16 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "bu
                     {capturedImages.map(img => (
                       <div
                         key={img.id}
-                        className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted group"
+                        className="group relative aspect-[4/3] overflow-hidden rounded-lg bg-muted"
                       >
                         <img
                           src={img.preview}
                           alt="Captured bill"
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                         <button
                           onClick={() => handleRemoveImage(img.id)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -276,7 +276,7 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "bu
                 onChange={e => handleFileChange(e, false)}
               />
 
-              <DialogFooter className="flex-col sm:flex-row gap-2">
+              <DialogFooter className="flex-col gap-2 sm:flex-row">
                 <Button variant="outline" onClick={() => setStep(1)} className="sm:mr-auto">
                   Back
                 </Button>

@@ -31,7 +31,7 @@ export function useUdhar() {
 
   // Add udhar mutation - directly to cloud
   const addMutation = useMutation({
-    mutationFn: async (udharData) => {
+    mutationFn: async udharData => {
       const response = await fetch("/api/udhar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,7 +71,7 @@ export function useUdhar() {
 
   // Delete udhar mutation - directly to cloud
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
+    mutationFn: async id => {
       const response = await fetch(`/api/udhar/${id}`, {
         method: "DELETE",
       });
@@ -88,7 +88,7 @@ export function useUdhar() {
   });
 
   const addUdhar = useCallback(
-    async (udharData) => {
+    async udharData => {
       try {
         await addMutation.mutateAsync(udharData);
         return { success: true };
@@ -96,7 +96,7 @@ export function useUdhar() {
         return { success: false, error: err.message };
       }
     },
-    [addMutation],
+    [addMutation]
   );
 
   const updateUdhar = useCallback(
@@ -108,11 +108,11 @@ export function useUdhar() {
         return { success: false, error: err.message };
       }
     },
-    [updateMutation],
+    [updateMutation]
   );
 
   const deleteUdhar = useCallback(
-    async (id) => {
+    async id => {
       try {
         await deleteMutation.mutateAsync(id);
         return { success: true };
@@ -120,18 +120,16 @@ export function useUdhar() {
         return { success: false, error: err.message };
       }
     },
-    [deleteMutation],
+    [deleteMutation]
   );
 
   const recordDeposit = useCallback(
     async (id, amount, receiptUrl = null, notes = null) => {
-      const udhar = udharList.find((u) => u.id === id);
+      const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
-      const totalAmount =
-        udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-      const currentPaid =
-        udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
       const newPaidAmount = currentPaid + amount;
 
       const newPayment = {
@@ -151,18 +149,16 @@ export function useUdhar() {
 
       return await updateUdhar(id, updates);
     },
-    [udharList, updateUdhar],
+    [udharList, updateUdhar]
   );
 
   const markFullPaid = useCallback(
     async (id, receiptUrl = null) => {
-      const udhar = udharList.find((u) => u.id === id);
+      const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
-      const totalAmount =
-        udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-      const currentPaid =
-        udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
       const remainingAmount = totalAmount - currentPaid;
 
       const payments = [...(udhar.payments || [])];
@@ -184,29 +180,29 @@ export function useUdhar() {
         payments: payments,
       });
     },
-    [udharList, updateUdhar],
+    [udharList, updateUdhar]
   );
 
   // Delete a specific payment from an udhar record
   const deletePayment = useCallback(
     async (udharId, paymentId) => {
-      const udhar = udharList.find((u) => u.id === udharId);
+      const udhar = udharList.find(u => u.id === udharId);
       if (!udhar) return { success: false, error: "Record not found" };
 
       const payments = [...(udhar.payments || [])];
-      const paymentIndex = payments.findIndex((p) => p.id === paymentId);
-      
+      const paymentIndex = payments.findIndex(p => p.id === paymentId);
+
       if (paymentIndex === -1) {
         return { success: false, error: "Payment not found" };
       }
 
       // Remove the payment
       const removedPayment = payments.splice(paymentIndex, 1)[0];
-      
+
       // Recalculate paid amount
       const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-      
+
       // Determine new payment status
       let paymentStatus = "pending";
       if (newPaidAmount >= totalAmount) {
@@ -223,18 +219,18 @@ export function useUdhar() {
         paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
       });
     },
-    [udharList, updateUdhar],
+    [udharList, updateUdhar]
   );
 
   const getByCustomer = useCallback(
-    (customerId) => {
-      return udharList.filter((u) => u.customerId === customerId);
+    customerId => {
+      return udharList.filter(u => u.customerId === customerId);
     },
-    [udharList],
+    [udharList]
   );
 
   const getPending = useCallback(() => {
-    return udharList.filter((u) => u.paymentStatus === "pending");
+    return udharList.filter(u => u.paymentStatus === "pending");
   }, [udharList]);
 
   const getRecent = useCallback(
@@ -243,7 +239,7 @@ export function useUdhar() {
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
         .slice(0, limit);
     },
-    [udharList],
+    [udharList]
   );
 
   const refresh = useCallback(() => {
@@ -251,17 +247,17 @@ export function useUdhar() {
   }, [queryClient]);
 
   const filterByDateRange = useCallback(
-    (days) => {
+    days => {
       const now = new Date();
       const startDate = new Date(now);
       startDate.setDate(startDate.getDate() - days);
 
-      return udharList.filter((u) => {
+      return udharList.filter(u => {
         const date = new Date(u.date);
         return date >= startDate && date <= now;
       });
     },
-    [udharList],
+    [udharList]
   );
 
   const sortByAmount = useCallback(
@@ -272,7 +268,7 @@ export function useUdhar() {
         return order === "desc" ? amountB - amountA : amountA - amountB;
       });
     },
-    [udharList],
+    [udharList]
   );
 
   return {

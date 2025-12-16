@@ -171,14 +171,19 @@ export function TransactionForm({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0 flex flex-col" hideClose onSwipeClose={handleClose}>
+      <SheetContent
+        side="bottom"
+        className="flex h-[90vh] flex-col rounded-t-2xl p-0"
+        hideClose
+        onSwipeClose={handleClose}
+      >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        <div className="flex justify-center pb-2 pt-3">
+          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
         </div>
 
         {/* Header with action buttons */}
-        <SheetHeader className="px-4 pb-3 border-b">
+        <SheetHeader className="border-b px-4 pb-3">
           <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
@@ -187,10 +192,10 @@ export function TransactionForm({
               disabled={isSubmitting}
               className="h-9 px-3"
             >
-              <X className="h-4 w-4 mr-1" />
+              <X className="mr-1 h-4 w-4" />
               Cancel
             </Button>
-            <SheetTitle className="text-base font-semibold flex-1 text-center">{title}</SheetTitle>
+            <SheetTitle className="flex-1 text-center text-base font-semibold">{title}</SheetTitle>
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
@@ -201,7 +206,7 @@ export function TransactionForm({
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Check className="h-4 w-4 mr-1" />
+                  <Check className="mr-1 h-4 w-4" />
                   {initialData ? "Save" : "Add"}
                 </>
               )}
@@ -209,11 +214,11 @@ export function TransactionForm({
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-safe">
+        <div className="pb-safe flex-1 overflow-y-auto px-6">
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
             {/* Offline warning */}
             {!isOnline && (
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
                 You&apos;re offline. Saving is disabled.
               </div>
             )}
@@ -240,7 +245,7 @@ export function TransactionForm({
               <Label>
                 Bill Photos
                 {pendingFiles.length > 0 && (
-                  <span className="ml-2 text-xs text-primary font-normal">
+                  <span className="ml-2 text-xs font-normal text-primary">
                     ({pendingFiles.length} captured)
                   </span>
                 )}
@@ -251,12 +256,12 @@ export function TransactionForm({
                     {billImages.map((url, index) => (
                       <div
                         key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted ring-2 ring-primary/50"
+                        className="relative aspect-square overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50"
                       >
                         <img
                           src={url}
                           alt={`Captured bill ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                       </div>
                     ))}
@@ -287,22 +292,22 @@ export function TransactionForm({
                 pattern="[0-9]*"
                 {...register("amount", { required: "Amount is required" })}
                 placeholder="Enter amount"
-                className="text-2xl h-14 font-semibold"
+                className="h-14 text-2xl font-semibold"
               />
               {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
               {/* Show existing payment info when editing */}
               {initialData?.paidAmount > 0 && (
-                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3">
                   <p className="text-sm text-green-700">
                     Already paid: ₹{initialData.paidAmount.toLocaleString()}
                     {initialData.payments?.length > 0 && (
-                      <span className="text-xs ml-2">
+                      <span className="ml-2 text-xs">
                         ({initialData.payments.length} payment
                         {initialData.payments.length > 1 ? "s" : ""})
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-green-600 mt-1">
+                  <p className="mt-1 text-xs text-green-600">
                     Payment history will be preserved when you save.
                   </p>
                 </div>
@@ -336,7 +341,7 @@ export function TransactionForm({
 
             {/* Payment Info - Using Switches */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                 <div className="space-y-0.5">
                   <Label className="text-base">Payment Mode</Label>
                   <p className="text-xs text-muted-foreground">
@@ -350,7 +355,7 @@ export function TransactionForm({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                 <div className="space-y-0.5">
                   <Label className="text-base">Payment Status</Label>
                   <p className="text-xs text-muted-foreground">

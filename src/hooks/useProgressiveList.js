@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 /**
  * Hook for progressive loading of list items
  * Shows initial batch and loads more as user scrolls
- * 
+ *
  * @param {Array} items - Full list of items
  * @param {number} initialCount - Initial number of items to show
  * @param {number} batchSize - Number of items to load per batch
@@ -26,7 +26,7 @@ export function useProgressiveList(items = [], initialCount = 20, batchSize = 20
       prevItemsLength.current = items.length;
       return;
     }
-    
+
     // If items length decreased significantly or is now less than visible count
     if (items.length < prevItemsLength.current * 0.5 || items.length < visibleCount) {
       setVisibleCount(Math.min(initialCount, Math.max(items.length, 1)));
@@ -37,9 +37,9 @@ export function useProgressiveList(items = [], initialCount = 20, batchSize = 20
   // Intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => {
+      entries => {
         if (entries[0].isIntersecting && visibleCount < items.length) {
-          setVisibleCount((prev) => Math.min(prev + batchSize, items.length));
+          setVisibleCount(prev => Math.min(prev + batchSize, items.length));
         }
       },
       { threshold: 0.1, rootMargin: "100px" }
@@ -58,7 +58,7 @@ export function useProgressiveList(items = [], initialCount = 20, batchSize = 20
   }, [visibleCount, items.length, batchSize]);
 
   const loadMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + batchSize, items.length));
+    setVisibleCount(prev => Math.min(prev + batchSize, items.length));
   }, [batchSize, items.length]);
 
   const reset = useCallback(() => {
@@ -84,18 +84,21 @@ export function useProgressiveList(items = [], initialCount = 20, batchSize = 20
 /**
  * LoadMoreTrigger component to place at the end of a list
  */
-export function LoadMoreTrigger({ loadMoreRef, hasMore, remainingCount, onLoadMore, totalCount = 0 }) {
+export function LoadMoreTrigger({
+  loadMoreRef,
+  hasMore,
+  remainingCount,
+  onLoadMore,
+  totalCount = 0,
+}) {
   // Don't show if there's nothing more to load or no items at all
   if (!hasMore || remainingCount <= 0 || totalCount === 0) return null;
 
   return (
-    <div 
-      ref={loadMoreRef}
-      className="py-4 text-center"
-    >
+    <div ref={loadMoreRef} className="py-4 text-center">
       <button
         onClick={onLoadMore}
-        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         Load more ({remainingCount} remaining)
       </button>
@@ -104,4 +107,3 @@ export function LoadMoreTrigger({ loadMoreRef, hasMore, remainingCount, onLoadMo
 }
 
 export default useProgressiveList;
-

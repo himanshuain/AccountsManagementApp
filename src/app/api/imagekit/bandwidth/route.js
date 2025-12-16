@@ -10,45 +10,45 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-    
+
     if (!privateKey) {
       return NextResponse.json({
         success: false,
         error: "ImageKit not configured",
       });
     }
-    
+
     // ImageKit API - list files to count and estimate storage
     const authString = Buffer.from(`${privateKey}:`).toString("base64");
-    
+
     // Get list of files (this endpoint works)
     const response = await fetch("https://api.imagekit.io/v1/files?limit=1000", {
       headers: {
         Authorization: `Basic ${authString}`,
       },
     });
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("[ImageKit] API error:", errorText);
       throw new Error("Failed to fetch ImageKit files");
     }
-    
+
     const files = await response.json();
-    
+
     // Calculate storage from file sizes
     let totalStorage = 0;
     let fileCount = 0;
-    
+
     if (Array.isArray(files)) {
       fileCount = files.length;
       totalStorage = files.reduce((sum, file) => sum + (file.size || 0), 0);
     }
-    
+
     // ImageKit free tier: 20GB storage, 20GB bandwidth/month
     const FREE_TIER_STORAGE = 20 * 1024 * 1024 * 1024; // 20GB
     const FREE_TIER_BANDWIDTH = 20 * 1024 * 1024 * 1024; // 20GB
-    
+
     // We can only reliably track storage, not bandwidth (no public API for that)
     const bandwidthData = {
       used: totalStorage,
@@ -61,7 +61,7 @@ export async function GET() {
       fileCount: fileCount,
       note: "Showing storage usage (bandwidth stats require ImageKit dashboard)",
     };
-    
+
     return NextResponse.json({
       success: true,
       data: bandwidthData,
@@ -82,4 +82,3 @@ function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
-

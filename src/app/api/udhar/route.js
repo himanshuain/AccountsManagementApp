@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // Helper to convert camelCase to snake_case
-const toSnakeCase = (obj) => {
+const toSnakeCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(toSnakeCase);
 
@@ -17,14 +17,12 @@ const toSnakeCase = (obj) => {
 };
 
 // Helper to convert snake_case to camelCase
-const toCamelCase = (obj) => {
+const toCamelCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(toCamelCase);
 
   return Object.keys(obj).reduce((acc, key) => {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
-      letter.toUpperCase(),
-    );
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     acc[camelKey] = toCamelCase(obj[key]);
     return acc;
   }, {});
@@ -38,7 +36,7 @@ async function updateCustomerTotalPending(customerId) {
     .eq("customer_id", customerId);
 
   const totalPending = (udharRecords || [])
-    .filter((u) => u.payment_status !== "paid")
+    .filter(u => u.payment_status !== "paid")
     .reduce((sum, u) => {
       const total = u.amount || (u.cash_amount || 0) + (u.online_amount || 0);
       const paid = u.paid_amount || (u.paid_cash || 0) + (u.paid_online || 0);
@@ -59,17 +57,14 @@ export async function GET(request) {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
         { success: false, error: "Database not configured", data: [] },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get("customerId");
 
-    let query = supabase
-      .from("udhar")
-      .select("*")
-      .order("updated_at", { ascending: false });
+    let query = supabase.from("udhar").select("*").order("updated_at", { ascending: false });
 
     if (customerId) {
       query = query.eq("customer_id", customerId);
@@ -79,10 +74,7 @@ export async function GET(request) {
 
     if (error) {
       console.error("Load udhar failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message, data: [] },
-        { status: 500 },
-      );
+      return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -92,14 +84,11 @@ export async function GET(request) {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
         },
-      },
+      }
     );
   } catch (error) {
     console.error("Load udhar failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message, data: [] },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
   }
 }
 
@@ -108,7 +97,7 @@ export async function POST(request) {
     if (!isSupabaseConfigured()) {
       return NextResponse.json(
         { success: false, error: "Database not configured" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -133,10 +122,7 @@ export async function POST(request) {
 
     if (error) {
       console.error("Create udhar failed:", error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     // Update customer's total pending
@@ -150,9 +136,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Create udhar failed:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

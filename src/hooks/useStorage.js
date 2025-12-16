@@ -13,7 +13,7 @@ async function fetchBandwidthInfo() {
   try {
     const response = await fetch("/api/imagekit/bandwidth");
     const data = await response.json();
-    
+
     if (data.success) {
       return {
         ...data.data,
@@ -23,15 +23,15 @@ async function fetchBandwidthInfo() {
   } catch (error) {
     console.warn("ImageKit bandwidth fetch failed, falling back to storage");
   }
-  
+
   // Fallback to Supabase storage
   const response = await fetch("/api/storage");
   const data = await response.json();
-  
+
   if (!data.success) {
     throw new Error(data.error || "Failed to fetch storage info");
   }
-  
+
   return {
     ...data.data,
     type: "storage", // Indicates this is storage data
@@ -62,4 +62,3 @@ export function useStorage() {
 }
 
 export default useStorage;
-

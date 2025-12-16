@@ -23,7 +23,7 @@ export function NavigationProgress() {
 
   // Listen for navigation start via link clicks
   useEffect(() => {
-    const handleClick = (e) => {
+    const handleClick = e => {
       const link = e.target.closest("a");
       if (link && link.href && link.href.startsWith(window.location.origin)) {
         const targetPath = new URL(link.href).pathname;
@@ -33,7 +33,7 @@ export function NavigationProgress() {
 
           // Simulate progress
           const interval = setInterval(() => {
-            setProgress((prev) => {
+            setProgress(prev => {
               if (prev >= 90) {
                 clearInterval(interval);
                 return prev;
@@ -52,7 +52,7 @@ export function NavigationProgress() {
   if (!isNavigating && progress === 0) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-transparent">
+    <div className="fixed left-0 right-0 top-0 z-[100] h-1 bg-transparent">
       <div
         className="h-full bg-primary transition-all duration-300 ease-out"
         style={{

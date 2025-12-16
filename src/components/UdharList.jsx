@@ -257,7 +257,7 @@ export function UdharList({
         {[1, 2, 3].map(i => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
-              <div className="h-16 bg-muted rounded" />
+              <div className="h-16 rounded bg-muted" />
             </CardContent>
           </Card>
         ))}
@@ -267,7 +267,7 @@ export function UdharList({
 
   if (udharList.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="py-8 text-center text-muted-foreground">
         <p>No Udhar records found</p>
       </div>
     );
@@ -276,21 +276,21 @@ export function UdharList({
   return (
     <div className="space-y-4">
       {/* Summary Card */}
-      <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
+      <Card className="border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Total</p>
+            <div className="flex-1 text-center">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Total</p>
               <p className="text-xl font-bold">₹{totals.total.toLocaleString()}</p>
             </div>
             <div className="h-10 w-px bg-amber-500/20" />
-            <div className="text-center flex-1">
-              <p className="text-xs text-green-600 uppercase tracking-wide">Collected</p>
+            <div className="flex-1 text-center">
+              <p className="text-xs uppercase tracking-wide text-green-600">Collected</p>
               <p className="text-xl font-bold text-green-600">₹{totals.paid.toLocaleString()}</p>
             </div>
             <div className="h-10 w-px bg-amber-500/20" />
-            <div className="text-center flex-1">
-              <p className="text-xs text-amber-600 uppercase tracking-wide">Pending</p>
+            <div className="flex-1 text-center">
+              <p className="text-xs uppercase tracking-wide text-amber-600">Pending</p>
               <p className="text-xl font-bold text-amber-600">₹{totals.pending.toLocaleString()}</p>
             </div>
           </div>
@@ -320,22 +320,24 @@ export function UdharList({
                   isPaid
                     ? "border-l-4 border-l-green-500 opacity-75"
                     : isPartial
-                    ? "border-l-4 border-l-blue-500"
-                    : "border-l-4 border-l-amber-500",
-                  isExpanded && "ring-2 ring-primary/20 shadow-md"
+                      ? "border-l-4 border-l-blue-500"
+                      : "border-l-4 border-l-amber-500",
+                  isExpanded && "shadow-md ring-2 ring-primary/20"
                 )}
               >
                 <CollapsibleTrigger asChild>
-                  <CardContent className={cn(
-                    "p-3 cursor-pointer transition-colors",
-                    isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
-                  )}>
+                  <CardContent
+                    className={cn(
+                      "cursor-pointer p-3 transition-colors",
+                      isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
+                    )}
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center gap-2">
                           <span
                             className={cn(
-                              "font-bold flex items-center gap-0.5",
+                              "flex items-center gap-0.5 font-bold",
                               totalAmount >= 10000 ? "text-lg" : "text-xl"
                             )}
                           >
@@ -345,12 +347,12 @@ export function UdharList({
                           <Badge
                             variant="secondary"
                             className={cn(
-                              "text-xs px-1.5 py-0",
+                              "px-1.5 py-0 text-xs",
                               isPaid
                                 ? "bg-green-500/20 text-green-600"
                                 : isPartial
-                                ? "bg-blue-500/20 text-blue-600"
-                                : "bg-amber-500/20 text-amber-600"
+                                  ? "bg-blue-500/20 text-blue-600"
+                                  : "bg-amber-500/20 text-amber-600"
                             )}
                           >
                             {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
@@ -361,26 +363,26 @@ export function UdharList({
                           (() => {
                             const customer = getCustomer(udhar.customerId);
                             return (
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="mb-1 flex items-center gap-2">
                                 <Link
                                   href={`/customers?open=${udhar.customerId}`}
-                                  className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                  className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
                                   onClick={e => e.stopPropagation()}
                                 >
                                   {customer?.profilePicture ? (
                                     <img
                                       src={customer.profilePicture}
                                       alt=""
-                                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                                      className="h-7 w-7 flex-shrink-0 rounded-full object-cover"
                                     />
                                   ) : (
-                                    <div className="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-500/20">
                                       <span className="text-xs font-semibold text-amber-600">
                                         {(customer?.name || "?").charAt(0).toUpperCase()}
                                       </span>
                                     </div>
                                   )}
-                                  <span className="font-semibold text-sm truncate max-w-[120px]">
+                                  <span className="max-w-[120px] truncate text-sm font-semibold">
                                     {getCustomerName(udhar.customerId)}
                                   </span>
                                 </Link>
@@ -398,7 +400,7 @@ export function UdharList({
                           </span>
                         </div>
                         {!isPaid && paidAmount > 0 && (
-                          <p className="text-xs text-amber-600 mt-1">
+                          <p className="mt-1 text-xs text-amber-600">
                             Remaining: ₹{pendingAmount.toLocaleString()}
                           </p>
                         )}
@@ -414,9 +416,9 @@ export function UdharList({
                 </CollapsibleTrigger>
 
                 <CollapsibleContent>
-                  <div className="px-3 pb-3 space-y-3 border-t bg-primary/5">
+                  <div className="space-y-3 border-t bg-primary/5 px-3 pb-3">
                     {udhar.notes && (
-                      <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-2">
+                      <p className="rounded-lg bg-muted/50 p-2 text-sm text-muted-foreground">
                         {udhar.notes}
                       </p>
                     )}
@@ -424,18 +426,18 @@ export function UdharList({
                     {/* Payment Timeline */}
                     {payments.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Payment History
                         </p>
-                        <div className="relative pl-4 space-y-2">
-                          <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-green-500/30" />
+                        <div className="relative space-y-2 pl-4">
+                          <div className="absolute bottom-2 left-[7px] top-2 w-0.5 bg-green-500/30" />
                           {payments.map((payment, idx) => (
                             <div
                               key={payment.id || idx}
                               className="relative flex items-start gap-2"
                             >
-                              <div className="absolute left-[-13px] top-1 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
-                              <div className="flex-1 bg-green-500/10 rounded-lg p-2">
+                              <div className="absolute left-[-13px] top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500" />
+                              <div className="flex-1 rounded-lg bg-green-500/10 p-2">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <Check className="h-3.5 w-3.5 text-green-600" />
@@ -481,7 +483,7 @@ export function UdharList({
                                   </div>
                                 </div>
                                 {payment.notes && (
-                                  <p className="text-xs text-muted-foreground mt-1 italic pl-5">
+                                  <p className="mt-1 pl-5 text-xs italic text-muted-foreground">
                                     &quot;{payment.notes}&quot;
                                   </p>
                                 )}
@@ -493,14 +495,14 @@ export function UdharList({
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pt-2 border-t flex-wrap">
+                    <div className="flex flex-wrap items-center gap-2 border-t pt-2">
                       {!isPaid && (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={e => handleDepositClick(udhar, e)}
-                            className="flex-1 h-9 text-xs gap-1 text-blue-600 border-blue-600/30 hover:bg-blue-50"
+                            className="h-9 flex-1 gap-1 border-blue-600/30 text-xs text-blue-600 hover:bg-blue-50"
                           >
                             <Plus className="h-3.5 w-3.5" />
                             Collect
@@ -509,7 +511,7 @@ export function UdharList({
                             variant="outline"
                             size="sm"
                             onClick={e => handleFullPaidClick(udhar, e)}
-                            className="flex-1 h-9 text-xs gap-1 text-green-600 border-green-600/30 hover:bg-green-50"
+                            className="h-9 flex-1 gap-1 border-green-600/30 text-xs text-green-600 hover:bg-green-50"
                           >
                             <Check className="h-3.5 w-3.5" />
                             Full Paid
@@ -520,11 +522,17 @@ export function UdharList({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={e => handleViewImages([...(udhar.khataPhotos || []), ...(udhar.billImages || [])], e)}
-                          className="h-9 px-3 text-xs gap-1"
+                          onClick={e =>
+                            handleViewImages(
+                              [...(udhar.khataPhotos || []), ...(udhar.billImages || [])],
+                              e
+                            )
+                          }
+                          className="h-9 gap-1 px-3 text-xs"
                         >
                           <ImageIcon className="h-3.5 w-3.5" />
-                          Photos ({(udhar.khataPhotos?.length || 0) + (udhar.billImages?.length || 0)})
+                          Photos (
+                          {(udhar.khataPhotos?.length || 0) + (udhar.billImages?.length || 0)})
                         </Button>
                       )}
                       {onEdit && (
@@ -535,7 +543,7 @@ export function UdharList({
                             e.stopPropagation();
                             onEdit(udhar);
                           }}
-                          className="h-9 px-3 text-xs gap-1"
+                          className="h-9 gap-1 px-3 text-xs"
                         >
                           Edit
                         </Button>
@@ -544,7 +552,7 @@ export function UdharList({
                         variant="outline"
                         size="sm"
                         onClick={e => handleDeleteClick(udhar, e)}
-                        className="h-9 px-3 text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                        className="h-9 gap-1 border-destructive/30 px-3 text-xs text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Delete
@@ -583,7 +591,7 @@ export function UdharList({
         }}
       >
         <SheetContent side="top" className="h-auto max-h-[85vh] rounded-b-2xl p-0" hideClose>
-          <SheetHeader className="p-4 border-b flex flex-row items-center justify-between">
+          <SheetHeader className="flex flex-row items-center justify-between border-b p-4">
             <SheetTitle>Record Collect</SheetTitle>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={resetDepositForm}>
@@ -594,16 +602,16 @@ export function UdharList({
                 onClick={handleDepositSubmit}
                 disabled={isSubmitting || !depositAmount}
               >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save
               </Button>
             </div>
           </SheetHeader>
           <ScrollArea className="max-h-[calc(85vh-60px)]">
-            <div className="p-4 space-y-4">
+            <div className="space-y-4 p-4">
               {/* Amount Summary */}
               {udharForDeposit && (
-                <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                <div className="space-y-1 rounded-lg bg-muted/50 p-3">
                   <p className="text-xs text-muted-foreground">
                     Total Udhar: ₹{getUdharAmount(udharForDeposit).toLocaleString()}
                   </p>
@@ -629,7 +637,7 @@ export function UdharList({
                   value={depositAmount}
                   onChange={e => setDepositAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="text-xl h-14 font-semibold"
+                  className="h-14 text-xl font-semibold"
                   autoFocus
                 />
               </div>
@@ -672,7 +680,7 @@ export function UdharList({
                     className="flex-1"
                     onClick={() => receiptCameraRef.current?.click()}
                   >
-                    <Camera className="h-4 w-4 mr-2" />
+                    <Camera className="mr-2 h-4 w-4" />
                     Camera
                   </Button>
                   <Button
@@ -682,23 +690,23 @@ export function UdharList({
                     className="flex-1"
                     onClick={() => receiptGalleryRef.current?.click()}
                   >
-                    <ImagePlus className="h-4 w-4 mr-2" />
+                    <ImagePlus className="mr-2 h-4 w-4" />
                     Gallery
                   </Button>
                 </div>
 
                 {/* Receipt Previews */}
                 {depositReceipts.length > 0 && (
-                  <div className="flex gap-2 mt-2 flex-wrap">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {depositReceipts.map((url, idx) => (
                       <div
                         key={idx}
-                        className="relative w-20 h-20 rounded-lg overflow-hidden border group"
+                        className="group relative h-20 w-20 overflow-hidden rounded-lg border"
                       >
                         <img
                           src={url}
                           alt={`Receipt ${idx + 1}`}
-                          className="w-full h-full object-cover cursor-pointer"
+                          className="h-full w-full cursor-pointer object-cover"
                           onClick={() => {
                             setReceiptViewerSrc(url);
                             setReceiptViewerOpen(true);
@@ -708,7 +716,7 @@ export function UdharList({
                           type="button"
                           variant="destructive"
                           size="icon"
-                          className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute right-1 top-1 h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={e => {
                             e.stopPropagation();
                             handleRemoveReceipt(idx);

@@ -5,7 +5,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 // Helper to increment session version (to logout all other devices)
 async function incrementSessionVersion() {
   if (!isSupabaseConfigured()) return;
-  
+
   try {
     // Get current version
     const { data: currentData } = await supabase
@@ -13,19 +13,20 @@ async function incrementSessionVersion() {
       .select("value")
       .eq("key", "session_version")
       .single();
-    
+
     const currentVersion = parseInt(currentData?.value || "1", 10);
     const newVersion = String(currentVersion + 1);
-    
+
     // Upsert the new version
-    await supabase
-      .from("app_settings")
-      .upsert({ 
-        key: "session_version", 
+    await supabase.from("app_settings").upsert(
+      {
+        key: "session_version",
         value: newVersion,
-        updated_at: new Date().toISOString() 
-      }, { onConflict: "key" });
-    
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    );
+
     return newVersion;
   } catch (error) {
     console.error("Failed to increment session version:", error);
@@ -85,14 +86,17 @@ export async function POST(request) {
       if (insertError) {
         console.error("Failed to save password:", insertError);
         return NextResponse.json(
-          { success: false, error: "Failed to save new password. Make sure app_settings table exists." },
+          {
+            success: false,
+            error: "Failed to save new password. Make sure app_settings table exists.",
+          },
           { status: 500 }
         );
       }
 
       // Increment session version to logout other devices
       const newSessionVersion = await incrementSessionVersion();
-      
+
       // Update the current session's version cookie
       if (newSessionVersion) {
         const cookieStore = await cookies();
@@ -141,7 +145,7 @@ export async function POST(request) {
 
     // Increment session version to logout other devices
     const newSessionVersion = await incrementSessionVersion();
-    
+
     // Update the current session's version cookie
     if (newSessionVersion) {
       const cookieStore = await cookies();
@@ -157,10 +161,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, loggedOutOtherDevices: true });
   } catch (error) {
     console.error("Change password error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

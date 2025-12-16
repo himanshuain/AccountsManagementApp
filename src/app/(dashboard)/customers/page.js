@@ -63,7 +63,13 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { compressImage } from "@/lib/image-compression";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
@@ -164,10 +170,10 @@ export default function CustomersPage() {
   // Image viewer state
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
-  
+
   // Ref to track if image viewer was just closed (to prevent drawer from closing)
   const imageViewerJustClosedRef = useRef(false);
-  
+
   // Gallery viewer state (for multiple images)
   const [galleryViewerOpen, setGalleryViewerOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
@@ -176,25 +182,25 @@ export default function CustomersPage() {
   // Payment deletion state
   const [deletePaymentDialogOpen, setDeletePaymentDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState(null);
-  
+
   // Collapsible sections state
   const [customersExpanded, setCustomersExpanded] = useState(true);
   const [udharExpanded, setUdharExpanded] = useState(false);
-  
+
   // All udhar section filters
   const [udharStatusFilter, setUdharStatusFilter] = useState("all");
   const [udharCustomerFilter, setUdharCustomerFilter] = useState("all");
   const [udharAmountSort, setUdharAmountSort] = useState("newest");
-  
+
   // All receipts sheet state
   const [allReceiptsSheetOpen, setAllReceiptsSheetOpen] = useState(false);
   const [allReceiptsGalleryOpen, setAllReceiptsGalleryOpen] = useState(false);
   const [allReceiptsGalleryImages, setAllReceiptsGalleryImages] = useState([]);
   const [allReceiptsGalleryInitialIndex, setAllReceiptsGalleryInitialIndex] = useState(0);
-  
+
   // Udhar editing state
   const [udharToEdit, setUdharToEdit] = useState(null);
-  
+
   // Customer khata photos sheet state
   const [khataPhotosSheetOpen, setKhataPhotosSheetOpen] = useState(false);
   const [deletingPhotoIndex, setDeletingPhotoIndex] = useState(null);
@@ -240,10 +246,8 @@ export default function CustomersPage() {
 
   // Calculate totals for each customer
   const customersWithStats = useMemo(() => {
-    return customers.map((customer) => {
-      const customerUdhar = udharList.filter(
-        (u) => u.customerId === customer.id,
-      );
+    return customers.map(customer => {
+      const customerUdhar = udharList.filter(u => u.customerId === customer.id);
 
       const totalAmount = customerUdhar.reduce((sum, u) => {
         return sum + (u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0));
@@ -270,9 +274,7 @@ export default function CustomersPage() {
   useEffect(() => {
     const openCustomerId = searchParams.get("open");
     if (openCustomerId && customersWithStats.length > 0 && !customersLoading) {
-      const customerToOpen = customersWithStats.find(
-        (c) => c.id === openCustomerId,
-      );
+      const customerToOpen = customersWithStats.find(c => c.id === openCustomerId);
       if (customerToOpen) {
         setSelectedCustomer(customerToOpen);
         // Clear the query parameter from URL without triggering a navigation
@@ -288,17 +290,15 @@ export default function CustomersPage() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (c) =>
+        c =>
           c.name?.toLowerCase().includes(query) ||
           c.phone?.includes(query) ||
-          c.address?.toLowerCase().includes(query),
+          c.address?.toLowerCase().includes(query)
       );
     }
 
     // Sort by most recently updated
-    return filtered.sort(
-      (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
-    );
+    return filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }, [customersWithStats, searchQuery]);
 
   // Progressive loading for large customer lists
@@ -314,7 +314,7 @@ export default function CustomersPage() {
   // Filtered udhar for the "All Udhar" section
   const filteredUdharList = useMemo(() => {
     let filtered = [...udharList];
-    
+
     if (udharStatusFilter === "pending") {
       filtered = filtered.filter(u => {
         const total = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
@@ -328,11 +328,11 @@ export default function CustomersPage() {
         return paid >= total;
       });
     }
-    
+
     if (udharCustomerFilter !== "all") {
       filtered = filtered.filter(u => u.customerId === udharCustomerFilter);
     }
-    
+
     // Sort based on selected option
     if (udharAmountSort === "highest") {
       return filtered.sort((a, b) => {
@@ -347,7 +347,7 @@ export default function CustomersPage() {
         return totalA - totalB;
       });
     }
-    
+
     return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [udharList, udharStatusFilter, udharCustomerFilter, udharAmountSort]);
 
@@ -357,7 +357,7 @@ export default function CustomersPage() {
     udharList.forEach(udhar => {
       const customerName = customers.find(c => c.id === udhar.customerId)?.name || "Unknown";
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-      
+
       // Add khata/bill photos
       if (udhar.khataPhotos?.length > 0) {
         udhar.khataPhotos.forEach(photo => {
@@ -450,7 +450,7 @@ export default function CustomersPage() {
   };
 
   // Handle quick add bill image upload
-  const handleQuickAddBillSelect = async (e) => {
+  const handleQuickAddBillSelect = async e => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -472,7 +472,7 @@ export default function CustomersPage() {
           uploadedUrls.push(url);
         }
       }
-      setQuickAddBillImages((prev) => [...prev, ...uploadedUrls]);
+      setQuickAddBillImages(prev => [...prev, ...uploadedUrls]);
     } catch (error) {
       console.error("Error uploading bill images:", error);
       toast.error("Failed to upload images");
@@ -483,7 +483,7 @@ export default function CustomersPage() {
   };
 
   // Handle new customer with initial amount
-  const handleAddCustomerWithAmount = async (customerData) => {
+  const handleAddCustomerWithAmount = async customerData => {
     const result = await addCustomer(customerData);
 
     if (result.success && initialAmount && Number(initialAmount) > 0) {
@@ -505,11 +505,11 @@ export default function CustomersPage() {
     return result;
   };
 
-  const getCustomerInitials = (name) => {
+  const getCustomerInitials = name => {
     return (
       name
         ?.split(" ")
-        .map((n) => n[0])
+        .map(n => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2) || "??"
@@ -517,7 +517,7 @@ export default function CustomersPage() {
   };
 
   // Helper to format relative date
-  const formatRelativeDate = (dateString) => {
+  const formatRelativeDate = dateString => {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = now - date;
@@ -542,7 +542,7 @@ export default function CustomersPage() {
   const selectedCustomerTransactions = useMemo(() => {
     if (!selectedCustomer) return [];
     return udharList
-      .filter((u) => u.customerId === selectedCustomer.id)
+      .filter(u => u.customerId === selectedCustomer.id)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [selectedCustomer, udharList]);
 
@@ -550,7 +550,7 @@ export default function CustomersPage() {
   const selectedCustomerKhataPhotos = useMemo(() => {
     if (!selectedCustomer) return [];
     const photos = [];
-    selectedCustomerTransactions.forEach((txn) => {
+    selectedCustomerTransactions.forEach(txn => {
       if (txn.khataPhotos && Array.isArray(txn.khataPhotos)) {
         txn.khataPhotos.forEach((photo, index) => {
           if (photo && typeof photo === "string") {
@@ -569,26 +569,26 @@ export default function CustomersPage() {
   }, [selectedCustomer, selectedCustomerTransactions]);
 
   // Handle deleting a khata photo
-  const handleDeleteKhataPhoto = async (photo) => {
+  const handleDeleteKhataPhoto = async photo => {
     if (!isOnline) {
       toast.error("Cannot delete while offline");
       return;
     }
-    
+
     const udhar = udharList.find(u => u.id === photo.udharId);
     if (!udhar) {
       toast.error("Transaction not found");
       return;
     }
-    
+
     // Remove the photo from the khataPhotos array
     const updatedPhotos = [...(udhar.khataPhotos || [])];
     updatedPhotos.splice(photo.photoIndex, 1);
-    
+
     const result = await updateUdhar(photo.udharId, {
       khataPhotos: updatedPhotos,
     });
-    
+
     if (result.success) {
       toast.success("Photo deleted");
     } else {
@@ -598,7 +598,7 @@ export default function CustomersPage() {
   };
 
   // Handle customer edit
-  const handleEditCustomer = async (data) => {
+  const handleEditCustomer = async data => {
     if (!editingCustomer) return;
     const result = await updateCustomer(editingCustomer.id, data);
     if (result.success) {
@@ -631,7 +631,7 @@ export default function CustomersPage() {
   };
 
   // Handle payment for udhar
-  const handleOpenPayment = (txn) => {
+  const handleOpenPayment = txn => {
     const total = txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0);
     const paid = txn.paidAmount || (txn.paidCash || 0) + (txn.paidOnline || 0);
     const pending = Math.max(0, total - paid);
@@ -646,15 +646,9 @@ export default function CustomersPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const setUploading = isQuickCollect
-      ? setIsUploadingQuickReceipt
-      : setIsUploadingReceipt;
-    const setReceipts = isQuickCollect
-      ? setQuickCollectReceipts
-      : setPaymentReceipts;
-    const currentReceipts = isQuickCollect
-      ? quickCollectReceipts
-      : paymentReceipts;
+    const setUploading = isQuickCollect ? setIsUploadingQuickReceipt : setIsUploadingReceipt;
+    const setReceipts = isQuickCollect ? setQuickCollectReceipts : setPaymentReceipts;
+    const currentReceipts = isQuickCollect ? quickCollectReceipts : paymentReceipts;
 
     setUploading(true);
 
@@ -683,7 +677,7 @@ export default function CustomersPage() {
       } else {
         // Fallback to local preview
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = e => {
           setReceipts([...currentReceipts, e.target.result]);
         };
         reader.readAsDataURL(compressedFile);
@@ -700,9 +694,9 @@ export default function CustomersPage() {
   // Remove a receipt from the list
   const handleRemoveReceipt = (index, isQuickCollect = false) => {
     if (isQuickCollect) {
-      setQuickCollectReceipts((prev) => prev.filter((_, i) => i !== index));
+      setQuickCollectReceipts(prev => prev.filter((_, i) => i !== index));
     } else {
-      setPaymentReceipts((prev) => prev.filter((_, i) => i !== index));
+      setPaymentReceipts(prev => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -717,16 +711,10 @@ export default function CustomersPage() {
       // Use first receipt or null
       const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
 
-      const result = await recordDeposit(
-        paymentUdhar.id,
-        Number(paymentAmount),
-        receiptUrl,
-      );
+      const result = await recordDeposit(paymentUdhar.id, Number(paymentAmount), receiptUrl);
 
       if (result.success) {
-        toast.success(
-          `₹${Number(paymentAmount).toLocaleString()} payment recorded`,
-        );
+        toast.success(`₹${Number(paymentAmount).toLocaleString()} payment recorded`);
         setPaymentDialogOpen(false);
         setPaymentUdhar(null);
         setPaymentAmount("");
@@ -764,7 +752,7 @@ export default function CustomersPage() {
   };
 
   // Quick collect from customer card
-  const handleQuickCollect = (customer) => {
+  const handleQuickCollect = customer => {
     setQuickCollectCustomer(customer);
     setQuickCollectAmount(customer.pendingAmount.toString());
     setQuickCollectReceipts([]);
@@ -773,11 +761,7 @@ export default function CustomersPage() {
   };
 
   const handleQuickCollectSubmit = async () => {
-    if (
-      !quickCollectCustomer ||
-      !quickCollectAmount ||
-      Number(quickCollectAmount) <= 0
-    ) {
+    if (!quickCollectCustomer || !quickCollectAmount || Number(quickCollectAmount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
@@ -786,11 +770,7 @@ export default function CustomersPage() {
     try {
       // Get the oldest pending udhar for this customer
       const customerUdhars = udharList
-        .filter(
-          (u) =>
-            u.customerId === quickCollectCustomer.id &&
-            u.paymentStatus !== "paid",
-        )
+        .filter(u => u.customerId === quickCollectCustomer.id && u.paymentStatus !== "paid")
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
       if (customerUdhars.length === 0) {
@@ -802,17 +782,14 @@ export default function CustomersPage() {
       let isFirstPayment = true;
 
       // Use first receipt or null
-      const receiptUrl =
-        quickCollectReceipts.length > 0 ? quickCollectReceipts[0] : null;
+      const receiptUrl = quickCollectReceipts.length > 0 ? quickCollectReceipts[0] : null;
 
       // Apply payment to oldest udhar entries first
       for (const udhar of customerUdhars) {
         if (remainingAmount <= 0) break;
 
-        const total =
-          udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-        const paid =
-          udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+        const total = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+        const paid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
         const pending = Math.max(0, total - paid);
 
         if (pending <= 0) continue;
@@ -823,7 +800,7 @@ export default function CustomersPage() {
           udhar.id,
           paymentForThis,
           isFirstPayment ? receiptUrl : null,
-          isFirstPayment ? quickCollectNotes : null,
+          isFirstPayment ? quickCollectNotes : null
         );
 
         if (!result.success) {
@@ -850,14 +827,14 @@ export default function CustomersPage() {
   };
 
   // Get full customer data with stats
-  const getFullCustomerData = (customerId) => {
-    return customersWithStats.find((c) => c.id === customerId);
+  const getFullCustomerData = customerId => {
+    return customersWithStats.find(c => c.id === customerId);
   };
 
   const loading = customersLoading || udharLoading;
 
   return (
-    <div className="p-4 lg:p-6 space-y-4">
+    <div className="space-y-4 p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -877,18 +854,18 @@ export default function CustomersPage() {
           }}
           disabled={!isOnline}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Add Customer
         </Button>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search customers..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="pl-9"
         />
       </div>
@@ -896,52 +873,38 @@ export default function CustomersPage() {
       {/* Summary Card */}
       {customersWithStats.length > 0 &&
         (() => {
-          const totalUdhar = customersWithStats.reduce(
-            (sum, c) => sum + c.totalAmount,
-            0,
-          );
-          const totalCollected = customersWithStats.reduce(
-            (sum, c) => sum + c.paidAmount,
-            0,
-          );
-          const totalPending = customersWithStats.reduce(
-            (sum, c) => sum + c.pendingAmount,
-            0,
-          );
+          const totalUdhar = customersWithStats.reduce((sum, c) => sum + c.totalAmount, 0);
+          const totalCollected = customersWithStats.reduce((sum, c) => sum + c.paidAmount, 0);
+          const totalPending = customersWithStats.reduce((sum, c) => sum + c.pendingAmount, 0);
           return (
-            <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20">
+            <Card className="border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className="text-center flex-1 min-w-0">
+                  <div className="min-w-0 flex-1 text-center">
                     <p className="text-xs text-muted-foreground">Total Udhar</p>
-                    <p
-                      className={cn(
-                        "font-bold truncate",
-                        getAmountTextSize(totalUdhar, "lg"),
-                      )}
-                    >
+                    <p className={cn("truncate font-bold", getAmountTextSize(totalUdhar, "lg"))}>
                       ₹{totalUdhar.toLocaleString()}
                     </p>
                   </div>
-                  <div className="h-8 w-px bg-amber-500/20 flex-shrink-0" />
-                  <div className="text-center flex-1 min-w-0">
+                  <div className="h-8 w-px flex-shrink-0 bg-amber-500/20" />
+                  <div className="min-w-0 flex-1 text-center">
                     <p className="text-xs text-green-600">Collected</p>
                     <p
                       className={cn(
-                        "font-bold text-green-600 truncate",
-                        getAmountTextSize(totalCollected, "lg"),
+                        "truncate font-bold text-green-600",
+                        getAmountTextSize(totalCollected, "lg")
                       )}
                     >
                       ₹{totalCollected.toLocaleString()}
                     </p>
                   </div>
-                  <div className="h-8 w-px bg-amber-500/20 flex-shrink-0" />
-                  <div className="text-center flex-1 min-w-0">
+                  <div className="h-8 w-px flex-shrink-0 bg-amber-500/20" />
+                  <div className="min-w-0 flex-1 text-center">
                     <p className="text-xs text-amber-600">Pending</p>
                     <p
                       className={cn(
-                        "font-bold text-amber-600 truncate",
-                        getAmountTextSize(totalPending, "lg"),
+                        "truncate font-bold text-amber-600",
+                        getAmountTextSize(totalPending, "lg")
                       )}
                     >
                       ₹{totalPending.toLocaleString()}
@@ -956,7 +919,7 @@ export default function CustomersPage() {
       {/* Customer Profiles Section - Collapsible */}
       <Collapsible open={customersExpanded} onOpenChange={setCustomersExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between py-3 px-1 hover:bg-muted/50 rounded-lg transition-colors">
+          <button className="flex w-full items-center justify-between rounded-lg px-1 py-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-orange-500" />
               <span className="font-semibold">Customer Profiles</span>
@@ -964,14 +927,19 @@ export default function CustomersPage() {
                 {filteredCustomers.length}
               </Badge>
             </div>
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", customersExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                customersExpanded && "rotate-180"
+              )}
+            />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
           {/* Customer List */}
           {loading ? (
             <div className="space-y-2 py-2">
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <Card key={i} className="border-l-4 border-l-muted">
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
@@ -992,15 +960,11 @@ export default function CustomersPage() {
             </div>
           ) : filteredCustomers.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
-              <Users className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <Users className="mx-auto mb-2 h-10 w-10 opacity-50" />
               {searchQuery ? (
                 <>
                   <p>No customers found</p>
-                  <Button
-                    variant="link"
-                    className="mt-2"
-                    onClick={() => setSearchQuery("")}
-                  >
+                  <Button variant="link" className="mt-2" onClick={() => setSearchQuery("")}>
                     Clear search
                   </Button>
                 </>
@@ -1020,354 +984,345 @@ export default function CustomersPage() {
             </div>
           ) : (
             <div className="space-y-6 py-2">
-          {visibleCustomers.map((customer) => {
-            const isExpanded = expandedCustomerId === customer.id;
+              {visibleCustomers.map(customer => {
+                const isExpanded = expandedCustomerId === customer.id;
 
-            // Get all payments for this customer from all udhar transactions
-            const customerPayments = isExpanded
-              ? udharList
-                  .filter((u) => u.customerId === customer.id)
-                  .flatMap((u) =>
-                    (u.payments || []).map((p) => ({
-                      ...p,
-                      udharId: u.id,
-                      udharAmount:
-                        u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0),
-                    })),
-                  )
-                  .sort((a, b) => new Date(b.date) - new Date(a.date))
-              : [];
+                // Get all payments for this customer from all udhar transactions
+                const customerPayments = isExpanded
+                  ? udharList
+                      .filter(u => u.customerId === customer.id)
+                      .flatMap(u =>
+                        (u.payments || []).map(p => ({
+                          ...p,
+                          udharId: u.id,
+                          udharAmount: u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0),
+                        }))
+                      )
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                  : [];
 
-            // Get all khata photos for this customer (from udhar transactions) with metadata
-            const customerKhataPhotos = isExpanded
-              ? udharList
-                  .filter((u) => u.customerId === customer.id)
-                  .flatMap((u) => {
-                    const photos = u.khataPhotos || u.billImages || [];
-                    return photos.map(photo => ({
-                      url: photo,
-                      amount: u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0),
-                      date: u.date,
-                      customerName: customer.name,
-                      type: "khata",
-                    }));
-                  })
-              : [];
+                // Get all khata photos for this customer (from udhar transactions) with metadata
+                const customerKhataPhotos = isExpanded
+                  ? udharList
+                      .filter(u => u.customerId === customer.id)
+                      .flatMap(u => {
+                        const photos = u.khataPhotos || u.billImages || [];
+                        return photos.map(photo => ({
+                          url: photo,
+                          amount: u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0),
+                          date: u.date,
+                          customerName: customer.name,
+                          type: "khata",
+                        }));
+                      })
+                  : [];
 
-            return (
-              <Card
-                key={customer.id}
-                className={cn(
-                                  "overflow-hidden transition-all",
-                                  customer.pendingAmount > 0
-                                    ? "border-l-4 border-l-amber-500"
-                                    : "border-l-4 border-l-green-500",
-                                  isExpanded && "ring-2 ring-primary/20 shadow-md",
-                )}
-              >
-                <CardContent className="p-0">
-                  {/* Main Row - tap to expand/collapse */}
-                                  <div
-                                    className={cn(
-                                      "p-3 cursor-pointer active:scale-[0.99] transition-all",
-                                      isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
-                                    )}
-                    onClick={() =>
-                      setExpandedCustomerId(isExpanded ? null : customer.id)
-                    }
+                return (
+                  <Card
+                    key={customer.id}
+                    className={cn(
+                      "overflow-hidden transition-all",
+                      customer.pendingAmount > 0
+                        ? "border-l-4 border-l-amber-500"
+                        : "border-l-4 border-l-green-500",
+                      isExpanded && "shadow-md ring-2 ring-primary/20"
+                    )}
                   >
-                    <div className="flex items-center gap-3">
-                      {/* Avatar - tap to open details */}
-                      <Avatar
-                        className="h-12 w-12 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCustomer(customer);
-                        }}
-                      >
-                        <AvatarImage src={customer.profilePicture} />
-                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                          {getCustomerInitials(customer.name)}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold truncate">
-                            {customer.name}
-                          </p>
-                          {customer.transactionCount > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {customer.transactionCount} txn
-                            </Badge>
-                          )}
-                        </div>
-                       
-                        {customer.pendingAmount > 0 && (
-                          <p className="text-sm font-semibold text-amber-600 mt-1">
-                            Pending: ₹{customer.pendingAmount.toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Single Chevron - indicates expandable */}
-                      <ChevronDown
+                    <CardContent className="p-0">
+                      {/* Main Row - tap to expand/collapse */}
+                      <div
                         className={cn(
-                          "h-5 w-5 text-muted-foreground transition-transform",
-                          isExpanded && "rotate-180",
+                          "cursor-pointer p-3 transition-all active:scale-[0.99]",
+                          isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
                         )}
-                      />
-                    </div>
-                  </div>
+                        onClick={() => setExpandedCustomerId(isExpanded ? null : customer.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Avatar - tap to open details */}
+                          <Avatar
+                            className="h-12 w-12 cursor-pointer"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setSelectedCustomer(customer);
+                            }}
+                          >
+                            <AvatarImage src={customer.profilePicture} />
+                            <AvatarFallback className="bg-primary/10 font-semibold text-primary">
+                              {getCustomerInitials(customer.name)}
+                            </AvatarFallback>
+                          </Avatar>
 
-                  {/* Collapsible Section with Progress, Payment History & Actions */}
-                                  {isExpanded && (
-                                    <div className="px-3 pb-3 pt-0 border-t bg-primary/5">
-                      {/* Remaining Amount - Prominent on top */}
-                      {customer.pendingAmount > 0 && (
-                        <div className="pt-3 pb-2">
-                          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-center">
-                            <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">Remaining Balance</p>
-                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                              ₹{customer.pendingAmount.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Payment Progress Bar - only show if there's any transaction */}
-                      {customer.totalAmount > 0 && (
-                        <div className="pt-2 pb-2">
-                          <div className="flex items-center justify-between text-xs mb-1.5">
-                            <span className="text-muted-foreground">
-                              Total: ₹{customer.totalAmount.toLocaleString()}
-                            </span>
-                            <span className="text-green-600">
-                              Paid: ₹{customer.paidAmount.toLocaleString()}
-                            </span>
-                          </div>
-                          {/* Progress bar */}
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn(
-                                "h-full rounded-full transition-all",
-                                customer.pendingAmount === 0
-                                  ? "bg-green-500"
-                                  : "bg-gradient-to-r from-green-500 to-green-400",
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate font-semibold">{customer.name}</p>
+                              {customer.transactionCount > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {customer.transactionCount} txn
+                                </Badge>
                               )}
-                              style={{
-                                width: `${customer.totalAmount > 0 ? (customer.paidAmount / customer.totalAmount) * 100 : 0}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
+                            </div>
 
-                      {/* Payment History Timeline */}
-                      {customerPayments.length > 0 && (
-                        <div className="pt-2 pb-2">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
-                            Payment History
-                          </p>
-                          <div className="space-y-0 max-h-[150px] overflow-y-auto">
-                            {customerPayments
-                              .slice(0, 5)
-                              .map((payment, index, arr) => (
-                                <div key={payment.id} className="flex">
-                                  {/* Timeline line and dot */}
-                                  <div className="flex flex-col items-center mr-3">
-                                    <div
-                                      className={cn(
-                                        "w-3 h-3 rounded-full flex items-center justify-center",
-                                        index === 0
-                                          ? "bg-green-500"
-                                          : "bg-green-400",
-                                      )}
-                                    >
-                                      <CheckCircle2 className="w-2 h-2 text-white" />
-                                    </div>
-                                    {index < arr.length - 1 && (
-                                      <div className="w-0.5 h-full min-h-[20px] bg-green-300" />
-                                    )}
-                                  </div>
-
-                                  {/* Payment details */}
-                                  <div className="flex-1 pb-2">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-semibold text-green-600 text-sm">
-                                        ₹{payment.amount.toLocaleString()}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        — {formatRelativeDate(payment.date)}
-                                      </span>
-                                      {payment.receiptUrl && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-6 px-2 text-xs gap-1"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setImageViewerSrc(
-                                              payment.receiptUrl,
-                                            );
-                                            setImageViewerOpen(true);
-                                          }}
-                                        >
-                                          <Receipt className="h-3 w-3" />
-                                          Receipt
-                                        </Button>
-                                      )}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setPaymentToDelete({
-                                            udharId: payment.udharId,
-                                            paymentId: payment.id,
-                                            amount: payment.amount,
-                                          });
-                                          setDeletePaymentDialogOpen(true);
-                                        }}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                    {payment.notes && (
-                                      <p className="text-xs text-muted-foreground mt-0.5 italic">
-                                        &quot;{payment.notes}&quot;
-                                      </p>
-                                    )}
-                                    {payment.isFinalPayment && (
-                                      <span className="text-xs text-green-600">
-                                        Final payment
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            {customerPayments.length > 5 && (
-                              <p className="text-xs text-muted-foreground pl-6">
-                                +{customerPayments.length - 5} more payments
+                            {customer.pendingAmount > 0 && (
+                              <p className="mt-1 text-sm font-semibold text-amber-600">
+                                Pending: ₹{customer.pendingAmount.toLocaleString()}
                               </p>
                             )}
                           </div>
-                        </div>
-                      )}
 
-                      {/* Khata Photos */}
-                      {customerKhataPhotos.length > 0 && (
-                        <div className="pt-2 pb-2">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
-                            Khata Photos ({customerKhataPhotos.length})
-                          </p>
-                          <div className="flex gap-2 overflow-x-auto pb-1">
-                            {customerKhataPhotos.slice(0, 6).map((photo, idx) => (
-                              <div
-                                key={idx}
-                                className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-muted cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setGalleryImages(customerKhataPhotos);
-                                  setGalleryInitialIndex(idx);
-                                  setGalleryViewerOpen(true);
-                                }}
-                              >
-                                <img
-                                  src={photo.url}
-                                  alt={`Khata ${idx + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
+                          {/* Single Chevron - indicates expandable */}
+                          <ChevronDown
+                            className={cn(
+                              "h-5 w-5 text-muted-foreground transition-transform",
+                              isExpanded && "rotate-180"
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Collapsible Section with Progress, Payment History & Actions */}
+                      {isExpanded && (
+                        <div className="border-t bg-primary/5 px-3 pb-3 pt-0">
+                          {/* Remaining Amount - Prominent on top */}
+                          {customer.pendingAmount > 0 && (
+                            <div className="pb-2 pt-3">
+                              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-center dark:border-amber-800 dark:bg-amber-950/30">
+                                <p className="mb-1 text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                                  Remaining Balance
+                                </p>
+                                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                                  ₹{customer.pendingAmount.toLocaleString()}
+                                </p>
                               </div>
-                            ))}
-                            {customerKhataPhotos.length > 6 && (
-                              <div
-                                className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted flex items-center justify-center cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setGalleryImages(customerKhataPhotos);
-                                  setGalleryInitialIndex(0);
-                                  setGalleryViewerOpen(true);
-                                }}
-                              >
-                                <span className="text-xs text-muted-foreground">
-                                  +{customerKhataPhotos.length - 6}
+                            </div>
+                          )}
+
+                          {/* Payment Progress Bar - only show if there's any transaction */}
+                          {customer.totalAmount > 0 && (
+                            <div className="pb-2 pt-2">
+                              <div className="mb-1.5 flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  Total: ₹{customer.totalAmount.toLocaleString()}
+                                </span>
+                                <span className="text-green-600">
+                                  Paid: ₹{customer.paidAmount.toLocaleString()}
                                 </span>
                               </div>
+                              {/* Progress bar */}
+                              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all",
+                                    customer.pendingAmount === 0
+                                      ? "bg-green-500"
+                                      : "bg-gradient-to-r from-green-500 to-green-400"
+                                  )}
+                                  style={{
+                                    width: `${customer.totalAmount > 0 ? (customer.paidAmount / customer.totalAmount) * 100 : 0}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Payment History Timeline */}
+                          {customerPayments.length > 0 && (
+                            <div className="pb-2 pt-2">
+                              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                Payment History
+                              </p>
+                              <div className="max-h-[150px] space-y-0 overflow-y-auto">
+                                {customerPayments.slice(0, 5).map((payment, index, arr) => (
+                                  <div key={payment.id} className="flex">
+                                    {/* Timeline line and dot */}
+                                    <div className="mr-3 flex flex-col items-center">
+                                      <div
+                                        className={cn(
+                                          "flex h-3 w-3 items-center justify-center rounded-full",
+                                          index === 0 ? "bg-green-500" : "bg-green-400"
+                                        )}
+                                      >
+                                        <CheckCircle2 className="h-2 w-2 text-white" />
+                                      </div>
+                                      {index < arr.length - 1 && (
+                                        <div className="h-full min-h-[20px] w-0.5 bg-green-300" />
+                                      )}
+                                    </div>
+
+                                    {/* Payment details */}
+                                    <div className="flex-1 pb-2">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-sm font-semibold text-green-600">
+                                          ₹{payment.amount.toLocaleString()}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          — {formatRelativeDate(payment.date)}
+                                        </span>
+                                        {payment.receiptUrl && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-6 gap-1 px-2 text-xs"
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              setImageViewerSrc(payment.receiptUrl);
+                                              setImageViewerOpen(true);
+                                            }}
+                                          >
+                                            <Receipt className="h-3 w-3" />
+                                            Receipt
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                          onClick={e => {
+                                            e.stopPropagation();
+                                            setPaymentToDelete({
+                                              udharId: payment.udharId,
+                                              paymentId: payment.id,
+                                              amount: payment.amount,
+                                            });
+                                            setDeletePaymentDialogOpen(true);
+                                          }}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      {payment.notes && (
+                                        <p className="mt-0.5 text-xs italic text-muted-foreground">
+                                          &quot;{payment.notes}&quot;
+                                        </p>
+                                      )}
+                                      {payment.isFinalPayment && (
+                                        <span className="text-xs text-green-600">
+                                          Final payment
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {customerPayments.length > 5 && (
+                                  <p className="pl-6 text-xs text-muted-foreground">
+                                    +{customerPayments.length - 5} more payments
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Khata Photos */}
+                          {customerKhataPhotos.length > 0 && (
+                            <div className="pb-2 pt-2">
+                              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                Khata Photos ({customerKhataPhotos.length})
+                              </p>
+                              <div className="flex gap-2 overflow-x-auto pb-1">
+                                {customerKhataPhotos.slice(0, 6).map((photo, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border bg-muted"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      setGalleryImages(customerKhataPhotos);
+                                      setGalleryInitialIndex(idx);
+                                      setGalleryViewerOpen(true);
+                                    }}
+                                  >
+                                    <img
+                                      src={photo.url}
+                                      alt={`Khata ${idx + 1}`}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                ))}
+                                {customerKhataPhotos.length > 6 && (
+                                  <div
+                                    className="flex h-16 w-16 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-muted"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      setGalleryImages(customerKhataPhotos);
+                                      setGalleryInitialIndex(0);
+                                      setGalleryViewerOpen(true);
+                                    }}
+                                  >
+                                    <span className="text-xs text-muted-foreground">
+                                      +{customerKhataPhotos.length - 6}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2">
+                            {/* View Details Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-10 flex-1 gap-2 text-sm"
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                              }}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                              View Details
+                            </Button>
+                            {/* Collect Payment Button - only show if pending amount */}
+                            {customer.pendingAmount > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-10 flex-1 gap-2 border-green-200 bg-green-50 text-sm text-green-700 hover:bg-green-100"
+                                onClick={() => {
+                                  if (!isOnline) {
+                                    toast.error("Cannot collect while offline");
+                                    return;
+                                  }
+                                  handleQuickCollect(customer);
+                                }}
+                                disabled={!isOnline}
+                              >
+                                <CreditCard className="h-4 w-4" />
+                                Collect
+                              </Button>
                             )}
+                            {/* Quick Add Udhar Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-10 flex-1 gap-2 border-amber-200 bg-amber-50 text-sm text-amber-700 hover:bg-amber-100"
+                              onClick={() => {
+                                if (!isOnline) {
+                                  toast.error("Cannot add while offline");
+                                  return;
+                                }
+                                setQuickAddCustomer(customer);
+                                setQuickAddOpen(true);
+                              }}
+                              disabled={!isOnline}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Udhar
+                            </Button>
                           </div>
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2 pt-2">
-                        {/* View Details Button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-10 text-sm gap-2"
-                          onClick={() => {
-                            setSelectedCustomer(customer);
-                          }}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                          View Details
-                        </Button>
-                        {/* Collect Payment Button - only show if pending amount */}
-                        {customer.pendingAmount > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-10 text-sm gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                            onClick={() => {
-                              if (!isOnline) {
-                                toast.error("Cannot collect while offline");
-                                return;
-                              }
-                              handleQuickCollect(customer);
-                            }}
-                            disabled={!isOnline}
-                          >
-                            <CreditCard className="h-4 w-4" />
-                            Collect
-                          </Button>
-                        )}
-                        {/* Quick Add Udhar Button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-10 text-sm gap-2 bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-                          onClick={() => {
-                            if (!isOnline) {
-                              toast.error("Cannot add while offline");
-                              return;
-                            }
-                            setQuickAddCustomer(customer);
-                            setQuickAddOpen(true);
-                          }}
-                          disabled={!isOnline}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Udhar
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-          
-          {/* Load More Trigger */}
-          <LoadMoreTrigger
-            loadMoreRef={customersLoadMoreRef}
-            hasMore={hasMoreCustomers}
-            remainingCount={customersRemaining}
-            onLoadMore={loadMoreCustomers}
-            totalCount={customersTotalCount}
-          />
+              {/* Load More Trigger */}
+              <LoadMoreTrigger
+                loadMoreRef={customersLoadMoreRef}
+                hasMore={hasMoreCustomers}
+                remainingCount={customersRemaining}
+                onLoadMore={loadMoreCustomers}
+                totalCount={customersTotalCount}
+              />
             </div>
           )}
         </CollapsibleContent>
@@ -1376,10 +1331,10 @@ export default function CustomersPage() {
       {/* All Udhar & Receipts Section - Collapsible */}
       <Collapsible open={udharExpanded} onOpenChange={setUdharExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center justify-between py-3 px-2 hover:bg-muted/50 rounded-lg transition-colors border border-amber-200">
-            <div className="flex items-center gap-3 ">
+          <button className="flex w-full items-center justify-between rounded-lg border border-amber-200 px-2 py-3 transition-colors hover:bg-muted/50">
+            <div className="flex items-center gap-3">
               <Receipt className="h-5 w-5 text-amber-500" />
-              <span className="font-bold text-amber-500 text-lg">All Udhar Transactions</span>
+              <span className="text-lg font-bold text-amber-500">All Udhar Transactions</span>
               {/* <Badge variant="secondary" className="text-xs">
                 {udharList.length} txns
               </Badge>
@@ -1389,7 +1344,12 @@ export default function CustomersPage() {
                 </Badge>
               )} */}
             </div>
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", udharExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                udharExpanded && "rotate-180"
+              )}
+            />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -1397,7 +1357,7 @@ export default function CustomersPage() {
             {/* Stats Header with All Receipts button */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="text-sm px-3 py-1">
+                <Badge variant="secondary" className="px-3 py-1 text-sm">
                   {filteredUdharList.length} Transaction{filteredUdharList.length !== 1 ? "s" : ""}
                 </Badge>
               </div>
@@ -1415,9 +1375,9 @@ export default function CustomersPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={udharStatusFilter} onValueChange={setUdharStatusFilter}>
-                <SelectTrigger className="w-[120px] h-9">
+                <SelectTrigger className="h-9 w-[120px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1427,7 +1387,7 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
               <Select value={udharCustomerFilter} onValueChange={setUdharCustomerFilter}>
-                <SelectTrigger className="w-[150px] h-9">
+                <SelectTrigger className="h-9 w-[150px]">
                   <SelectValue placeholder="Customer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1440,7 +1400,7 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
               <Select value={udharAmountSort} onValueChange={setUdharAmountSort}>
-                <SelectTrigger className="w-[130px] h-9">
+                <SelectTrigger className="h-9 w-[130px]">
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1449,7 +1409,9 @@ export default function CustomersPage() {
                   <SelectItem value="lowest">Lowest Amount</SelectItem>
                 </SelectContent>
               </Select>
-              {(udharStatusFilter !== "all" || udharCustomerFilter !== "all" || udharAmountSort !== "newest") && (
+              {(udharStatusFilter !== "all" ||
+                udharCustomerFilter !== "all" ||
+                udharAmountSort !== "newest") && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1468,7 +1430,7 @@ export default function CustomersPage() {
             <UdharList
               udharList={filteredUdharList}
               customers={customers}
-              onEdit={(udhar) => {
+              onEdit={udhar => {
                 if (!isOnline) {
                   toast.error("Cannot edit while offline");
                   return;
@@ -1476,7 +1438,7 @@ export default function CustomersPage() {
                 setUdharToEdit(udhar);
                 setUdharFormOpen(true);
               }}
-              onDelete={async (udhar) => {
+              onDelete={async udhar => {
                 if (!isOnline) {
                   toast.error("Cannot delete while offline");
                   return;
@@ -1495,7 +1457,7 @@ export default function CustomersPage() {
                 }
                 await recordDeposit(id, amount, receiptUrl);
               }}
-              onFullPaid={async (id) => {
+              onFullPaid={async id => {
                 if (!isOnline) {
                   toast.error("Cannot mark as paid while offline");
                   return;
@@ -1513,19 +1475,15 @@ export default function CustomersPage() {
       {!editingCustomer && (
         <CustomerForm
           open={customerFormOpen}
-          onOpenChange={(open) => {
+          onOpenChange={open => {
             setCustomerFormOpen(open);
             if (!open) {
               setNewCustomerWithAmount(false);
               setInitialAmount("");
             }
           }}
-          onSubmit={
-            newCustomerWithAmount ? handleAddCustomerWithAmount : addCustomer
-          }
-          title={
-            newCustomerWithAmount ? "Add Customer with Udhar" : "Add Customer"
-          }
+          onSubmit={newCustomerWithAmount ? handleAddCustomerWithAmount : addCustomer}
+          title={newCustomerWithAmount ? "Add Customer with Udhar" : "Add Customer"}
           showInitialAmount={newCustomerWithAmount}
           initialAmount={initialAmount}
           onInitialAmountChange={setInitialAmount}
@@ -1535,24 +1493,25 @@ export default function CustomersPage() {
       {/* Udhar Form */}
       <UdharForm
         open={udharFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setUdharFormOpen(open);
           if (!open) {
             setUdharToEdit(null);
           }
         }}
-        onSubmit={udharToEdit 
-          ? async (data) => {
-              const result = await updateUdhar(udharToEdit.id, data);
-              if (result.success) {
-                toast.success("Udhar updated");
-                setUdharToEdit(null);
-              } else {
-                toast.error("Failed to update");
+        onSubmit={
+          udharToEdit
+            ? async data => {
+                const result = await updateUdhar(udharToEdit.id, data);
+                if (result.success) {
+                  toast.success("Udhar updated");
+                  setUdharToEdit(null);
+                } else {
+                  toast.error("Failed to update");
+                }
+                return result;
               }
-              return result;
-            }
-          : addUdhar
+            : addUdhar
         }
         onAddCustomer={addCustomer}
         customers={customers}
@@ -1563,13 +1522,9 @@ export default function CustomersPage() {
 
       {/* Quick Add Udhar Sheet - slides from top */}
       <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-        <SheetContent
-          side="top"
-          className="rounded-b-2xl p-0 flex flex-col"
-          hideClose
-        >
+        <SheetContent side="top" className="flex flex-col rounded-b-2xl p-0" hideClose>
           {/* Header with action buttons */}
-          <SheetHeader className="px-4 py-3 border-b">
+          <SheetHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -1582,23 +1537,28 @@ export default function CustomersPage() {
                 }}
                 className="h-9 px-3"
               >
-                <X className="h-4 w-4 mr-1" />
+                <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="text-base font-semibold flex-1 text-center">
+              <SheetTitle className="flex-1 text-center text-base font-semibold">
                 Add Udhar
               </SheetTitle>
               <Button
                 size="sm"
                 onClick={handleQuickAdd}
-                disabled={!isOnline || !quickAddAmount || Number(quickAddAmount) <= 0 || isSubmittingQuickAdd}
+                disabled={
+                  !isOnline ||
+                  !quickAddAmount ||
+                  Number(quickAddAmount) <= 0 ||
+                  isSubmittingQuickAdd
+                }
                 className="h-9 px-3"
               >
                 {isSubmittingQuickAdd ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-1" />
+                    <Check className="mr-1 h-4 w-4" />
                     Add
                   </>
                 )}
@@ -1609,7 +1569,7 @@ export default function CustomersPage() {
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
               {quickAddCustomer && (
-                <p className="text-sm text-muted-foreground text-center">
+                <p className="text-center text-sm text-muted-foreground">
                   Adding Udhar for <strong>{quickAddCustomer.name}</strong>
                 </p>
               )}
@@ -1621,9 +1581,9 @@ export default function CustomersPage() {
                   type="number"
                   inputMode="numeric"
                   value={quickAddAmount}
-                  onChange={(e) => setQuickAddAmount(e.target.value)}
+                  onChange={e => setQuickAddAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="text-3xl h-16 font-bold text-center"
+                  className="h-16 text-center text-3xl font-bold"
                 />
               </div>
 
@@ -1632,7 +1592,7 @@ export default function CustomersPage() {
                 <Label>Notes (Optional)</Label>
                 <Input
                   value={quickAddNotes}
-                  onChange={(e) => setQuickAddNotes(e.target.value)}
+                  onChange={e => setQuickAddNotes(e.target.value)}
                   placeholder="Enter notes"
                   className="h-10"
                 />
@@ -1670,7 +1630,7 @@ export default function CustomersPage() {
                     disabled={isUploadingQuickAddBill}
                     className="flex-1"
                   >
-                    <Camera className="h-4 w-4 mr-2" />
+                    <Camera className="mr-2 h-4 w-4" />
                     Camera
                   </Button>
                   <Button
@@ -1681,7 +1641,7 @@ export default function CustomersPage() {
                     disabled={isUploadingQuickAddBill}
                     className="flex-1"
                   >
-                    <ImagePlus className="h-4 w-4 mr-2" />
+                    <ImagePlus className="mr-2 h-4 w-4" />
                     Gallery
                   </Button>
                 </div>
@@ -1689,23 +1649,21 @@ export default function CustomersPage() {
                   <p className="text-xs text-muted-foreground">Uploading...</p>
                 )}
                 {quickAddBillImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div className="mt-2 grid grid-cols-3 gap-2">
                     {quickAddBillImages.map((url, idx) => (
                       <div key={idx} className="relative aspect-square">
                         <img
                           src={url}
                           alt={`Bill ${idx + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="h-full w-full rounded-lg object-cover"
                         />
                         <Button
                           type="button"
                           variant="destructive"
                           size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
                           onClick={() =>
-                            setQuickAddBillImages((prev) =>
-                              prev.filter((_, i) => i !== idx)
-                            )
+                            setQuickAddBillImages(prev => prev.filter((_, i) => i !== idx))
                           }
                         >
                           <X className="h-3 w-3" />
@@ -1720,20 +1678,16 @@ export default function CustomersPage() {
 
           {/* Drag handle at bottom */}
           <div className="flex justify-center pb-3 pt-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Quick Collect Sheet - slides from top */}
       <Sheet open={quickCollectOpen} onOpenChange={setQuickCollectOpen}>
-        <SheetContent
-          side="top"
-          className="rounded-b-2xl p-0 flex flex-col max-h-[80vh]"
-          hideClose
-        >
+        <SheetContent side="top" className="flex max-h-[80vh] flex-col rounded-b-2xl p-0" hideClose>
           {/* Header with action buttons */}
-          <SheetHeader className="px-4 py-3 border-b">
+          <SheetHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -1747,10 +1701,10 @@ export default function CustomersPage() {
                 }}
                 className="h-9 px-3"
               >
-                <X className="h-4 w-4 mr-1" />
+                <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="text-base font-semibold flex-1 text-center">
+              <SheetTitle className="flex-1 text-center text-base font-semibold">
                 Collect Payment
               </SheetTitle>
               <Button
@@ -1762,13 +1716,13 @@ export default function CustomersPage() {
                   Number(quickCollectAmount) <= 0 ||
                   isSubmittingQuickCollect
                 }
-                className="h-9 px-3 bg-green-600 hover:bg-green-700"
+                className="h-9 bg-green-600 px-3 hover:bg-green-700"
               >
                 {isSubmittingQuickCollect ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-1" />
+                    <Check className="mr-1 h-4 w-4" />
                     Collect
                   </>
                 )}
@@ -1779,12 +1733,12 @@ export default function CustomersPage() {
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
               {quickCollectCustomer && (
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
                       Collecting from <strong>{quickCollectCustomer.name}</strong>
                     </span>
-                    <span className="font-bold text-lg text-amber-600">
+                    <span className="text-lg font-bold text-amber-600">
                       ₹{quickCollectCustomer.pendingAmount?.toLocaleString()}
                     </span>
                   </div>
@@ -1799,9 +1753,9 @@ export default function CustomersPage() {
                   type="number"
                   inputMode="numeric"
                   value={quickCollectAmount}
-                  onChange={(e) => setQuickCollectAmount(e.target.value)}
+                  onChange={e => setQuickCollectAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="text-3xl h-16 font-bold text-center"
+                  className="h-16 text-center text-3xl font-bold"
                 />
               </div>
 
@@ -1810,7 +1764,7 @@ export default function CustomersPage() {
                 <Label>Notes (Optional)</Label>
                 <Input
                   value={quickCollectNotes}
-                  onChange={(e) => setQuickCollectNotes(e.target.value)}
+                  onChange={e => setQuickCollectNotes(e.target.value)}
                   placeholder="Enter notes"
                   className="h-10"
                 />
@@ -1824,29 +1778,29 @@ export default function CustomersPage() {
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  onChange={(e) => handleReceiptSelect(e, true)}
+                  onChange={e => handleReceiptSelect(e, true)}
                   className="hidden"
                 />
                 <input
                   ref={quickReceiptGalleryInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleReceiptSelect(e, true)}
+                  onChange={e => handleReceiptSelect(e, true)}
                   className="hidden"
                 />
 
                 {/* Show uploaded receipts */}
                 {quickCollectReceipts.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mb-2">
+                  <div className="mb-2 grid grid-cols-3 gap-2">
                     {quickCollectReceipts.map((receipt, index) => (
                       <div
                         key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted"
+                        className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
                       >
                         <img
                           src={receipt}
                           alt={`Receipt ${index + 1}`}
-                          className="w-full h-full object-cover cursor-pointer"
+                          className="h-full w-full cursor-pointer object-cover"
                           onClick={() => {
                             setImageViewerSrc(receipt);
                             setImageViewerOpen(true);
@@ -1855,7 +1809,7 @@ export default function CustomersPage() {
                         <Button
                           variant="destructive"
                           size="icon"
-                          className="absolute top-1 right-1 h-6 w-6"
+                          className="absolute right-1 top-1 h-6 w-6"
                           onClick={() => handleRemoveReceipt(index, true)}
                         >
                           <X className="h-3 w-3" />
@@ -1867,7 +1821,7 @@ export default function CustomersPage() {
 
                 {isUploadingQuickReceipt && (
                   <div className="flex items-center justify-center py-4">
-                    <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 )}
 
@@ -1877,7 +1831,7 @@ export default function CustomersPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => quickReceiptInputRef.current?.click()}
-                    className="flex-1 h-10 gap-1.5"
+                    className="h-10 flex-1 gap-1.5"
                     disabled={isUploadingQuickReceipt}
                   >
                     <Camera className="h-4 w-4" />
@@ -1887,10 +1841,8 @@ export default function CustomersPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() =>
-                      quickReceiptGalleryInputRef.current?.click()
-                    }
-                    className="flex-1 h-10 gap-1.5"
+                    onClick={() => quickReceiptGalleryInputRef.current?.click()}
+                    className="h-10 flex-1 gap-1.5"
                     disabled={isUploadingQuickReceipt}
                   >
                     <ImagePlus className="h-4 w-4" />
@@ -1906,20 +1858,16 @@ export default function CustomersPage() {
 
           {/* Drag handle at bottom */}
           <div className="flex justify-center pb-3 pt-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Payment Sheet - slides from top */}
       <Sheet open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <SheetContent
-          side="top"
-          className="rounded-b-2xl p-0 flex flex-col max-h-[80vh]"
-          hideClose
-        >
+        <SheetContent side="top" className="flex max-h-[80vh] flex-col rounded-b-2xl p-0" hideClose>
           {/* Header with action buttons */}
-          <SheetHeader className="px-4 py-3 border-b">
+          <SheetHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -1932,10 +1880,10 @@ export default function CustomersPage() {
                 }}
                 className="h-9 px-3"
               >
-                <X className="h-4 w-4 mr-1" />
+                <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="text-base font-semibold flex-1 text-center">
+              <SheetTitle className="flex-1 text-center text-base font-semibold">
                 Record Payment
               </SheetTitle>
               <Button
@@ -1944,13 +1892,13 @@ export default function CustomersPage() {
                 disabled={
                   !isOnline || !paymentAmount || Number(paymentAmount) <= 0 || isSubmittingPayment
                 }
-                className="h-9 px-3 bg-green-600 hover:bg-green-700"
+                className="h-9 bg-green-600 px-3 hover:bg-green-700"
               >
                 {isSubmittingPayment ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-1" />
+                    <Check className="mr-1 h-4 w-4" />
                     Record
                   </>
                 )}
@@ -1964,23 +1912,17 @@ export default function CustomersPage() {
                 (() => {
                   const totalAmount =
                     paymentUdhar.amount ||
-                    (paymentUdhar.cashAmount || 0) +
-                      (paymentUdhar.onlineAmount || 0);
+                    (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
                   const paidAmount =
                     paymentUdhar.paidAmount ||
-                    (paymentUdhar.paidCash || 0) +
-                      (paymentUdhar.paidOnline || 0);
+                    (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
                   const pendingAmount = Math.max(0, totalAmount - paidAmount);
 
                   return (
-                    <div className="p-4 rounded-xl bg-muted/50 space-y-3">
+                    <div className="space-y-3 rounded-xl bg-muted/50 p-4">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Total Amount
-                        </span>
-                        <span className="font-bold text-lg">
-                          ₹{totalAmount.toLocaleString()}
-                        </span>
+                        <span className="text-muted-foreground">Total Amount</span>
+                        <span className="text-lg font-bold">₹{totalAmount.toLocaleString()}</span>
                       </div>
                       {paidAmount > 0 && (
                         <div className="flex justify-between text-sm">
@@ -1990,20 +1932,16 @@ export default function CustomersPage() {
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm border-t pt-3">
-                        <span className="text-amber-600 font-medium">
-                          Pending
-                        </span>
-                        <span className="font-bold text-lg text-amber-600">
+                      <div className="flex justify-between border-t pt-3 text-sm">
+                        <span className="font-medium text-amber-600">Pending</span>
+                        <span className="text-lg font-bold text-amber-600">
                           ₹{pendingAmount.toLocaleString()}
                         </span>
                       </div>
                       {paymentUdhar.notes && (
-                        <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                        <div className="flex justify-between pt-1 text-xs text-muted-foreground">
                           <span>Notes</span>
-                          <span className="truncate max-w-[150px]">
-                            {paymentUdhar.notes}
-                          </span>
+                          <span className="max-w-[150px] truncate">{paymentUdhar.notes}</span>
                         </div>
                       )}
                     </div>
@@ -2018,9 +1956,9 @@ export default function CustomersPage() {
                   type="number"
                   inputMode="numeric"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={e => setPaymentAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="text-3xl h-16 font-bold text-center"
+                  className="h-16 text-center text-3xl font-bold"
                 />
               </div>
 
@@ -2032,29 +1970,29 @@ export default function CustomersPage() {
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  onChange={(e) => handleReceiptSelect(e, false)}
+                  onChange={e => handleReceiptSelect(e, false)}
                   className="hidden"
                 />
                 <input
                   ref={receiptGalleryInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleReceiptSelect(e, false)}
+                  onChange={e => handleReceiptSelect(e, false)}
                   className="hidden"
                 />
 
                 {/* Show uploaded receipts */}
                 {paymentReceipts.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mb-2">
+                  <div className="mb-2 grid grid-cols-3 gap-2">
                     {paymentReceipts.map((receipt, index) => (
                       <div
                         key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden border bg-muted"
+                        className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
                       >
                         <img
                           src={receipt}
                           alt={`Receipt ${index + 1}`}
-                          className="w-full h-full object-cover cursor-pointer"
+                          className="h-full w-full cursor-pointer object-cover"
                           onClick={() => {
                             setImageViewerSrc(receipt);
                             setImageViewerOpen(true);
@@ -2063,7 +2001,7 @@ export default function CustomersPage() {
                         <Button
                           variant="destructive"
                           size="icon"
-                          className="absolute top-1 right-1 h-6 w-6"
+                          className="absolute right-1 top-1 h-6 w-6"
                           onClick={() => handleRemoveReceipt(index, false)}
                         >
                           <X className="h-3 w-3" />
@@ -2075,7 +2013,7 @@ export default function CustomersPage() {
 
                 {isUploadingReceipt && (
                   <div className="flex items-center justify-center py-4">
-                    <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 )}
 
@@ -2085,7 +2023,7 @@ export default function CustomersPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => receiptInputRef.current?.click()}
-                    className="flex-1 h-10 gap-1.5"
+                    className="h-10 flex-1 gap-1.5"
                     disabled={isUploadingReceipt}
                   >
                     <Camera className="h-4 w-4" />
@@ -2096,7 +2034,7 @@ export default function CustomersPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => receiptGalleryInputRef.current?.click()}
-                    className="flex-1 h-10 gap-1.5"
+                    className="h-10 flex-1 gap-1.5"
                     disabled={isUploadingReceipt}
                   >
                     <ImagePlus className="h-4 w-4" />
@@ -2113,22 +2051,20 @@ export default function CustomersPage() {
                 (() => {
                   const totalAmount =
                     paymentUdhar.amount ||
-                    (paymentUdhar.cashAmount || 0) +
-                      (paymentUdhar.onlineAmount || 0);
+                    (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
                   const paidAmount =
                     paymentUdhar.paidAmount ||
-                    (paymentUdhar.paidCash || 0) +
-                      (paymentUdhar.paidOnline || 0);
+                    (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
                   const pendingAmount = totalAmount - paidAmount;
 
                   return pendingAmount > 0 ? (
                     <Button
                       variant="outline"
                       onClick={handleMarkFullPaidFromDialog}
-                      className="w-full h-12 text-green-600 border-green-200 hover:bg-green-50"
+                      className="h-12 w-full border-green-200 text-green-600 hover:bg-green-50"
                       disabled={!isOnline}
                     >
-                      <Check className="h-4 w-4 mr-2" />
+                      <Check className="mr-2 h-4 w-4" />
                       Mark Full Amount as Paid
                     </Button>
                   ) : null;
@@ -2138,7 +2074,7 @@ export default function CustomersPage() {
 
           {/* Drag handle at bottom */}
           <div className="flex justify-center pb-3 pt-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
       </Sheet>
@@ -2146,7 +2082,7 @@ export default function CustomersPage() {
       {/* Customer Detail Drawer */}
       <Sheet
         open={!!selectedCustomer}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           // Don't close if image viewer or gallery viewer is open or was just closed
           if (!open && (imageViewerOpen || galleryViewerOpen || imageViewerJustClosedRef.current)) {
             imageViewerJustClosedRef.current = false;
@@ -2155,23 +2091,23 @@ export default function CustomersPage() {
           if (!open) setSelectedCustomer(null);
         }}
       >
-        <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] p-0" hideClose>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
           {selectedCustomer && (
             <>
               {/* Drag handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+              <div className="flex justify-center pb-2 pt-3">
+                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
               </div>
 
               {/* Header with actions */}
-              <SheetHeader className="px-4 pb-3 border-b">
+              <SheetHeader className="border-b px-4 pb-3">
                 <div className="flex items-center gap-3">
                   {/* Profile Picture */}
                   <Avatar
                     className={cn(
                       "h-14 w-14 flex-shrink-0",
                       selectedCustomer.profilePicture &&
-                        "cursor-pointer hover:ring-2 hover:ring-primary transition-all",
+                        "cursor-pointer transition-all hover:ring-2 hover:ring-primary"
                     )}
                     onClick={() => {
                       if (selectedCustomer.profilePicture) {
@@ -2181,18 +2117,20 @@ export default function CustomersPage() {
                     }}
                   >
                     <AvatarImage src={selectedCustomer.profilePicture} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
+                    <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
                       {getCustomerInitials(selectedCustomer.name)}
                     </AvatarFallback>
                   </Avatar>
 
                   {/* Name and info */}
-                  <div className="flex-1 min-w-0">
-                    <SheetTitle className="text-xl font-bold truncate">{selectedCustomer.name}</SheetTitle>
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle className="truncate text-xl font-bold">
+                      {selectedCustomer.name}
+                    </SheetTitle>
                     {selectedCustomer.phone && (
                       <a
                         href={`tel:${selectedCustomer.phone}`}
-                        className="text-sm text-primary flex items-center gap-1"
+                        className="inline-flex w-fit items-center gap-1 text-sm text-primary"
                       >
                         <Phone className="h-3 w-3" />
                         {selectedCustomer.phone}
@@ -2237,8 +2175,8 @@ export default function CustomersPage() {
                 </div>
               </SheetHeader>
 
-              <ScrollArea className="flex-1 h-[calc(85vh-100px)]">
-                <div className="p-4 space-y-4">
+              <ScrollArea className="h-[calc(85vh-100px)] flex-1">
+                <div className="space-y-4 p-4">
                   {/* Address if available */}
                   {selectedCustomer.address && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -2249,43 +2187,34 @@ export default function CustomersPage() {
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="p-3 rounded-xl bg-muted/50 text-center min-w-0">
+                    <div className="min-w-0 rounded-xl bg-muted/50 p-3 text-center">
                       <p className="text-[10px] text-muted-foreground">Total</p>
                       <p
                         className={cn(
-                          "font-bold truncate",
-                          getAmountTextSize(
-                            selectedCustomer.totalAmount || 0,
-                            "lg",
-                          ),
+                          "truncate font-bold",
+                          getAmountTextSize(selectedCustomer.totalAmount || 0, "lg")
                         )}
                       >
                         ₹{(selectedCustomer.totalAmount || 0).toLocaleString()}
                       </p>
                     </div>
-                    <div className="p-3 rounded-xl bg-green-500/10 text-center min-w-0">
+                    <div className="min-w-0 rounded-xl bg-green-500/10 p-3 text-center">
                       <p className="text-[10px] text-green-600">Paid</p>
                       <p
                         className={cn(
-                          "font-bold text-green-600 truncate",
-                          getAmountTextSize(
-                            selectedCustomer.paidAmount || 0,
-                            "lg",
-                          ),
+                          "truncate font-bold text-green-600",
+                          getAmountTextSize(selectedCustomer.paidAmount || 0, "lg")
                         )}
                       >
                         ₹{(selectedCustomer.paidAmount || 0).toLocaleString()}
                       </p>
                     </div>
-                    <div className="p-3 rounded-xl bg-amber-500/10 text-center min-w-0">
+                    <div className="min-w-0 rounded-xl bg-amber-500/10 p-3 text-center">
                       <p className="text-[10px] text-amber-600">Pending</p>
                       <p
                         className={cn(
-                          "font-bold text-amber-600 truncate",
-                          getAmountTextSize(
-                            selectedCustomer.pendingAmount || 0,
-                            "lg",
-                          ),
+                          "truncate font-bold text-amber-600",
+                          getAmountTextSize(selectedCustomer.pendingAmount || 0, "lg")
                         )}
                       >
                         ₹{(selectedCustomer.pendingAmount || 0).toLocaleString()}
@@ -2307,10 +2236,10 @@ export default function CustomersPage() {
                       }}
                       disabled={!isOnline}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
+                      <Plus className="mr-2 h-4 w-4" />
                       Add Udhar
                     </Button>
-                    
+
                     {selectedCustomerKhataPhotos.length > 0 && (
                       <Button
                         variant="outline"
@@ -2325,21 +2254,23 @@ export default function CustomersPage() {
 
                   {/* Transactions Section - Directly visible */}
                   <div>
-                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <h3 className="mb-3 flex items-center gap-2 font-semibold">
                       <Banknote className="h-4 w-4" />
                       Transactions ({selectedCustomerTransactions.length})
                     </h3>
 
                     {selectedCustomerTransactions.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground bg-muted/30 rounded-xl">
-                        <IndianRupee className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <div className="rounded-xl bg-muted/30 py-6 text-center text-muted-foreground">
+                        <IndianRupee className="mx-auto mb-2 h-8 w-8 opacity-50" />
                         <p className="text-sm">No transactions yet</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        {selectedCustomerTransactions.map((txn) => {
-                          const total = txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0);
-                          const paid = txn.paidAmount || (txn.paidCash || 0) + (txn.paidOnline || 0);
+                        {selectedCustomerTransactions.map(txn => {
+                          const total =
+                            txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0);
+                          const paid =
+                            txn.paidAmount || (txn.paidCash || 0) + (txn.paidOnline || 0);
                           const pending = Math.max(0, total - paid);
                           const isPaid = txn.paymentStatus === "paid";
                           const isPartial = txn.paymentStatus === "partial";
@@ -2347,7 +2278,7 @@ export default function CustomersPage() {
                           const isExpanded = expandedUdharId === txn.id;
 
                           return (
-                              <Card
+                            <Card
                               key={txn.id}
                               className={cn(
                                 "overflow-hidden transition-all",
@@ -2356,7 +2287,7 @@ export default function CustomersPage() {
                                   : isPartial
                                     ? "border-l-4 border-l-blue-500"
                                     : "border-l-4 border-l-amber-500",
-                                isExpanded && hasPayments && "ring-2 ring-primary/20 shadow-md"
+                                isExpanded && hasPayments && "shadow-md ring-2 ring-primary/20"
                               )}
                             >
                               <CardContent className="p-0">
@@ -2366,12 +2297,16 @@ export default function CustomersPage() {
                                     hasPayments && "cursor-pointer",
                                     isExpanded ? "bg-primary/5" : hasPayments && "hover:bg-muted/30"
                                   )}
-                                  onClick={() => hasPayments && setExpandedUdharId(isExpanded ? null : txn.id)}
+                                  onClick={() =>
+                                    hasPayments && setExpandedUdharId(isExpanded ? null : txn.id)
+                                  }
                                 >
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <div className="flex items-center gap-2 mb-0.5">
-                                        <span className="text-lg font-bold">₹{total.toLocaleString()}</span>
+                                      <div className="mb-0.5 flex items-center gap-2">
+                                        <span className="text-lg font-bold">
+                                          ₹{total.toLocaleString()}
+                                        </span>
                                         <Badge
                                           variant="secondary"
                                           className={cn(
@@ -2400,14 +2335,14 @@ export default function CustomersPage() {
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-7 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                                          onClick={(e) => {
+                                          className="h-7 border-green-200 bg-green-50 text-xs text-green-700 hover:bg-green-100"
+                                          onClick={e => {
                                             e.stopPropagation();
                                             handleOpenPayment(txn);
                                           }}
                                           disabled={!isOnline}
                                         >
-                                          <CreditCard className="h-3 w-3 mr-1" />
+                                          <CreditCard className="mr-1 h-3 w-3" />
                                           Pay
                                         </Button>
                                       )}
@@ -2415,7 +2350,7 @@ export default function CustomersPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-7 w-7"
-                                        onClick={(e) => {
+                                        onClick={e => {
                                           e.stopPropagation();
                                           if (!isOnline) {
                                             toast.error("Cannot edit while offline");
@@ -2432,13 +2367,17 @@ export default function CustomersPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-7 w-7 text-destructive hover:text-destructive"
-                                        onClick={async (e) => {
+                                        onClick={async e => {
                                           e.stopPropagation();
                                           if (!isOnline) {
                                             toast.error("Cannot delete while offline");
                                             return;
                                           }
-                                          if (confirm("Are you sure you want to delete this transaction?")) {
+                                          if (
+                                            confirm(
+                                              "Are you sure you want to delete this transaction?"
+                                            )
+                                          ) {
                                             const result = await deleteUdhar(txn.id);
                                             if (result.success) {
                                               toast.success("Transaction deleted");
@@ -2465,13 +2404,17 @@ export default function CustomersPage() {
                                   {/* Progress bar for partial */}
                                   {isPartial && (
                                     <div className="mt-2">
-                                      <div className="flex items-center justify-between text-xs mb-1">
-                                        <span className="text-green-600">Paid: ₹{paid.toLocaleString()}</span>
-                                        <span className="text-amber-600">Pending: ₹{pending.toLocaleString()}</span>
+                                      <div className="mb-1 flex items-center justify-between text-xs">
+                                        <span className="text-green-600">
+                                          Paid: ₹{paid.toLocaleString()}
+                                        </span>
+                                        <span className="text-amber-600">
+                                          Pending: ₹{pending.toLocaleString()}
+                                        </span>
                                       </div>
-                                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                                         <div
-                                          className="h-full bg-green-500 rounded-full"
+                                          className="h-full rounded-full bg-green-500"
                                           style={{ width: `${(paid / total) * 100}%` }}
                                         />
                                       </div>
@@ -2481,61 +2424,98 @@ export default function CustomersPage() {
 
                                 {/* Expanded Section */}
                                 {isExpanded && hasPayments && (
-                                  <div className="px-3 pb-3 border-t bg-primary/5">
-                                    <div className="pt-3">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Payment History</p>
+                                  <div className="border-t bg-primary/5 px-3 pb-3">
+                                    {/* Payment Receipts as thumbnails */}
+                                    {txn.payments?.some(p => p.receiptUrl) && (
+                                      <div className="pt-3">
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                          Payment Receipts (
+                                          {txn.payments.filter(p => p.receiptUrl).length})
+                                        </p>
+                                        <div className="flex gap-2 overflow-x-auto pb-2">
+                                          {txn.payments
+                                            .filter(p => p.receiptUrl)
+                                            .map((payment, idx, filteredPayments) => {
+                                              const receiptPhotos = filteredPayments.map(p => ({
+                                                url: p.receiptUrl,
+                                                amount: p.amount,
+                                                date: p.date,
+                                                customerName: selectedCustomer?.name,
+                                                type: "receipt",
+                                              }));
+                                              return (
+                                                <div
+                                                  key={payment.id}
+                                                  className="relative h-14 w-14 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-green-200 bg-muted"
+                                                  onClick={e => {
+                                                    e.stopPropagation();
+                                                    setGalleryImages(receiptPhotos);
+                                                    setGalleryInitialIndex(idx);
+                                                    setGalleryViewerOpen(true);
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={payment.receiptUrl}
+                                                    alt={`Receipt ${idx + 1}`}
+                                                    className="h-full w-full object-cover"
+                                                  />
+                                                  <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 py-0.5 text-center text-[9px] text-white">
+                                                    ₹{payment.amount?.toLocaleString()}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="pt-2">
+                                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                        Payment History
+                                      </p>
                                       <div className="space-y-0">
                                         {txn.payments
                                           .sort((a, b) => new Date(b.date) - new Date(a.date))
                                           .map((payment, index, arr) => (
                                             <div key={payment.id} className="flex">
-                                              <div className="flex flex-col items-center mr-3">
+                                              <div className="mr-3 flex flex-col items-center">
                                                 <div
                                                   className={cn(
-                                                    "w-3 h-3 rounded-full flex items-center justify-center",
+                                                    "flex h-3 w-3 items-center justify-center rounded-full",
                                                     index === 0 ? "bg-green-500" : "bg-green-400"
                                                   )}
                                                 >
-                                                  <CheckCircle2 className="w-2 h-2 text-white" />
+                                                  <CheckCircle2 className="h-2 w-2 text-white" />
                                                 </div>
                                                 {index < arr.length - 1 && (
-                                                  <div className="w-0.5 h-full min-h-[20px] bg-green-300" />
+                                                  <div className="h-full min-h-[20px] w-0.5 bg-green-300" />
                                                 )}
                                               </div>
                                               <div className="flex-1 pb-2">
-                                                <div className="flex items-center gap-2 flex-wrap">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                   <span className="font-semibold text-green-600">
                                                     ₹{payment.amount.toLocaleString()}
                                                   </span>
                                                   <span className="text-xs text-muted-foreground">
-                                                    — {new Date(payment.date).toLocaleDateString("en-IN", {
-                                                      day: "numeric",
-                                                      month: "short",
-                                                    })}
+                                                    —{" "}
+                                                    {new Date(payment.date).toLocaleDateString(
+                                                      "en-IN",
+                                                      {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                      }
+                                                    )}
                                                   </span>
-                                                  {payment.receiptUrl && (
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                      className="h-5 px-2 text-xs"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setImageViewerSrc(payment.receiptUrl);
-                                                        setImageViewerOpen(true);
-                                                      }}
-                                                    >
-                                                      <Receipt className="h-3 w-3 mr-1" />
-                                                      Receipt
-                                                    </Button>
-                                                  )}
                                                 </div>
                                                 {payment.notes && (
-                                                  <p className="text-xs text-muted-foreground mt-0.5 italic">
+                                                  <p className="mt-0.5 text-xs italic text-muted-foreground">
                                                     &quot;{payment.notes}&quot;
                                                   </p>
                                                 )}
                                                 {payment.isFinalPayment && (
-                                                  <span className="text-xs text-green-600">Final payment</span>
+                                                  <span className="text-xs text-green-600">
+                                                    Final payment
+                                                  </span>
                                                 )}
                                               </div>
                                             </div>
@@ -2562,7 +2542,7 @@ export default function CustomersPage() {
       {editingCustomer && (
         <CustomerForm
           open={!!editingCustomer}
-          onOpenChange={(open) => {
+          onOpenChange={open => {
             if (!open) setEditingCustomer(null);
           }}
           onSubmit={handleEditCustomer}
@@ -2577,8 +2557,8 @@ export default function CustomersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Customer?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {customerToDelete?.name} and all
-              their Udhar transactions. This action cannot be undone.
+              This will permanently delete {customerToDelete?.name} and all their Udhar
+              transactions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2599,8 +2579,8 @@ export default function CustomersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Payment?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete the payment of ₹{paymentToDelete?.amount?.toLocaleString() || 0}. 
-              The udhar balance will be recalculated. This action cannot be undone.
+              This will delete the payment of ₹{paymentToDelete?.amount?.toLocaleString() || 0}. The
+              udhar balance will be recalculated. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2632,293 +2612,364 @@ export default function CustomersPage() {
       {/* Udhar Transactions Drawer */}
       <Sheet open={udharDrawerOpen} onOpenChange={setUdharDrawerOpen}>
         <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0" hideClose>
-          {udharDrawerCustomer && (() => {
-            const customerTransactions = udharList
-              .filter((u) => u.customerId === udharDrawerCustomer.id)
-              .sort((a, b) => new Date(b.date) - new Date(a.date));
+          {udharDrawerCustomer &&
+            (() => {
+              const customerTransactions = udharList
+                .filter(u => u.customerId === udharDrawerCustomer.id)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            return (
-              <>
-                {/* Drag handle */}
-                <div className="flex justify-center pt-3 pb-2">
-                  <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-                </div>
-
-                {/* Header */}
-                <SheetHeader className="px-4 pb-3 border-b">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={udharDrawerCustomer.profilePicture} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                        {getCustomerInitials(udharDrawerCustomer.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <SheetTitle className="text-lg">{udharDrawerCustomer.name}</SheetTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {customerTransactions.length} transactions
-                      </p>
-                    </div>
+              return (
+                <>
+                  {/* Drag handle */}
+                  <div className="flex justify-center pb-2 pt-3">
+                    <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
                   </div>
-                </SheetHeader>
 
-                <ScrollArea className="flex-1 h-[calc(90vh-120px)]">
-                  <div className="p-4 space-y-3">
-                    {customerTransactions.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Banknote className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                        <p className="text-muted-foreground">No transactions yet</p>
+                  {/* Header */}
+                  <SheetHeader className="border-b px-4 pb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={udharDrawerCustomer.profilePicture} />
+                        <AvatarFallback className="bg-primary/10 font-semibold text-primary">
+                          {getCustomerInitials(udharDrawerCustomer.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <SheetTitle className="text-lg">{udharDrawerCustomer.name}</SheetTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {customerTransactions.length} transactions
+                        </p>
                       </div>
-                    ) : (
-                      customerTransactions.map((txn) => {
-                        const total = txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0);
-                        const paid = txn.paidAmount || (txn.paidCash || 0) + (txn.paidOnline || 0);
-                        const pending = Math.max(0, total - paid);
-                        const isPaid = txn.paymentStatus === "paid";
-                        const isPartial = txn.paymentStatus === "partial";
-                        const hasPayments = txn.payments && txn.payments.length > 0;
-                        const hasBillImages = (txn.khataPhotos?.length > 0 || txn.billImages?.length > 0);
-                        const hasExpandableContent = hasPayments || hasBillImages;
-                        const isExpanded = expandedUdharId === txn.id;
+                    </div>
+                  </SheetHeader>
 
-                        return (
-                          <Card
-                            key={txn.id}
-                            className={cn(
-                              "overflow-hidden",
-                              isPaid
-                                ? "border-l-4 border-l-green-500"
-                                : isPartial
-                                  ? "border-l-4 border-l-blue-500"
-                                  : "border-l-4 border-l-amber-500"
-                            )}
-                          >
-                            <CardContent className="p-0">
-                              {/* Main Row */}
-                              <div
-                                className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                                onClick={() => setExpandedUdharId(isExpanded ? null : txn.id)}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-xl font-bold">₹{total.toLocaleString()}</span>
-                                      <Badge
-                                        variant="secondary"
-                                        className={cn(
-                                          "text-xs",
-                                          isPaid
-                                            ? "bg-green-100 text-green-700"
-                                            : isPartial
-                                              ? "bg-blue-100 text-blue-700"
-                                              : "bg-amber-100 text-amber-700"
-                                        )}
-                                      >
-                                        {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
-                                      </Badge>
+                  <ScrollArea className="h-[calc(90vh-120px)] flex-1">
+                    <div className="space-y-3 p-4">
+                      {customerTransactions.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <Banknote className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
+                          <p className="text-muted-foreground">No transactions yet</p>
+                        </div>
+                      ) : (
+                        customerTransactions.map(txn => {
+                          const total =
+                            txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0);
+                          const paid =
+                            txn.paidAmount || (txn.paidCash || 0) + (txn.paidOnline || 0);
+                          const pending = Math.max(0, total - paid);
+                          const isPaid = txn.paymentStatus === "paid";
+                          const isPartial = txn.paymentStatus === "partial";
+                          const hasPayments = txn.payments && txn.payments.length > 0;
+                          const hasBillImages =
+                            txn.khataPhotos?.length > 0 || txn.billImages?.length > 0;
+                          const hasExpandableContent = hasPayments || hasBillImages;
+                          const isExpanded = expandedUdharId === txn.id;
+
+                          return (
+                            <Card
+                              key={txn.id}
+                              className={cn(
+                                "overflow-hidden",
+                                isPaid
+                                  ? "border-l-4 border-l-green-500"
+                                  : isPartial
+                                    ? "border-l-4 border-l-blue-500"
+                                    : "border-l-4 border-l-amber-500"
+                              )}
+                            >
+                              <CardContent className="p-0">
+                                {/* Main Row */}
+                                <div
+                                  className="cursor-pointer p-4 transition-colors hover:bg-muted/30"
+                                  onClick={() => setExpandedUdharId(isExpanded ? null : txn.id)}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <div className="mb-1 flex items-center gap-2">
+                                        <span className="text-xl font-bold">
+                                          ₹{total.toLocaleString()}
+                                        </span>
+                                        <Badge
+                                          variant="secondary"
+                                          className={cn(
+                                            "text-xs",
+                                            isPaid
+                                              ? "bg-green-100 text-green-700"
+                                              : isPartial
+                                                ? "bg-blue-100 text-blue-700"
+                                                : "bg-amber-100 text-amber-700"
+                                          )}
+                                        >
+                                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {new Date(txn.date).toLocaleDateString("en-IN", {
+                                          day: "numeric",
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                        {txn.notes && ` • ${txn.notes}`}
+                                      </p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">
-                                      {new Date(txn.date).toLocaleDateString("en-IN", {
-                                        day: "numeric",
-                                        month: "short",
-                                        year: "numeric",
-                                      })}
-                                      {txn.notes && ` • ${txn.notes}`}
-                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      {!isPaid && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                          onClick={e => {
+                                            e.stopPropagation();
+                                            handleOpenPayment(txn);
+                                          }}
+                                          disabled={!isOnline}
+                                        >
+                                          <CreditCard className="mr-1 h-4 w-4" />
+                                          Pay
+                                        </Button>
+                                      )}
+                                      {hasExpandableContent && (
+                                        <ChevronDown
+                                          className={cn(
+                                            "h-5 w-5 text-muted-foreground transition-transform",
+                                            isExpanded && "rotate-180"
+                                          )}
+                                        />
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    {!isPaid && (
+
+                                  {/* Progress bar for partial */}
+                                  {isPartial && (
+                                    <div className="mt-3">
+                                      <div className="mb-1 flex items-center justify-between text-xs">
+                                        <span className="text-green-600">
+                                          Paid: ₹{paid.toLocaleString()}
+                                        </span>
+                                        <span className="text-amber-600">
+                                          Pending: ₹{pending.toLocaleString()}
+                                        </span>
+                                      </div>
+                                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                        <div
+                                          className="h-full rounded-full bg-green-500 transition-all"
+                                          style={{ width: `${(paid / total) * 100}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Expanded Section */}
+                                {isExpanded && (
+                                  <div className="border-t bg-muted/20 px-4 pb-4">
+                                    {/* Khata Photos */}
+                                    {(txn.khataPhotos?.length > 0 ||
+                                      txn.billImages?.length > 0) && (
+                                      <div className="pt-3">
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                          Khata Photos
+                                        </p>
+                                        <div className="flex gap-2 overflow-x-auto pb-1">
+                                          {[
+                                            ...(txn.khataPhotos || []),
+                                            ...(txn.billImages || []),
+                                          ].map((photo, idx) => {
+                                            const txnPhotos = [
+                                              ...(txn.khataPhotos || []),
+                                              ...(txn.billImages || []),
+                                            ].map(p => ({
+                                              url: p,
+                                              amount: total,
+                                              date: txn.date,
+                                              customerName: selectedCustomer?.name,
+                                              type: "khata",
+                                            }));
+                                            return (
+                                              <div
+                                                key={idx}
+                                                className="h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border bg-muted"
+                                                onClick={e => {
+                                                  e.stopPropagation();
+                                                  setGalleryImages(txnPhotos);
+                                                  setGalleryInitialIndex(idx);
+                                                  setGalleryViewerOpen(true);
+                                                }}
+                                              >
+                                                <img
+                                                  src={photo}
+                                                  alt={`Khata ${idx + 1}`}
+                                                  className="h-full w-full object-cover"
+                                                />
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Payment Receipts */}
+                                    {txn.payments?.some(p => p.receiptUrl) && (
+                                      <div className="pt-3">
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                          Payment Receipts (
+                                          {txn.payments.filter(p => p.receiptUrl).length})
+                                        </p>
+                                        <div className="flex gap-2 overflow-x-auto pb-1">
+                                          {txn.payments
+                                            .filter(p => p.receiptUrl)
+                                            .map((payment, idx, filteredPayments) => {
+                                              const receiptPhotos = filteredPayments.map(p => ({
+                                                url: p.receiptUrl,
+                                                amount: p.amount,
+                                                date: p.date,
+                                                customerName: selectedCustomer?.name,
+                                                type: "receipt",
+                                              }));
+                                              return (
+                                                <div
+                                                  key={payment.id}
+                                                  className="relative h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-green-200 bg-muted"
+                                                  onClick={e => {
+                                                    e.stopPropagation();
+                                                    setGalleryImages(receiptPhotos);
+                                                    setGalleryInitialIndex(idx);
+                                                    setGalleryViewerOpen(true);
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={payment.receiptUrl}
+                                                    alt={`Receipt ${idx + 1}`}
+                                                    className="h-full w-full object-cover"
+                                                  />
+                                                  <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 py-0.5 text-center text-[10px] text-white">
+                                                    ₹{payment.amount?.toLocaleString()}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Payment History */}
+                                    {hasPayments && (
+                                      <div className="pt-3">
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                          Payment History
+                                        </p>
+                                        <div className="space-y-0">
+                                          {txn.payments
+                                            .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                            .map((payment, index, arr) => (
+                                              <div key={payment.id} className="flex">
+                                                <div className="mr-3 flex flex-col items-center">
+                                                  <div
+                                                    className={cn(
+                                                      "flex h-3 w-3 items-center justify-center rounded-full",
+                                                      index === 0 ? "bg-green-500" : "bg-green-400"
+                                                    )}
+                                                  >
+                                                    <CheckCircle2 className="h-2 w-2 text-white" />
+                                                  </div>
+                                                  {index < arr.length - 1 && (
+                                                    <div className="h-full min-h-[24px] w-0.5 bg-green-300" />
+                                                  )}
+                                                </div>
+                                                <div className="flex-1 pb-3">
+                                                  <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="font-semibold text-green-600">
+                                                      ₹{payment.amount.toLocaleString()}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      — {formatRelativeDate(payment.date)}
+                                                    </span>
+                                                    {payment.receiptUrl && (
+                                                      <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-6 px-2 text-xs"
+                                                        onClick={e => {
+                                                          e.stopPropagation();
+                                                          setImageViewerSrc(payment.receiptUrl);
+                                                          setImageViewerOpen(true);
+                                                        }}
+                                                      >
+                                                        <Receipt className="mr-1 h-3 w-3" />
+                                                        Receipt
+                                                      </Button>
+                                                    )}
+                                                  </div>
+                                                  {payment.notes && (
+                                                    <p className="mt-0.5 text-xs italic text-muted-foreground">
+                                                      &quot;{payment.notes}&quot;
+                                                    </p>
+                                                  )}
+                                                  {payment.isFinalPayment && (
+                                                    <span className="text-xs text-green-600">
+                                                      Final payment
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Delete Button */}
+                                    <div className="mt-3 border-t pt-3">
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                                        onClick={(e) => {
+                                        className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
+                                        onClick={async e => {
                                           e.stopPropagation();
-                                          handleOpenPayment(txn);
+                                          if (!isOnline) {
+                                            toast.error("Cannot delete while offline");
+                                            return;
+                                          }
+                                          if (confirm("Delete this Udhar transaction?")) {
+                                            const result = await deleteUdhar(txn.id);
+                                            if (result.success) {
+                                              toast.success("Udhar deleted");
+                                            } else {
+                                              toast.error("Failed to delete");
+                                            }
+                                          }
                                         }}
                                         disabled={!isOnline}
                                       >
-                                        <CreditCard className="h-4 w-4 mr-1" />
-                                        Pay
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Transaction
                                       </Button>
-                                    )}
-                                    {hasExpandableContent && (
-                                      <ChevronDown
-                                        className={cn(
-                                          "h-5 w-5 text-muted-foreground transition-transform",
-                                          isExpanded && "rotate-180"
-                                        )}
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Progress bar for partial */}
-                                {isPartial && (
-                                  <div className="mt-3">
-                                    <div className="flex items-center justify-between text-xs mb-1">
-                                      <span className="text-green-600">Paid: ₹{paid.toLocaleString()}</span>
-                                      <span className="text-amber-600">Pending: ₹{pending.toLocaleString()}</span>
-                                    </div>
-                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                      <div
-                                        className="h-full bg-green-500 rounded-full transition-all"
-                                        style={{ width: `${(paid / total) * 100}%` }}
-                                      />
                                     </div>
                                   </div>
                                 )}
-                              </div>
-
-                              {/* Expanded Section */}
-                              {isExpanded && (
-                                <div className="px-4 pb-4 border-t bg-muted/20">
-                                  {/* Khata Photos */}
-                                  {(txn.khataPhotos?.length > 0 || txn.billImages?.length > 0) && (
-                                    <div className="pt-3">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Khata Photos</p>
-                                      <div className="flex gap-2 overflow-x-auto pb-1">
-                                        {[...(txn.khataPhotos || []), ...(txn.billImages || [])].map((photo, idx) => {
-                                          const txnPhotos = [...(txn.khataPhotos || []), ...(txn.billImages || [])].map(p => ({
-                                            url: p,
-                                            amount: total,
-                                            date: txn.date,
-                                            customerName: selectedCustomer?.name,
-                                            type: "khata",
-                                          }));
-                                          return (
-                                            <div
-                                              key={idx}
-                                              className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-muted cursor-pointer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setGalleryImages(txnPhotos);
-                                                setGalleryInitialIndex(idx);
-                                                setGalleryViewerOpen(true);
-                                              }}
-                                            >
-                                              <img src={photo} alt={`Khata ${idx + 1}`} className="w-full h-full object-cover" />
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Payment History */}
-                                  {hasPayments && (
-                                    <div className="pt-3">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Payment History</p>
-                                      <div className="space-y-0">
-                                        {txn.payments
-                                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                                          .map((payment, index, arr) => (
-                                            <div key={payment.id} className="flex">
-                                              <div className="flex flex-col items-center mr-3">
-                                                <div
-                                                  className={cn(
-                                                    "w-3 h-3 rounded-full flex items-center justify-center",
-                                                    index === 0 ? "bg-green-500" : "bg-green-400"
-                                                  )}
-                                                >
-                                                  <CheckCircle2 className="w-2 h-2 text-white" />
-                                                </div>
-                                                {index < arr.length - 1 && (
-                                                  <div className="w-0.5 h-full min-h-[24px] bg-green-300" />
-                                                )}
-                                              </div>
-                                              <div className="flex-1 pb-3">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                  <span className="font-semibold text-green-600">
-                                                    ₹{payment.amount.toLocaleString()}
-                                                  </span>
-                                                  <span className="text-xs text-muted-foreground">
-                                                    — {formatRelativeDate(payment.date)}
-                                                  </span>
-                                                  {payment.receiptUrl && (
-                                                    <Button
-                                                      variant="outline"
-                                                      size="sm"
-                                                      className="h-6 px-2 text-xs"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setImageViewerSrc(payment.receiptUrl);
-                                                        setImageViewerOpen(true);
-                                                      }}
-                                                    >
-                                                      <Receipt className="h-3 w-3 mr-1" />
-                                                      Receipt
-                                                    </Button>
-                                                  )}
-                                                </div>
-                                                {payment.notes && (
-                                                  <p className="text-xs text-muted-foreground mt-0.5 italic">
-                                                    &quot;{payment.notes}&quot;
-                                                  </p>
-                                                )}
-                                                {payment.isFinalPayment && (
-                                                  <span className="text-xs text-green-600">Final payment</span>
-                                                )}
-                                              </div>
-                                            </div>
-                                          ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Delete Button */}
-                                  <div className="pt-3 border-t mt-3">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (!isOnline) {
-                                          toast.error("Cannot delete while offline");
-                                          return;
-                                        }
-                                        if (confirm("Delete this Udhar transaction?")) {
-                                          const result = await deleteUdhar(txn.id);
-                                          if (result.success) {
-                                            toast.success("Udhar deleted");
-                                          } else {
-                                            toast.error("Failed to delete");
-                                          }
-                                        }
-                                      }}
-                                      disabled={!isOnline}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete Transaction
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        );
-                      })
-                    )}
-                  </div>
-                </ScrollArea>
-              </>
-            );
-          })()}
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </>
+              );
+            })()}
         </SheetContent>
       </Sheet>
 
       {/* All Receipts Sheet */}
-      <Sheet 
-        open={allReceiptsSheetOpen} 
-        onOpenChange={(open) => {
+      <Sheet
+        open={allReceiptsSheetOpen}
+        onOpenChange={open => {
           // Only allow closing via the X button, not via backdrop/escape when gallery might have just closed
           if (!open) return; // Prevent automatic closing - use the X button instead
           setAllReceiptsSheetOpen(open);
         }}
       >
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
-          <SheetHeader className="p-4 border-b">
+          <SheetHeader className="border-b p-4">
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
@@ -2932,16 +2983,16 @@ export default function CustomersPage() {
           <ScrollArea className="h-[calc(85vh-80px)]">
             <div className="p-4">
               {allReceipts.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <div className="py-12 text-center text-muted-foreground">
+                  <Receipt className="mx-auto mb-3 h-12 w-12 opacity-50" />
                   <p>No receipts or bills found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {allReceipts.map((receipt, idx) => (
                     <div
                       key={idx}
-                      className="relative rounded-xl overflow-hidden border bg-muted cursor-pointer hover:shadow-md transition-shadow"
+                      className="relative cursor-pointer overflow-hidden rounded-xl border bg-muted transition-shadow hover:shadow-md"
                       onClick={() => {
                         setAllReceiptsGalleryImages(allReceipts.map(r => r.url));
                         setAllReceiptsGalleryInitialIndex(idx);
@@ -2952,19 +3003,21 @@ export default function CustomersPage() {
                         <img
                           src={receipt.url}
                           alt={`${receipt.type} ${idx + 1}`}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                       </div>
                       {/* Info always visible */}
-                      <div className="p-2 bg-card border-t">
-                        <p className="text-xs font-medium truncate">{receipt.customerName}</p>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <span className="text-xs text-muted-foreground">₹{receipt.amount?.toLocaleString()}</span>
+                      <div className="border-t bg-card p-2">
+                        <p className="truncate text-xs font-medium">{receipt.customerName}</p>
+                        <div className="mt-0.5 flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            ₹{receipt.amount?.toLocaleString()}
+                          </span>
                           <Badge
                             variant="secondary"
-                            className={`text-[10px] px-1.5 py-0 ${
-                              receipt.type === "receipt" 
-                                ? "bg-green-100 text-green-700" 
+                            className={`px-1.5 py-0 text-[10px] ${
+                              receipt.type === "receipt"
+                                ? "bg-green-100 text-green-700"
                                 : "bg-amber-100 text-amber-700"
                             }`}
                           >
@@ -2982,16 +3035,16 @@ export default function CustomersPage() {
       </Sheet>
 
       {/* Customer Khata Photos Sheet */}
-      <Sheet 
-        open={khataPhotosSheetOpen} 
-        onOpenChange={(open) => {
+      <Sheet
+        open={khataPhotosSheetOpen}
+        onOpenChange={open => {
           // Don't close if gallery viewer is open
           if (!open && galleryViewerOpen) return;
           setKhataPhotosSheetOpen(open);
         }}
       >
         <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-          <SheetHeader className="pb-4 border-b">
+          <SheetHeader className="border-b pb-4">
             <SheetTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
               All Khata Photos ({selectedCustomerKhataPhotos.length})
@@ -3000,17 +3053,17 @@ export default function CustomersPage() {
               Photos from all transactions for {selectedCustomer?.name}
             </SheetDescription>
           </SheetHeader>
-          <ScrollArea className="h-[calc(85vh-120px)] mt-4">
+          <ScrollArea className="mt-4 h-[calc(85vh-120px)]">
             <div className="grid grid-cols-2 gap-3 pr-4">
               {selectedCustomerKhataPhotos.map((photo, index) => (
                 <div
                   key={`${photo.udharId}-${photo.photoIndex}`}
-                  className="relative group rounded-xl overflow-hidden bg-muted aspect-square"
+                  className="group relative aspect-square overflow-hidden rounded-xl bg-muted"
                 >
                   <img
                     src={photo.url}
                     alt={`Khata photo ${index + 1}`}
-                    className="w-full h-full object-cover cursor-pointer transition-transform hover:scale-105"
+                    className="h-full w-full cursor-pointer object-cover transition-transform hover:scale-105"
                     onClick={() => {
                       setGalleryImages(selectedCustomerKhataPhotos);
                       setGalleryInitialIndex(index);
@@ -3019,10 +3072,10 @@ export default function CustomersPage() {
                   />
                   {/* Overlay with info */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
-                    <p className="text-white text-sm font-semibold">
+                    <p className="text-sm font-semibold text-white">
                       ₹{photo.amount.toLocaleString()}
                     </p>
-                    <p className="text-white/80 text-xs">
+                    <p className="text-xs text-white/80">
                       {new Date(photo.date).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
@@ -3036,7 +3089,7 @@ export default function CustomersPage() {
                       <Button
                         variant="destructive"
                         size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        className="absolute right-2 top-2 h-8 w-8 opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
                         disabled={!isOnline}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -3046,7 +3099,8 @@ export default function CustomersPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete this khata photo. This action cannot be undone.
+                          This will permanently delete this khata photo. This action cannot be
+                          undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -3064,8 +3118,8 @@ export default function CustomersPage() {
               ))}
             </div>
             {selectedCustomerKhataPhotos.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Camera className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <div className="py-12 text-center text-muted-foreground">
+                <Camera className="mx-auto mb-3 h-12 w-12 opacity-50" />
                 <p>No khata photos yet</p>
               </div>
             )}
@@ -3086,7 +3140,7 @@ export default function CustomersPage() {
         src={imageViewerSrc}
         alt="Profile Picture"
         open={imageViewerOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open) {
             imageViewerJustClosedRef.current = true;
             // Reset the ref after a short delay
@@ -3097,7 +3151,7 @@ export default function CustomersPage() {
           setImageViewerOpen(open);
         }}
       />
-      
+
       {/* Gallery Viewer for multiple images */}
       <ImageGalleryViewer
         images={galleryImages}

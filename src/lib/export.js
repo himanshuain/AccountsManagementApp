@@ -10,12 +10,12 @@ export function exportToCSV(data, filename, columns) {
   }
 
   // Create header row
-  const headers = columns.map((col) => col.label).join(",");
+  const headers = columns.map(col => col.label).join(",");
 
   // Create data rows
-  const rows = data.map((item) => {
+  const rows = data.map(item => {
     return columns
-      .map((col) => {
+      .map(col => {
         let value = col.getValue ? col.getValue(item) : item[col.key];
 
         // Handle null/undefined
@@ -25,11 +25,7 @@ export function exportToCSV(data, filename, columns) {
 
         // Escape quotes and wrap in quotes if contains comma
         value = String(value);
-        if (
-          value.includes(",") ||
-          value.includes('"') ||
-          value.includes("\n")
-        ) {
+        if (value.includes(",") || value.includes('"') || value.includes("\n")) {
           value = `"${value.replace(/"/g, '""')}"`;
         }
 
@@ -46,10 +42,7 @@ export function exportToCSV(data, filename, columns) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute(
-    "download",
-    `${filename}_${format(new Date(), "yyyy-MM-dd")}.csv`,
-  );
+  link.setAttribute("download", `${filename}_${format(new Date(), "yyyy-MM-dd")}.csv`);
   link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
@@ -72,28 +65,27 @@ export function exportSuppliers(suppliers) {
     {
       key: "bankName",
       label: "Bank Name",
-      getValue: (item) => item.bankDetails?.bankName || "",
+      getValue: item => item.bankDetails?.bankName || "",
     },
     {
       key: "accountNumber",
       label: "Account Number",
-      getValue: (item) => item.bankDetails?.accountNumber || "",
+      getValue: item => item.bankDetails?.accountNumber || "",
     },
     {
       key: "ifscCode",
       label: "IFSC Code",
-      getValue: (item) => item.bankDetails?.ifscCode || "",
+      getValue: item => item.bankDetails?.ifscCode || "",
     },
     {
       key: "category",
       label: "Category",
-      getValue: (item) => item.category || "",
+      getValue: item => item.category || "",
     },
     {
       key: "createdAt",
       label: "Created At",
-      getValue: (item) =>
-        item.createdAt ? format(new Date(item.createdAt), "yyyy-MM-dd") : "",
+      getValue: item => (item.createdAt ? format(new Date(item.createdAt), "yyyy-MM-dd") : ""),
     },
   ];
 
@@ -104,8 +96,8 @@ export function exportSuppliers(suppliers) {
  * Export transactions to CSV
  */
 export function exportTransactions(transactions, suppliers) {
-  const getSupplierName = (supplierId) => {
-    const supplier = suppliers?.find((s) => s.id === supplierId);
+  const getSupplierName = supplierId => {
+    const supplier = suppliers?.find(s => s.id === supplierId);
     return supplier?.name || "Unknown";
   };
 
@@ -113,13 +105,12 @@ export function exportTransactions(transactions, suppliers) {
     {
       key: "date",
       label: "Date",
-      getValue: (item) =>
-        item.date ? format(new Date(item.date), "yyyy-MM-dd") : "",
+      getValue: item => (item.date ? format(new Date(item.date), "yyyy-MM-dd") : ""),
     },
     {
       key: "supplier",
       label: "Supplier",
-      getValue: (item) => getSupplierName(item.supplierId),
+      getValue: item => getSupplierName(item.supplierId),
     },
     { key: "amount", label: "Amount" },
     { key: "paymentStatus", label: "Payment Status" },
@@ -127,24 +118,21 @@ export function exportTransactions(transactions, suppliers) {
     {
       key: "items",
       label: "Items",
-      getValue: (item) => {
+      getValue: item => {
         if (!item.items || !Array.isArray(item.items)) return "";
-        return item.items
-          .map((i) => `${i.name || "Item"} (${i.quantity}x${i.rate})`)
-          .join("; ");
+        return item.items.map(i => `${i.name || "Item"} (${i.quantity}x${i.rate})`).join("; ");
       },
     },
     {
       key: "dueDate",
       label: "Due Date",
-      getValue: (item) =>
-        item.dueDate ? format(new Date(item.dueDate), "yyyy-MM-dd") : "",
+      getValue: item => (item.dueDate ? format(new Date(item.dueDate), "yyyy-MM-dd") : ""),
     },
     { key: "notes", label: "Notes" },
     {
       key: "billImages",
       label: "Bill Count",
-      getValue: (item) => item.billImages?.length || 0,
+      getValue: item => item.billImages?.length || 0,
     },
   ];
 
@@ -155,10 +143,9 @@ export function exportTransactions(transactions, suppliers) {
  * Export report summary to CSV
  */
 export function exportReport(data, title) {
-  const columns = Object.keys(data[0] || {}).map((key) => ({
+  const columns = Object.keys(data[0] || {}).map(key => ({
     key,
-    label:
-      key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1"),
+    label: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1"),
   }));
 
   exportToCSV(data, title, columns);
@@ -182,10 +169,10 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   const mutedColor = [100, 116, 139]; // Slate-500
 
   // Helper to format currency (using Rs. for PDF compatibility)
-  const formatCurrency = (amount) => `Rs. ${Number(amount).toLocaleString("en-IN")}`;
+  const formatCurrency = amount => `Rs. ${Number(amount).toLocaleString("en-IN")}`;
 
   // Helper function to add new page if needed
-  const checkPageBreak = (neededHeight) => {
+  const checkPageBreak = neededHeight => {
     if (y + neededHeight > pageHeight - margin) {
       doc.addPage();
       y = margin;
@@ -212,12 +199,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   // Date on right
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    format(new Date(), "dd MMM yyyy"),
-    pageWidth - margin,
-    40,
-    { align: "right" }
-  );
+  doc.text(format(new Date(), "dd MMM yyyy"), pageWidth - margin, 40, { align: "right" });
 
   y = 60;
 
@@ -250,10 +232,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   y += 55;
 
   // Calculate totals
-  const totalAmount = transactions.reduce(
-    (sum, t) => sum + (Number(t.amount) || 0),
-    0
-  );
+  const totalAmount = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const paidAmount = transactions.reduce((sum, t) => {
     if (t.paymentStatus === "paid") return sum + (Number(t.amount) || 0);
     if (t.paymentStatus === "partial") return sum + (Number(t.paidAmount) || 0);
@@ -288,12 +267,9 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   });
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(
-    formatCurrency(paidAmount),
-    margin + cardWidth + 10 + cardWidth / 2,
-    y + 26,
-    { align: "center" }
-  );
+  doc.text(formatCurrency(paidAmount), margin + cardWidth + 10 + cardWidth / 2, y + 26, {
+    align: "center",
+  });
 
   // Pending Card
   doc.setFillColor(254, 243, 199); // Amber-100
@@ -306,12 +282,9 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   });
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(
-    formatCurrency(pendingAmount),
-    margin + 2 * cardWidth + 20 + cardWidth / 2,
-    y + 26,
-    { align: "center" }
-  );
+  doc.text(formatCurrency(pendingAmount), margin + 2 * cardWidth + 20 + cardWidth / 2, y + 26, {
+    align: "center",
+  });
 
   y += 50;
 
@@ -335,13 +308,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   doc.setFont("helvetica", "bold");
 
   const colWidths = [35, 50, 35, 35, 25];
-  const colX = [
-    margin + 5,
-    margin + 40,
-    margin + 90,
-    margin + 125,
-    margin + 160,
-  ];
+  const colX = [margin + 5, margin + 40, margin + 90, margin + 125, margin + 160];
 
   doc.text("Date", colX[0], y + 7);
   doc.text("Amount", colX[1], y + 7);
@@ -353,9 +320,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
 
   // Table Rows
   doc.setFont("helvetica", "normal");
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
-  );
+  const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   sortedTransactions.forEach((transaction, index) => {
     checkPageBreak(15);
@@ -368,9 +333,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
 
     const amount = Number(transaction.amount) || 0;
     const paid =
-      transaction.paymentStatus === "paid"
-        ? amount
-        : Number(transaction.paidAmount) || 0;
+      transaction.paymentStatus === "paid" ? amount : Number(transaction.paidAmount) || 0;
     const pending = amount - paid;
     const status =
       transaction.paymentStatus === "paid"
@@ -384,9 +347,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
 
     // Date
     doc.text(
-      transaction.date
-        ? format(new Date(transaction.date), "dd/MM/yyyy")
-        : "-",
+      transaction.date ? format(new Date(transaction.date), "dd/MM/yyyy") : "-",
       colX[0],
       y + 8
     );
@@ -423,9 +384,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   });
 
   // Payment History Section (if any transactions have payments)
-  const transactionsWithPayments = transactions.filter(
-    (t) => t.payments && t.payments.length > 0
-  );
+  const transactionsWithPayments = transactions.filter(t => t.payments && t.payments.length > 0);
 
   if (transactionsWithPayments.length > 0) {
     y += 10;
@@ -437,7 +396,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
     doc.text("Payment History", margin, y);
     y += 10;
 
-    transactionsWithPayments.forEach((transaction) => {
+    transactionsWithPayments.forEach(transaction => {
       checkPageBreak(20);
 
       doc.setFillColor(248, 250, 252);
@@ -459,11 +418,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
         doc.setFontSize(9);
         doc.text(`- ${formatCurrency(payment.amount || 0)}`, margin + 10, y);
         doc.setTextColor(...mutedColor);
-        doc.text(
-          payment.date ? format(new Date(payment.date), "dd/MM/yyyy") : "-",
-          margin + 55,
-          y
-        );
+        doc.text(payment.date ? format(new Date(payment.date), "dd/MM/yyyy") : "-", margin + 55, y);
         if (payment.isFinalPayment) {
           doc.setTextColor(...successColor);
           doc.text("(Final)", margin + 95, y);
@@ -479,12 +434,9 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   const footerY = pageHeight - 10;
   doc.setTextColor(...mutedColor);
   doc.setFontSize(8);
-  doc.text(
-    `Generated on ${format(new Date(), "dd MMM yyyy, hh:mm a")}`,
-    pageWidth / 2,
-    footerY,
-    { align: "center" }
-  );
+  doc.text(`Generated on ${format(new Date(), "dd MMM yyyy, hh:mm a")}`, pageWidth / 2, footerY, {
+    align: "center",
+  });
 
   // Save the PDF
   const filename = `${supplier.name || "supplier"}_transactions_${format(new Date(), "yyyy-MM-dd")}.pdf`;

@@ -27,12 +27,7 @@ import { UdharForm } from "@/components/UdharForm";
 import { CustomerForm } from "@/components/CustomerForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { haptics } from "@/hooks/useHaptics";
@@ -78,12 +73,12 @@ export default function DashboardPage() {
     }
   }, [incomeFormOpen]);
 
-  const handleAddTransaction = async (data) => {
+  const handleAddTransaction = async data => {
     await addTransaction(data);
     setQuickCaptureData(null);
   };
 
-  const handleAddUdhar = async (data) => {
+  const handleAddUdhar = async data => {
     await addUdhar(data);
   };
 
@@ -122,8 +117,7 @@ export default function DashboardPage() {
   };
 
   const incomeFormTotal =
-    (Number(incomeFormData.cashAmount) || 0) +
-    (Number(incomeFormData.onlineAmount) || 0);
+    (Number(incomeFormData.cashAmount) || 0) + (Number(incomeFormData.onlineAmount) || 0);
 
   // Open Vyapari Bill (transaction form with supplier dropdown open)
   const openVyapariBill = () => {
@@ -154,47 +148,43 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-4 lg:p-6 flex flex-col min-h-[calc(100vh-8rem)]">
+    <div className="flex min-h-[calc(100vh-8rem)] flex-col p-4 lg:p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <h1 className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-2xl font-bold text-transparent">
           Dashboard
         </h1>
-        <p className="text-muted-foreground text-sm">
-          Quick actions for your shop
-        </p>
+        <p className="text-sm text-muted-foreground">Quick actions for your shop</p>
       </div>
 
       {/* 2x2 Quick Action Grid */}
-      <div className="grid grid-cols-2 gap-4 flex-1">
+      <div className="grid flex-1 grid-cols-2 gap-4">
         {/* Vyapari Bill (Quick Bill Capture) */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
+          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
             isOnline && suppliers.length > 0
-              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-indigo-500 to-purple-600"
-              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-indigo-400 to-purple-500"
+              ? "bg-gradient-to-br from-indigo-500 to-purple-600 hover:scale-[1.02] hover:shadow-xl"
+              : "cursor-not-allowed bg-gradient-to-br from-indigo-400 to-purple-500 opacity-50"
           }`}
           onClick={openVyapariBill}
         >
-          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
+          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
+            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
               <Store className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center text-white">
+            <span className="text-center text-base font-semibold text-white">
               Capture Vyapari Bill
             </span>
-            <span className="text-xs text-white/70 mt-1">
-              Quick scan
-            </span>
+            <span className="mt-1 text-xs text-white/70">Quick scan</span>
           </CardContent>
         </Card>
 
         {/* Daily Income */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
+          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
             isOnline
-              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-emerald-500 to-teal-600"
-              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-emerald-400 to-teal-500"
+              ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:scale-[1.02] hover:shadow-xl"
+              : "cursor-not-allowed bg-gradient-to-br from-emerald-400 to-teal-500 opacity-50"
           }`}
           onClick={() => {
             haptics.light();
@@ -206,47 +196,39 @@ export default function DashboardPage() {
             setIncomeFormOpen(true);
           }}
         >
-          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
+          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
+            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
               <IndianRupee className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center text-white">
-              Daily Income
-            </span>
-            <span className="text-xs text-white/70 mt-1">
-              Record earnings
-            </span>
+            <span className="text-center text-base font-semibold text-white">Daily Income</span>
+            <span className="mt-1 text-xs text-white/70">Record earnings</span>
           </CardContent>
         </Card>
 
         {/* Add Udhar */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
+          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
             isOnline
-              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-orange-500 to-rose-500"
-              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-orange-400 to-rose-400"
+              ? "bg-gradient-to-br from-orange-500 to-rose-500 hover:scale-[1.02] hover:shadow-xl"
+              : "cursor-not-allowed bg-gradient-to-br from-orange-400 to-rose-400 opacity-50"
           }`}
           onClick={openAddUdhar}
         >
-          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
+          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
+            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
               <Banknote className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center text-white">
-              Add Udhar
-            </span>
-            <span className="text-xs text-white/70 mt-1">
-              Customer lending
-            </span>
+            <span className="text-center text-base font-semibold text-white">Add Udhar</span>
+            <span className="mt-1 text-xs text-white/70">Customer lending</span>
           </CardContent>
         </Card>
 
         {/* Add Customer */}
         <Card
-          className={`cursor-pointer transition-all active:scale-[0.98] border-0 shadow-sm ${
+          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
             isOnline
-              ? "hover:shadow-xl hover:scale-[1.02] bg-gradient-to-br from-cyan-500 to-blue-600"
-              : "opacity-50 cursor-not-allowed bg-gradient-to-br from-cyan-400 to-blue-500"
+              ? "bg-gradient-to-br from-cyan-500 to-blue-600 hover:scale-[1.02] hover:shadow-xl"
+              : "cursor-not-allowed bg-gradient-to-br from-cyan-400 to-blue-500 opacity-50"
           }`}
           onClick={() => {
             haptics.light();
@@ -258,16 +240,12 @@ export default function DashboardPage() {
             setCustomerFormOpen(true);
           }}
         >
-          <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[140px]">
-            <div className="rounded-2xl bg-white/20 backdrop-blur-sm p-4 mb-3 shadow-lg">
+          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
+            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
               <UserPlus className="h-8 w-8 text-white" />
             </div>
-            <span className="text-base font-semibold text-center text-white">
-              Add Customer
-            </span>
-            <span className="text-xs text-white/70 mt-1">
-              New customer
-            </span>
+            <span className="text-center text-base font-semibold text-white">Add Customer</span>
+            <span className="mt-1 text-xs text-white/70">New customer</span>
           </CardContent>
         </Card>
       </div>
@@ -276,7 +254,7 @@ export default function DashboardPage() {
 
       <TransactionForm
         open={transactionFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setTransactionFormOpen(open);
           if (!open) {
             setQuickCaptureData(null);
@@ -291,7 +269,7 @@ export default function DashboardPage() {
 
       <UdharForm
         open={udharFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setUdharFormOpen(open);
           if (!open) {
             setCustomerDropdownOpen(false);
@@ -306,17 +284,17 @@ export default function DashboardPage() {
       {/* Customer Form */}
       <CustomerForm
         open={customerFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setCustomerFormOpen(open);
           if (!open) {
             setInitialUdharAmount("");
           }
         }}
-        onSubmit={async (data) => {
+        onSubmit={async data => {
           const result = await addCustomer(data);
           if (result.success) {
             toast.success("Customer added successfully");
-            
+
             // Create initial udhar if amount is provided
             if (initialUdharAmount && Number(initialUdharAmount) > 0 && result.data?.id) {
               const udharResult = await addUdhar({
@@ -327,7 +305,9 @@ export default function DashboardPage() {
                 khataPhotos: data.khataPhotos || [],
               });
               if (udharResult.success) {
-                toast.success(`Initial udhar of ₹${Number(initialUdharAmount).toLocaleString()} added`);
+                toast.success(
+                  `Initial udhar of ₹${Number(initialUdharAmount).toLocaleString()} added`
+                );
               }
             }
           } else {
@@ -342,13 +322,9 @@ export default function DashboardPage() {
 
       {/* Daily Income Form - Sheet sliding from top */}
       <Sheet open={incomeFormOpen} onOpenChange={setIncomeFormOpen}>
-        <SheetContent
-          side="top"
-          className="rounded-b-2xl p-0 flex flex-col"
-          hideClose
-        >
+        <SheetContent side="top" className="flex flex-col rounded-b-2xl p-0" hideClose>
           {/* Header with action buttons */}
-          <SheetHeader className="px-4 py-3 border-b">
+          <SheetHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -356,19 +332,19 @@ export default function DashboardPage() {
                 onClick={() => setIncomeFormOpen(false)}
                 className="h-9 px-3"
               >
-                <X className="h-4 w-4 mr-1" />
+                <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="text-base font-semibold flex-1 text-center">
+              <SheetTitle className="flex-1 text-center text-base font-semibold">
                 Add Income
               </SheetTitle>
               <Button
                 size="sm"
                 onClick={handleAddIncome}
                 disabled={incomeFormTotal <= 0}
-                className="h-9 px-3 bg-green-600 hover:bg-green-700"
+                className="h-9 bg-green-600 px-3 hover:bg-green-700"
               >
-                <Check className="h-4 w-4 mr-1" />
+                <Check className="mr-1 h-4 w-4" />
                 Save
               </Button>
             </div>
@@ -377,13 +353,13 @@ export default function DashboardPage() {
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-5">
               {/* Type Switch */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+              <div className="flex items-center justify-between rounded-xl bg-muted/50 p-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Monthly Income</span>
                 </div>
                 <Switch
                   checked={incomeFormData.type === "monthly"}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={checked =>
                     setIncomeFormData({
                       ...incomeFormData,
                       type: checked ? "monthly" : "daily",
@@ -391,8 +367,6 @@ export default function DashboardPage() {
                   }
                 />
               </div>
-
-
 
               {/* Amount Inputs - Side by side */}
               <div className="grid grid-cols-2 gap-3">
@@ -406,14 +380,14 @@ export default function DashboardPage() {
                     type="number"
                     inputMode="numeric"
                     value={incomeFormData.cashAmount}
-                    onChange={(e) =>
+                    onChange={e =>
                       setIncomeFormData({
                         ...incomeFormData,
                         cashAmount: e.target.value,
                       })
                     }
                     placeholder="0"
-                    className="text-2xl h-14 font-bold text-center"
+                    className="h-14 text-center text-2xl font-bold"
                   />
                 </div>
 
@@ -426,23 +400,23 @@ export default function DashboardPage() {
                     type="number"
                     inputMode="numeric"
                     value={incomeFormData.onlineAmount}
-                    onChange={(e) =>
+                    onChange={e =>
                       setIncomeFormData({
                         ...incomeFormData,
                         onlineAmount: e.target.value,
                       })
                     }
                     placeholder="0"
-                    className="text-2xl h-14 font-bold text-center"
+                    className="h-14 text-center text-2xl font-bold"
                   />
                 </div>
               </div>
 
               {/* Total Display - Prominent at top */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20">
+              <div className="rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-5">
                 <div className="text-center">
                   <span className="text-sm text-muted-foreground">Total Income</span>
-                  <div className="text-4xl font-bold text-green-600 mt-1">
+                  <div className="mt-1 text-4xl font-bold text-green-600">
                     ₹{incomeFormTotal.toLocaleString()}
                   </div>
                 </div>
@@ -454,9 +428,7 @@ export default function DashboardPage() {
                 <Input
                   type="date"
                   value={incomeFormData.date}
-                  onChange={(e) =>
-                    setIncomeFormData({ ...incomeFormData, date: e.target.value })
-                  }
+                  onChange={e => setIncomeFormData({ ...incomeFormData, date: e.target.value })}
                   className="h-12"
                 />
               </div>
@@ -466,7 +438,7 @@ export default function DashboardPage() {
                 <Label className="text-sm">Notes (Optional)</Label>
                 <Input
                   value={incomeFormData.description}
-                  onChange={(e) =>
+                  onChange={e =>
                     setIncomeFormData({
                       ...incomeFormData,
                       description: e.target.value,
@@ -481,7 +453,7 @@ export default function DashboardPage() {
 
           {/* Drag handle at bottom */}
           <div className="flex justify-center pb-3 pt-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
       </Sheet>

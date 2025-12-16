@@ -9,12 +9,7 @@
  * @returns {Promise<File>} - Compressed image file
  */
 export async function compressImage(file, options = {}) {
-  const {
-    maxWidth = 1920,
-    maxHeight = 1920,
-    quality = 0.8,
-    maxSizeKB = 500,
-  } = options;
+  const { maxWidth = 1920, maxHeight = 1920, quality = 0.8, maxSizeKB = 500 } = options;
 
   // Skip compression for small files (under 100KB)
   if (file.size < 100 * 1024) {
@@ -29,7 +24,7 @@ export async function compressImage(file, options = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = event => {
       const img = new Image();
 
       img.onload = () => {
@@ -55,9 +50,9 @@ export async function compressImage(file, options = {}) {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Convert to blob with quality adjustment
-        const compressWithQuality = (currentQuality) => {
+        const compressWithQuality = currentQuality => {
           canvas.toBlob(
-            (blob) => {
+            blob => {
               if (!blob) {
                 resolve(file); // Return original if compression fails
                 return;
@@ -78,17 +73,15 @@ export async function compressImage(file, options = {}) {
               // Log compression stats
               const originalSizeKB = Math.round(file.size / 1024);
               const compressedSizeKB = Math.round(compressedFile.size / 1024);
-              const savings = Math.round(
-                ((file.size - compressedFile.size) / file.size) * 100,
-              );
+              const savings = Math.round(((file.size - compressedFile.size) / file.size) * 100);
               console.log(
-                `[Image Compression] ${originalSizeKB}KB → ${compressedSizeKB}KB (${savings}% reduction)`,
+                `[Image Compression] ${originalSizeKB}KB → ${compressedSizeKB}KB (${savings}% reduction)`
               );
 
               resolve(compressedFile);
             },
             "image/jpeg",
-            currentQuality,
+            currentQuality
           );
         };
 
@@ -117,7 +110,7 @@ export async function compressImage(file, options = {}) {
  * @returns {Promise<File[]>} - Array of compressed image files
  */
 export async function compressImages(files, options = {}) {
-  return Promise.all(files.map((file) => compressImage(file, options)));
+  return Promise.all(files.map(file => compressImage(file, options)));
 }
 
 export default compressImage;

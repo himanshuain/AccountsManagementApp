@@ -36,7 +36,7 @@ export function useKeyboardVisible() {
     }
 
     // Also listen to focus events on inputs
-    const handleFocus = (e) => {
+    const handleFocus = e => {
       if (
         e.target.tagName === "INPUT" ||
         e.target.tagName === "TEXTAREA" ||

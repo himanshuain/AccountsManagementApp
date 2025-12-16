@@ -113,7 +113,7 @@ export default function TransactionsPage() {
   });
 
   // Persist tab selection to localStorage
-  const handleTabChange = (tab) => {
+  const handleTabChange = tab => {
     setMainTab(tab);
     if (typeof window !== "undefined") {
       localStorage.setItem("transactionsTab", tab);
@@ -207,11 +207,9 @@ export default function TransactionsPage() {
 
   // Filter and sort supplier transactions
   const filteredTransactions = useMemo(() => {
-    let filtered = transactions.filter((t) => {
-      if (statusFilter !== "all" && t.paymentStatus !== statusFilter)
-        return false;
-      if (supplierFilter !== "all" && t.supplierId !== supplierFilter)
-        return false;
+    let filtered = transactions.filter(t => {
+      if (statusFilter !== "all" && t.paymentStatus !== statusFilter) return false;
+      if (supplierFilter !== "all" && t.supplierId !== supplierFilter) return false;
       return true;
     });
 
@@ -245,12 +243,12 @@ export default function TransactionsPage() {
       const days = parseInt(dateFilter);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
-      filtered = filtered.filter((u) => new Date(u.date) >= startDate);
+      filtered = filtered.filter(u => new Date(u.date) >= startDate);
     }
 
     // Customer filter
     if (customerFilter !== "all") {
-      filtered = filtered.filter((u) => u.customerId === customerFilter);
+      filtered = filtered.filter(u => u.customerId === customerFilter);
     }
 
     // Sort
@@ -275,11 +273,11 @@ export default function TransactionsPage() {
   // Calculate stats
   const totalBills = filteredTransactions.reduce(
     (count, t) => count + (t.billImages?.length || 0),
-    0,
+    0
   );
 
   // Supplier transaction handlers
-  const handleAddTransaction = async (data) => {
+  const handleAddTransaction = async data => {
     if (!isOnline) {
       toast.error("Cannot add transaction while offline");
       return;
@@ -292,7 +290,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleEditTransaction = (transaction) => {
+  const handleEditTransaction = transaction => {
     if (!isOnline) {
       toast.error("Cannot edit while offline");
       return;
@@ -301,7 +299,7 @@ export default function TransactionsPage() {
     setTransactionFormOpen(true);
   };
 
-  const handleUpdateTransaction = async (data) => {
+  const handleUpdateTransaction = async data => {
     if (!isOnline) {
       toast.error("Cannot update while offline");
       return;
@@ -315,7 +313,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleDeleteClick = (transaction) => {
+  const handleDeleteClick = transaction => {
     if (!isOnline) {
       toast.error("Cannot delete while offline");
       return;
@@ -362,7 +360,7 @@ export default function TransactionsPage() {
   };
 
   // Udhar handlers
-  const handleAddUdhar = async (data) => {
+  const handleAddUdhar = async data => {
     if (!isOnline) {
       toast.error("Cannot add Udhar while offline");
       return;
@@ -375,7 +373,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleEditUdhar = (udhar) => {
+  const handleEditUdhar = udhar => {
     if (!isOnline) {
       toast.error("Cannot edit while offline");
       return;
@@ -384,7 +382,7 @@ export default function TransactionsPage() {
     setUdharFormOpen(true);
   };
 
-  const handleUpdateUdhar = async (data) => {
+  const handleUpdateUdhar = async data => {
     if (!isOnline) return;
     const result = await updateUdhar(udharToEdit.id, data);
     if (result.success) {
@@ -395,7 +393,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleDeleteUdhar = async (udhar) => {
+  const handleDeleteUdhar = async udhar => {
     if (!isOnline) {
       toast.error("Cannot delete while offline");
       return;
@@ -416,7 +414,7 @@ export default function TransactionsPage() {
     await recordDeposit(id, amount, mode);
   };
 
-  const handleFullPaid = async (id) => {
+  const handleFullPaid = async id => {
     if (!isOnline) {
       toast.error("Cannot mark as paid while offline");
       return;
@@ -445,7 +443,7 @@ export default function TransactionsPage() {
         cutoffDate = new Date(now.setMonth(now.getMonth() - 6));
     }
 
-    return transactions.filter((t) => new Date(t.date) < cutoffDate);
+    return transactions.filter(t => new Date(t.date) < cutoffDate);
   };
 
   const handleBulkDeleteConfirm = async () => {
@@ -474,7 +472,7 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="p-4 lg:p-6 space-y-4">
+    <div className="space-y-4 p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Transactions</h1>
@@ -491,7 +489,7 @@ export default function TransactionsPage() {
                 disabled={!isOnline}
                 className="text-destructive focus:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="mr-2 h-4 w-4" />
                 Bulk Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -513,11 +511,11 @@ export default function TransactionsPage() {
         </TabsList>
 
         {/* Customers (Udhar) Tab */}
-        <TabsContent value="customers" className="space-y-4 mt-4">
+        <TabsContent value="customers" className="mt-4 space-y-4">
           {/* Stats Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="text-sm px-3 py-1">
+              <Badge variant="secondary" className="px-3 py-1 text-sm">
                 {filteredUdhar.length} Transaction{filteredUdhar.length !== 1 ? "s" : ""}
               </Badge>
               {allReceipts.length > 0 && (
@@ -536,10 +534,10 @@ export default function TransactionsPage() {
 
           {/* Add Udhar Button */}
           <Card
-            className={`cursor-pointer transition-colors border-dashed border-2 ${
+            className={`cursor-pointer border-2 border-dashed transition-colors ${
               isOnline
-                ? "hover:bg-accent/50 hover:border-primary/50"
-                : "opacity-50 cursor-not-allowed"
+                ? "hover:border-primary/50 hover:bg-accent/50"
+                : "cursor-not-allowed opacity-50"
             }`}
             onClick={() => {
               if (!isOnline) {
@@ -550,7 +548,7 @@ export default function TransactionsPage() {
               setUdharFormOpen(true);
             }}
           >
-            <CardContent className="p-4 flex items-center justify-center gap-3 h-20">
+            <CardContent className="flex h-20 items-center justify-center gap-3 p-4">
               <div className="rounded-full bg-amber-500/10 p-2">
                 <Plus className="h-5 w-5 text-amber-600" />
               </div>
@@ -559,14 +557,14 @@ export default function TransactionsPage() {
           </Card>
 
           {/* Filters for Udhar */}
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-[130px] h-9">
+              <SelectTrigger className="h-9 w-[130px]">
                 <SelectValue placeholder="Date" />
               </SelectTrigger>
               <SelectContent>
-                {DATE_FILTERS.map((f) => (
+                {DATE_FILTERS.map(f => (
                   <SelectItem key={f.value} value={f.value}>
                     {f.label}
                   </SelectItem>
@@ -575,12 +573,12 @@ export default function TransactionsPage() {
             </Select>
 
             <Select value={customerFilter} onValueChange={setCustomerFilter}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="h-9 w-[140px]">
                 <SelectValue placeholder="Customer" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Customers</SelectItem>
-                {customers.map((c) => (
+                {customers.map(c => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
@@ -589,7 +587,7 @@ export default function TransactionsPage() {
             </Select>
 
             <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="h-9 w-[140px]">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -611,9 +609,7 @@ export default function TransactionsPage() {
               </SelectContent>
             </Select>
 
-            {(dateFilter !== "all" ||
-              customerFilter !== "all" ||
-              sortOrder !== "date") && (
+            {(dateFilter !== "all" || customerFilter !== "all" || sortOrder !== "date") && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -642,13 +638,12 @@ export default function TransactionsPage() {
         </TabsContent>
 
         {/* Suppliers Tab */}
-        <TabsContent value="suppliers" className="space-y-4 mt-4">
-
+        <TabsContent value="suppliers" className="mt-4 space-y-4">
           {/* Filters */}
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[120px] h-9">
+              <SelectTrigger className="h-9 w-[120px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -658,12 +653,12 @@ export default function TransactionsPage() {
               </SelectContent>
             </Select>
             <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-              <SelectTrigger className="w-[150px] h-9">
+              <SelectTrigger className="h-9 w-[150px]">
                 <SelectValue placeholder="Supplier" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Suppliers</SelectItem>
-                {suppliers.map((supplier) => (
+                {suppliers.map(supplier => (
                   <SelectItem key={supplier.id} value={supplier.id}>
                     {supplier.companyName || supplier.name}
                   </SelectItem>
@@ -671,7 +666,7 @@ export default function TransactionsPage() {
               </SelectContent>
             </Select>
             <Select value={supplierSortOrder} onValueChange={setSupplierSortOrder}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="h-9 w-[140px]">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -695,7 +690,9 @@ export default function TransactionsPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            {(statusFilter !== "all" || supplierFilter !== "all" || supplierSortOrder !== "date") && (
+            {(statusFilter !== "all" ||
+              supplierFilter !== "all" ||
+              supplierSortOrder !== "date") && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -711,11 +708,7 @@ export default function TransactionsPage() {
           </div>
 
           {/* Sub-Tabs for List and Gallery view */}
-          <Tabs
-            value={activeSubTab}
-            onValueChange={setActiveSubTab}
-            className="space-y-4"
-          >
+          <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
             <TabsList className="grid w-full max-w-xs grid-cols-2">
               <TabsTrigger value="list" className="gap-1.5">
                 <List className="h-4 w-4" />
@@ -725,18 +718,18 @@ export default function TransactionsPage() {
                 <Image alt="Gallery" className="h-4 w-4" />
                 Bills
                 {totalBills > 0 && (
-                  <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                  <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-xs text-primary">
                     {totalBills}
                   </span>
                 )}
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="list" className="space-y-4 mt-0">
+            <TabsContent value="list" className="mt-0 space-y-4">
               {filteredTransactions.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center text-muted-foreground">
-                    <Receipt className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <Receipt className="mx-auto mb-2 h-10 w-10 opacity-50" />
                     <p>No transactions found</p>
                     {statusFilter !== "all" || supplierFilter !== "all" ? (
                       <Button
@@ -772,11 +765,8 @@ export default function TransactionsPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="gallery" className="space-y-4 mt-0">
-              <BillGallery
-                transactions={filteredTransactions}
-                suppliers={suppliers}
-              />
+            <TabsContent value="gallery" className="mt-0 space-y-4">
+              <BillGallery transactions={filteredTransactions} suppliers={suppliers} />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -785,16 +775,14 @@ export default function TransactionsPage() {
       {/* Supplier Transaction Form */}
       <TransactionForm
         open={transactionFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setTransactionFormOpen(open);
           if (!open) {
             setTransactionToEdit(null);
             setQuickCaptureData(null);
           }
         }}
-        onSubmit={
-          transactionToEdit ? handleUpdateTransaction : handleAddTransaction
-        }
+        onSubmit={transactionToEdit ? handleUpdateTransaction : handleAddTransaction}
         suppliers={suppliers}
         initialData={transactionToEdit}
         quickCaptureData={quickCaptureData}
@@ -804,7 +792,7 @@ export default function TransactionsPage() {
       {/* Udhar Form */}
       <UdharForm
         open={udharFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setUdharFormOpen(open);
           if (!open) {
             setUdharToEdit(null);
@@ -824,23 +812,19 @@ export default function TransactionsPage() {
         onConfirm={handleConfirmDelete}
         title="Delete Transaction"
         description="This action cannot be undone."
-        itemName={
-          transactionToDelete
-            ? `₹${transactionToDelete.amount?.toLocaleString()}`
-            : ""
-        }
+        itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ""}
       />
 
       {/* Bulk Delete Dialog */}
       <Sheet open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <SheetContent
           side="bottom"
-          className="rounded-t-2xl p-0 flex flex-col max-h-[80vh]"
+          className="flex max-h-[80vh] flex-col rounded-t-2xl p-0"
           hideClose
         >
           {/* Drag handle */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          <div className="flex justify-center pb-2 pt-3">
+            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
           <SheetHeader className="px-6 pb-4">
@@ -849,8 +833,7 @@ export default function TransactionsPage() {
               Bulk Delete Transactions
             </SheetTitle>
             <SheetDescription>
-              Permanently delete multiple supplier transactions. This action
-              cannot be undone.
+              Permanently delete multiple supplier transactions. This action cannot be undone.
             </SheetDescription>
           </SheetHeader>
 
@@ -860,13 +843,13 @@ export default function TransactionsPage() {
               <div className="space-y-2">
                 <Label>Select transactions to delete</Label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50">
                     <input
                       type="radio"
                       name="bulkDelete"
                       value="6months"
                       checked={bulkDeleteOption === "6months"}
-                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      onChange={e => setBulkDeleteOption(e.target.value)}
                       className="h-4 w-4"
                     />
                     <div className="flex-1">
@@ -874,11 +857,9 @@ export default function TransactionsPage() {
                       <p className="text-xs text-muted-foreground">
                         {
                           transactions.filter(
-                            (t) =>
+                            t =>
                               new Date(t.date) <
-                              new Date(
-                                new Date().setMonth(new Date().getMonth() - 6),
-                              ),
+                              new Date(new Date().setMonth(new Date().getMonth() - 6))
                           ).length
                         }{" "}
                         transactions
@@ -886,13 +867,13 @@ export default function TransactionsPage() {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50">
                     <input
                       type="radio"
                       name="bulkDelete"
                       value="1year"
                       checked={bulkDeleteOption === "1year"}
-                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      onChange={e => setBulkDeleteOption(e.target.value)}
                       className="h-4 w-4"
                     />
                     <div className="flex-1">
@@ -900,13 +881,9 @@ export default function TransactionsPage() {
                       <p className="text-xs text-muted-foreground">
                         {
                           transactions.filter(
-                            (t) =>
+                            t =>
                               new Date(t.date) <
-                              new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() - 1,
-                                ),
-                              ),
+                              new Date(new Date().setFullYear(new Date().getFullYear() - 1))
                           ).length
                         }{" "}
                         transactions
@@ -914,13 +891,13 @@ export default function TransactionsPage() {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50">
                     <input
                       type="radio"
                       name="bulkDelete"
                       value="previousYear"
                       checked={bulkDeleteOption === "previousYear"}
-                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      onChange={e => setBulkDeleteOption(e.target.value)}
                       className="h-4 w-4"
                     />
                     <div className="flex-1">
@@ -930,9 +907,7 @@ export default function TransactionsPage() {
                       <p className="text-xs text-muted-foreground">
                         {
                           transactions.filter(
-                            (t) =>
-                              new Date(t.date) <
-                              new Date(new Date().getFullYear() - 1, 11, 31),
+                            t => new Date(t.date) < new Date(new Date().getFullYear() - 1, 11, 31)
                           ).length
                         }{" "}
                         transactions
@@ -940,19 +915,17 @@ export default function TransactionsPage() {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-lg border border-destructive/30 cursor-pointer hover:bg-destructive/5">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-destructive/30 p-3 hover:bg-destructive/5">
                     <input
                       type="radio"
                       name="bulkDelete"
                       value="all"
                       checked={bulkDeleteOption === "all"}
-                      onChange={(e) => setBulkDeleteOption(e.target.value)}
+                      onChange={e => setBulkDeleteOption(e.target.value)}
                       className="h-4 w-4"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-destructive">
-                        All transactions
-                      </span>
+                      <span className="font-medium text-destructive">All transactions</span>
                       <p className="text-xs text-muted-foreground">
                         {transactions.length} transactions (entire history)
                       </p>
@@ -963,12 +936,12 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          <SheetFooter className="sticky bottom-0 px-6 py-4 border-t bg-background z-10 safe-area-bottom">
-            <div className="flex gap-3 w-full">
+          <SheetFooter className="safe-area-bottom sticky bottom-0 z-10 border-t bg-background px-6 py-4">
+            <div className="flex w-full gap-3">
               <Button
                 variant="outline"
                 onClick={() => setBulkDeleteDialogOpen(false)}
-                className="flex-1 h-12"
+                className="h-12 flex-1"
               >
                 Cancel
               </Button>
@@ -976,9 +949,9 @@ export default function TransactionsPage() {
                 variant="destructive"
                 onClick={() => setBulkDeleteConfirmOpen(true)}
                 disabled={!isOnline || getTransactionsToDelete().length === 0}
-                className="flex-1 h-12"
+                className="h-12 flex-1"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="mr-2 h-4 w-4" />
                 Delete {getTransactionsToDelete().length} Transactions
               </Button>
             </div>
@@ -987,16 +960,13 @@ export default function TransactionsPage() {
       </Sheet>
 
       {/* Bulk Delete Confirmation */}
-      <AlertDialog
-        open={bulkDeleteConfirmOpen}
-        onOpenChange={setBulkDeleteConfirmOpen}
-      >
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {getTransactionsToDelete().length}{" "}
-              transactions. This action cannot be undone.
+              This will permanently delete {getTransactionsToDelete().length} transactions. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1012,29 +982,31 @@ export default function TransactionsPage() {
       </AlertDialog>
 
       {/* All Receipts Sheet */}
-      <Sheet open={allReceiptsSheetOpen} onOpenChange={(open) => {
-        // Only close if image viewer is not open
-        if (!open && receiptGalleryOpen) return;
-        setAllReceiptsSheetOpen(open);
-      }}>
+      <Sheet
+        open={allReceiptsSheetOpen}
+        onOpenChange={open => {
+          // Only close if image viewer is not open
+          if (!open && receiptGalleryOpen) return;
+          setAllReceiptsSheetOpen(open);
+        }}
+      >
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
-          <SheetHeader className="p-4 border-b">
+          <SheetHeader className="border-b p-4">
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 All Receipts & Bills ({allReceipts.length})
               </SheetTitle>
               <Button variant="ghost" size="icon" onClick={() => setAllReceiptsSheetOpen(false)}>
-                <span className="sr-only">Close</span>
-                ×
+                <span className="sr-only">Close</span>×
               </Button>
             </div>
           </SheetHeader>
           <ScrollArea className="h-[calc(85vh-80px)]">
             <div className="p-4">
               {allReceipts.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <div className="py-12 text-center text-muted-foreground">
+                  <Receipt className="mx-auto mb-3 h-12 w-12 opacity-50" />
                   <p>No receipts or bills found</p>
                 </div>
               ) : (
@@ -1042,7 +1014,7 @@ export default function TransactionsPage() {
                   {allReceipts.map((receipt, idx) => (
                     <div
                       key={idx}
-                      className="relative rounded-lg overflow-hidden border bg-muted cursor-pointer"
+                      className="relative cursor-pointer overflow-hidden rounded-lg border bg-muted"
                       onClick={() => {
                         setReceiptGalleryImages(allReceipts.map(r => r.url));
                         setReceiptGalleryInitialIndex(idx);
@@ -1053,19 +1025,21 @@ export default function TransactionsPage() {
                         <img
                           src={receipt.url}
                           alt={`${receipt.type} ${idx + 1}`}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                       </div>
                       {/* Info always visible */}
-                      <div className="p-2 bg-card border-t">
-                        <p className="text-xs font-medium truncate">{receipt.customerName}</p>
-                        <div className="flex items-center justify-between mt-0.5">
-                          <span className="text-xs text-muted-foreground">₹{receipt.amount?.toLocaleString()}</span>
+                      <div className="border-t bg-card p-2">
+                        <p className="truncate text-xs font-medium">{receipt.customerName}</p>
+                        <div className="mt-0.5 flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            ₹{receipt.amount?.toLocaleString()}
+                          </span>
                           <Badge
                             variant="secondary"
-                            className={`text-[10px] px-1.5 py-0 ${
-                              receipt.type === "receipt" 
-                                ? "bg-green-100 text-green-700" 
+                            className={`px-1.5 py-0 text-[10px] ${
+                              receipt.type === "receipt"
+                                ? "bg-green-100 text-green-700"
                                 : "bg-amber-100 text-amber-700"
                             }`}
                           >

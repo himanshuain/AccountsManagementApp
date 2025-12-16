@@ -73,18 +73,13 @@ const FormLabel = React.forwardRef(({ className, ...props }, ref) => {
 FormLabel.displayName = "FormLabel";
 
 const FormControl = React.forwardRef(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } =
-    useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 
   return (
     <Slot
       ref={ref}
       id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
+      aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
       {...props}
     />
@@ -106,27 +101,25 @@ const FormDescription = React.forwardRef(({ className, ...props }, ref) => {
 });
 FormDescription.displayName = "FormDescription";
 
-const FormMessage = React.forwardRef(
-  ({ className, children, ...props }, ref) => {
-    const { error, formMessageId } = useFormField();
-    const body = error ? String(error?.message ?? "") : children;
+const FormMessage = React.forwardRef(({ className, children, ...props }, ref) => {
+  const { error, formMessageId } = useFormField();
+  const body = error ? String(error?.message ?? "") : children;
 
-    if (!body) {
-      return null;
-    }
+  if (!body) {
+    return null;
+  }
 
-    return (
-      <p
-        ref={ref}
-        id={formMessageId}
-        className={cn("text-[0.8rem] font-medium text-destructive", className)}
-        {...props}
-      >
-        {body}
-      </p>
-    );
-  },
-);
+  return (
+    <p
+      ref={ref}
+      id={formMessageId}
+      className={cn("text-[0.8rem] font-medium text-destructive", className)}
+      {...props}
+    >
+      {body}
+    </p>
+  );
+});
 FormMessage.displayName = "FormMessage";
 
 export {

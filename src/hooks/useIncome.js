@@ -30,7 +30,7 @@ export function useIncome() {
 
   // Add income mutation - directly to cloud
   const addMutation = useMutation({
-    mutationFn: async (incomeData) => {
+    mutationFn: async incomeData => {
       const response = await fetch("/api/income", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,7 +68,7 @@ export function useIncome() {
 
   // Delete income mutation - directly to cloud
   const deleteMutation = useMutation({
-    mutationFn: async (id) => {
+    mutationFn: async id => {
       const response = await fetch(`/api/income/${id}`, {
         method: "DELETE",
       });
@@ -84,7 +84,7 @@ export function useIncome() {
   });
 
   const addIncome = useCallback(
-    async (incomeData) => {
+    async incomeData => {
       try {
         await addMutation.mutateAsync(incomeData);
         return { success: true };
@@ -92,7 +92,7 @@ export function useIncome() {
         return { success: false, error: err.message };
       }
     },
-    [addMutation],
+    [addMutation]
   );
 
   const updateIncome = useCallback(
@@ -104,11 +104,11 @@ export function useIncome() {
         return { success: false, error: err.message };
       }
     },
-    [updateMutation],
+    [updateMutation]
   );
 
   const deleteIncome = useCallback(
-    async (id) => {
+    async id => {
       try {
         await deleteMutation.mutateAsync(id);
         return { success: true };
@@ -116,35 +116,33 @@ export function useIncome() {
         return { success: false, error: err.message };
       }
     },
-    [deleteMutation],
+    [deleteMutation]
   );
 
   const getByDateRange = useCallback(
     (startDate, endDate) => {
-      return incomeList.filter((i) => {
+      return incomeList.filter(i => {
         const date = new Date(i.date);
         return date >= new Date(startDate) && date <= new Date(endDate);
       });
     },
-    [incomeList],
+    [incomeList]
   );
 
   const getDailyIncome = useCallback(() => {
-    return incomeList.filter((i) => i.type === "daily");
+    return incomeList.filter(i => i.type === "daily");
   }, [incomeList]);
 
   const getMonthlyIncome = useCallback(() => {
-    return incomeList.filter((i) => i.type === "monthly");
+    return incomeList.filter(i => i.type === "monthly");
   }, [incomeList]);
 
   const getTotalIncome = useCallback(
     (type = null) => {
-      const filtered = type
-        ? incomeList.filter((i) => i.type === type)
-        : incomeList;
+      const filtered = type ? incomeList.filter(i => i.type === type) : incomeList;
       return filtered.reduce((sum, i) => sum + (i.amount || 0), 0);
     },
-    [incomeList],
+    [incomeList]
   );
 
   const refresh = useCallback(() => {

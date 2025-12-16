@@ -209,9 +209,9 @@ export function MobileNav() {
   return (
     <>
       {/* Top bar with search */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-b">
+      <div className="fixed left-0 right-0 top-0 z-40 border-b bg-card/95 backdrop-blur-sm lg:hidden">
         {/* Header row */}
-        <div className="h-14 flex items-center px-3 gap-2">
+        <div className="flex h-14 items-center gap-2 px-3">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="shrink-0">
@@ -224,17 +224,17 @@ export function MobileNav() {
               </SheetHeader>
 
               {/* Mobile Menu Content */}
-              <div className="flex flex-col h-full">
+              <div className="flex h-full flex-col">
                 {/* Logo */}
-                <div className="h-16 flex items-center gap-2 px-6 border-b">
-                  <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <div className="flex h-16 items-center gap-2 border-b px-6">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                     <Store className="h-5 w-5 text-primary-foreground" />
                   </div>
-                  <span className="font-semibold text-lg">Shop Manager</span>
+                  <span className="text-lg font-semibold">Shop Manager</span>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-4 py-4 space-y-1">
+                <nav className="flex-1 space-y-1 px-4 py-4">
                   {navItems.map(item => {
                     const isActive =
                       pathname === item.href ||
@@ -244,7 +244,7 @@ export function MobileNav() {
                       <Link key={item.href} href={item.href}>
                         <div
                           className={cn(
-                            "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                            "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
                             isActive
                               ? `${item.color} text-white`
                               : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -259,7 +259,7 @@ export function MobileNav() {
                 </nav>
 
                 {/* Bottom section */}
-                <div className="p-4 space-y-4 border-t">
+                <div className="space-y-4 border-t p-4">
                   {/* Bandwidth Usage */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -270,18 +270,18 @@ export function MobileNav() {
                       )}
                     </div>
                     {storageLoading ? (
-                      <div className="h-2 bg-muted rounded-full animate-pulse" />
+                      <div className="h-2 animate-pulse rounded-full bg-muted" />
                     ) : storageInfo ? (
                       <div className="space-y-1">
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-2 overflow-hidden rounded-full bg-muted">
                           <div
                             className={cn(
                               "h-full rounded-full transition-all",
                               storageInfo.usedPercentage > 80
                                 ? "bg-destructive"
                                 : storageInfo.usedPercentage > 50
-                                ? "bg-amber-500"
-                                : "bg-green-500"
+                                  ? "bg-amber-500"
+                                  : "bg-green-500"
                             )}
                             style={{ width: `${Math.min(storageInfo.usedPercentage, 100)}%` }}
                           />
@@ -310,7 +310,7 @@ export function MobileNav() {
                     className="w-full justify-start text-muted-foreground"
                     onClick={() => setPasswordSheetOpen(true)}
                   >
-                    <Key className="h-4 w-4 mr-2" />
+                    <Key className="mr-2 h-4 w-4" />
                     Change Password
                   </Button>
 
@@ -322,7 +322,7 @@ export function MobileNav() {
                         className="w-full justify-start text-muted-foreground hover:text-destructive"
                         disabled={isClearing}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
+                        <Trash2 className="mr-2 h-4 w-4" />
                         {isClearing ? "Clearing..." : "Clear Site Data"}
                       </Button>
                     </AlertDialogTrigger>
@@ -348,7 +348,7 @@ export function MobileNav() {
                     className="w-full justify-start text-muted-foreground"
                     onClick={handleLogout}
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </Button>
                 </div>
@@ -404,7 +404,7 @@ export function MobileNav() {
                 )}
 
                 {isChangingPassword && (
-                  <p className="text-center text-sm text-muted-foreground mt-4">Changing PIN...</p>
+                  <p className="mt-4 text-center text-sm text-muted-foreground">Changing PIN...</p>
                 )}
               </div>
               <div className="flex gap-3 pb-6">
@@ -449,8 +449,8 @@ export function MobileNav() {
       </div>
 
       {/* Bottom navigation - Colorful tiles */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t safe-area-bottom">
-        <div ref={scrollRef} className="flex items-stretch h-20 px-1.5 py-1.5">
+      <nav className="safe-area-bottom fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-sm lg:hidden">
+        <div ref={scrollRef} className="flex h-20 items-stretch px-1.5 py-1.5">
           {navItems.map(item => {
             const isActive =
               pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -459,13 +459,13 @@ export function MobileNav() {
               <Link key={item.href} href={item.href} className="flex-1 p-1">
                 <div
                   className={cn(
-                    "flex flex-col items-center justify-center h-full rounded-xl transition-all",
+                    "flex h-full flex-col items-center justify-center rounded-xl transition-all",
                     isActive
-                      ? `${item.color} text-white shadow-lg scale-105`
+                      ? `${item.color} scale-105 text-white shadow-lg`
                       : "text-muted-foreground hover:bg-accent/50 active:scale-95"
                   )}
                 >
-                  <item.icon className={cn("h-6 w-6 mb-1", !isActive && item.iconColor)} />
+                  <item.icon className={cn("mb-1 h-6 w-6", !isActive && item.iconColor)} />
                   <span className={cn("text-xs font-medium", !isActive && "text-muted-foreground")}>
                     {item.label}
                   </span>

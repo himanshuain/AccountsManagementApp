@@ -12,18 +12,18 @@ async function getAppPin() {
   if (!isSupabaseConfigured()) {
     return DEFAULT_PIN;
   }
-  
+
   try {
     const { data, error } = await supabase
       .from("app_settings")
       .select("value")
       .eq("key", "app_pin")
       .single();
-    
+
     if (error || !data) {
       return DEFAULT_PIN;
     }
-    
+
     return data.value || DEFAULT_PIN;
   } catch {
     return DEFAULT_PIN;
@@ -35,18 +35,18 @@ async function getSessionVersion() {
   if (!isSupabaseConfigured()) {
     return "1";
   }
-  
+
   try {
     const { data, error } = await supabase
       .from("app_settings")
       .select("value")
       .eq("key", "session_version")
       .single();
-    
+
     if (error || !data) {
       return "1";
     }
-    
+
     return data.value || "1";
   } catch {
     return "1";
@@ -58,18 +58,15 @@ export async function POST(request) {
     const { pin } = await request.json();
 
     if (!pin) {
-      return NextResponse.json(
-        { success: false, error: "PIN is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "PIN is required" }, { status: 400 });
     }
 
     const appPin = await getAppPin();
-    
+
     if (pin === appPin) {
       const sessionVersion = await getSessionVersion();
       const cookieStore = await cookies();
-      
+
       // Set auth cookie (not httpOnly so client JS can read it for auth checks)
       cookieStore.set(AUTH_COOKIE_NAME, "authenticated", {
         httpOnly: false,
@@ -78,7 +75,7 @@ export async function POST(request) {
         maxAge: SESSION_DURATION_SECONDS,
         path: "/",
       });
-      
+
       // Set session version cookie - this will be invalidated when password changes
       cookieStore.set(SESSION_VERSION_COOKIE, sessionVersion, {
         httpOnly: true,
@@ -91,16 +88,10 @@ export async function POST(request) {
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json(
-      { success: false, error: "Invalid PIN" },
-      { status: 401 },
-    );
+    return NextResponse.json({ success: false, error: "Invalid PIN" }, { status: 401 });
   } catch (error) {
     console.error("Auth error:", error);
-    return NextResponse.json(
-      { success: false, error: "Authentication failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "Authentication failed" }, { status: 500 });
   }
 }
 
@@ -112,10 +103,7 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: "Logout failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "Logout failed" }, { status: 500 });
   }
 }
 
@@ -124,12 +112,12 @@ export async function GET() {
     const cookieStore = await cookies();
     const authCookie = cookieStore.get(AUTH_COOKIE_NAME);
     const sessionVersionCookie = cookieStore.get(SESSION_VERSION_COOKIE);
-    
+
     // If not authenticated, return false
     if (authCookie?.value !== "authenticated") {
       return NextResponse.json({ authenticated: false });
     }
-    
+
     // Check if session version matches current version (for logout other devices)
     const currentSessionVersion = await getSessionVersion();
     if (sessionVersionCookie?.value !== currentSessionVersion) {
@@ -137,9 +125,9 @@ export async function GET() {
       // Clear the cookies
       cookieStore.delete(AUTH_COOKIE_NAME);
       cookieStore.delete(SESSION_VERSION_COOKIE);
-      return NextResponse.json({ 
+      return NextResponse.json({
         authenticated: false,
-        reason: "session_invalidated" 
+        reason: "session_invalidated",
       });
     }
 

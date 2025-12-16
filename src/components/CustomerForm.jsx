@@ -128,17 +128,17 @@ export function CustomerForm({
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent
         side="bottom"
-        className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
+        className="flex h-[90vh] flex-col rounded-t-2xl p-0"
         hideClose
         onSwipeClose={handleClose}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        <div className="flex justify-center pb-2 pt-3">
+          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
         </div>
 
         {/* Header with action buttons */}
-        <SheetHeader className="px-4 pb-3 border-b">
+        <SheetHeader className="border-b px-4 pb-3">
           <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
@@ -147,10 +147,10 @@ export function CustomerForm({
               disabled={isSubmitting}
               className="h-9 px-3"
             >
-              <X className="h-4 w-4 mr-1" />
+              <X className="mr-1 h-4 w-4" />
               Cancel
             </Button>
-            <SheetTitle className="text-base font-semibold flex-1 text-center">{title}</SheetTitle>
+            <SheetTitle className="flex-1 text-center text-base font-semibold">{title}</SheetTitle>
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
@@ -161,7 +161,7 @@ export function CustomerForm({
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Check className="h-4 w-4 mr-1" />
+                  <Check className="mr-1 h-4 w-4" />
                   {initialData ? "Save" : "Add"}
                 </>
               )}
@@ -169,10 +169,10 @@ export function CustomerForm({
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-safe">
+        <div className="pb-safe flex-1 overflow-y-auto px-6">
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
             {!isOnline && (
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
                 You&apos;re offline. Saving is disabled.
               </div>
             )}
@@ -199,7 +199,7 @@ export function CustomerForm({
                   required: "Customer name is required",
                 })}
                 placeholder="Enter customer name"
-                className="text-base h-12"
+                className="h-12 text-base"
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
@@ -215,7 +215,7 @@ export function CustomerForm({
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  className="text-base h-12 flex-1"
+                  className="h-12 flex-1 text-base"
                 />
                 {contactPickerSupported && (
                   <Button
@@ -248,7 +248,7 @@ export function CustomerForm({
                   value={initialAmount}
                   onChange={e => onInitialAmountChange(e.target.value)}
                   placeholder="Enter initial lending amount"
-                  className="text-xl h-14 font-bold"
+                  className="h-14 text-xl font-bold"
                 />
                 <p className="text-xs text-muted-foreground">
                   This will create an Udhar entry automatically
@@ -263,7 +263,7 @@ export function CustomerForm({
                 id="address"
                 {...register("address")}
                 placeholder="Full address"
-                className="text-base h-12"
+                className="h-12 text-base"
               />
             </div>
 

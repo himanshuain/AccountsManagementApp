@@ -169,7 +169,7 @@ export function TransactionTable({
         {[1, 2, 3].map(i => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
-              <div className="h-16 bg-muted rounded" />
+              <div className="h-16 rounded bg-muted" />
             </CardContent>
           </Card>
         ))}
@@ -179,7 +179,7 @@ export function TransactionTable({
 
   if (transactions.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="py-8 text-center text-muted-foreground">
         <p>No transactions found</p>
       </div>
     );
@@ -188,24 +188,24 @@ export function TransactionTable({
   return (
     <div className="space-y-4">
       {/* Summary Card */}
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total</p>
                 <p className="text-xl font-bold">₹{totals.total.toLocaleString()}</p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <p className="text-xs text-green-600 uppercase tracking-wide">Paid</p>
+                <p className="text-xs uppercase tracking-wide text-green-600">Paid</p>
                 <p className="text-lg font-semibold text-green-600">
                   ₹{totals.paid.toLocaleString()}
                 </p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <p className="text-xs text-amber-600 uppercase tracking-wide">Pending</p>
+                <p className="text-xs uppercase tracking-wide text-amber-600">Pending</p>
                 <p className="text-lg font-semibold text-amber-600">
                   ₹{totals.pending.toLocaleString()}
                 </p>
@@ -237,9 +237,9 @@ export function TransactionTable({
                 isPaid
                   ? "border-l-4 border-l-green-500"
                   : isPartial
-                  ? "border-l-4 border-l-blue-500"
-                  : "border-l-4 border-l-amber-500",
-                isExpanded && "ring-2 ring-primary/20 shadow-md"
+                    ? "border-l-4 border-l-blue-500"
+                    : "border-l-4 border-l-amber-500",
+                isExpanded && "shadow-md ring-2 ring-primary/20"
               )}
             >
               <CardContent className="p-0">
@@ -255,7 +255,7 @@ export function TransactionTable({
                 >
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Main info */}
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       {/* Supplier with DP */}
                       {showSupplier &&
                         (() => {
@@ -264,23 +264,23 @@ export function TransactionTable({
                             <div className="mb-1">
                               <Link
                                 href={`/suppliers/${transaction.supplierId}`}
-                                className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
                                 onClick={e => e.stopPropagation()}
                               >
                                 {supplier?.profilePicture ? (
                                   <img
                                     src={supplier.profilePicture}
                                     alt=""
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/20">
                                     <span className="text-xs font-semibold text-primary">
                                       {(supplier?.name || "?").charAt(0).toUpperCase()}
                                     </span>
                                   </div>
                                 )}
-                                <span className="font-bold text-base truncate">
+                                <span className="truncate text-base font-bold">
                                   {getSupplierName(transaction.supplierId)}
                                 </span>
                               </Link>
@@ -297,23 +297,23 @@ export function TransactionTable({
                             <div className="mb-1">
                               <Link
                                 href={`/customers?open=${transaction.customerId}`}
-                                className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
                                 onClick={e => e.stopPropagation()}
                               >
                                 {customer?.profilePicture ? (
                                   <img
                                     src={customer.profilePicture}
                                     alt=""
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500/20">
                                     <span className="text-xs font-semibold text-amber-600">
                                       {(customer?.name || "?").charAt(0).toUpperCase()}
                                     </span>
                                   </div>
                                 )}
-                                <span className="font-bold text-base truncate">
+                                <span className="truncate text-base font-bold">
                                   {getCustomerName(transaction.customerId)}
                                 </span>
                               </Link>
@@ -321,7 +321,7 @@ export function TransactionTable({
                           );
                         })()}
 
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="mb-1 flex items-center gap-2">
                         {/* Amount */}
                         <span className="text-lg font-bold">
                           ₹{(transaction.amount || 0).toLocaleString()}
@@ -330,12 +330,12 @@ export function TransactionTable({
                         <Badge
                           variant="secondary"
                           className={cn(
-                            "text-xs px-1.5 py-0",
+                            "px-1.5 py-0 text-xs",
                             isPaid
                               ? "bg-green-500/20 text-green-600"
                               : isPartial
-                              ? "bg-blue-500/20 text-blue-600"
-                              : "bg-amber-500/20 text-amber-600"
+                                ? "bg-blue-500/20 text-blue-600"
+                                : "bg-amber-500/20 text-amber-600"
                           )}
                         >
                           {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
@@ -355,9 +355,9 @@ export function TransactionTable({
                             </span>
                           </div>
                           {/* Progress bar */}
-                          <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
                             <div
-                              className="h-full bg-green-500 rounded-full transition-all"
+                              className="h-full rounded-full bg-green-500 transition-all"
                               style={{
                                 width: `${(paidAmount / (transaction.amount || 1)) * 100}%`,
                               }}
@@ -385,13 +385,13 @@ export function TransactionTable({
 
                         {/* Item name */}
                         {transaction.itemName && (
-                          <span className="truncate max-w-[80px]">{transaction.itemName}</span>
+                          <span className="max-w-[80px] truncate">{transaction.itemName}</span>
                         )}
                       </div>
 
                       {/* Notes if present */}
                       {transaction.notes && (
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
                           {transaction.notes}
                         </p>
                       )}
@@ -415,7 +415,7 @@ export function TransactionTable({
                 {isExpanded && hasPayments && (
                   <div className="border-t bg-primary/5">
                     {/* Action Buttons */}
-                    <div className="p-3 flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-2 p-3">
                       {/* Edit button */}
                       <Button
                         variant="outline"
@@ -423,7 +423,7 @@ export function TransactionTable({
                         onClick={e => handleEditClick(transaction, e)}
                         className="h-9 px-3 text-sm"
                       >
-                        <Edit className="h-4 w-4 mr-1.5" />
+                        <Edit className="mr-1.5 h-4 w-4" />
                         Edit
                       </Button>
 
@@ -433,9 +433,9 @@ export function TransactionTable({
                           variant="outline"
                           size="sm"
                           onClick={e => handlePayClick(transaction, e)}
-                          className="h-9 px-3 text-sm bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                          className="h-9 border-green-200 bg-green-50 px-3 text-sm text-green-700 hover:bg-green-100"
                         >
-                          <CreditCard className="h-4 w-4 mr-1.5" />
+                          <CreditCard className="mr-1.5 h-4 w-4" />
                           Pay
                         </Button>
                       )}
@@ -446,9 +446,9 @@ export function TransactionTable({
                           variant="outline"
                           size="sm"
                           onClick={e => handleViewImages(transaction.billImages, e)}
-                          className="h-9 px-3 text-sm text-blue-600 border-blue-200 hover:bg-blue-50"
+                          className="h-9 border-blue-200 px-3 text-sm text-blue-600 hover:bg-blue-50"
                         >
-                          <ImageIcon className="h-4 w-4 mr-1.5" />
+                          <ImageIcon className="mr-1.5 h-4 w-4" />
                           Photos ({transaction.billImages.length})
                         </Button>
                       )}
@@ -458,18 +458,18 @@ export function TransactionTable({
                         variant="outline"
                         size="sm"
                         onClick={e => handleDeleteClick(transaction, e)}
-                        className="h-9 px-3 text-sm text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto"
+                        className="ml-auto h-9 border-destructive/30 px-3 text-sm text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        <Trash2 className="mr-1.5 h-4 w-4" />
                         Delete
                       </Button>
                     </div>
 
                     {/* Payment Timeline (if has payments) */}
                     {hasPayments && (
-                      <div className="px-3 pb-3 border-t">
+                      <div className="border-t px-3 pb-3">
                         <div className="pt-3">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">
                             Payment History
                           </p>
                           <div className="space-y-0">
@@ -478,17 +478,17 @@ export function TransactionTable({
                               .map((payment, index, arr) => (
                                 <div key={payment.id} className="flex">
                                   {/* Timeline line and dot */}
-                                  <div className="flex flex-col items-center mr-3">
+                                  <div className="mr-3 flex flex-col items-center">
                                     <div
                                       className={cn(
-                                        "w-3 h-3 rounded-full flex items-center justify-center",
+                                        "flex h-3 w-3 items-center justify-center rounded-full",
                                         index === arr.length - 1 ? "bg-green-500" : "bg-green-400"
                                       )}
                                     >
-                                      <CheckCircle2 className="w-2 h-2 text-white" />
+                                      <CheckCircle2 className="h-2 w-2 text-white" />
                                     </div>
                                     {index < arr.length - 1 && (
-                                      <div className="w-0.5 h-full min-h-[24px] bg-green-300" />
+                                      <div className="h-full min-h-[24px] w-0.5 bg-green-300" />
                                     )}
                                   </div>
 
@@ -508,7 +508,7 @@ export function TransactionTable({
                                             setSelectedImages([payment.receiptUrl]);
                                             setImageDialogOpen(true);
                                           }}
-                                          className="ml-auto p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                          className="ml-auto rounded-full bg-primary/10 p-1.5 text-primary transition-colors hover:bg-primary/20"
                                           title="View Receipt"
                                         >
                                           <Receipt className="h-4 w-4" />
@@ -516,7 +516,7 @@ export function TransactionTable({
                                       )}
                                     </div>
                                     {payment.notes && (
-                                      <p className="text-xs text-muted-foreground mt-0.5 italic">
+                                      <p className="mt-0.5 text-xs italic text-muted-foreground">
                                         &quot;{payment.notes}&quot;
                                       </p>
                                     )}

@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }) {
     };
 
     // Handle page show event (for PWA back/forward cache)
-    const handlePageShow = (event) => {
+    const handlePageShow = event => {
       if (event.persisted) {
         // Page was restored from cache
         setIsRehydrating(true);
@@ -75,12 +75,12 @@ export default function DashboardLayout({ children }) {
   // Loading state during auth check
   if (isChecking) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
             <Store className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-lg">Shop Manager</span>
+          <span className="text-lg font-semibold">Shop Manager</span>
         </div>
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
@@ -94,7 +94,7 @@ export default function DashboardLayout({ children }) {
 
       {/* Rehydration overlay - brief flash when resuming from background */}
       {isRehydrating && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center transition-opacity">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       )}
@@ -108,13 +108,13 @@ export default function DashboardLayout({ children }) {
       {/* Main content */}
       <main className="lg:pl-64">
         {/* Desktop Search Header - only visible on lg screens */}
-        <div className="hidden lg:block sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="sticky top-0 z-30 hidden border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:block">
           <div className="px-6 py-3">
             <GlobalSearch className="max-w-md" />
           </div>
         </div>
 
-        <div className="pt-14 lg:pt-0 pb-20 lg:pb-6">{children}</div>
+        <div className="pb-20 pt-14 lg:pb-6 lg:pt-0">{children}</div>
       </main>
     </div>
   );

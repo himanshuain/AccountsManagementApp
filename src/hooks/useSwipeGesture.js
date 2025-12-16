@@ -18,13 +18,13 @@ export function useSwipeGesture(onSwipeDown, options = {}) {
   const touchStartTime = useRef(0);
   const touchCurrentY = useRef(0);
 
-  const handleTouchStart = useCallback((e) => {
+  const handleTouchStart = useCallback(e => {
     touchStartY.current = e.touches[0].clientY;
     touchCurrentY.current = e.touches[0].clientY;
     touchStartTime.current = Date.now();
   }, []);
 
-  const handleTouchMove = useCallback((e) => {
+  const handleTouchMove = useCallback(e => {
     touchCurrentY.current = e.touches[0].clientY;
   }, []);
 
@@ -47,4 +47,3 @@ export function useSwipeGesture(onSwipeDown, options = {}) {
 }
 
 export default useSwipeGesture;
-

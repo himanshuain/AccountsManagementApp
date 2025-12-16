@@ -55,8 +55,8 @@ export function OptimizedImage({
     }
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
+      entries => {
+        entries.forEach(entry => {
           if (entry.isIntersecting) {
             setIsInView(true);
             observer.disconnect();
@@ -95,7 +95,7 @@ export function OptimizedImage({
           alt=""
           aria-hidden="true"
           className={cn(
-            "absolute inset-0 w-full h-full object-cover blur-lg scale-110 transition-opacity duration-300",
+            "absolute inset-0 h-full w-full scale-110 object-cover blur-lg transition-opacity duration-300",
             isLoaded ? "opacity-0" : "opacity-100"
           )}
           style={fill ? { objectFit: "cover" } : undefined}
@@ -115,7 +115,13 @@ export function OptimizedImage({
           )}
           style={
             fill
-              ? { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }
+              ? {
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }
               : { width, height }
           }
           onLoad={handleLoad}
@@ -127,14 +133,7 @@ export function OptimizedImage({
       )}
 
       {/* Loading skeleton when not in view */}
-      {!isInView && (
-        <div
-          className={cn(
-            "absolute inset-0 bg-muted animate-pulse",
-            className
-          )}
-        />
-      )}
+      {!isInView && <div className={cn("absolute inset-0 animate-pulse bg-muted", className)} />}
     </div>
   );
 }
@@ -143,13 +142,7 @@ export function OptimizedImage({
  * Thumbnail version of OptimizedImage
  * Uses lower quality and smaller dimensions automatically
  */
-export function ThumbnailImage({
-  src,
-  alt = "",
-  className,
-  size = 150,
-  ...props
-}) {
+export function ThumbnailImage({ src, alt = "", className, size = 150, ...props }) {
   const [thumbSrc, setThumbSrc] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -176,9 +169,7 @@ export function ThumbnailImage({
       style={{ width: size, height: size }}
     >
       {/* Skeleton */}
-      {!isLoaded && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
-      )}
+      {!isLoaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
 
       {/* Thumbnail */}
       {thumbSrc && (
@@ -186,7 +177,7 @@ export function ThumbnailImage({
           src={thumbSrc}
           alt={alt}
           className={cn(
-            "w-full h-full object-cover transition-opacity duration-200",
+            "h-full w-full object-cover transition-opacity duration-200",
             isLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={() => setIsLoaded(true)}
@@ -200,4 +191,3 @@ export function ThumbnailImage({
 }
 
 export default OptimizedImage;
-
