@@ -264,7 +264,10 @@ export function MobileNav() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Activity className="h-4 w-4" />
-                      <span>{isBandwidth ? "Bandwidth" : "Storage"}</span>
+                      <span>{isBandwidth ? "Storage" : "Storage"}</span>
+                      {storageInfo?.fileCount && (
+                        <span className="text-xs">({storageInfo.fileCount} photos)</span>
+                      )}
                     </div>
                     {storageLoading ? (
                       <div className="h-2 bg-muted rounded-full animate-pulse" />

@@ -1,5 +1,37 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+
+// Helper to increment session version (to logout all other devices)
+async function incrementSessionVersion() {
+  if (!isSupabaseConfigured()) return;
+  
+  try {
+    // Get current version
+    const { data: currentData } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "session_version")
+      .single();
+    
+    const currentVersion = parseInt(currentData?.value || "1", 10);
+    const newVersion = String(currentVersion + 1);
+    
+    // Upsert the new version
+    await supabase
+      .from("app_settings")
+      .upsert({ 
+        key: "session_version", 
+        value: newVersion,
+        updated_at: new Date().toISOString() 
+      }, { onConflict: "key" });
+    
+    return newVersion;
+  } catch (error) {
+    console.error("Failed to increment session version:", error);
+    return null;
+  }
+}
 
 export async function POST(request) {
   try {
@@ -58,7 +90,22 @@ export async function POST(request) {
         );
       }
 
-      return NextResponse.json({ success: true });
+      // Increment session version to logout other devices
+      const newSessionVersion = await incrementSessionVersion();
+      
+      // Update the current session's version cookie
+      if (newSessionVersion) {
+        const cookieStore = await cookies();
+        cookieStore.set("shop_session_version", newSessionVersion, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+          path: "/",
+        });
+      }
+
+      return NextResponse.json({ success: true, loggedOutOtherDevices: true });
     }
 
     if (fetchError) {
@@ -92,7 +139,22 @@ export async function POST(request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    // Increment session version to logout other devices
+    const newSessionVersion = await incrementSessionVersion();
+    
+    // Update the current session's version cookie
+    if (newSessionVersion) {
+      const cookieStore = await cookies();
+      cookieStore.set("shop_session_version", newSessionVersion, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: "/",
+      });
+    }
+
+    return NextResponse.json({ success: true, loggedOutOtherDevices: true });
   } catch (error) {
     console.error("Change password error:", error);
     return NextResponse.json(

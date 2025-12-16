@@ -90,26 +90,35 @@ const sheetVariants = cva(
 
 const SheetContent = React.forwardRef(
   (
-    { side = "right", className, children, hideClose = false, onOpenChange, ...props },
+    { side = "right", className, children, hideClose = false, onOpenChange, onSwipeClose, disableSwipeClose = false, ...props },
     ref,
   ) => {
     const contentRef = React.useRef(null);
     const handleClose = React.useCallback(() => {
+      // If onSwipeClose is provided, call it and let it handle the close
+      // This allows forms to show confirmation dialogs
+      if (onSwipeClose) {
+        onSwipeClose();
+        return;
+      }
       // Trigger close via the close button programmatically
       const closeButton = document.querySelector('[data-sheet-close]');
       if (closeButton) {
         closeButton.click();
       }
-    }, []);
+    }, [onSwipeClose]);
 
     const swipeHandlers = useSwipeClose(handleClose, side);
-    const isSwipeable = side === "bottom" || side === "top";
+    const isSwipeable = (side === "bottom" || side === "top") && !disableSwipeClose;
 
     // Enhanced touch handlers that work on the entire content
     const touchStartRef = React.useRef({ y: 0, x: 0, scrollTop: 0 });
     const [isDragging, setIsDragging] = React.useState(false);
 
     const handleContentTouchStart = React.useCallback((e) => {
+      // Skip if swipe close is disabled
+      if (disableSwipeClose) return;
+      
       const scrollableParent = e.target.closest('[data-scroll-area]') || 
                                e.target.closest('.overflow-y-auto') ||
                                e.target.closest('.overflow-auto');
@@ -121,9 +130,12 @@ const SheetContent = React.forwardRef(
         scrollTop 
       };
       setIsDragging(false);
-    }, []);
+    }, [disableSwipeClose]);
 
     const handleContentTouchMove = React.useCallback((e) => {
+      // Skip if swipe close is disabled
+      if (disableSwipeClose) return;
+      
       const deltaY = e.touches[0].clientY - touchStartRef.current.y;
       const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
       
@@ -134,9 +146,11 @@ const SheetContent = React.forwardRef(
       } else if (side === "top" && deltaY < -10 && deltaX < 50) {
         setIsDragging(true);
       }
-    }, [side]);
+    }, [side, disableSwipeClose]);
 
     const handleContentTouchEnd = React.useCallback((e) => {
+      // Skip if swipe close is disabled
+      if (disableSwipeClose) return;
       if (!isDragging) return;
       
       const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
@@ -150,7 +164,7 @@ const SheetContent = React.forwardRef(
       }
       
       setIsDragging(false);
-    }, [isDragging, side, handleClose]);
+    }, [isDragging, side, handleClose, disableSwipeClose]);
 
     return (
       <SheetPortal>

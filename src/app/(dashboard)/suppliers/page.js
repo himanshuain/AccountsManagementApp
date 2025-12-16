@@ -930,19 +930,20 @@ export default function SuppliersPage() {
                                 <Card
                                   key={txn.id}
                                   className={cn(
-                                    "overflow-hidden",
+                                    "overflow-hidden transition-all",
                                     isPaid
                                       ? "border-l-4 border-l-green-500"
                                       : isPartial
                                       ? "border-l-4 border-l-blue-500"
-                                      : "border-l-4 border-l-amber-500"
+                                      : "border-l-4 border-l-amber-500",
+                                    isExpanded && "ring-2 ring-primary/20 shadow-md"
                                   )}
                                 >
                                   <CardContent className="p-0">
                                     <div
                                       className={cn(
                                         "p-3 transition-colors",
-                                        hasPayments && "cursor-pointer hover:bg-muted/30"
+                                        isExpanded ? "bg-primary/5" : hasPayments && "cursor-pointer hover:bg-muted/30"
                                       )}
                                       onClick={() =>
                                         hasPayments &&
@@ -1039,7 +1040,7 @@ export default function SuppliersPage() {
                                           onClick={e => handleViewBillImages(txn.billImages, e)}
                                         >
                                           <ImageIcon className="h-3 w-3 mr-1" />
-                                          Bills ({txn.billImages.length})
+                                          Photos ({txn.billImages.length})
                                         </Button>
                                       )}
                                       <Button
@@ -1056,7 +1057,7 @@ export default function SuppliersPage() {
 
                                     {/* Expanded Section - Payment History */}
                                     {isExpanded && hasPayments && (
-                                      <div className="px-3 pb-3 border-t bg-muted/20">
+                                      <div className="px-3 pb-3 border-t bg-primary/5">
                                         <div className="pt-3">
                                           <p className="text-xs font-medium text-muted-foreground mb-2">
                                             Payment History

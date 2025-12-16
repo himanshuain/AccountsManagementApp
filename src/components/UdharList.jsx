@@ -248,6 +248,7 @@ export function UdharList({
     loadMore,
     loadMoreRef,
     remainingCount,
+    totalCount,
   } = useProgressiveList(sortedUdhar, 15, 15);
 
   if (loading) {
@@ -321,11 +322,14 @@ export function UdharList({
                     : isPartial
                     ? "border-l-4 border-l-blue-500"
                     : "border-l-4 border-l-amber-500",
-                  isExpanded && "shadow-md bg-blue-800"
+                  isExpanded && "ring-2 ring-primary/20 shadow-md"
                 )}
               >
                 <CollapsibleTrigger asChild>
-                  <CardContent className="p-3 cursor-pointer transition-colors">
+                  <CardContent className={cn(
+                    "p-3 cursor-pointer transition-colors",
+                    isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
+                  )}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -410,7 +414,7 @@ export function UdharList({
                 </CollapsibleTrigger>
 
                 <CollapsibleContent>
-                  <div className="px-3 pb-3 space-y-3">
+                  <div className="px-3 pb-3 space-y-3 border-t bg-primary/5">
                     {udhar.notes && (
                       <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-2">
                         {udhar.notes}
@@ -559,6 +563,7 @@ export function UdharList({
           hasMore={hasMore}
           remainingCount={remainingCount}
           onLoadMore={loadMore}
+          totalCount={totalCount}
         />
       </div>
 

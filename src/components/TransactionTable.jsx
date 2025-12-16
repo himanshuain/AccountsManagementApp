@@ -37,7 +37,7 @@ const paymentModeLabels = {
 };
 
 // Helper to format relative date
-const formatRelativeDate = (dateString) => {
+const formatRelativeDate = dateString => {
   const date = new Date(dateString);
   const now = new Date();
   const diffTime = now - date;
@@ -75,20 +75,20 @@ export function TransactionTable({
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [expandedTransactions, setExpandedTransactions] = useState({});
 
-  const getSupplier = (supplierId) => {
-    return suppliers?.find((s) => s.id === supplierId);
+  const getSupplier = supplierId => {
+    return suppliers?.find(s => s.id === supplierId);
   };
 
-  const getSupplierName = (supplierId) => {
+  const getSupplierName = supplierId => {
     const supplier = getSupplier(supplierId);
     return supplier?.companyName || supplier?.name || "Unknown";
   };
 
-  const getCustomer = (customerId) => {
-    return customers?.find((c) => c.id === customerId);
+  const getCustomer = customerId => {
+    return customers?.find(c => c.id === customerId);
   };
 
-  const getCustomerName = (customerId) => {
+  const getCustomerName = customerId => {
     const customer = getCustomer(customerId);
     return customer?.name || "Unknown";
   };
@@ -117,7 +117,7 @@ export function TransactionTable({
 
   const toggleExpanded = (transactionId, e) => {
     e?.stopPropagation();
-    setExpandedTransactions((prev) => ({
+    setExpandedTransactions(prev => ({
       ...prev,
       [transactionId]: !prev[transactionId],
     }));
@@ -147,13 +147,11 @@ export function TransactionTable({
       }
       return acc;
     },
-    { total: 0, paid: 0, pending: 0 },
+    { total: 0, paid: 0, pending: 0 }
   );
 
   // Sort by date (oldest first - old transactions at top)
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(a.date) - new Date(b.date),
-  );
+  const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // Progressive loading for large lists
   const {
@@ -162,12 +160,13 @@ export function TransactionTable({
     loadMore,
     loadMoreRef,
     remainingCount,
+    totalCount,
   } = useProgressiveList(sortedTransactions, 15, 15);
 
   if (loading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3].map(i => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
               <div className="h-16 bg-muted rounded" />
@@ -194,27 +193,19 @@ export function TransactionTable({
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-6">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Total
-                </p>
-                <p className="text-xl font-bold">
-                  ₹{totals.total.toLocaleString()}
-                </p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="text-xl font-bold">₹{totals.total.toLocaleString()}</p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <p className="text-xs text-green-600 uppercase tracking-wide">
-                  Paid
-                </p>
+                <p className="text-xs text-green-600 uppercase tracking-wide">Paid</p>
                 <p className="text-lg font-semibold text-green-600">
                   ₹{totals.paid.toLocaleString()}
                 </p>
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <p className="text-xs text-amber-600 uppercase tracking-wide">
-                  Pending
-                </p>
+                <p className="text-xs text-amber-600 uppercase tracking-wide">Pending</p>
                 <p className="text-lg font-semibold text-amber-600">
                   ₹{totals.pending.toLocaleString()}
                 </p>
@@ -230,9 +221,8 @@ export function TransactionTable({
 
       {/* Transaction List */}
       <div className="space-y-2">
-        {visibleTransactions.map((transaction) => {
-          const hasPayments =
-            transaction.payments && transaction.payments.length > 0;
+        {visibleTransactions.map(transaction => {
+          const hasPayments = transaction.payments && transaction.payments.length > 0;
           const isExpanded = expandedTransactions[transaction.id];
           const paidAmount = transaction.paidAmount || 0;
           const pendingAmount = (transaction.amount || 0) - paidAmount;
@@ -247,83 +237,89 @@ export function TransactionTable({
                 isPaid
                   ? "border-l-4 border-l-green-500"
                   : isPartial
-                    ? "border-l-4 border-l-blue-500"
-                    : "border-l-4 border-l-amber-500",
+                  ? "border-l-4 border-l-blue-500"
+                  : "border-l-4 border-l-amber-500",
+                isExpanded && "ring-2 ring-primary/20 shadow-md"
               )}
             >
               <CardContent className="p-0">
                 {/* Main Transaction Row - Tap to expand if has payments */}
                 <div
-                  onClick={(e) => hasPayments && toggleExpanded(transaction.id, e)}
+                  onClick={e => hasPayments && toggleExpanded(transaction.id, e)}
                   className={cn(
                     "p-3 transition-all",
-                    hasPayments && "cursor-pointer hover:bg-muted/50 active:scale-[0.99]"
+                    isExpanded
+                      ? "bg-primary/5"
+                      : hasPayments && "cursor-pointer hover:bg-muted/50 active:scale-[0.99]"
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">
                     {/* Left: Main info */}
                     <div className="flex-1 min-w-0">
                       {/* Supplier with DP */}
-                      {showSupplier && (() => {
-                        const supplier = getSupplier(transaction.supplierId);
-                        return (
-                          <div className="mb-1">
-                            <Link
-                              href={`/suppliers/${transaction.supplierId}`}
-                              className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {supplier?.profilePicture ? (
-                                <img
-                                  src={supplier.profilePicture}
-                                  alt=""
-                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-xs font-semibold text-primary">
-                                    {(supplier?.name || "?").charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                              <span className="font-bold text-base truncate">
-                                {getSupplierName(transaction.supplierId)}
-                              </span>
-                            </Link>
-                          </div>
-                        );
-                      })()}
+                      {showSupplier &&
+                        (() => {
+                          const supplier = getSupplier(transaction.supplierId);
+                          return (
+                            <div className="mb-1">
+                              <Link
+                                href={`/suppliers/${transaction.supplierId}`}
+                                className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {supplier?.profilePicture ? (
+                                  <img
+                                    src={supplier.profilePicture}
+                                    alt=""
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-semibold text-primary">
+                                      {(supplier?.name || "?").charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                                <span className="font-bold text-base truncate">
+                                  {getSupplierName(transaction.supplierId)}
+                                </span>
+                              </Link>
+                            </div>
+                          );
+                        })()}
 
                       {/* Customer with DP */}
-                      {showCustomer && transaction.customerId && (() => {
-                        const customer = getCustomer(transaction.customerId);
-                        return (
-                          <div className="mb-1">
-                            <Link
-                              href={`/customers?open=${transaction.customerId}`}
-                              className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {customer?.profilePicture ? (
-                                <img
-                                  src={customer.profilePicture}
-                                  alt=""
-                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-xs font-semibold text-amber-600">
-                                    {(customer?.name || "?").charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                              <span className="font-bold text-base truncate">
-                                {getCustomerName(transaction.customerId)}
-                              </span>
-                            </Link>
-                          </div>
-                        );
-                      })()}
+                      {showCustomer &&
+                        transaction.customerId &&
+                        (() => {
+                          const customer = getCustomer(transaction.customerId);
+                          return (
+                            <div className="mb-1">
+                              <Link
+                                href={`/customers?open=${transaction.customerId}`}
+                                className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {customer?.profilePicture ? (
+                                  <img
+                                    src={customer.profilePicture}
+                                    alt=""
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-semibold text-amber-600">
+                                      {(customer?.name || "?").charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                                <span className="font-bold text-base truncate">
+                                  {getCustomerName(transaction.customerId)}
+                                </span>
+                              </Link>
+                            </div>
+                          );
+                        })()}
 
                       <div className="flex items-center gap-2 mb-1">
                         {/* Amount */}
@@ -338,8 +334,8 @@ export function TransactionTable({
                             isPaid
                               ? "bg-green-500/20 text-green-600"
                               : isPartial
-                                ? "bg-blue-500/20 text-blue-600"
-                                : "bg-amber-500/20 text-amber-600",
+                              ? "bg-blue-500/20 text-blue-600"
+                              : "bg-amber-500/20 text-amber-600"
                           )}
                         >
                           {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
@@ -374,28 +370,22 @@ export function TransactionTable({
                         {/* Date */}
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(transaction.date).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              year: "2-digit",
-                            },
-                          )}
+                          {new Date(transaction.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "2-digit",
+                          })}
                         </span>
 
                         {/* Payment mode */}
                         <span className="flex items-center gap-1">
                           <CreditCard className="h-3 w-3" />
-                          {paymentModeLabels[transaction.paymentMode] ||
-                            transaction.paymentMode}
+                          {paymentModeLabels[transaction.paymentMode] || transaction.paymentMode}
                         </span>
 
                         {/* Item name */}
                         {transaction.itemName && (
-                          <span className="truncate max-w-[80px]">
-                            {transaction.itemName}
-                          </span>
+                          <span className="truncate max-w-[80px]">{transaction.itemName}</span>
                         )}
                       </div>
 
@@ -413,7 +403,7 @@ export function TransactionTable({
                         <ChevronDown
                           className={cn(
                             "h-5 w-5 text-muted-foreground transition-transform duration-200",
-                            isExpanded && "rotate-180",
+                            isExpanded && "rotate-180"
                           )}
                         />
                       </div>
@@ -423,14 +413,14 @@ export function TransactionTable({
 
                 {/* Expandable Section - Actions + Payment History - only show if has payments */}
                 {isExpanded && hasPayments && (
-                  <div className="border-t bg-muted/30">
+                  <div className="border-t bg-primary/5">
                     {/* Action Buttons */}
                     <div className="p-3 flex items-center gap-2 flex-wrap">
                       {/* Edit button */}
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => handleEditClick(transaction, e)}
+                        onClick={e => handleEditClick(transaction, e)}
                         className="h-9 px-3 text-sm"
                       >
                         <Edit className="h-4 w-4 mr-1.5" />
@@ -442,7 +432,7 @@ export function TransactionTable({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={(e) => handlePayClick(transaction, e)}
+                          onClick={e => handlePayClick(transaction, e)}
                           className="h-9 px-3 text-sm bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                         >
                           <CreditCard className="h-4 w-4 mr-1.5" />
@@ -450,18 +440,16 @@ export function TransactionTable({
                         </Button>
                       )}
 
-                      {/* Bill images */}
+                      {/* Bill/Khata photos */}
                       {transaction.billImages?.length > 0 && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={(e) =>
-                            handleViewImages(transaction.billImages, e)
-                          }
-                          className="h-9 px-3 text-sm"
+                          onClick={e => handleViewImages(transaction.billImages, e)}
+                          className="h-9 px-3 text-sm text-blue-600 border-blue-200 hover:bg-blue-50"
                         >
                           <ImageIcon className="h-4 w-4 mr-1.5" />
-                          Bills ({transaction.billImages.length})
+                          Photos ({transaction.billImages.length})
                         </Button>
                       )}
 
@@ -469,7 +457,7 @@ export function TransactionTable({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => handleDeleteClick(transaction, e)}
+                        onClick={e => handleDeleteClick(transaction, e)}
                         className="h-9 px-3 text-sm text-destructive border-destructive/30 hover:bg-destructive/10 ml-auto"
                       >
                         <Trash2 className="h-4 w-4 mr-1.5" />
@@ -486,9 +474,7 @@ export function TransactionTable({
                           </p>
                           <div className="space-y-0">
                             {transaction.payments
-                              .sort(
-                                (a, b) => new Date(a.date) - new Date(b.date),
-                              )
+                              .sort((a, b) => new Date(a.date) - new Date(b.date))
                               .map((payment, index, arr) => (
                                 <div key={payment.id} className="flex">
                                   {/* Timeline line and dot */}
@@ -496,9 +482,7 @@ export function TransactionTable({
                                     <div
                                       className={cn(
                                         "w-3 h-3 rounded-full flex items-center justify-center",
-                                        index === arr.length - 1
-                                          ? "bg-green-500"
-                                          : "bg-green-400",
+                                        index === arr.length - 1 ? "bg-green-500" : "bg-green-400"
                                       )}
                                     >
                                       <CheckCircle2 className="w-2 h-2 text-white" />
@@ -519,11 +503,9 @@ export function TransactionTable({
                                       </span>
                                       {payment.receiptUrl && (
                                         <button
-                                          onClick={(e) => {
+                                          onClick={e => {
                                             e.stopPropagation();
-                                            setSelectedImages([
-                                              payment.receiptUrl,
-                                            ]);
+                                            setSelectedImages([payment.receiptUrl]);
                                             setImageDialogOpen(true);
                                           }}
                                           className="ml-auto p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
@@ -539,9 +521,7 @@ export function TransactionTable({
                                       </p>
                                     )}
                                     {payment.isFinalPayment && (
-                                      <span className="text-xs text-green-600">
-                                        Final payment
-                                      </span>
+                                      <span className="text-xs text-green-600">Final payment</span>
                                     )}
                                   </div>
                                 </div>
@@ -556,13 +536,14 @@ export function TransactionTable({
             </Card>
           );
         })}
-        
+
         {/* Load More Trigger */}
         <LoadMoreTrigger
           loadMoreRef={loadMoreRef}
           hasMore={hasMore}
           remainingCount={remainingCount}
           onLoadMore={loadMore}
+          totalCount={totalCount}
         />
       </div>
 
@@ -580,8 +561,7 @@ export function TransactionTable({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this transaction. This action cannot
-              be undone.
+              This will permanently delete this transaction. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

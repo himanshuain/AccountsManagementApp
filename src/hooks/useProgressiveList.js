@@ -15,12 +15,21 @@ export function useProgressiveList(items = [], initialCount = 20, batchSize = 20
   const [visibleCount, setVisibleCount] = useState(initialCount);
   const loadMoreRef = useRef(null);
   const prevItemsLength = useRef(items.length);
+  const hasInitialized = useRef(false);
 
   // Reset visible count when items change significantly (e.g., filter change)
   useEffect(() => {
+    // On first population of items, set to initial count
+    if (!hasInitialized.current && items.length > 0) {
+      hasInitialized.current = true;
+      setVisibleCount(Math.min(initialCount, items.length));
+      prevItemsLength.current = items.length;
+      return;
+    }
+    
     // If items length decreased significantly or is now less than visible count
     if (items.length < prevItemsLength.current * 0.5 || items.length < visibleCount) {
-      setVisibleCount(Math.min(initialCount, items.length));
+      setVisibleCount(Math.min(initialCount, Math.max(items.length, 1)));
     }
     prevItemsLength.current = items.length;
   }, [items.length, initialCount, visibleCount]);
@@ -75,8 +84,9 @@ export function useProgressiveList(items = [], initialCount = 20, batchSize = 20
 /**
  * LoadMoreTrigger component to place at the end of a list
  */
-export function LoadMoreTrigger({ loadMoreRef, hasMore, remainingCount, onLoadMore }) {
-  if (!hasMore) return null;
+export function LoadMoreTrigger({ loadMoreRef, hasMore, remainingCount, onLoadMore, totalCount = 0 }) {
+  // Don't show if there's nothing more to load or no items at all
+  if (!hasMore || remainingCount <= 0 || totalCount === 0) return null;
 
   return (
     <div 

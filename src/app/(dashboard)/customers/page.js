@@ -302,6 +302,7 @@ export default function CustomersPage() {
     loadMore: loadMoreCustomers,
     loadMoreRef: customersLoadMoreRef,
     remainingCount: customersRemaining,
+    totalCount: customersTotalCount,
   } = useProgressiveList(filteredCustomers, 15, 15);
 
   // Filtered udhar for the "All Udhar" section
@@ -976,31 +977,36 @@ export default function CustomersPage() {
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
               : [];
 
-            // Get all khata photos for this customer
+            // Get all khata photos for this customer (from customer profile + udhar transactions)
             const customerKhataPhotos = isExpanded
-              ? udharList
-                  .filter((u) => u.customerId === customer.id)
-                  .flatMap((u) => u.khataPhotos || u.billImages || [])
+              ? [
+                  // Customer's own khata photos (added when creating customer)
+                  ...(customer.khataPhotos || []),
+                  // Photos from udhar transactions
+                  ...udharList
+                    .filter((u) => u.customerId === customer.id)
+                    .flatMap((u) => u.khataPhotos || u.billImages || [])
+                ]
               : [];
 
             return (
               <Card
                 key={customer.id}
                 className={cn(
-                  "overflow-hidden transition-all",
-                  customer.pendingAmount > 0
-                    ? "border-l-4 border-l-amber-500"
-                    : "border-l-4 border-l-green-500",
-                  isExpanded && " shadow-md bg-blue-800",
+                                  "overflow-hidden transition-all",
+                                  customer.pendingAmount > 0
+                                    ? "border-l-4 border-l-amber-500"
+                                    : "border-l-4 border-l-green-500",
+                                  isExpanded && "ring-2 ring-primary/20 shadow-md",
                 )}
               >
                 <CardContent className="p-0">
                   {/* Main Row - tap to expand/collapse */}
-                  <div
-                    className={cn(
-                      "p-3 cursor-pointer  active:scale-[0.99] transition-all",
-                      isExpanded && "bg-blue-800"
-                    )}
+                                  <div
+                                    className={cn(
+                                      "p-3 cursor-pointer active:scale-[0.99] transition-all",
+                                      isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
+                                    )}
                     onClick={() =>
                       setExpandedCustomerId(isExpanded ? null : customer.id)
                     }
@@ -1056,8 +1062,8 @@ export default function CustomersPage() {
                   </div>
 
                   {/* Collapsible Section with Progress, Payment History & Actions */}
-                  {isExpanded && (
-                    <div className="px-3 pb-3 pt-0 border-t bg-muted/30">
+                                  {isExpanded && (
+                                    <div className="px-3 pb-3 pt-0 border-t bg-primary/5">
                       {/* Remaining Amount - Prominent on top */}
                       {customer.pendingAmount > 0 && (
                         <div className="pt-3 pb-2">
@@ -1298,6 +1304,7 @@ export default function CustomersPage() {
             hasMore={hasMoreCustomers}
             remainingCount={customersRemaining}
             onLoadMore={loadMoreCustomers}
+            totalCount={customersTotalCount}
           />
             </div>
           )}
@@ -1311,14 +1318,14 @@ export default function CustomersPage() {
             <div className="flex items-center gap-3 ">
               <Receipt className="h-5 w-5 text-amber-500" />
               <span className="font-bold text-amber-500 text-lg">All Udhar Transactions</span>
-              <Badge variant="secondary" className="text-xs">
+              {/* <Badge variant="secondary" className="text-xs">
                 {udharList.length} txns
               </Badge>
               {allReceipts.length > 0 && (
                 <Badge variant="outline" className="text-xs">
                   {allReceipts.length} receipts
                 </Badge>
-              )}
+              )} */}
             </div>
             <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", udharExpanded && "rotate-180")} />
           </button>
@@ -2265,20 +2272,24 @@ export default function CustomersPage() {
                           const isExpanded = expandedUdharId === txn.id;
 
                           return (
-                            <Card
+                              <Card
                               key={txn.id}
                               className={cn(
-                                "overflow-hidden",
+                                "overflow-hidden transition-all",
                                 isPaid
                                   ? "border-l-4 border-l-green-500"
                                   : isPartial
                                     ? "border-l-4 border-l-blue-500"
-                                    : "border-l-4 border-l-amber-500"
+                                    : "border-l-4 border-l-amber-500",
+                                isExpanded && "ring-2 ring-primary/20 shadow-md"
                               )}
                             >
                               <CardContent className="p-0">
                                 <div
-                                  className="p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                                  className={cn(
+                                    "p-3 cursor-pointer transition-colors",
+                                    isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
+                                  )}
                                   onClick={() => setExpandedUdharId(isExpanded ? null : txn.id)}
                                 >
                                   <div className="flex items-center justify-between">
@@ -2308,7 +2319,7 @@ export default function CustomersPage() {
                                         {txn.notes && ` • ${txn.notes}`}
                                       </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
                                       {!isPaid && (
                                         <Button
                                           variant="outline"
@@ -2324,14 +2335,52 @@ export default function CustomersPage() {
                                           Pay
                                         </Button>
                                       )}
-                                      {hasPayments && (
-                                        <ChevronDown
-                                          className={cn(
-                                            "h-4 w-4 text-muted-foreground transition-transform",
-                                            isExpanded && "rotate-180"
-                                          )}
-                                        />
-                                      )}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (!isOnline) {
+                                            toast.error("Cannot edit while offline");
+                                            return;
+                                          }
+                                          setUdharToEdit(txn);
+                                          setUdharFormOpen(true);
+                                        }}
+                                        disabled={!isOnline}
+                                      >
+                                        <Edit className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-destructive hover:text-destructive"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (!isOnline) {
+                                            toast.error("Cannot delete while offline");
+                                            return;
+                                          }
+                                          if (confirm("Are you sure you want to delete this transaction?")) {
+                                            const result = await deleteUdhar(txn.id);
+                                            if (result.success) {
+                                              toast.success("Transaction deleted");
+                                            } else {
+                                              toast.error("Failed to delete");
+                                            }
+                                          }
+                                        }}
+                                        disabled={!isOnline}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <ChevronDown
+                                        className={cn(
+                                          "h-4 w-4 text-muted-foreground transition-transform",
+                                          isExpanded && "rotate-180"
+                                        )}
+                                      />
                                     </div>
                                   </div>
 
@@ -2354,7 +2403,7 @@ export default function CustomersPage() {
 
                                 {/* Expanded Section */}
                                 {isExpanded && hasPayments && (
-                                  <div className="px-3 pb-3 border-t bg-muted/20">
+                                  <div className="px-3 pb-3 border-t bg-primary/5">
                                     <div className="pt-3">
                                       <p className="text-xs font-medium text-muted-foreground mb-2">Payment History</p>
                                       <div className="space-y-0">

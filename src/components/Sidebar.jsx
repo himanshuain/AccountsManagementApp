@@ -212,13 +212,13 @@ export function Sidebar() {
       <div className="p-4 space-y-4">
         <Separator />
 
-        {/* Bandwidth Usage */}
+        {/* Storage Usage */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Activity className="h-4 w-4" />
-            <span>{isBandwidth ? "Bandwidth" : "Storage"}</span>
+            <span>Storage</span>
             {storageInfo?.fileCount && (
-              <span className="text-xs text-muted-foreground">({storageInfo.fileCount} files)</span>
+              <span className="text-xs text-muted-foreground">({storageInfo.fileCount} photos)</span>
             )}
           </div>
           {storageLoading ? (

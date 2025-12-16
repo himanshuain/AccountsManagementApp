@@ -171,7 +171,7 @@ export function TransactionForm({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0 flex flex-col" hideClose>
+      <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0 flex flex-col" hideClose onSwipeClose={handleClose}>
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />

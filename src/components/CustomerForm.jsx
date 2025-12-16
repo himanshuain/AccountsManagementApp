@@ -142,6 +142,7 @@ export function CustomerForm({
         side="bottom"
         className="h-[90vh] rounded-t-2xl p-0 flex flex-col"
         hideClose
+        onSwipeClose={handleClose}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
