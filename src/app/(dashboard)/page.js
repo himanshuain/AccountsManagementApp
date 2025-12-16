@@ -324,6 +324,7 @@ export default function DashboardPage() {
                 amount: Number(initialUdharAmount),
                 description: "Initial balance (खाता बाकी)",
                 date: new Date().toISOString().split("T")[0],
+                khataPhotos: data.khataPhotos || [],
               });
               if (udharResult.success) {
                 toast.success(`Initial udhar of ₹${Number(initialUdharAmount).toLocaleString()} added`);

@@ -50,6 +50,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Sheet,
@@ -192,6 +193,10 @@ export default function CustomersPage() {
   
   // Udhar editing state
   const [udharToEdit, setUdharToEdit] = useState(null);
+  
+  // Customer khata photos sheet state
+  const [khataPhotosSheetOpen, setKhataPhotosSheetOpen] = useState(false);
+  const [deletingPhotoIndex, setDeletingPhotoIndex] = useState(null);
 
   // Auto-focus payment input and scroll into view
   useEffect(() => {
@@ -478,12 +483,13 @@ export default function CustomersPage() {
     const result = await addCustomer(customerData);
 
     if (result.success && initialAmount && Number(initialAmount) > 0) {
-      // Add initial udhar transaction
+      // Add initial udhar transaction with khata photos if any
       await addUdhar({
         customerId: result.data.id,
         amount: Number(initialAmount),
         date: new Date().toISOString().split("T")[0],
         notes: "Initial lending amount",
+        khataPhotos: customerData.khataPhotos || [],
       });
       toast.success("Customer added with initial Udhar");
     } else if (result.success) {
@@ -535,6 +541,57 @@ export default function CustomersPage() {
       .filter((u) => u.customerId === selectedCustomer.id)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [selectedCustomer, udharList]);
+
+  // Get all khata photos for selected customer with transaction reference
+  const selectedCustomerKhataPhotos = useMemo(() => {
+    if (!selectedCustomer) return [];
+    const photos = [];
+    selectedCustomerTransactions.forEach((txn) => {
+      if (txn.khataPhotos && Array.isArray(txn.khataPhotos)) {
+        txn.khataPhotos.forEach((photo, index) => {
+          if (photo && typeof photo === "string") {
+            photos.push({
+              url: photo,
+              udharId: txn.id,
+              photoIndex: index,
+              date: txn.date,
+              amount: txn.amount || (txn.cashAmount || 0) + (txn.onlineAmount || 0),
+            });
+          }
+        });
+      }
+    });
+    return photos;
+  }, [selectedCustomer, selectedCustomerTransactions]);
+
+  // Handle deleting a khata photo
+  const handleDeleteKhataPhoto = async (photo) => {
+    if (!isOnline) {
+      toast.error("Cannot delete while offline");
+      return;
+    }
+    
+    const udhar = udharList.find(u => u.id === photo.udharId);
+    if (!udhar) {
+      toast.error("Transaction not found");
+      return;
+    }
+    
+    // Remove the photo from the khataPhotos array
+    const updatedPhotos = [...(udhar.khataPhotos || [])];
+    updatedPhotos.splice(photo.photoIndex, 1);
+    
+    const result = await updateUdhar(photo.udharId, {
+      khataPhotos: updatedPhotos,
+    });
+    
+    if (result.success) {
+      toast.success("Photo deleted");
+    } else {
+      toast.error("Failed to delete photo");
+    }
+    setDeletingPhotoIndex(null);
+  };
 
   // Handle customer edit
   const handleEditCustomer = async (data) => {
@@ -981,7 +1038,6 @@ export default function CustomersPage() {
             const customerKhataPhotos = isExpanded
               ? [
                   // Customer's own khata photos (added when creating customer)
-                  ...(customer.khataPhotos || []),
                   // Photos from udhar transactions
                   ...udharList
                     .filter((u) => u.customerId === customer.id)
@@ -1038,12 +1094,7 @@ export default function CustomersPage() {
                             </Badge>
                           )}
                         </div>
-                        {customer.phone && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {customer.phone}
-                          </p>
-                        )}
+                       
                         {customer.pendingAmount > 0 && (
                           <p className="text-sm font-semibold text-amber-600 mt-1">
                             Pending: ₹{customer.pendingAmount.toLocaleString()}
@@ -2231,22 +2282,35 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  {/* Add Udhar Button */}
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      if (!isOnline) {
-                        toast.error("Cannot add while offline");
-                        return;
-                      }
-                      setQuickAddCustomer(selectedCustomer);
-                      setQuickAddOpen(true);
-                    }}
-                    disabled={!isOnline}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Udhar
-                  </Button>
+                  {/* Action Buttons Row */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        if (!isOnline) {
+                          toast.error("Cannot add while offline");
+                          return;
+                        }
+                        setQuickAddCustomer(selectedCustomer);
+                        setQuickAddOpen(true);
+                      }}
+                      disabled={!isOnline}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Udhar
+                    </Button>
+                    
+                    {selectedCustomerKhataPhotos.length > 0 && (
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => setKhataPhotosSheetOpen(true)}
+                      >
+                        <Camera className="h-4 w-4" />
+                        Photos ({selectedCustomerKhataPhotos.length})
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Transactions Section - Directly visible */}
                   <div>
@@ -2281,16 +2345,17 @@ export default function CustomersPage() {
                                   : isPartial
                                     ? "border-l-4 border-l-blue-500"
                                     : "border-l-4 border-l-amber-500",
-                                isExpanded && "ring-2 ring-primary/20 shadow-md"
+                                isExpanded && hasPayments && "ring-2 ring-primary/20 shadow-md"
                               )}
                             >
                               <CardContent className="p-0">
                                 <div
                                   className={cn(
-                                    "p-3 cursor-pointer transition-colors",
-                                    isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
+                                    "p-3 transition-colors",
+                                    hasPayments && "cursor-pointer",
+                                    isExpanded ? "bg-primary/5" : hasPayments && "hover:bg-muted/30"
                                   )}
-                                  onClick={() => setExpandedUdharId(isExpanded ? null : txn.id)}
+                                  onClick={() => hasPayments && setExpandedUdharId(isExpanded ? null : txn.id)}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div>
@@ -2375,12 +2440,14 @@ export default function CustomersPage() {
                                       >
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </Button>
-                                      <ChevronDown
-                                        className={cn(
-                                          "h-4 w-4 text-muted-foreground transition-transform",
-                                          isExpanded && "rotate-180"
-                                        )}
-                                      />
+                                      {hasPayments && (
+                                        <ChevronDown
+                                          className={cn(
+                                            "h-4 w-4 text-muted-foreground transition-transform",
+                                            isExpanded && "rotate-180"
+                                          )}
+                                        />
+                                      )}
                                     </div>
                                   </div>
 
@@ -2889,6 +2956,90 @@ export default function CustomersPage() {
                 </div>
               )}
             </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Customer Khata Photos Sheet */}
+      <Sheet open={khataPhotosSheetOpen} onOpenChange={setKhataPhotosSheetOpen}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
+          <SheetHeader className="pb-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              All Khata Photos ({selectedCustomerKhataPhotos.length})
+            </SheetTitle>
+            <SheetDescription>
+              Photos from all transactions for {selectedCustomer?.name}
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(85vh-120px)] mt-4">
+            <div className="grid grid-cols-2 gap-3 pr-4">
+              {selectedCustomerKhataPhotos.map((photo, index) => (
+                <div
+                  key={`${photo.udharId}-${photo.photoIndex}`}
+                  className="relative group rounded-xl overflow-hidden bg-muted aspect-square"
+                >
+                  <img
+                    src={photo.url}
+                    alt={`Khata photo ${index + 1}`}
+                    className="w-full h-full object-cover cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => {
+                      setGalleryImages(selectedCustomerKhataPhotos.map(p => p.url));
+                      setGalleryViewerOpen(true);
+                    }}
+                  />
+                  {/* Overlay with info */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
+                    <p className="text-white text-sm font-semibold">
+                      ₹{photo.amount.toLocaleString()}
+                    </p>
+                    <p className="text-white/80 text-xs">
+                      {new Date(photo.date).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  {/* Delete button */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        disabled={!isOnline}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete this khata photo. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDeleteKhataPhoto(photo)}
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))}
+            </div>
+            {selectedCustomerKhataPhotos.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Camera className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No khata photos yet</p>
+              </div>
+            )}
           </ScrollArea>
         </SheetContent>
       </Sheet>

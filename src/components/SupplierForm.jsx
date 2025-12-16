@@ -6,12 +6,7 @@ import { Loader2, X, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -27,9 +22,7 @@ export function SupplierForm({
   const isOnline = useOnlineStatus();
   const { isSupported: contactPickerSupported, isPicking, pickContact } = useContactPicker();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profilePicture, setProfilePicture] = useState(
-    initialData?.profilePicture || null,
-  );
+  const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
 
   const defaultFormValues = {
@@ -92,7 +85,7 @@ export function SupplierForm({
     }
   }, [open, initialData, reset]);
 
-  const handleFormSubmit = async (data) => {
+  const handleFormSubmit = async data => {
     if (!isOnline) return;
 
     setIsSubmitting(true);
@@ -121,9 +114,7 @@ export function SupplierForm({
         profilePicture !== (initialData?.profilePicture || null) ||
         upiQrCode !== (initialData?.upiQrCode || null)
       ) {
-        if (
-          !confirm("You have unsaved changes. Are you sure you want to close?")
-        ) {
+        if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
           return;
         }
       }
@@ -160,9 +151,7 @@ export function SupplierForm({
               <X className="h-4 w-4 mr-1" />
               Cancel
             </Button>
-            <SheetTitle className="text-base font-semibold flex-1 text-center">
-              {title}
-            </SheetTitle>
+            <SheetTitle className="text-base font-semibold flex-1 text-center">{title}</SheetTitle>
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
@@ -182,10 +171,7 @@ export function SupplierForm({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 pb-safe">
-          <form
-            onSubmit={handleSubmit(handleFormSubmit)}
-            className="space-y-5 py-4"
-          >
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
             {/* Offline warning */}
             {!isOnline && (
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 text-sm">
@@ -218,9 +204,7 @@ export function SupplierForm({
                 className="text-base h-12"
               />
               {errors.companyName && (
-                <p className="text-xs text-destructive">
-                  {errors.companyName.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.companyName.message}</p>
               )}
             </div>
 
@@ -228,12 +212,7 @@ export function SupplierForm({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Contact Person</Label>
-                <Input
-                  id="name"
-                  {...register("name")}
-                  placeholder="Person name"
-                  className="h-12"
-                />
+                <Input id="name" {...register("name")} placeholder="Person name" className="h-12" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
@@ -242,10 +221,9 @@ export function SupplierForm({
                     id="phone"
                     {...register("phone")}
                     placeholder="Phone"
-                    type="tel"
+                    type="number"
                     inputMode="numeric"
-                    pattern="[0-9]*"
-                    className="h-12 flex-1"
+                    className="text-base h-12 flex-1"
                   />
                   {contactPickerSupported && (
                     <Button
