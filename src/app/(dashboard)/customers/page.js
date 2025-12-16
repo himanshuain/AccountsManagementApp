@@ -1004,7 +1004,7 @@ export default function CustomersPage() {
             onClick={() => handleFilterChange("paid")}
           >
             <CheckCircle className="mr-1 h-3 w-3" />
-            Paid ({summaryStats.paidCount})
+            All Paid Up ({summaryStats.paidCount})
           </Button>
           {summaryStats.highAmountCount > 0 && (
             <Button
@@ -1495,18 +1495,13 @@ export default function CustomersPage() {
       {/* All Udhar & Receipts Section - Collapsible */}
       <Collapsible open={udharExpanded} onOpenChange={setUdharExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="flex w-full items-center justify-between rounded-lg border border-amber-200 px-2 py-3 transition-colors hover:bg-muted/50">
+          <button className="flex w-full items-center justify-between rounded-lg border border-amber-200 px-3 py-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-3">
               <Receipt className="h-5 w-5 text-amber-500" />
-              <span className="text-lg font-bold text-amber-500">All Udhar Transactions</span>
-              {/* <Badge variant="secondary" className="text-xs">
-                {udharList.length} txns
+              <span className="font-semibold">All Transactions</span>
+              <Badge variant="secondary" className="text-xs">
+                {udharList.length}
               </Badge>
-              {allReceipts.length > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {allReceipts.length} receipts
-                </Badge>
-              )} */}
             </div>
             <ChevronDown
               className={cn(
@@ -1517,41 +1512,59 @@ export default function CustomersPage() {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="space-y-4 py-2">
-            {/* Stats Header with All Receipts button */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="px-3 py-1 text-sm">
-                  {filteredUdharList.length} Transaction{filteredUdharList.length !== 1 ? "s" : ""}
-                </Badge>
-              </div>
-              {allReceipts.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => setAllReceiptsSheetOpen(true)}
-                >
-                  <Receipt className="h-4 w-4" />
-                  All Receipts ({allReceipts.length})
-                </Button>
-              )}
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={udharStatusFilter} onValueChange={setUdharStatusFilter}>
-                <SelectTrigger className="h-9 w-[120px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={udharCustomerFilter} onValueChange={setUdharCustomerFilter}>
-                <SelectTrigger className="h-9 w-[150px]">
+          <div className="space-y-3 py-2">
+            {/* Filter Chips - One-tap toggles */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <Button
+                variant={udharStatusFilter === "all" ? "default" : "outline"}
+                size="sm"
+                className="h-8 shrink-0 rounded-full px-3 text-xs"
+                onClick={() => {
+                  haptics.light();
+                  setUdharStatusFilter("all");
+                  setUdharAmountSort("newest");
+                }}
+              >
+                All ({udharList.length})
+              </Button>
+              <Button
+                variant={udharStatusFilter === "pending" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  udharStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setUdharStatusFilter("pending");
+                  setUdharAmountSort("highest"); // Smart: Pending → Highest first
+                }}
+              >
+                <Clock className="mr-1 h-3 w-3" />
+                Pending
+              </Button>
+              <Button
+                variant={udharStatusFilter === "paid" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  udharStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setUdharStatusFilter("paid");
+                  setUdharAmountSort("newest"); // Smart: Paid → Newest first
+                }}
+              >
+                <CheckCircle className="mr-1 h-3 w-3" />
+                All Paid Up
+              </Button>
+              {/* Customer filter as dropdown - More Filters */}
+              <Select value={udharCustomerFilter} onValueChange={(val) => {
+                haptics.light();
+                setUdharCustomerFilter(val);
+              }}>
+                <SelectTrigger className="h-8 w-auto shrink-0 rounded-full border-dashed px-3 text-xs">
                   <SelectValue placeholder="Customer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1563,29 +1576,23 @@ export default function CustomersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={udharAmountSort} onValueChange={setUdharAmountSort}>
-                <SelectTrigger className="h-9 w-[130px]">
-                  <SelectValue placeholder="Sort" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="highest">Highest Amount</SelectItem>
-                  <SelectItem value="lowest">Lowest Amount</SelectItem>
-                </SelectContent>
-              </Select>
-              {(udharStatusFilter !== "all" ||
-                udharCustomerFilter !== "all" ||
-                udharAmountSort !== "newest") && (
+            </div>
+
+            {/* Stats + Receipts Button */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {filteredUdharList.length} transaction{filteredUdharList.length !== 1 ? "s" : ""}
+                {udharStatusFilter !== "all" && ` · ${udharStatusFilter}`}
+              </p>
+              {allReceipts.length > 0 && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setUdharStatusFilter("all");
-                    setUdharCustomerFilter("all");
-                    setUdharAmountSort("newest");
-                  }}
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => setAllReceiptsSheetOpen(true)}
                 >
-                  Clear
+                  <Receipt className="h-3.5 w-3.5" />
+                  Receipts ({allReceipts.length})
                 </Button>
               )}
             </div>

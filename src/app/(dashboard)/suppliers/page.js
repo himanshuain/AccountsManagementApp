@@ -566,7 +566,7 @@ export default function SuppliersPage() {
             onClick={() => handleFilterChange("paid")}
           >
             <CheckCircle className="mr-1 h-3 w-3" />
-            Paid ({summaryStats.paidCount})
+            All Paid Up ({summaryStats.paidCount})
           </Button>
           {summaryStats.highAmountCount > 0 && (
             <Button
@@ -768,18 +768,13 @@ export default function SuppliersPage() {
       {/* All Transactions & Bills Section - Collapsible */}
       <Collapsible open={transactionsExpanded} onOpenChange={setTransactionsExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="flex w-full items-center justify-between rounded-lg px-1 py-3 transition-colors hover:bg-muted/50">
+          <button className="flex w-full items-center justify-between rounded-lg border border-purple-200 px-3 py-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-3">
               <Receipt className="h-5 w-5 text-purple-500" />
-              <span className="font-semibold">All Transactions & Bills</span>
+              <span className="font-semibold">All Transactions</span>
               <Badge variant="secondary" className="text-xs">
-                {transactions.length} txns
+                {transactions.length}
               </Badge>
-              {totalBillsCount > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {totalBillsCount} bills
-                </Badge>
-              )}
             </div>
             <ChevronDown
               className={cn(
@@ -790,23 +785,75 @@ export default function SuppliersPage() {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="space-y-4 py-2">
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={allTxnStatusFilter} onValueChange={setAllTxnStatusFilter}>
-                <SelectTrigger className="h-9 w-[120px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={allTxnSupplierFilter} onValueChange={setAllTxnSupplierFilter}>
-                <SelectTrigger className="h-9 w-[150px]">
-                  <SelectValue placeholder="Supplier" />
+          <div className="space-y-3 py-2">
+            {/* Filter Chips - One-tap toggles */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <Button
+                variant={allTxnStatusFilter === "all" ? "default" : "outline"}
+                size="sm"
+                className="h-8 shrink-0 rounded-full px-3 text-xs"
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnStatusFilter("all");
+                  setAllTxnAmountSort("newest");
+                }}
+              >
+                All ({transactions.length})
+              </Button>
+              <Button
+                variant={allTxnStatusFilter === "pending" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnStatusFilter("pending");
+                  setAllTxnAmountSort("highest"); // Smart: Pending → Highest first
+                }}
+              >
+                <Clock className="mr-1 h-3 w-3" />
+                Pending
+              </Button>
+              <Button
+                variant={allTxnStatusFilter === "partial" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnStatusFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnStatusFilter("partial");
+                  setAllTxnAmountSort("highest"); // Smart: Partial → Highest first
+                }}
+              >
+                Partial
+              </Button>
+              <Button
+                variant={allTxnStatusFilter === "paid" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnStatusFilter("paid");
+                  setAllTxnAmountSort("newest"); // Smart: Paid → Newest first
+                }}
+              >
+                <CheckCircle className="mr-1 h-3 w-3" />
+                All Paid Up
+              </Button>
+              {/* Supplier filter as dropdown - More Filters */}
+              <Select value={allTxnSupplierFilter} onValueChange={(val) => {
+                haptics.light();
+                setAllTxnSupplierFilter(val);
+              }}>
+                <SelectTrigger className="h-8 w-auto shrink-0 rounded-full border-dashed px-3 text-xs">
+                  <SelectValue placeholder="Vyapari" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Vyapari</SelectItem>
@@ -817,30 +864,18 @@ export default function SuppliersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={allTxnAmountSort} onValueChange={setAllTxnAmountSort}>
-                <SelectTrigger className="h-9 w-[130px]">
-                  <SelectValue placeholder="Sort" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="highest">Highest Amount</SelectItem>
-                  <SelectItem value="lowest">Lowest Amount</SelectItem>
-                </SelectContent>
-              </Select>
-              {(allTxnStatusFilter !== "all" ||
-                allTxnSupplierFilter !== "all" ||
-                allTxnAmountSort !== "newest") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setAllTxnStatusFilter("all");
-                    setAllTxnSupplierFilter("all");
-                    setAllTxnAmountSort("newest");
-                  }}
-                >
-                  Clear
-                </Button>
+            </div>
+
+            {/* Stats + View toggle */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {allFilteredTransactions.length} transaction{allFilteredTransactions.length !== 1 ? "s" : ""}
+                {allTxnStatusFilter !== "all" && ` · ${allTxnStatusFilter}`}
+              </p>
+              {totalBillsCount > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {totalBillsCount} bills
+                </Badge>
               )}
             </div>
 
@@ -854,22 +889,30 @@ export default function SuppliersPage() {
                 <TabsTrigger value="gallery" className="gap-1.5">
                   <ImageIcon className="h-4 w-4" />
                   Bills
-                  {totalBillsCount > 0 && (
-                    <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-xs text-primary">
-                      {totalBillsCount}
-                    </span>
-                  )}
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="list" className="mt-4">
+              <TabsContent value="list" className="mt-3">
                 {allFilteredTransactions.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-8 text-center text-muted-foreground">
-                      <Receipt className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                      <p>No transactions found</p>
-                    </CardContent>
-                  </Card>
+                  <div className="py-12 text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                      <Receipt className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="font-medium">
+                      {allTxnStatusFilter === "pending" && "No pending transactions"}
+                      {allTxnStatusFilter === "partial" && "No partially paid transactions"}
+                      {allTxnStatusFilter === "paid" && "No paid transactions"}
+                      {allTxnStatusFilter === "all" && "No transactions yet"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {allTxnStatusFilter !== "all" ? "Try a different filter" : "Add transactions to see them here"}
+                    </p>
+                    {allTxnStatusFilter !== "all" && (
+                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setAllTxnStatusFilter("all")}>
+                        Show all
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <TransactionTable
                     transactions={allFilteredTransactions}
