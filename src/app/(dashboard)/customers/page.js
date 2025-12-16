@@ -171,6 +171,7 @@ export default function CustomersPage() {
   // Gallery viewer state (for multiple images)
   const [galleryViewerOpen, setGalleryViewerOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
   // Payment deletion state
   const [deletePaymentDialogOpen, setDeletePaymentDialogOpen] = useState(false);
@@ -354,15 +355,18 @@ export default function CustomersPage() {
   const allReceipts = useMemo(() => {
     const receipts = [];
     udharList.forEach(udhar => {
+      const customerName = customers.find(c => c.id === udhar.customerId)?.name || "Unknown";
+      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      
       // Add khata/bill photos
       if (udhar.khataPhotos?.length > 0) {
         udhar.khataPhotos.forEach(photo => {
           receipts.push({
             url: photo,
-            type: "bill",
+            type: "khata",
             date: udhar.date,
-            customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
-            amount: udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0),
+            customerName,
+            amount: totalAmount,
           });
         });
       }
@@ -370,10 +374,10 @@ export default function CustomersPage() {
         udhar.billImages.forEach(photo => {
           receipts.push({
             url: photo,
-            type: "bill",
+            type: "khata",
             date: udhar.date,
-            customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
-            amount: udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0),
+            customerName,
+            amount: totalAmount,
           });
         });
       }
@@ -385,7 +389,7 @@ export default function CustomersPage() {
               url: payment.receiptUrl,
               type: "receipt",
               date: payment.date,
-              customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
+              customerName,
               amount: payment.amount,
             });
           }
@@ -488,7 +492,7 @@ export default function CustomersPage() {
         customerId: result.data.id,
         amount: Number(initialAmount),
         date: new Date().toISOString().split("T")[0],
-        notes: "Initial lending amount",
+        notes: "First Udhar amount",
         khataPhotos: customerData.khataPhotos || [],
       });
       toast.success("Customer added with initial Udhar");
@@ -1034,15 +1038,20 @@ export default function CustomersPage() {
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
               : [];
 
-            // Get all khata photos for this customer (from customer profile + udhar transactions)
+            // Get all khata photos for this customer (from udhar transactions) with metadata
             const customerKhataPhotos = isExpanded
-              ? [
-                  // Customer's own khata photos (added when creating customer)
-                  // Photos from udhar transactions
-                  ...udharList
-                    .filter((u) => u.customerId === customer.id)
-                    .flatMap((u) => u.khataPhotos || u.billImages || [])
-                ]
+              ? udharList
+                  .filter((u) => u.customerId === customer.id)
+                  .flatMap((u) => {
+                    const photos = u.khataPhotos || u.billImages || [];
+                    return photos.map(photo => ({
+                      url: photo,
+                      amount: u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0),
+                      date: u.date,
+                      customerName: customer.name,
+                      type: "khata",
+                    }));
+                  })
               : [];
 
             return (
@@ -1262,11 +1271,12 @@ export default function CustomersPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setGalleryImages(customerKhataPhotos);
+                                  setGalleryInitialIndex(idx);
                                   setGalleryViewerOpen(true);
                                 }}
                               >
                                 <img
-                                  src={photo}
+                                  src={photo.url}
                                   alt={`Khata ${idx + 1}`}
                                   className="w-full h-full object-cover"
                                 />
@@ -1278,6 +1288,7 @@ export default function CustomersPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setGalleryImages(customerKhataPhotos);
+                                  setGalleryInitialIndex(0);
                                   setGalleryViewerOpen(true);
                                 }}
                               >
@@ -2762,24 +2773,34 @@ export default function CustomersPage() {
                               {/* Expanded Section */}
                               {isExpanded && (
                                 <div className="px-4 pb-4 border-t bg-muted/20">
-                                  {/* Bill Images */}
+                                  {/* Khata Photos */}
                                   {(txn.khataPhotos?.length > 0 || txn.billImages?.length > 0) && (
                                     <div className="pt-3">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Bill Images</p>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">Khata Photos</p>
                                       <div className="flex gap-2 overflow-x-auto pb-1">
-                                        {[...(txn.khataPhotos || []), ...(txn.billImages || [])].map((photo, idx) => (
-                                          <div
-                                            key={idx}
-                                            className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-muted cursor-pointer"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setGalleryImages([...(txn.khataPhotos || []), ...(txn.billImages || [])]);
-                                              setGalleryViewerOpen(true);
-                                            }}
-                                          >
-                                            <img src={photo} alt={`Bill ${idx + 1}`} className="w-full h-full object-cover" />
-                                          </div>
-                                        ))}
+                                        {[...(txn.khataPhotos || []), ...(txn.billImages || [])].map((photo, idx) => {
+                                          const txnPhotos = [...(txn.khataPhotos || []), ...(txn.billImages || [])].map(p => ({
+                                            url: p,
+                                            amount: total,
+                                            date: txn.date,
+                                            customerName: selectedCustomer?.name,
+                                            type: "khata",
+                                          }));
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border bg-muted cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setGalleryImages(txnPhotos);
+                                                setGalleryInitialIndex(idx);
+                                                setGalleryViewerOpen(true);
+                                              }}
+                                            >
+                                              <img src={photo} alt={`Khata ${idx + 1}`} className="w-full h-full object-cover" />
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   )}
@@ -2916,11 +2937,11 @@ export default function CustomersPage() {
                   <p>No receipts or bills found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {allReceipts.map((receipt, idx) => (
                     <div
                       key={idx}
-                      className="relative rounded-lg overflow-hidden border bg-muted cursor-pointer"
+                      className="relative rounded-xl overflow-hidden border bg-muted cursor-pointer hover:shadow-md transition-shadow"
                       onClick={() => {
                         setAllReceiptsGalleryImages(allReceipts.map(r => r.url));
                         setAllReceiptsGalleryInitialIndex(idx);
@@ -2947,7 +2968,7 @@ export default function CustomersPage() {
                                 : "bg-amber-100 text-amber-700"
                             }`}
                           >
-                            {receipt.type === "receipt" ? "Receipt" : "Bill"}
+                            {receipt.type === "receipt" ? "Receipt" : "Khata"}
                           </Badge>
                         </div>
                       </div>
@@ -2961,7 +2982,14 @@ export default function CustomersPage() {
       </Sheet>
 
       {/* Customer Khata Photos Sheet */}
-      <Sheet open={khataPhotosSheetOpen} onOpenChange={setKhataPhotosSheetOpen}>
+      <Sheet 
+        open={khataPhotosSheetOpen} 
+        onOpenChange={(open) => {
+          // Don't close if gallery viewer is open
+          if (!open && galleryViewerOpen) return;
+          setKhataPhotosSheetOpen(open);
+        }}
+      >
         <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
           <SheetHeader className="pb-4 border-b">
             <SheetTitle className="flex items-center gap-2">
@@ -2984,7 +3012,8 @@ export default function CustomersPage() {
                     alt={`Khata photo ${index + 1}`}
                     className="w-full h-full object-cover cursor-pointer transition-transform hover:scale-105"
                     onClick={() => {
-                      setGalleryImages(selectedCustomerKhataPhotos.map(p => p.url));
+                      setGalleryImages(selectedCustomerKhataPhotos);
+                      setGalleryInitialIndex(index);
                       setGalleryViewerOpen(true);
                     }}
                   />
@@ -3072,6 +3101,7 @@ export default function CustomersPage() {
       {/* Gallery Viewer for multiple images */}
       <ImageGalleryViewer
         images={galleryImages}
+        initialIndex={galleryInitialIndex}
         open={galleryViewerOpen}
         onOpenChange={setGalleryViewerOpen}
       />

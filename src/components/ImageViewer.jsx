@@ -488,6 +488,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
 /**
  * Gallery Viewer for multiple images
+ * Supports both string URLs and objects with { url, amount, date, customerName, type }
  */
 export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -496,12 +497,26 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   const [rotation, setRotation] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
 
   const containerRef = useRef(null);
   const portalContainerRef = useRef(null);
 
+  // Normalize images - support both string[] and object[]
+  const normalizedImages = useMemo(() => {
+    return images.map(img => {
+      if (typeof img === "string") {
+        return { url: img };
+      }
+      return img;
+    });
+  }, [images]);
+
+  // Get current image data
+  const currentImage = normalizedImages[currentIndex] || {};
+  const currentSrc = currentImage.url;
+
   // Get optimized URLs for current image
-  const currentSrc = images[currentIndex];
   const optimizedUrls = useMemo(() => {
     if (!currentSrc) return { src: "", lqip: "", thumbnail: "" };
     return getOptimizedImageUrl(currentSrc);
@@ -515,6 +530,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       setPosition({ x: 0, y: 0 });
       setRotation(0);
       setIsLoading(true);
+      setShowInfo(true);
 
       // For cached images, onLoad might not fire, so check after a short delay
       const timer = setTimeout(() => {
@@ -794,16 +810,18 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
+      setShowInfo(true);
     }
   };
 
   const handleNext = () => {
-    if (currentIndex < images.length - 1) {
+    if (currentIndex < normalizedImages.length - 1) {
       setCurrentIndex(prev => prev + 1);
+      setShowInfo(true);
     }
   };
 
-  if (!open || images.length === 0 || !mounted) return null;
+  if (!open || normalizedImages.length === 0 || !mounted) return null;
 
   const content = (
     <div
@@ -828,9 +846,9 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         </Button>
 
         <div className="flex items-center gap-2">
-          {images.length > 1 && (
+          {normalizedImages.length > 1 && (
             <span className="text-white text-sm">
-              {currentIndex + 1} / {images.length}
+              {currentIndex + 1} / {normalizedImages.length}
             </span>
           )}
         </div>
@@ -917,7 +935,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       </div>
 
       {/* Navigation arrows for desktop */}
-      {images.length > 1 && (
+      {normalizedImages.length > 1 && (
         <>
           {currentIndex > 0 && (
             <button
@@ -935,7 +953,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               </svg>
             </button>
           )}
-          {currentIndex < images.length - 1 && (
+          {currentIndex < normalizedImages.length - 1 && (
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
               style={{ zIndex: 2147483647, pointerEvents: "auto" }}
@@ -954,40 +972,89 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         </>
       )}
 
+      {/* Info overlay - shows transaction info when available */}
+      {showInfo && currentImage.amount !== undefined && (
+        <div 
+          className="absolute bottom-24 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-xl p-3 text-white"
+          style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+          onClick={() => setShowInfo(false)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xl font-bold">₹{currentImage.amount?.toLocaleString()}</p>
+              {currentImage.customerName && (
+                <p className="text-sm text-white/80">{currentImage.customerName}</p>
+              )}
+              {currentImage.date && (
+                <p className="text-xs text-white/60">
+                  {new Date(currentImage.date).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+            </div>
+            {currentImage.type && (
+              <span className={cn(
+                "text-xs px-2 py-1 rounded-full",
+                currentImage.type === "receipt" 
+                  ? "bg-green-500/30 text-green-300" 
+                  : "bg-amber-500/30 text-amber-300"
+              )}>
+                {currentImage.type === "receipt" ? "Receipt" : "Khata"}
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-white/40 mt-1 text-center">Tap to hide info</p>
+        </div>
+      )}
+
       {/* Hint text */}
-      {scale === 1 && (
+      {scale === 1 && !currentImage.amount && (
         <div className="absolute bottom-6 left-0 right-0 text-center text-white/50 text-sm pointer-events-none">
           Double tap to zoom • Swipe to navigate • Swipe down to close
         </div>
       )}
 
       {/* Thumbnail strip for multiple images */}
-      {images.length > 1 && (
+      {normalizedImages.length > 1 && (
         <div
-          className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4"
+          className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto"
           style={{ zIndex: 2147483647, pointerEvents: "auto" }}
         >
-          {images.map((img, idx) => (
-            <button
-              key={idx}
-              className={cn(
-                "w-12 h-12 rounded-lg overflow-hidden border-2 transition-all",
-                idx === currentIndex
-                  ? "border-white scale-110"
-                  : "border-transparent opacity-60 hover:opacity-100"
-              )}
-              style={{ pointerEvents: "auto" }}
-              onClick={() => setCurrentIndex(idx)}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={img.includes("ik.imagekit.io") ? getOptimizedImageUrl(img).thumbnail : img} 
-                alt={`Thumbnail ${idx + 1}`} 
-                className="w-full h-full object-cover" 
-                loading="lazy"
-              />
-            </button>
-          ))}
+          {normalizedImages.slice(0, 8).map((img, idx) => {
+            const imgUrl = img.url || img;
+            return (
+              <button
+                key={idx}
+                className={cn(
+                  "w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
+                  idx === currentIndex
+                    ? "border-white scale-110"
+                    : "border-transparent opacity-60 hover:opacity-100"
+                )}
+                style={{ pointerEvents: "auto" }}
+                onClick={() => {
+                  setCurrentIndex(idx);
+                  setShowInfo(true);
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imgUrl?.includes?.("ik.imagekit.io") ? getOptimizedImageUrl(imgUrl).thumbnail : imgUrl}
+                  alt={`Thumbnail ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </button>
+            );
+          })}
+          {normalizedImages.length > 8 && (
+            <div className="w-12 h-12 rounded-lg bg-black/50 flex items-center justify-center text-white text-xs flex-shrink-0">
+              +{normalizedImages.length - 8}
+            </div>
+          )}
         </div>
       )}
     </div>
