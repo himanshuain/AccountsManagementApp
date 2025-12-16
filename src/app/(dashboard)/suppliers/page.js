@@ -696,7 +696,7 @@ export default function SuppliersPage() {
               return (
                 <>
                   {/* Drag handle */}
-                  <div className="flex justify-center pb-2 pt-3">
+                  <div className="flex justify-center pb-2 pt-3" data-drag-handle>
                     <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
                   </div>
 
@@ -1229,7 +1229,7 @@ export default function SuppliersPage() {
       <Sheet open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen}>
         <SheetContent side="top" className="h-auto max-h-[70vh] rounded-b-2xl p-0" hideClose>
           {/* Drag handle */}
-          <div className="flex justify-center pb-2 pt-3">
+          <div className="flex justify-center pb-2 pt-3" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 
@@ -1319,7 +1319,7 @@ export default function SuppliersPage() {
       <Sheet open={pdfExportSheetOpen} onOpenChange={setPdfExportSheetOpen}>
         <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl p-0" hideClose>
           {/* Drag handle */}
-          <div className="flex justify-center pb-2 pt-3">
+          <div className="flex justify-center pb-2 pt-3" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 

@@ -1063,7 +1063,7 @@ export default function CustomersPage() {
                               )}
                             </div>
 
-                            {customer.pendingAmount > 0 && (
+                            {customer.pendingAmount > 0 && !isExpanded && (
                               <p className="mt-1 text-sm font-semibold text-amber-600">
                                 Pending: ₹{customer.pendingAmount.toLocaleString()}
                               </p>
@@ -1677,7 +1677,7 @@ export default function CustomersPage() {
           </div>
 
           {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2">
+          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
@@ -1857,7 +1857,7 @@ export default function CustomersPage() {
           </div>
 
           {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2">
+          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
@@ -2073,7 +2073,7 @@ export default function CustomersPage() {
           </div>
 
           {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2">
+          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
@@ -2095,7 +2095,7 @@ export default function CustomersPage() {
           {selectedCustomer && (
             <>
               {/* Drag handle */}
-              <div className="flex justify-center pb-2 pt-3">
+              <div className="flex justify-center pb-2 pt-3" data-drag-handle>
                 <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
               </div>
 

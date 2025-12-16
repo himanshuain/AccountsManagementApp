@@ -26,49 +26,6 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
-// Custom hook for swipe gesture
-const useSwipeClose = (onClose, side) => {
-  const touchStartRef = React.useRef({ y: 0, x: 0 });
-  const touchCurrentRef = React.useRef({ y: 0, x: 0 });
-  const startTimeRef = React.useRef(0);
-
-  const handleTouchStart = React.useCallback(e => {
-    touchStartRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
-    touchCurrentRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
-    startTimeRef.current = Date.now();
-  }, []);
-
-  const handleTouchMove = React.useCallback(e => {
-    touchCurrentRef.current = { y: e.touches[0].clientY, x: e.touches[0].clientX };
-  }, []);
-
-  const handleTouchEnd = React.useCallback(() => {
-    const deltaY = touchCurrentRef.current.y - touchStartRef.current.y;
-    const deltaX = touchCurrentRef.current.x - touchStartRef.current.x;
-    const deltaTime = Date.now() - startTimeRef.current;
-    const velocity = deltaY / deltaTime;
-
-    // For bottom sheets: swipe down to close
-    if (side === "bottom") {
-      if ((deltaY > 80 || (deltaY > 40 && velocity > 0.3)) && Math.abs(deltaX) < 100) {
-        onClose?.();
-      }
-    }
-    // For top sheets: swipe up to close
-    else if (side === "top") {
-      if ((deltaY < -80 || (deltaY < -40 && velocity < -0.3)) && Math.abs(deltaX) < 100) {
-        onClose?.();
-      }
-    }
-  }, [onClose, side]);
-
-  return {
-    onTouchStart: handleTouchStart,
-    onTouchMove: handleTouchMove,
-    onTouchEnd: handleTouchEnd,
-  };
-};
-
 const sheetVariants = cva(
   "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
   {
@@ -102,7 +59,6 @@ const SheetContent = React.forwardRef(
     },
     ref
   ) => {
-    const contentRef = React.useRef(null);
     const handleClose = React.useCallback(() => {
       // If onSwipeClose is provided, call it and let it handle the close
       // This allows forms to show confirmation dialogs
@@ -117,11 +73,10 @@ const SheetContent = React.forwardRef(
       }
     }, [onSwipeClose]);
 
-    const swipeHandlers = useSwipeClose(handleClose, side);
     const isSwipeable = (side === "bottom" || side === "top") && !disableSwipeClose;
 
-    // Enhanced touch handlers that work on the entire content
-    const touchStartRef = React.useRef({ y: 0, x: 0, scrollTop: 0 });
+    // Swipe handlers that ONLY work from the drag handle area
+    const touchStartRef = React.useRef({ y: 0, x: 0, fromDragHandle: false });
     const [isDragging, setIsDragging] = React.useState(false);
 
     const handleContentTouchStart = React.useCallback(
@@ -129,38 +84,42 @@ const SheetContent = React.forwardRef(
         // Skip if swipe close is disabled
         if (disableSwipeClose) return;
 
-        const scrollableParent =
-          e.target.closest("[data-scroll-area]") ||
-          e.target.closest(".overflow-y-auto") ||
-          e.target.closest(".overflow-auto");
-        const scrollTop = scrollableParent?.scrollTop || 0;
+        // Check if touch started on or near the drag handle
+        // The drag handle is the div with the rounded bar at the top
+        const dragHandle = e.target.closest("[data-drag-handle]");
+        const isFromDragHandle = !!dragHandle;
+
+        // Also check if touch started in the header area (first ~60px of the sheet)
+        // This provides a larger touch target for closing
+        const sheetContent = e.currentTarget;
+        const rect = sheetContent.getBoundingClientRect();
+        const touchY = e.touches[0].clientY;
+        const isNearTop = side === "bottom" && touchY - rect.top < 60;
+        const isNearBottom = side === "top" && rect.bottom - touchY < 60;
+
+        // Only allow swipe from drag handle area or very top of sheet
+        const canSwipe = isFromDragHandle || isNearTop || isNearBottom;
 
         touchStartRef.current = {
           y: e.touches[0].clientY,
           x: e.touches[0].clientX,
-          scrollTop,
+          fromDragHandle: canSwipe,
         };
         setIsDragging(false);
       },
-      [disableSwipeClose]
+      [disableSwipeClose, side]
     );
 
     const handleContentTouchMove = React.useCallback(
       e => {
-        // Skip if swipe close is disabled
-        if (disableSwipeClose) return;
+        // Skip if swipe close is disabled or touch didn't start from drag handle
+        if (disableSwipeClose || !touchStartRef.current.fromDragHandle) return;
 
         const deltaY = e.touches[0].clientY - touchStartRef.current.y;
         const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
 
-        // Check if we're at the top of scroll and swiping down (for bottom sheet)
-        // or at bottom and swiping up (for top sheet)
-        if (
-          side === "bottom" &&
-          deltaY > 10 &&
-          deltaX < 50 &&
-          touchStartRef.current.scrollTop <= 0
-        ) {
+        // Check swipe direction based on sheet side
+        if (side === "bottom" && deltaY > 10 && deltaX < 50) {
           setIsDragging(true);
         } else if (side === "top" && deltaY < -10 && deltaX < 50) {
           setIsDragging(true);
@@ -173,7 +132,10 @@ const SheetContent = React.forwardRef(
       e => {
         // Skip if swipe close is disabled
         if (disableSwipeClose) return;
-        if (!isDragging) return;
+        if (!isDragging || !touchStartRef.current.fromDragHandle) {
+          setIsDragging(false);
+          return;
+        }
 
         const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
         const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartRef.current.x);

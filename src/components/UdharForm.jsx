@@ -125,7 +125,7 @@ export function UdharForm({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent side="bottom" className="flex h-[90vh] flex-col rounded-t-2xl p-0" hideClose>
           {/* Drag handle */}
-          <div className="flex justify-center pb-2 pt-3">
+          <div className="flex justify-center pb-2 pt-3" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
 

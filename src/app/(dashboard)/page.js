@@ -452,7 +452,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2">
+          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
             <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
           </div>
         </SheetContent>
