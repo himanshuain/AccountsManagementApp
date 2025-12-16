@@ -25,8 +25,6 @@ import {
   MoreVertical,
   Image as ImageIcon,
   Receipt,
-  List,
-  Filter,
   ExternalLink,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -65,6 +63,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { Label } from "@/components/ui/label";
 import { BillGallery } from "@/components/BillGallery";
 import { TransactionTable } from "@/components/TransactionTable";
+import { haptics } from "@/hooks/useHaptics";
 
 export default function SuppliersPage() {
   const searchParams = useSearchParams();
@@ -89,6 +88,10 @@ export default function SuppliersPage() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState("");
   const [pdfExportSheetOpen, setPdfExportSheetOpen] = useState(false);
+
+  // Filter chips state for mobile-first UX
+  const [activeFilter, setActiveFilter] = useState("all"); // all, pending, partial, paid, high
+  const [sortOrder, setSortOrder] = useState("smart"); // smart, highest, oldest, newest
 
   // Ref to track if image viewer was just closed (to prevent drawer from closing)
   const imageViewerJustClosedRef = useRef(false);
@@ -139,17 +142,89 @@ export default function SuppliersPage() {
     });
   }, [suppliers, transactions]);
 
-  // Filter suppliers based on search
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalAmount = suppliersWithStats.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalPaid = suppliersWithStats.reduce((sum, s) => sum + s.paidAmount, 0);
+    const totalPending = suppliersWithStats.reduce((sum, s) => sum + s.pendingAmount, 0);
+    const pendingCount = suppliersWithStats.filter(s => s.pendingAmount > 0 && s.paidAmount === 0).length;
+    const partialCount = suppliersWithStats.filter(s => s.pendingAmount > 0 && s.paidAmount > 0).length;
+    const paidCount = suppliersWithStats.filter(s => s.pendingAmount === 0 && s.totalAmount > 0).length;
+    const highAmountCount = suppliersWithStats.filter(s => s.pendingAmount >= 10000).length;
+    return { totalAmount, totalPaid, totalPending, pendingCount, partialCount, paidCount, highAmountCount };
+  }, [suppliersWithStats]);
+
+  // Handle filter chip click with haptic feedback
+  const handleFilterChange = (filter) => {
+    haptics.light();
+    setActiveFilter(filter);
+    setSortOrder("smart");
+  };
+
+  // Helper to format relative date
+  const formatRelativeDate = dateString => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = now - date;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+  };
+
+  // Filter suppliers based on search and filter chips
   const filteredSuppliers = useMemo(() => {
-    if (!searchQuery.trim()) return suppliersWithStats;
-    const query = searchQuery.toLowerCase();
-    return suppliersWithStats.filter(
-      s =>
-        s.name?.toLowerCase().includes(query) ||
-        s.companyName?.toLowerCase().includes(query) ||
-        s.phone?.includes(query)
-    );
-  }, [suppliersWithStats, searchQuery]);
+    let filtered = suppliersWithStats;
+    
+    // Search filter - context-aware (name, phone, or amount)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const numericQuery = parseFloat(query.replace(/[^\d.]/g, ""));
+      filtered = filtered.filter(
+        s =>
+          s.name?.toLowerCase().includes(query) ||
+          s.companyName?.toLowerCase().includes(query) ||
+          s.phone?.includes(query) ||
+          // Also search by pending amount
+          (!isNaN(numericQuery) && s.pendingAmount >= numericQuery * 0.9 && s.pendingAmount <= numericQuery * 1.1)
+      );
+    }
+
+    // Apply filter chips
+    if (activeFilter === "pending") {
+      filtered = filtered.filter(s => s.pendingAmount > 0 && s.paidAmount === 0);
+    } else if (activeFilter === "partial") {
+      filtered = filtered.filter(s => s.pendingAmount > 0 && s.paidAmount > 0);
+    } else if (activeFilter === "paid") {
+      filtered = filtered.filter(s => s.pendingAmount === 0 && s.totalAmount > 0);
+    } else if (activeFilter === "high") {
+      filtered = filtered.filter(s => s.pendingAmount >= 10000);
+    }
+
+    // Smart sorting based on active filter
+    const effectiveSort = sortOrder === "smart" 
+      ? (activeFilter === "pending" || activeFilter === "high" ? "highest" 
+         : activeFilter === "partial" ? "oldest" 
+         : activeFilter === "paid" ? "newest" 
+         : "highest") // default: show highest pending first
+      : sortOrder;
+
+    if (effectiveSort === "highest") {
+      return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
+    } else if (effectiveSort === "oldest") {
+      return filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    } else if (effectiveSort === "newest") {
+      return filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
+    return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
+  }, [suppliersWithStats, searchQuery, activeFilter, sortOrder]);
 
   // Handle opening supplier from URL query parameter (e.g., from global search)
   useEffect(() => {
@@ -386,30 +461,127 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
-      {/* Header */}
+    <div className="space-y-3 p-4 lg:p-6">
+      {/* Header - Simplified */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Vyapari</h1>
-          <p className="text-sm text-muted-foreground">{suppliers.length} vyapari</p>
-        </div>
-        {suppliers.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setPdfExportSheetOpen(true)}>
-            <FileText className="mr-1 h-4 w-4" />
-            PDF
+        <h1 className="text-xl font-bold">Vyapari</h1>
+        <div className="flex gap-2">
+          {suppliers.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setPdfExportSheetOpen(true)}>
+              <FileText className="mr-1 h-4 w-4" />
+              PDF
+            </Button>
+          )}
+          <Button size="sm" onClick={openAddForm} disabled={!isOnline}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add
           </Button>
-        )}
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
+      {/* HERO: Pending Amount Card - Most Important */}
+      {summaryStats.totalPending > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-600">
+                  Total Pending
+                </p>
+                <p className="text-3xl font-bold text-amber-600">
+                  ₹{summaryStats.totalPending.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <p>Paid: <span className="font-medium text-green-600">₹{summaryStats.totalPaid.toLocaleString()}</span></p>
+                <p>Total: ₹{summaryStats.totalAmount.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Search - Context-aware placeholder */}
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search vyapari..."
+          placeholder="Search name or amount..."
           value={searchQuery}
           onChange={handleSearch}
           className="pl-9"
         />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+            onClick={() => setSearchQuery("")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Sticky Filter Chips */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <Button
+            variant={activeFilter === "all" ? "default" : "outline"}
+            size="sm"
+            className="h-8 shrink-0 rounded-full px-3 text-xs"
+            onClick={() => handleFilterChange("all")}
+          >
+            All ({suppliers.length})
+          </Button>
+          <Button
+            variant={activeFilter === "pending" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+            )}
+            onClick={() => handleFilterChange("pending")}
+          >
+            <Clock className="mr-1 h-3 w-3" />
+            Pending ({summaryStats.pendingCount})
+          </Button>
+          <Button
+            variant={activeFilter === "partial" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50"
+            )}
+            onClick={() => handleFilterChange("partial")}
+          >
+            Partial ({summaryStats.partialCount})
+          </Button>
+          <Button
+            variant={activeFilter === "paid" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+            )}
+            onClick={() => handleFilterChange("paid")}
+          >
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Paid ({summaryStats.paidCount})
+          </Button>
+          {summaryStats.highAmountCount > 0 && (
+            <Button
+              variant={activeFilter === "high" ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-8 shrink-0 rounded-full px-3 text-xs",
+                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50"
+              )}
+              onClick={() => handleFilterChange("high")}
+            >
+              High ₹10k+ ({summaryStats.highAmountCount})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Profiles Section - Collapsible */}
@@ -432,90 +604,162 @@ export default function SuppliersPage() {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          {/* Instagram Story-like Vyapari Grid */}
+          {/* Vyapari List Cards - Better Information Hierarchy */}
           {loading ? (
-            <div className="grid grid-cols-4 gap-4 py-2 sm:grid-cols-6 lg:grid-cols-8">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="h-16 w-16 animate-pulse rounded-full bg-muted sm:h-20 sm:w-20" />
-                  <div className="h-3 w-12 animate-pulse rounded bg-muted" />
+            <div className="space-y-3 py-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-24 animate-pulse rounded bg-muted" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : filteredSuppliers.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                <Users className="h-6 w-6 text-muted-foreground" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <Users className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="mb-1 font-semibold">No vyapari yet</h3>
-              <p className="mb-3 text-sm text-muted-foreground">
-                {searchQuery
-                  ? "No vyapari match your search"
-                  : "Add your first vyapari to get started"}
-              </p>
-              {!searchQuery && (
-                <Button onClick={openAddForm} disabled={!isOnline} size="sm">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add Vyapari
-                </Button>
+              {searchQuery ? (
+                <>
+                  <p className="font-medium">No vyapari matches &quot;{searchQuery}&quot;</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Try a different name or amount</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setSearchQuery("")}>
+                    Clear search
+                  </Button>
+                </>
+              ) : activeFilter !== "all" ? (
+                <>
+                  <p className="font-medium">
+                    {activeFilter === "pending" && "No pending payments"}
+                    {activeFilter === "partial" && "No partially paid suppliers"}
+                    {activeFilter === "paid" && "No fully paid suppliers"}
+                    {activeFilter === "high" && "No high-value pending (₹10k+)"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {activeFilter === "paid" ? "Make payments to see them here" : "You're all caught up! 🎉"}
+                  </p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setActiveFilter("all")}>
+                    Show all vyapari
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">No vyapari yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Add your first vyapari to start tracking</p>
+                  <Button size="sm" className="mt-3" onClick={openAddForm} disabled={!isOnline}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Vyapari
+                  </Button>
+                </>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-4 py-2 sm:grid-cols-4 sm:gap-5 md:grid-cols-5 lg:grid-cols-6">
-              {/* Add New Vyapari Circle */}
-              <button
-                onClick={openAddForm}
-                disabled={!isOnline}
-                className="group flex flex-col items-center gap-2"
-              >
-                <div
-                  className="w-18 h-18 flex items-center justify-center rounded-full border-2 border-dashed border-primary/50 bg-primary/5 transition-all group-hover:border-primary group-hover:bg-primary/10 sm:h-20 sm:w-20"
-                  style={{ width: "72px", height: "72px" }}
-                >
-                  <Plus className="h-7 w-7 text-primary sm:h-8 sm:w-8" />
-                </div>
-                <span className="w-full text-center text-xs font-medium text-muted-foreground">
-                  Add New
-                </span>
-              </button>
+            <div className="space-y-3 py-2">
+              {filteredSuppliers.map(supplier => {
+                // Get last transaction for this supplier
+                const supplierTxns = transactions
+                  .filter(t => t.supplierId === supplier.id)
+                  .sort((a, b) => new Date(b.date) - new Date(a.date));
+                const lastTxn = supplierTxns[0];
+                const lastTxnAmount = lastTxn ? (Number(lastTxn.amount) || 0) : 0;
 
-              {/* Vyapari Circles */}
-              {filteredSuppliers.map(supplier => (
-                <button
-                  key={supplier.id}
-                  onClick={() => handleSupplierClick(supplier)}
-                  className="group flex flex-col items-center gap-2"
-                >
-                  <div
+                // Determine payment status
+                const isPaid = supplier.pendingAmount === 0 && supplier.totalAmount > 0;
+                const isPartial = supplier.pendingAmount > 0 && supplier.paidAmount > 0;
+                const isPending = supplier.pendingAmount > 0 && supplier.paidAmount === 0;
+
+                return (
+                  <Card
+                    key={supplier.id}
                     className={cn(
-                      "rounded-full p-0.5 transition-all group-hover:scale-105 group-active:scale-95",
-                      supplier.pendingAmount > 0
-                        ? "bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500"
-                        : "bg-gradient-to-tr from-green-400 via-emerald-500 to-teal-500"
+                      "cursor-pointer overflow-hidden transition-all hover:bg-muted/30 active:scale-[0.99]",
+                      isPending
+                        ? "border-l-4 border-l-amber-500"
+                        : isPartial
+                          ? "border-l-4 border-l-blue-500"
+                          : isPaid
+                            ? "border-l-4 border-l-green-500"
+                            : "border-l-4 border-l-muted"
                     )}
-                    style={{ width: "72px", height: "72px" }}
+                    onClick={() => {
+                      haptics.light();
+                      handleSupplierClick(supplier);
+                    }}
                   >
-                    <div className="h-full w-full rounded-full bg-background p-0.5">
-                      {supplier.profilePicture ? (
-                        <img
-                          src={supplier.profilePicture}
-                          alt={supplier.companyName}
-                          className="h-full w-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
-                          <span className="text-xl font-bold text-primary">
-                            {supplier.companyName?.charAt(0).toUpperCase()}
-                          </span>
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-3">
+                        {/* Avatar - smaller */}
+                        <div
+                          className={cn(
+                            "h-10 w-10 shrink-0 rounded-full p-0.5",
+                            isPending
+                              ? "bg-amber-500"
+                              : isPartial
+                                ? "bg-blue-500"
+                                : isPaid
+                                  ? "bg-green-500"
+                                  : "bg-muted"
+                          )}
+                        >
+                          <div className="h-full w-full rounded-full bg-background">
+                            {supplier.profilePicture ? (
+                              <img
+                                src={supplier.profilePicture}
+                                alt={supplier.companyName}
+                                className="h-full w-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                                {supplier.companyName?.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="line-clamp-2 w-full max-w-[80px] text-center text-xs font-medium leading-tight">
-                    {supplier.companyName}
-                  </span>
-                </button>
-              ))}
+
+                        {/* Info - Hierarchy: Name → Pending → Status → Last Txn */}
+                        <div className="min-w-0 flex-1">
+                          {/* Row 1: Name + Status Badge */}
+                          <div className="flex items-center gap-2">
+                            <p className="truncate font-semibold">{supplier.companyName}</p>
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "shrink-0 text-[10px] px-1.5 py-0",
+                                isPending && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                isPartial && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              )}
+                            >
+                              {isPending ? "Pending" : isPartial ? "Partial" : isPaid ? "Paid" : "New"}
+                            </Badge>
+                          </div>
+
+                          {/* Row 2: Pending Amount (HERO) */}
+                          {supplier.pendingAmount > 0 && (
+                            <p className="mt-0.5 text-lg font-bold text-amber-600 dark:text-amber-400">
+                              ₹{supplier.pendingAmount.toLocaleString()}
+                            </p>
+                          )}
+
+                          {/* Row 3: Last transaction info */}
+                          {lastTxn && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Last: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
+                              {supplier.transactionCount > 1 && ` · ${supplier.transactionCount} txns`}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Chevron */}
+                        <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CollapsibleContent>

@@ -82,6 +82,7 @@ import { cn, getAmountTextSize } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
+import { haptics } from "@/hooks/useHaptics";
 
 export default function CustomersPage() {
   const searchParams = useSearchParams();
@@ -112,6 +113,10 @@ export default function CustomersPage() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddAmount, setQuickAddAmount] = useState("");
   const [quickAddCustomer, setQuickAddCustomer] = useState(null);
+
+  // Filter chips state for mobile-first UX
+  const [activeFilter, setActiveFilter] = useState("all"); // all, pending, partial, paid, high
+  const [sortOrder, setSortOrder] = useState("smart"); // smart, highest, oldest, newest
 
   // New customer with initial amount
   const [newCustomerWithAmount, setNewCustomerWithAmount] = useState(false);
@@ -283,23 +288,53 @@ export default function CustomersPage() {
     }
   }, [searchParams, customersWithStats, customersLoading, router]);
 
-  // Filter and sort customers
+  // Filter and sort customers with smart defaults
   const filteredCustomers = useMemo(() => {
     let filtered = customersWithStats;
 
+    // Search filter - context-aware (name, phone, or amount)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
+      const numericQuery = parseFloat(query.replace(/[^\d.]/g, ""));
       filtered = filtered.filter(
         c =>
           c.name?.toLowerCase().includes(query) ||
           c.phone?.includes(query) ||
-          c.address?.toLowerCase().includes(query)
+          c.address?.toLowerCase().includes(query) ||
+          // Also search by pending amount
+          (!isNaN(numericQuery) && c.pendingAmount >= numericQuery * 0.9 && c.pendingAmount <= numericQuery * 1.1)
       );
     }
 
-    // Sort by most recently updated
-    return filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-  }, [customersWithStats, searchQuery]);
+    // Apply filter chips
+    if (activeFilter === "pending") {
+      filtered = filtered.filter(c => c.pendingAmount > 0 && c.paidAmount === 0);
+    } else if (activeFilter === "partial") {
+      filtered = filtered.filter(c => c.pendingAmount > 0 && c.paidAmount > 0);
+    } else if (activeFilter === "paid") {
+      filtered = filtered.filter(c => c.pendingAmount === 0 && c.totalAmount > 0);
+    } else if (activeFilter === "high") {
+      filtered = filtered.filter(c => c.pendingAmount >= 5000);
+    }
+
+    // Smart sorting based on active filter
+    const effectiveSort = sortOrder === "smart" 
+      ? (activeFilter === "pending" || activeFilter === "high" ? "highest" 
+         : activeFilter === "partial" ? "oldest" 
+         : activeFilter === "paid" ? "newest" 
+         : "highest") // default: show highest pending first
+      : sortOrder;
+
+    if (effectiveSort === "highest") {
+      return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
+    } else if (effectiveSort === "oldest") {
+      return filtered.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+    } else if (effectiveSort === "newest") {
+      return filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    }
+
+    return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
+  }, [customersWithStats, searchQuery, activeFilter, sortOrder]);
 
   // Progressive loading for large customer lists
   const {
@@ -417,6 +452,7 @@ export default function CustomersPage() {
   // Quick add udhar for a customer
   const handleQuickAdd = async () => {
     if (!quickAddAmount || Number(quickAddAmount) <= 0) {
+      haptics.error();
       toast.error("Please enter a valid amount");
       return;
     }
@@ -433,7 +469,8 @@ export default function CustomersPage() {
       });
 
       if (result.success) {
-        toast.success(`₹${Number(quickAddAmount).toLocaleString()} Udhar added`);
+        haptics.success();
+        toast.success(`₹${Number(quickAddAmount).toLocaleString()} added for ${quickAddCustomer.name}`);
         setQuickAddOpen(false);
         setQuickAddAmount("");
         setQuickAddBillImages([]);
@@ -442,6 +479,7 @@ export default function CustomersPage() {
         // Keep the collapsible open for the customer
         setExpandedCustomerId(customerId);
       } else {
+        haptics.error();
         toast.error("Failed to add Udhar");
       }
     } finally {
@@ -762,6 +800,7 @@ export default function CustomersPage() {
 
   const handleQuickCollectSubmit = async () => {
     if (!quickCollectCustomer || !quickCollectAmount || Number(quickCollectAmount) <= 0) {
+      haptics.error();
       toast.error("Please enter a valid amount");
       return;
     }
@@ -774,6 +813,7 @@ export default function CustomersPage() {
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
       if (customerUdhars.length === 0) {
+        haptics.error();
         toast.error("No pending Udhar found");
         return;
       }
@@ -804,6 +844,7 @@ export default function CustomersPage() {
         );
 
         if (!result.success) {
+          haptics.error();
           toast.error(result.error || "Failed to record payment");
           return;
         }
@@ -813,7 +854,8 @@ export default function CustomersPage() {
       }
 
       const customerId = quickCollectCustomer.id;
-      toast.success(`₹${Number(quickCollectAmount).toLocaleString()} collected`);
+      haptics.success();
+      toast.success(`₹${Number(quickCollectAmount).toLocaleString()} collected from ${quickCollectCustomer.name}`);
       setQuickCollectOpen(false);
       setQuickCollectCustomer(null);
       setQuickCollectAmount("");
@@ -833,88 +875,152 @@ export default function CustomersPage() {
 
   const loading = customersLoading || udharLoading;
 
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalUdhar = customersWithStats.reduce((sum, c) => sum + c.totalAmount, 0);
+    const totalCollected = customersWithStats.reduce((sum, c) => sum + c.paidAmount, 0);
+    const totalPending = customersWithStats.reduce((sum, c) => sum + c.pendingAmount, 0);
+    const pendingCount = customersWithStats.filter(c => c.pendingAmount > 0 && c.paidAmount === 0).length;
+    const partialCount = customersWithStats.filter(c => c.pendingAmount > 0 && c.paidAmount > 0).length;
+    const paidCount = customersWithStats.filter(c => c.pendingAmount === 0 && c.totalAmount > 0).length;
+    const highAmountCount = customersWithStats.filter(c => c.pendingAmount >= 5000).length;
+    return { totalUdhar, totalCollected, totalPending, pendingCount, partialCount, paidCount, highAmountCount };
+  }, [customersWithStats]);
+
+  // Handle filter chip click with haptic feedback
+  const handleFilterChange = (filter) => {
+    haptics.light();
+    setActiveFilter(filter);
+    setSortOrder("smart"); // Reset to smart sorting when filter changes
+  };
+
   return (
-    <div className="space-y-4 p-4 lg:p-6">
-      {/* Header */}
+    <div className="space-y-3 p-4 lg:p-6">
+      {/* Header - Simplified */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Customers</h1>
-          <p className="text-sm text-muted-foreground">
-            {customers.length} customer{customers.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+        <h1 className="text-xl font-bold">Customers</h1>
         <Button
+          size="sm"
           onClick={() => {
             if (!isOnline) {
               toast.error("Cannot add while offline");
               return;
             }
+            haptics.light();
             setNewCustomerWithAmount(true);
             setCustomerFormOpen(true);
           }}
           disabled={!isOnline}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Customer
+          <Plus className="mr-1 h-4 w-4" />
+          Add
         </Button>
       </div>
 
-      {/* Search */}
+      {/* HERO: Pending Amount Card - Most Important */}
+      {summaryStats.totalPending > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-600">
+                  Total Pending
+                </p>
+                <p className="text-3xl font-bold text-amber-600">
+                  ₹{summaryStats.totalPending.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <p>Collected: <span className="font-medium text-green-600">₹{summaryStats.totalCollected.toLocaleString()}</span></p>
+                <p>Total: ₹{summaryStats.totalUdhar.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Search - Context-aware placeholder */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search customers..."
+          placeholder="Search name, phone, or amount..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="pl-9"
         />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+            onClick={() => setSearchQuery("")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
-      {/* Summary Card */}
-      {customersWithStats.length > 0 &&
-        (() => {
-          const totalUdhar = customersWithStats.reduce((sum, c) => sum + c.totalAmount, 0);
-          const totalCollected = customersWithStats.reduce((sum, c) => sum + c.paidAmount, 0);
-          const totalPending = customersWithStats.reduce((sum, c) => sum + c.pendingAmount, 0);
-          return (
-            <Card className="border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1 text-center">
-                    <p className="text-xs text-muted-foreground">Total Udhar</p>
-                    <p className={cn("truncate font-bold", getAmountTextSize(totalUdhar, "lg"))}>
-                      ₹{totalUdhar.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="h-8 w-px flex-shrink-0 bg-amber-500/20" />
-                  <div className="min-w-0 flex-1 text-center">
-                    <p className="text-xs text-green-600">Collected</p>
-                    <p
-                      className={cn(
-                        "truncate font-bold text-green-600",
-                        getAmountTextSize(totalCollected, "lg")
-                      )}
-                    >
-                      ₹{totalCollected.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="h-8 w-px flex-shrink-0 bg-amber-500/20" />
-                  <div className="min-w-0 flex-1 text-center">
-                    <p className="text-xs text-amber-600">Pending</p>
-                    <p
-                      className={cn(
-                        "truncate font-bold text-amber-600",
-                        getAmountTextSize(totalPending, "lg")
-                      )}
-                    >
-                      ₹{totalPending.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
+      {/* Sticky Filter Chips */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <Button
+            variant={activeFilter === "all" ? "default" : "outline"}
+            size="sm"
+            className="h-8 shrink-0 rounded-full px-3 text-xs"
+            onClick={() => handleFilterChange("all")}
+          >
+            All ({customers.length})
+          </Button>
+          <Button
+            variant={activeFilter === "pending" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+            )}
+            onClick={() => handleFilterChange("pending")}
+          >
+            <Clock className="mr-1 h-3 w-3" />
+            Pending ({summaryStats.pendingCount})
+          </Button>
+          <Button
+            variant={activeFilter === "partial" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50"
+            )}
+            onClick={() => handleFilterChange("partial")}
+          >
+            Partial ({summaryStats.partialCount})
+          </Button>
+          <Button
+            variant={activeFilter === "paid" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+            )}
+            onClick={() => handleFilterChange("paid")}
+          >
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Paid ({summaryStats.paidCount})
+          </Button>
+          {summaryStats.highAmountCount > 0 && (
+            <Button
+              variant={activeFilter === "high" ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-8 shrink-0 rounded-full px-3 text-xs",
+                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50"
+              )}
+              onClick={() => handleFilterChange("high")}
+            >
+              High ₹5k+ ({summaryStats.highAmountCount})
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Customer Profiles Section - Collapsible */}
       <Collapsible open={customersExpanded} onOpenChange={setCustomersExpanded}>
@@ -959,33 +1065,63 @@ export default function CustomersPage() {
               ))}
             </div>
           ) : filteredCustomers.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              <Users className="mx-auto mb-2 h-10 w-10 opacity-50" />
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
               {searchQuery ? (
                 <>
-                  <p>No customers found</p>
-                  <Button variant="link" className="mt-2" onClick={() => setSearchQuery("")}>
+                  <p className="font-medium">No customer matches &quot;{searchQuery}&quot;</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Try a different name, phone, or amount</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setSearchQuery("")}>
                     Clear search
+                  </Button>
+                </>
+              ) : activeFilter !== "all" ? (
+                <>
+                  <p className="font-medium">
+                    {activeFilter === "pending" && "No pending customers"}
+                    {activeFilter === "partial" && "No partially paid customers"}
+                    {activeFilter === "paid" && "No fully paid customers"}
+                    {activeFilter === "high" && "No high-value pending (₹5k+)"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {activeFilter === "paid" ? "Collect payments to see them here" : "You're all caught up! 🎉"}
+                  </p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setActiveFilter("all")}>
+                    Show all customers
                   </Button>
                 </>
               ) : (
                 <>
-                  <p>No customers yet</p>
+                  <p className="font-medium">No customers yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Add your first customer to start tracking</p>
                   <Button
-                    variant="link"
-                    className="mt-2"
-                    onClick={() => setCustomerFormOpen(true)}
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      setNewCustomerWithAmount(true);
+                      setCustomerFormOpen(true);
+                    }}
                     disabled={!isOnline}
                   >
-                    Add your first customer
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Customer
                   </Button>
                 </>
               )}
             </div>
           ) : (
-            <div className="space-y-6 py-2">
+            <div className="space-y-3 py-2">
               {visibleCustomers.map(customer => {
                 const isExpanded = expandedCustomerId === customer.id;
+
+                // Get last transaction for this customer
+                const customerUdhars = udharList
+                  .filter(u => u.customerId === customer.id)
+                  .sort((a, b) => new Date(b.date) - new Date(a.date));
+                const lastTxn = customerUdhars[0];
+                const lastTxnAmount = lastTxn ? (lastTxn.amount || (lastTxn.cashAmount || 0) + (lastTxn.onlineAmount || 0)) : 0;
 
                 // Get all payments for this customer from all udhar transactions
                 const customerPayments = isExpanded
@@ -1017,14 +1153,23 @@ export default function CustomersPage() {
                       })
                   : [];
 
+                // Determine payment status
+                const isPaid = customer.pendingAmount === 0 && customer.totalAmount > 0;
+                const isPartial = customer.pendingAmount > 0 && customer.paidAmount > 0;
+                const isPending = customer.pendingAmount > 0 && customer.paidAmount === 0;
+
                 return (
                   <Card
                     key={customer.id}
                     className={cn(
                       "overflow-hidden transition-all",
-                      customer.pendingAmount > 0
+                      isPending
                         ? "border-l-4 border-l-amber-500"
-                        : "border-l-4 border-l-green-500",
+                        : isPartial
+                          ? "border-l-4 border-l-blue-500"
+                          : isPaid
+                            ? "border-l-4 border-l-green-500"
+                            : "border-l-4 border-l-muted",
                       isExpanded && "shadow-md ring-2 ring-primary/20"
                     )}
                   >
@@ -1035,45 +1180,64 @@ export default function CustomersPage() {
                           "cursor-pointer p-3 transition-all active:scale-[0.99]",
                           isExpanded ? "bg-primary/5" : "hover:bg-muted/30"
                         )}
-                        onClick={() => setExpandedCustomerId(isExpanded ? null : customer.id)}
+                        onClick={() => {
+                          haptics.light();
+                          setExpandedCustomerId(isExpanded ? null : customer.id);
+                        }}
                       >
-                        <div className="flex items-center gap-3">
-                          {/* Avatar - tap to open details */}
+                        <div className="flex items-start gap-3">
+                          {/* Avatar - smaller, tap to open details */}
                           <Avatar
-                            className="h-12 w-12 cursor-pointer"
+                            className="h-10 w-10 shrink-0 cursor-pointer"
                             onClick={e => {
                               e.stopPropagation();
                               setSelectedCustomer(customer);
                             }}
                           >
                             <AvatarImage src={customer.profilePicture} />
-                            <AvatarFallback className="bg-primary/10 font-semibold text-primary">
+                            <AvatarFallback className="bg-muted text-sm font-medium text-muted-foreground">
                               {getCustomerInitials(customer.name)}
                             </AvatarFallback>
                           </Avatar>
 
-                          {/* Info */}
+                          {/* Info - Hierarchy: Name → Pending → Status → Last Txn */}
                           <div className="min-w-0 flex-1">
+                            {/* Row 1: Name + Status Badge */}
                             <div className="flex items-center gap-2">
                               <p className="truncate font-semibold">{customer.name}</p>
-                              {customer.transactionCount > 0 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {customer.transactionCount} txn
-                                </Badge>
-                              )}
+                              <Badge
+                                variant="secondary"
+                                className={cn(
+                                  "shrink-0 text-[10px] px-1.5 py-0",
+                                  isPending && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                  isPartial && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                  isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                )}
+                              >
+                                {isPending ? "Pending" : isPartial ? "Partial" : isPaid ? "Paid" : "New"}
+                              </Badge>
                             </div>
 
-                            {customer.pendingAmount > 0 && !isExpanded && (
-                              <p className="mt-1 text-sm font-semibold text-amber-600">
-                                Pending: ₹{customer.pendingAmount.toLocaleString()}
+                            {/* Row 2: Pending Amount (HERO) */}
+                            {customer.pendingAmount > 0 && (
+                              <p className="mt-0.5 text-lg font-bold text-amber-600 dark:text-amber-400">
+                                ₹{customer.pendingAmount.toLocaleString()}
+                              </p>
+                            )}
+
+                            {/* Row 3: Last transaction info */}
+                            {lastTxn && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                Last: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
+                                {customer.transactionCount > 1 && ` · ${customer.transactionCount} txns`}
                               </p>
                             )}
                           </div>
 
-                          {/* Single Chevron - indicates expandable */}
+                          {/* Chevron */}
                           <ChevronDown
                             className={cn(
-                              "h-5 w-5 text-muted-foreground transition-transform",
+                              "mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform",
                               isExpanded && "rotate-180"
                             )}
                           />
