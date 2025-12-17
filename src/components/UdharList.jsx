@@ -346,7 +346,7 @@ export function UdharList({
                                   : "bg-amber-500/20 text-amber-600"
                             )}
                           >
-                            {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                            {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
                           </Badge>
                         </div>
                         {/* Customer with DP */}
@@ -417,8 +417,8 @@ export function UdharList({
                     {/* Payment Timeline */}
                     {payments.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Payment History
+                        <p className="text-xs font-medium  tracking-wide text-muted-foreground pt-2">
+                          Received Payment History
                         </p>
                         <div className="relative space-y-2 pl-4">
                           <div className="absolute bottom-2 left-[7px] top-2 w-0.5 bg-green-500/30" />

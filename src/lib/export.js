@@ -189,12 +189,15 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.text("Transaction Report", margin, 25);
+  doc.text("Transactions Report", margin, 25);
 
-  // Supplier name
+  // My Shop Name
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text(supplier.name || "Unknown Supplier", margin, 40);
+  doc.text("Vardhman Saree Centre", margin, 40);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Ganesh Bazaar, Narwar (473880), Madhya Pradesh", margin, 45);
 
   // Date on right
   doc.setFontSize(10);
@@ -296,7 +299,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...mutedColor);
-  doc.text(`(${transactions.length} total)`, margin + 75, y);
+  doc.text(`(${transactions.length} total)`, margin + 33, y);
 
   y += 12;
 
@@ -308,7 +311,7 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   doc.setFont("helvetica", "bold");
 
   const colWidths = [35, 50, 35, 35, 25];
-  const colX = [margin + 5, margin + 40, margin + 90, margin + 125, margin + 160];
+  const colX = [margin + 5, margin + 40, margin + 90, margin + 125, margin + 150];
 
   doc.text("Date", colX[0], y + 7);
   doc.text("Amount", colX[1], y + 7);
@@ -337,10 +340,10 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
     const pending = amount - paid;
     const status =
       transaction.paymentStatus === "paid"
-        ? "Paid"
+        ? "Fully Paid"
         : transaction.paymentStatus === "partial"
-          ? "Partial"
-          : "Pending";
+          ? "Partially Paid"
+          : "Total Pending";
 
     doc.setTextColor(...textColor);
     doc.setFontSize(9);

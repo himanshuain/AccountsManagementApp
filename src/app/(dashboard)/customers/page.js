@@ -1337,7 +1337,7 @@ export default function CustomersPage() {
                                   isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                 )}
                               >
-                                {isPending ? "Pending" : isPartial ? "Partial" : isPaid ? "Paid" : "New"}
+                                {isPending ? "Total Pending" : isPartial ? "Partially Paid" : isPaid ? "Fully Paid" : "New"}
                               </Badge>
                             </div>
 
@@ -1351,7 +1351,7 @@ export default function CustomersPage() {
                             {/* Row 3: Last transaction info */}
                             {lastTxn && (
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                Latest Udhar of: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
+                                Latest Transaction of: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
                                 {customer.transactionCount > 1 && ` · ${customer.transactionCount} txns`}
                               </p>
                             )}
@@ -1416,7 +1416,7 @@ export default function CustomersPage() {
                           {customerPayments.length > 0 && (
                             <div className="pb-2 pt-2">
                               <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                Payment History
+                                Received Payment History
                               </p>
                               <div className="max-h-[150px] space-y-0 overflow-y-auto">
                                 {customerPayments.slice(0, 5).map((payment, index, arr) => (
@@ -1463,7 +1463,7 @@ export default function CustomersPage() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                          className="h-6 w-6 p-0 ml-2 text-destructive border border-destructive/30 hover:text-destructive"
                                           onClick={e => {
                                             e.stopPropagation();
                                             setPaymentToDelete({
@@ -1475,6 +1475,7 @@ export default function CustomersPage() {
                                           }}
                                         >
                                           <Trash2 className="h-3 w-3" />
+                                          
                                         </Button>
                                       </div>
                                       {payment.notes && (
@@ -2686,7 +2687,7 @@ export default function CustomersPage() {
                                                 : "bg-amber-100 text-amber-700"
                                           )}
                                         >
-                                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                                          {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
                                         </Badge>
                                       </div>
                                       <p className="text-xs text-muted-foreground">
@@ -2839,7 +2840,7 @@ export default function CustomersPage() {
 
                                     <div className="pt-2">
                                       <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                        Payment History
+                                        Received Payment History
                                       </p>
                                       <div className="space-y-0">
                                         {txn.payments
@@ -3068,7 +3069,7 @@ export default function CustomersPage() {
                                                 : "bg-amber-100 text-amber-700"
                                           )}
                                         >
-                                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                                          {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
                                         </Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground">
@@ -3224,7 +3225,7 @@ export default function CustomersPage() {
                                     {hasPayments && (
                                       <div className="pt-3">
                                         <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                          Payment History
+                                          Received Payment History
                                         </p>
                                         <div className="space-y-0">
                                           {txn.payments
