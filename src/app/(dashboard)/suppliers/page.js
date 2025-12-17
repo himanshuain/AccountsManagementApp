@@ -699,7 +699,7 @@ export default function SuppliersPage() {
       {/* Profiles Section - Collapsible */}
       <Collapsible open={profilesExpanded} onOpenChange={setProfilesExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="flex w-full items-center justify-between rounded-lg px-1 py-3 transition-colors hover:bg-muted/50">
+          <button className="sticky top-14 z-20 -mx-4 flex w-[calc(100%+2rem)] items-center justify-between border-b bg-background/95 px-5 py-3 backdrop-blur transition-colors hover:bg-muted/50 supports-[backdrop-filter]:bg-background/80 lg:top-[57px]">
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-emerald-500" />
               <span className="font-semibold">Vyapari Profiles</span>
@@ -891,7 +891,7 @@ export default function SuppliersPage() {
       {/* All Transactions & Bills Section - Collapsible */}
       <Collapsible open={transactionsExpanded} onOpenChange={setTransactionsExpanded}>
         <CollapsibleTrigger asChild>
-          <button className="flex w-full items-center justify-between rounded-lg border border-purple-200 px-3 py-3 transition-colors hover:bg-muted/50">
+          <button className="sticky top-[57px] z-20 -mx-4 flex w-[calc(100%+2rem)] items-center justify-between rounded-lg border border-purple-200 bg-background/95 px-5 py-3 backdrop-blur transition-colors hover:bg-muted/50 supports-[backdrop-filter]:bg-background/80 lg:top-[105px]">
             <div className="flex items-center gap-3">
               <Receipt className="h-5 w-5 text-purple-500" />
               <span className="font-semibold">All Transactions</span>
@@ -909,8 +909,8 @@ export default function SuppliersPage() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="space-y-4 py-3">
-            {/* Filter Chips - One-tap toggles */}
-            <div className="flex gap-2 overflow-x-auto px-1 pb-2 pt-2 scrollbar-none">
+            {/* Filter Chips - One-tap toggles - Sticky when expanded */}
+            <div className="sticky top-[102px] z-10 -mx-4 flex gap-2 overflow-x-auto border-b bg-background/95 px-5 pb-2 pt-4 backdrop-blur scrollbar-none supports-[backdrop-filter]:bg-background/80 lg:top-[153px]">
               <Button
                 variant={allTxnStatusFilter === "all" ? "default" : "outline"}
                 size="sm"
