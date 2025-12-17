@@ -27,6 +27,11 @@ import {
   ImagePlus,
   X,
   Loader2,
+  ArrowUpDown,
+  TrendingUp,
+  TrendingDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -117,7 +122,7 @@ export default function CustomersPage() {
 
   // Filter chips state for mobile-first UX
   const [activeFilter, setActiveFilter] = useState("all"); // all, pending, partial, paid, high
-  const [sortOrder, setSortOrder] = useState("smart"); // smart, highest, oldest, newest
+  const [sortOrder, setSortOrder] = useState("smart"); // smart, highest, lowest, oldest, newest
 
   // New customer with initial amount
   const [newCustomerWithAmount, setNewCustomerWithAmount] = useState(false);
@@ -266,12 +271,21 @@ export default function CustomersPage() {
       const pendingAmount = Math.max(0, totalAmount - paidAmount);
       const transactionCount = customerUdhar.length;
 
+      // Get the last transaction date for sorting
+      const lastTransactionDate = customerUdhar.length > 0
+        ? customerUdhar.reduce((latest, u) => {
+            const uDate = new Date(u.date || u.createdAt || 0);
+            return uDate > latest ? uDate : latest;
+          }, new Date(0))
+        : new Date(customer.createdAt || 0);
+
       return {
         ...customer,
         totalAmount,
         paidAmount,
         pendingAmount,
         transactionCount,
+        lastTransactionDate,
       };
     });
   }, [customers, udharList]);
@@ -289,9 +303,24 @@ export default function CustomersPage() {
     }
   }, [searchParams, customersWithStats, customersLoading, router]);
 
+  // Keep selectedCustomer in sync with updated data (fixes totalAmount not updating after transaction)
+  useEffect(() => {
+    if (selectedCustomer) {
+      const updatedCustomer = customersWithStats.find(c => c.id === selectedCustomer.id);
+      if (updatedCustomer && (
+        updatedCustomer.totalAmount !== selectedCustomer.totalAmount ||
+        updatedCustomer.paidAmount !== selectedCustomer.paidAmount ||
+        updatedCustomer.pendingAmount !== selectedCustomer.pendingAmount ||
+        updatedCustomer.transactionCount !== selectedCustomer.transactionCount
+      )) {
+        setSelectedCustomer(updatedCustomer);
+      }
+    }
+  }, [customersWithStats, selectedCustomer]);
+
   // Filter and sort customers with smart defaults
   const filteredCustomers = useMemo(() => {
-    let filtered = customersWithStats;
+    let filtered = [...customersWithStats]; // Create copy to avoid mutating source
 
     // Search filter - context-aware (name, phone, or amount)
     if (searchQuery.trim()) {
@@ -328,10 +357,20 @@ export default function CustomersPage() {
 
     if (effectiveSort === "highest") {
       return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
+    } else if (effectiveSort === "lowest") {
+      return filtered.sort((a, b) => a.pendingAmount - b.pendingAmount);
     } else if (effectiveSort === "oldest") {
-      return filtered.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+      return filtered.sort((a, b) => {
+        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
+        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        return dateA - dateB;
+      });
     } else if (effectiveSort === "newest") {
-      return filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return filtered.sort((a, b) => {
+        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
+        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        return dateB - dateA;
+      });
     }
 
     return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
@@ -382,9 +421,22 @@ export default function CustomersPage() {
         const totalB = b.amount || (b.cashAmount || 0) + (b.onlineAmount || 0);
         return totalA - totalB;
       });
+    } else if (udharAmountSort === "oldest") {
+      return [...filtered].sort((a, b) => {
+        // Use createdAt (full timestamp) as primary, date as fallback
+        const dateA = new Date(a.createdAt || a.date || 0);
+        const dateB = new Date(b.createdAt || b.date || 0);
+        return dateA.getTime() - dateB.getTime();
+      });
     }
 
-    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Default: newest first
+    return [...filtered].sort((a, b) => {
+      // Use createdAt (full timestamp) as primary, date as fallback
+      const dateA = new Date(a.createdAt || a.date || 0);
+      const dateB = new Date(b.createdAt || b.date || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
   }, [udharList, udharStatusFilter, udharCustomerFilter, udharAmountSort]);
 
   // Collect all receipts/bills from udhar for the "All Receipts" view
@@ -895,6 +947,12 @@ export default function CustomersPage() {
     setSortOrder("smart"); // Reset to smart sorting when filter changes
   };
 
+  // Handle sort order change with haptic feedback
+  const handleSortChange = (order) => {
+    haptics.light();
+    setSortOrder(order);
+  };
+
   return (
     <div className="space-y-3 p-4 lg:p-6">
       {/* Header - Simplified */}
@@ -972,12 +1030,65 @@ export default function CustomersPage() {
           >
             All ({customers.length})
           </Button>
+          
+          {/* Sorting Chips - After All */}
+          <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+          <Button
+            variant={sortOrder === "newest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+            )}
+            onClick={() => handleSortChange("newest")}
+          >
+            <ArrowDown className="mr-1 h-3 w-3" />
+            Newest
+          </Button>
+          <Button
+            variant={sortOrder === "oldest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+            )}
+            onClick={() => handleSortChange("oldest")}
+          >
+            <ArrowUp className="mr-1 h-3 w-3" />
+            Oldest
+          </Button>
+          <Button
+            variant={sortOrder === "highest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+            )}
+            onClick={() => handleSortChange("highest")}
+          >
+            <TrendingUp className="mr-1 h-3 w-3" />
+            Max ₹
+          </Button>
+          <Button
+            variant={sortOrder === "lowest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+            )}
+            onClick={() => handleSortChange("lowest")}
+          >
+            <TrendingDown className="mr-1 h-3 w-3" />
+            Min ₹
+          </Button>
+          <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+
           <Button
             variant={activeFilter === "pending" ? "default" : "outline"}
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
             )}
             onClick={() => handleFilterChange("pending")}
           >
@@ -989,7 +1100,7 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50"
+              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
             )}
             onClick={() => handleFilterChange("partial")}
           >
@@ -1000,7 +1111,7 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
             )}
             onClick={() => handleFilterChange("paid")}
           >
@@ -1013,7 +1124,7 @@ export default function CustomersPage() {
               size="sm"
               className={cn(
                 "h-8 shrink-0 rounded-full px-3 text-xs",
-                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50"
+                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               )}
               onClick={() => handleFilterChange("high")}
             >
@@ -1030,9 +1141,20 @@ export default function CustomersPage() {
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-orange-500" />
               <span className="font-semibold">Customer Profiles</span>
-              <Badge variant="secondary" className="text-xs">
+              <Badge 
+                key={`${filteredCustomers.length}-${activeFilter}-${sortOrder}`}
+                variant="secondary" 
+                className="text-xs animate-pop-in"
+              >
                 {filteredCustomers.length}
               </Badge>
+              {(activeFilter !== "all" || sortOrder !== "smart") && (
+                <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                  {activeFilter !== "all" && activeFilter}
+                  {activeFilter !== "all" && sortOrder !== "smart" && " · "}
+                  {sortOrder !== "smart" && sortOrder}
+                </Badge>
+              )}
             </div>
             <ChevronDown
               className={cn(
@@ -1528,17 +1650,81 @@ export default function CustomersPage() {
               >
                 All ({udharList.length})
               </Button>
+              
+              {/* Sorting Chips */}
+              <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+              <Button
+                variant={udharAmountSort === "newest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  udharAmountSort !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setUdharAmountSort("newest");
+                }}
+              >
+                <ArrowDown className="mr-1 h-3 w-3" />
+                Newest
+              </Button>
+              <Button
+                variant={udharAmountSort === "oldest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  udharAmountSort !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setUdharAmountSort("oldest");
+                }}
+              >
+                <ArrowUp className="mr-1 h-3 w-3" />
+                Oldest
+              </Button>
+              <Button
+                variant={udharAmountSort === "highest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  udharAmountSort !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setUdharAmountSort("highest");
+                }}
+              >
+                <TrendingUp className="mr-1 h-3 w-3" />
+                Max ₹
+              </Button>
+              <Button
+                variant={udharAmountSort === "lowest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  udharAmountSort !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setUdharAmountSort("lowest");
+                }}
+              >
+                <TrendingDown className="mr-1 h-3 w-3" />
+                Min ₹
+              </Button>
+              <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+
               <Button
                 variant={udharStatusFilter === "pending" ? "default" : "outline"}
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+                  udharStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
                 )}
                 onClick={() => {
                   haptics.light();
                   setUdharStatusFilter("pending");
-                  setUdharAmountSort("highest"); // Smart: Pending → Highest first
                 }}
               >
                 <Clock className="mr-1 h-3 w-3" />
@@ -1549,12 +1735,11 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+                  udharStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
                 )}
                 onClick={() => {
                   haptics.light();
                   setUdharStatusFilter("paid");
-                  setUdharAmountSort("newest"); // Smart: Paid → Newest first
                 }}
               >
                 <CheckCircle className="mr-1 h-3 w-3" />
@@ -1580,10 +1765,22 @@ export default function CustomersPage() {
 
             {/* Stats + Receipts Button */}
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {filteredUdharList.length} transaction{filteredUdharList.length !== 1 ? "s" : ""}
-                {udharStatusFilter !== "all" && ` · ${udharStatusFilter}`}
-              </p>
+              <div className="flex items-center gap-2">
+                <Badge 
+                  key={`${filteredUdharList.length}-${udharStatusFilter}-${udharAmountSort}`}
+                  variant="secondary" 
+                  className="text-xs animate-pop-in"
+                >
+                  {filteredUdharList.length} transaction{filteredUdharList.length !== 1 ? "s" : ""}
+                </Badge>
+                {(udharStatusFilter !== "all" || udharAmountSort !== "newest") && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                    {udharStatusFilter !== "all" && udharStatusFilter}
+                    {udharStatusFilter !== "all" && udharAmountSort !== "newest" && " · "}
+                    {udharAmountSort !== "newest" && udharAmountSort}
+                  </Badge>
+                )}
+              </div>
               {allReceipts.length > 0 && (
                 <Button
                   variant="outline"
@@ -2514,7 +2711,7 @@ export default function CustomersPage() {
                                           disabled={!isOnline}
                                         >
                                           <CreditCard className="mr-1 h-3 w-3" />
-                                          Pay
+                                          Collect
                                         </Button>
                                       )}
                                       <Button

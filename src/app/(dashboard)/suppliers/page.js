@@ -26,6 +26,10 @@ import {
   Image as ImageIcon,
   Receipt,
   ExternalLink,
+  TrendingUp,
+  TrendingDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,7 +96,7 @@ export default function SuppliersPage() {
 
   // Filter chips state for mobile-first UX
   const [activeFilter, setActiveFilter] = useState("all"); // all, pending, partial, paid, high
-  const [sortOrder, setSortOrder] = useState("smart"); // smart, highest, oldest, newest
+  const [sortOrder, setSortOrder] = useState("smart"); // smart, highest, lowest, oldest, newest
 
   // Ref to track if image viewer was just closed (to prevent drawer from closing)
   const imageViewerJustClosedRef = useRef(false);
@@ -133,12 +137,22 @@ export default function SuppliersPage() {
         return sum;
       }, 0);
       const pendingAmount = totalAmount - paidAmount;
+      
+      // Get the last transaction date for sorting
+      const lastTransactionDate = supplierTransactions.length > 0
+        ? supplierTransactions.reduce((latest, t) => {
+            const tDate = new Date(t.date || t.createdAt || 0);
+            return tDate > latest ? tDate : latest;
+          }, new Date(0))
+        : new Date(supplier.createdAt || 0);
+
       return {
         ...supplier,
         transactionCount: supplierTransactions.length,
         totalAmount,
         paidAmount,
         pendingAmount,
+        lastTransactionDate,
       };
     });
   }, [suppliers, transactions]);
@@ -162,6 +176,12 @@ export default function SuppliersPage() {
     setSortOrder("smart");
   };
 
+  // Handle sort order change with haptic feedback
+  const handleSortChange = (order) => {
+    haptics.light();
+    setSortOrder(order);
+  };
+
   // Helper to format relative date
   const formatRelativeDate = dateString => {
     const date = new Date(dateString);
@@ -181,7 +201,7 @@ export default function SuppliersPage() {
 
   // Filter suppliers based on search and filter chips
   const filteredSuppliers = useMemo(() => {
-    let filtered = suppliersWithStats;
+    let filtered = [...suppliersWithStats]; // Create copy to avoid mutating source
     
     // Search filter - context-aware (name, phone, or amount)
     if (searchQuery.trim()) {
@@ -218,10 +238,20 @@ export default function SuppliersPage() {
 
     if (effectiveSort === "highest") {
       return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
+    } else if (effectiveSort === "lowest") {
+      return filtered.sort((a, b) => a.pendingAmount - b.pendingAmount);
     } else if (effectiveSort === "oldest") {
-      return filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      return filtered.sort((a, b) => {
+        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
+        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        return dateA - dateB;
+      });
     } else if (effectiveSort === "newest") {
-      return filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      return filtered.sort((a, b) => {
+        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
+        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        return dateB - dateA;
+      });
     }
 
     return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
@@ -240,6 +270,21 @@ export default function SuppliersPage() {
     }
   }, [searchParams, suppliersWithStats, loading, router]);
 
+  // Keep selectedSupplier in sync with updated data (fixes totalAmount not updating after transaction)
+  useEffect(() => {
+    if (selectedSupplier) {
+      const updatedSupplier = suppliersWithStats.find(s => s.id === selectedSupplier.id);
+      if (updatedSupplier && (
+        updatedSupplier.totalAmount !== selectedSupplier.totalAmount ||
+        updatedSupplier.paidAmount !== selectedSupplier.paidAmount ||
+        updatedSupplier.pendingAmount !== selectedSupplier.pendingAmount ||
+        updatedSupplier.transactionCount !== selectedSupplier.transactionCount
+      )) {
+        setSelectedSupplier(updatedSupplier);
+      }
+    }
+  }, [suppliersWithStats, selectedSupplier]);
+
   // All filtered transactions for the transactions section
   const allFilteredTransactions = useMemo(() => {
     let filtered = [...transactions];
@@ -255,9 +300,22 @@ export default function SuppliersPage() {
       return filtered.sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
     } else if (allTxnAmountSort === "lowest") {
       return filtered.sort((a, b) => (Number(a.amount) || 0) - (Number(b.amount) || 0));
+    } else if (allTxnAmountSort === "oldest") {
+      return [...filtered].sort((a, b) => {
+        // Use createdAt (full timestamp) as primary, date as fallback
+        const dateA = new Date(a.createdAt || a.date || 0);
+        const dateB = new Date(b.createdAt || b.date || 0);
+        return dateA.getTime() - dateB.getTime();
+      });
     }
 
-    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Default: newest first
+    return [...filtered].sort((a, b) => {
+      // Use createdAt (full timestamp) as primary, date as fallback
+      const dateA = new Date(a.createdAt || a.date || 0);
+      const dateB = new Date(b.createdAt || b.date || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
   }, [transactions, allTxnStatusFilter, allTxnSupplierFilter, allTxnAmountSort]);
 
   const totalBillsCount = useMemo(() => {
@@ -534,12 +592,65 @@ export default function SuppliersPage() {
           >
             All ({suppliers.length})
           </Button>
+          
+          {/* Sorting Chips - After All */}
+          <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+          <Button
+            variant={sortOrder === "newest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+            )}
+            onClick={() => handleSortChange("newest")}
+          >
+            <ArrowDown className="mr-1 h-3 w-3" />
+            Newest
+          </Button>
+          <Button
+            variant={sortOrder === "oldest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+            )}
+            onClick={() => handleSortChange("oldest")}
+          >
+            <ArrowUp className="mr-1 h-3 w-3" />
+            Oldest
+          </Button>
+          <Button
+            variant={sortOrder === "highest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+            )}
+            onClick={() => handleSortChange("highest")}
+          >
+            <TrendingUp className="mr-1 h-3 w-3" />
+            Max ₹
+          </Button>
+          <Button
+            variant={sortOrder === "lowest" ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-8 shrink-0 rounded-full px-3 text-xs",
+              sortOrder !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+            )}
+            onClick={() => handleSortChange("lowest")}
+          >
+            <TrendingDown className="mr-1 h-3 w-3" />
+            Min ₹
+          </Button>
+          <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+
           <Button
             variant={activeFilter === "pending" ? "default" : "outline"}
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
             )}
             onClick={() => handleFilterChange("pending")}
           >
@@ -551,7 +662,7 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50"
+              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
             )}
             onClick={() => handleFilterChange("partial")}
           >
@@ -562,7 +673,7 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
             )}
             onClick={() => handleFilterChange("paid")}
           >
@@ -575,7 +686,7 @@ export default function SuppliersPage() {
               size="sm"
               className={cn(
                 "h-8 shrink-0 rounded-full px-3 text-xs",
-                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50"
+                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               )}
               onClick={() => handleFilterChange("high")}
             >
@@ -592,9 +703,20 @@ export default function SuppliersPage() {
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-emerald-500" />
               <span className="font-semibold">Vyapari Profiles</span>
-              <Badge variant="secondary" className="text-xs">
+              <Badge 
+                key={`${filteredSuppliers.length}-${activeFilter}-${sortOrder}`}
+                variant="secondary" 
+                className="text-xs animate-pop-in"
+              >
                 {filteredSuppliers.length}
               </Badge>
+              {(activeFilter !== "all" || sortOrder !== "smart") && (
+                <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                  {activeFilter !== "all" && activeFilter}
+                  {activeFilter !== "all" && sortOrder !== "smart" && " · "}
+                  {sortOrder !== "smart" && sortOrder}
+                </Badge>
+              )}
             </div>
             <ChevronDown
               className={cn(
@@ -801,17 +923,81 @@ export default function SuppliersPage() {
               >
                 All ({transactions.length})
               </Button>
+              
+              {/* Sorting Chips */}
+              <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+              <Button
+                variant={allTxnAmountSort === "newest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnAmountSort !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnAmountSort("newest");
+                }}
+              >
+                <ArrowDown className="mr-1 h-3 w-3" />
+                Newest
+              </Button>
+              <Button
+                variant={allTxnAmountSort === "oldest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnAmountSort !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnAmountSort("oldest");
+                }}
+              >
+                <ArrowUp className="mr-1 h-3 w-3" />
+                Oldest
+              </Button>
+              <Button
+                variant={allTxnAmountSort === "highest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnAmountSort !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnAmountSort("highest");
+                }}
+              >
+                <TrendingUp className="mr-1 h-3 w-3" />
+                Max ₹
+              </Button>
+              <Button
+                variant={allTxnAmountSort === "lowest" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3 text-xs",
+                  allTxnAmountSort !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                )}
+                onClick={() => {
+                  haptics.light();
+                  setAllTxnAmountSort("lowest");
+                }}
+              >
+                <TrendingDown className="mr-1 h-3 w-3" />
+                Min ₹
+              </Button>
+              <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+
               <Button
                 variant={allTxnStatusFilter === "pending" ? "default" : "outline"}
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50"
+                  allTxnStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
                 )}
                 onClick={() => {
                   haptics.light();
                   setAllTxnStatusFilter("pending");
-                  setAllTxnAmountSort("highest"); // Smart: Pending → Highest first
                 }}
               >
                 <Clock className="mr-1 h-3 w-3" />
@@ -822,12 +1008,11 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50"
+                  allTxnStatusFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
                 )}
                 onClick={() => {
                   haptics.light();
                   setAllTxnStatusFilter("partial");
-                  setAllTxnAmountSort("highest"); // Smart: Partial → Highest first
                 }}
               >
                 Partial
@@ -837,12 +1022,11 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50"
+                  allTxnStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
                 )}
                 onClick={() => {
                   haptics.light();
                   setAllTxnStatusFilter("paid");
-                  setAllTxnAmountSort("newest"); // Smart: Paid → Newest first
                 }}
               >
                 <CheckCircle className="mr-1 h-3 w-3" />
@@ -868,15 +1052,22 @@ export default function SuppliersPage() {
 
             {/* Stats + View toggle */}
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {allFilteredTransactions.length} transaction{allFilteredTransactions.length !== 1 ? "s" : ""}
-                {allTxnStatusFilter !== "all" && ` · ${allTxnStatusFilter}`}
-              </p>
-              {totalBillsCount > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  {totalBillsCount} bills
+              <div className="flex items-center gap-2">
+                <Badge 
+                  key={`${allFilteredTransactions.length}-${allTxnStatusFilter}-${allTxnAmountSort}`}
+                  variant="secondary" 
+                  className="text-xs animate-pop-in"
+                >
+                  {allFilteredTransactions.length} transaction{allFilteredTransactions.length !== 1 ? "s" : ""}
                 </Badge>
-              )}
+                {(allTxnStatusFilter !== "all" || allTxnAmountSort !== "newest") && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                    {allTxnStatusFilter !== "all" && allTxnStatusFilter}
+                    {allTxnStatusFilter !== "all" && allTxnAmountSort !== "newest" && " · "}
+                    {allTxnAmountSort !== "newest" && allTxnAmountSort}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Sub-tabs for List and Bills view */}
@@ -884,11 +1075,15 @@ export default function SuppliersPage() {
               <TabsList className="grid w-full max-w-xs grid-cols-2">
                 <TabsTrigger value="list" className="gap-1.5">
                   <Receipt className="h-4 w-4" />
-                  List
+                  Transactions List
                 </TabsTrigger>
                 <TabsTrigger value="gallery" className="gap-1.5">
-                  <ImageIcon className="h-4 w-4" />
-                  Bills
+
+                    <Badge  className="text-xs">
+                      <ImageIcon className="h-4 w-4 mr-1" />
+                      {totalBillsCount} Bills
+                    </Badge>
+                
                 </TabsTrigger>
               </TabsList>
 
@@ -1330,7 +1525,7 @@ export default function SuppliersPage() {
                                           disabled={!isOnline}
                                         >
                                           <CreditCard className="mr-1 h-3 w-3" />
-                                          Pay
+                                          Record Payment
                                         </Button>
                                       )}
                                       {txn.billImages && txn.billImages.length > 0 && (

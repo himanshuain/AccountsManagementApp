@@ -58,8 +58,17 @@ export default function DashboardPage() {
     cashAmount: "",
     onlineAmount: "",
     date: new Date().toISOString().split("T")[0],
+    month: new Date().toISOString().slice(0, 7), // YYYY-MM format for month picker
     description: "",
   });
+
+  // Helper function to get the last day of a month
+  const getLastDayOfMonth = (yearMonth) => {
+    const [year, month] = yearMonth.split("-").map(Number);
+    // Create date for first day of next month, then subtract one day
+    const lastDay = new Date(year, month, 0);
+    return lastDay.toISOString().split("T")[0];
+  };
 
   // Refs for auto-focus
   const cashInputRef = useRef(null);
@@ -92,12 +101,17 @@ export default function DashboardPage() {
       return;
     }
 
+    // For monthly income, use the last day of the selected month
+    const finalDate = incomeFormData.type === "monthly" 
+      ? getLastDayOfMonth(incomeFormData.month)
+      : incomeFormData.date;
+
     const result = await addIncome({
       type: incomeFormData.type,
       cashAmount: cashAmt,
       onlineAmount: onlineAmt,
       amount: totalAmt,
-      date: incomeFormData.date,
+      date: finalDate,
       description: incomeFormData.description,
     });
 
@@ -109,6 +123,7 @@ export default function DashboardPage() {
         cashAmount: "",
         onlineAmount: "",
         date: new Date().toISOString().split("T")[0],
+        month: new Date().toISOString().slice(0, 7),
         description: "",
       });
     } else {
@@ -422,15 +437,31 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Date */}
+              {/* Date / Month selector */}
               <div className="space-y-2">
-                <Label className="text-sm">Date</Label>
-                <Input
-                  type="date"
-                  value={incomeFormData.date}
-                  onChange={e => setIncomeFormData({ ...incomeFormData, date: e.target.value })}
-                  className="h-12"
-                />
+                <Label className="text-sm">
+                  {incomeFormData.type === "monthly" ? "Month" : "Date"}
+                </Label>
+                {incomeFormData.type === "monthly" ? (
+                  <Input
+                    type="month"
+                    value={incomeFormData.month}
+                    onChange={e => setIncomeFormData({ ...incomeFormData, month: e.target.value })}
+                    className="h-12"
+                  />
+                ) : (
+                  <Input
+                    type="date"
+                    value={incomeFormData.date}
+                    onChange={e => setIncomeFormData({ ...incomeFormData, date: e.target.value })}
+                    className="h-12"
+                  />
+                )}
+                {incomeFormData.type === "monthly" && incomeFormData.month && (
+                  <p className="text-xs text-muted-foreground">
+                    Will be saved as: {getLastDayOfMonth(incomeFormData.month)} (last day of month)
+                  </p>
+                )}
               </div>
 
               {/* Description */}

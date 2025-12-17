@@ -231,16 +231,7 @@ export function UdharList({
     { total: 0, paid: 0, pending: 0 }
   );
 
-  const pendingUdhar = udharList
-    .filter(u => u.paymentStatus !== "paid")
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  const paidUdhar = udharList
-    .filter(u => u.paymentStatus === "paid")
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  const sortedUdhar = [...pendingUdhar, ...paidUdhar];
-
+  // Use udharList as-is (sorting is handled by parent component)
   // Progressive loading for large lists
   const {
     visibleItems: visibleUdhar,
@@ -249,7 +240,7 @@ export function UdharList({
     loadMoreRef,
     remainingCount,
     totalCount,
-  } = useProgressiveList(sortedUdhar, 15, 15);
+  } = useProgressiveList(udharList, 15, 15);
 
   if (loading) {
     return (

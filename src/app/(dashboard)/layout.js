@@ -9,6 +9,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { OfflineBlocker } from "@/components/OfflineBlocker";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { GlobalLoadingBar } from "@/components/GlobalLoadingBar";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -126,6 +127,9 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Global Loading Bar - shows when API calls are in progress */}
+      <GlobalLoadingBar />
+
       {/* Offline Blocker - blocks the entire app when offline */}
       <OfflineBlocker />
 

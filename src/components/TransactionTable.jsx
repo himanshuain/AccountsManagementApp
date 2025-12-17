@@ -150,9 +150,7 @@ export function TransactionTable({
     { total: 0, paid: 0, pending: 0 }
   );
 
-  // Sort by date (oldest first - old transactions at top)
-  const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-
+  // Use transactions as-is (sorting is handled by parent component)
   // Progressive loading for large lists
   const {
     visibleItems: visibleTransactions,
@@ -161,7 +159,7 @@ export function TransactionTable({
     loadMoreRef,
     remainingCount,
     totalCount,
-  } = useProgressiveList(sortedTransactions, 15, 15);
+  } = useProgressiveList(transactions, 15, 15);
 
   if (loading) {
     return (
