@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   Edit,
@@ -53,6 +53,19 @@ export function SupplierDetailDrawer({
   imageViewerJustClosedRef,
 }) {
   const [expandedTransactionId, setExpandedTransactionId] = useState(null);
+  const expandedTransactionRef = useRef(null);
+
+  // Scroll expanded transaction into view when it changes
+  useEffect(() => {
+    if (expandedTransactionId && expandedTransactionRef.current) {
+      setTimeout(() => {
+        expandedTransactionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 100);
+    }
+  }, [expandedTransactionId]);
 
   if (!supplier) return null;
 
@@ -325,6 +338,7 @@ export function SupplierDetailDrawer({
                       return (
                         <Card
                           key={txn.id}
+                          ref={isExpanded ? expandedTransactionRef : null}
                           className={cn(
                             "overflow-hidden transition-all",
                             isPaid

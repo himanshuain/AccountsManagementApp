@@ -264,16 +264,17 @@ export function MobileNav() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Activity className="h-4 w-4" />
-                      <span>{isBandwidth ? "Storage" : "Storage"}</span>
-                      {storageInfo?.fileCount && (
-                        <span className="text-xs">({storageInfo.fileCount} photos)</span>
-                      )}
+                      {/* <span>{isBandwidth ? "Storage" : "Storage"}</span> */}
+                      <span>Storage</span>
+
+                      
                     </div>
                     {storageLoading ? (
                       <div className="h-2 animate-pulse rounded-full bg-muted" />
-                    ) : storageInfo ? (
+                    ) 
+                    : storageInfo ? (
                       <div className="space-y-1">
-                        <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        {/* <div className="h-2 overflow-hidden rounded-full bg-muted">
                           <div
                             className={cn(
                               "h-full rounded-full transition-all",
@@ -285,10 +286,14 @@ export function MobileNav() {
                             )}
                             style={{ width: `${Math.min(storageInfo.usedPercentage, 100)}%` }}
                           />
-                        </div>
+                        </div> */}
                         <p className="text-xs text-muted-foreground">
-                          {storageInfo.usedFormatted} / {storageInfo.totalFormatted} (
-                          {storageInfo.usedPercentage}%)
+                          {storageInfo.usedFormatted}<br /> 
+                          {storageInfo?.fileCount && (
+                        <span className="text-xs">Total {storageInfo.fileCount} photos on the server</span>
+                      )}
+                          {/* / {storageInfo.totalFormatted} ( */}
+                          {/* {storageInfo.usedPercentage}%) */}
                         </p>
                       </div>
                     ) : (

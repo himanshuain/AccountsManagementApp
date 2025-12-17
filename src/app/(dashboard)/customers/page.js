@@ -796,6 +796,23 @@ export default function CustomersPage() {
       toast.error("Please enter a valid amount");
       return;
     }
+    
+    // Calculate pending amount
+    const totalAmount =
+      paymentUdhar.amount ||
+      (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+    const paidAmount =
+      paymentUdhar.paidAmount ||
+      (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+    const pendingAmount = Math.max(0, totalAmount - paidAmount);
+    const paymentValue = Number(paymentAmount);
+    
+    // Validate that payment amount doesn't exceed pending amount
+    if (paymentValue > pendingAmount) {
+      haptics.error();
+      toast.error(`Cannot collect more than pending amount of ₹${pendingAmount.toLocaleString()}`);
+      return;
+    }
 
     setIsSubmittingPayment(true);
     try {
@@ -855,6 +872,16 @@ export default function CustomersPage() {
     if (!quickCollectCustomer || !quickCollectAmount || Number(quickCollectAmount) <= 0) {
       haptics.error();
       toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    // Validate that collect amount doesn't exceed pending amount
+    const collectAmount = Number(quickCollectAmount);
+    const pendingAmount = quickCollectCustomer.pendingAmount || 0;
+    
+    if (collectAmount > pendingAmount) {
+      haptics.error();
+      toast.error(`Cannot collect more than pending amount of ₹${pendingAmount.toLocaleString()}`);
       return;
     }
 
@@ -2083,6 +2110,7 @@ export default function CustomersPage() {
                   !isOnline ||
                   !quickCollectAmount ||
                   Number(quickCollectAmount) <= 0 ||
+                  Number(quickCollectAmount) > (quickCollectCustomer?.pendingAmount || 0) ||
                   isSubmittingQuickCollect
                 }
                 className="h-9 bg-green-600 px-3 hover:bg-green-700"
@@ -2122,10 +2150,38 @@ export default function CustomersPage() {
                   type="number"
                   inputMode="numeric"
                   value={quickCollectAmount}
-                  onChange={e => setQuickCollectAmount(e.target.value)}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setQuickCollectAmount(value);
+                    
+                    // Real-time validation feedback
+                    if (value && quickCollectCustomer) {
+                      const amount = parseFloat(value);
+                      const pendingAmount = quickCollectCustomer.pendingAmount || 0;
+                      
+                      if (!isNaN(amount) && amount > pendingAmount) {
+                        e.target.classList.add("border-destructive");
+                      } else {
+                        e.target.classList.remove("border-destructive");
+                      }
+                    }
+                  }}
+                  max={quickCollectCustomer?.pendingAmount || undefined}
                   placeholder="Enter amount"
                   className="h-16 text-center text-3xl font-bold"
                 />
+                {quickCollectCustomer && quickCollectAmount && (() => {
+                  const amount = parseFloat(quickCollectAmount);
+                  const pendingAmount = quickCollectCustomer.pendingAmount || 0;
+                  if (!isNaN(amount) && amount > pendingAmount) {
+                    return (
+                      <p className="text-xs text-destructive mt-1">
+                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Notes */}
@@ -2258,9 +2314,20 @@ export default function CustomersPage() {
               <Button
                 size="sm"
                 onClick={handleRecordPayment}
-                disabled={
-                  !isOnline || !paymentAmount || Number(paymentAmount) <= 0 || isSubmittingPayment
-                }
+                disabled={(() => {
+                  if (!isOnline || !paymentAmount || isSubmittingPayment) return true;
+                  const amount = Number(paymentAmount);
+                  if (isNaN(amount) || amount <= 0) return true;
+                  if (!paymentUdhar) return true;
+                  const totalAmount =
+                    paymentUdhar.amount ||
+                    (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+                  const paidAmount =
+                    paymentUdhar.paidAmount ||
+                    (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                  return amount > pendingAmount;
+                })()}
                 className="h-9 bg-green-600 px-3 hover:bg-green-700"
               >
                 {isSubmittingPayment ? (
@@ -2325,10 +2392,58 @@ export default function CustomersPage() {
                   type="number"
                   inputMode="numeric"
                   value={paymentAmount}
-                  onChange={e => setPaymentAmount(e.target.value)}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setPaymentAmount(value);
+                    
+                    // Real-time validation feedback
+                    if (value && paymentUdhar) {
+                      const amount = parseFloat(value);
+                      const totalAmount =
+                        paymentUdhar.amount ||
+                        (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+                      const paidAmount =
+                        paymentUdhar.paidAmount ||
+                        (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+                      const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                      
+                      if (!isNaN(amount) && amount > pendingAmount) {
+                        e.target.classList.add("border-destructive");
+                      } else {
+                        e.target.classList.remove("border-destructive");
+                      }
+                    }
+                  }}
+                  max={paymentUdhar ? (() => {
+                    const totalAmount =
+                      paymentUdhar.amount ||
+                      (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+                    const paidAmount =
+                      paymentUdhar.paidAmount ||
+                      (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+                    return Math.max(0, totalAmount - paidAmount);
+                  })() : undefined}
                   placeholder="Enter amount"
                   className="h-16 text-center text-3xl font-bold"
                 />
+                {paymentUdhar && paymentAmount && (() => {
+                  const amount = parseFloat(paymentAmount);
+                  const totalAmount =
+                    paymentUdhar.amount ||
+                    (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+                  const paidAmount =
+                    paymentUdhar.paidAmount ||
+                    (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                  if (!isNaN(amount) && amount > pendingAmount) {
+                    return (
+                      <p className="text-xs text-destructive mt-1">
+                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Payment Receipts Upload - Multiple */}
@@ -3332,8 +3447,11 @@ export default function CustomersPage() {
       <Sheet
         open={allReceiptsSheetOpen}
         onOpenChange={open => {
-          // Only allow closing via the X button, not via backdrop/escape when gallery might have just closed
-          if (!open) return; // Prevent automatic closing - use the X button instead
+          // Don't close if image viewer or gallery viewer is open or was just closed
+          if (!open && (imageViewerOpen || galleryViewerOpen || imageViewerJustClosedRef.current)) {
+            imageViewerJustClosedRef.current = false;
+            return;
+          }
           setAllReceiptsSheetOpen(open);
         }}
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   Trash2,
@@ -72,6 +72,25 @@ export function UdharList({
 
   const receiptCameraRef = useRef(null);
   const receiptGalleryRef = useRef(null);
+  const expandedItemRefs = useRef({});
+
+  // Scroll expanded item into view after CRUD operations
+  useEffect(() => {
+    // Find the most recently expanded item
+    const expandedArray = Array.from(expandedItems);
+    if (expandedArray.length > 0) {
+      const lastExpandedId = expandedArray[expandedArray.length - 1];
+      const ref = expandedItemRefs.current[lastExpandedId];
+      if (ref) {
+        setTimeout(() => {
+          ref.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }, 100);
+      }
+    }
+  }, [expandedItems]);
 
   const getCustomer = customerId => {
     return customers?.find(c => c.id === customerId);
@@ -183,6 +202,23 @@ export function UdharList({
       toast.error("Please enter a valid amount");
       return;
     }
+    
+    if (!udharForDeposit) {
+      toast.error("No udhar selected");
+      return;
+    }
+    
+    // Calculate pending amount
+    const totalAmount = getUdharAmount(udharForDeposit);
+    const paidAmount = getPaidAmount(udharForDeposit);
+    const pendingAmount = Math.max(0, totalAmount - paidAmount);
+    const depositValue = Number(depositAmount);
+    
+    // Validate that deposit amount doesn't exceed pending amount
+    if (depositValue > pendingAmount) {
+      toast.error(`Cannot deposit more than pending amount of ₹${pendingAmount.toLocaleString()}`);
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -210,6 +246,12 @@ export function UdharList({
         depositNotes || null
       );
       toast.success("Collect recorded!");
+      
+      // Keep the udhar expanded and scroll into view
+      const newExpanded = new Set(expandedItems);
+      newExpanded.add(udharForDeposit.id);
+      setExpandedItems(newExpanded);
+      
       resetDepositForm();
     } catch (error) {
       console.error("Error recording deposit:", error);
@@ -303,9 +345,20 @@ export function UdharList({
             <Collapsible
               key={udhar.id}
               open={isExpanded}
-              onOpenChange={() => toggleExpanded(udhar.id)}
+              onOpenChange={() => {
+                toggleExpanded(udhar.id);
+                // Store ref for scrolling
+                if (!expandedItemRefs.current[udhar.id]) {
+                  expandedItemRefs.current[udhar.id] = null;
+                }
+              }}
             >
               <Card
+                ref={el => {
+                  if (el && isExpanded) {
+                    expandedItemRefs.current[udhar.id] = el;
+                  }
+                }}
                 className={cn(
                   "overflow-hidden transition-all",
                   isPaid
@@ -591,7 +644,16 @@ export function UdharList({
               <Button
                 size="sm"
                 onClick={handleDepositSubmit}
-                disabled={isSubmitting || !depositAmount}
+                disabled={(() => {
+                  if (isSubmitting || !depositAmount) return true;
+                  if (!udharForDeposit) return true;
+                  const amount = parseFloat(depositAmount);
+                  if (isNaN(amount) || amount <= 0) return true;
+                  const totalAmount = getUdharAmount(udharForDeposit);
+                  const paidAmount = getPaidAmount(udharForDeposit);
+                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                  return amount > pendingAmount;
+                })()}
               >
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save
@@ -626,11 +688,47 @@ export function UdharList({
                   type="number"
                   inputMode="numeric"
                   value={depositAmount}
-                  onChange={e => setDepositAmount(e.target.value)}
+                  onChange={e => {
+                    const value = e.target.value;
+                    setDepositAmount(value);
+                    
+                    // Real-time validation feedback
+                    if (value && udharForDeposit) {
+                      const amount = parseFloat(value);
+                      const totalAmount = getUdharAmount(udharForDeposit);
+                      const paidAmount = getPaidAmount(udharForDeposit);
+                      const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                      
+                      if (!isNaN(amount) && amount > pendingAmount) {
+                        e.target.classList.add("border-destructive");
+                      } else {
+                        e.target.classList.remove("border-destructive");
+                      }
+                    }
+                  }}
+                  max={udharForDeposit ? (() => {
+                    const totalAmount = getUdharAmount(udharForDeposit);
+                    const paidAmount = getPaidAmount(udharForDeposit);
+                    return Math.max(0, totalAmount - paidAmount);
+                  })() : undefined}
                   placeholder="Enter amount"
                   className="h-14 text-xl font-semibold"
                   autoFocus
                 />
+                {udharForDeposit && depositAmount && (() => {
+                  const amount = parseFloat(depositAmount);
+                  const totalAmount = getUdharAmount(udharForDeposit);
+                  const paidAmount = getPaidAmount(udharForDeposit);
+                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                  if (!isNaN(amount) && amount > pendingAmount) {
+                    return (
+                      <p className="text-xs text-destructive mt-1">
+                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               {/* Notes Input */}

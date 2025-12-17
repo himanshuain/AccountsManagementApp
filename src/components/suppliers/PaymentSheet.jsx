@@ -26,6 +26,18 @@ export function PaymentSheet({
       toast.error("Please enter a valid amount");
       return;
     }
+    
+    // Calculate pending amount
+    const totalAmount = Number(transaction.amount || 0);
+    const paidAmount = Number(transaction.paidAmount || 0);
+    const pendingAmount = totalAmount - paidAmount;
+    
+    // Validate that payment amount doesn't exceed pending amount
+    if (amount > pendingAmount) {
+      toast.error(`Payment amount cannot exceed pending amount of ₹${pendingAmount.toLocaleString()}`);
+      return;
+    }
+    
     const result = await onRecordPayment(transaction.id, amount, paymentReceipt);
     if (result.success) {
       toast.success("Payment recorded");
@@ -103,15 +115,48 @@ export function PaymentSheet({
                 type="number"
                 placeholder="Enter amount"
                 value={paymentAmount}
-                onChange={e => setPaymentAmount(e.target.value)}
+                onChange={e => {
+                  const value = e.target.value;
+                  setPaymentAmount(value);
+                  
+                  // Real-time validation feedback
+                  if (value) {
+                    const amount = parseFloat(value);
+                    const totalAmount = Number(transaction.amount || 0);
+                    const paidAmount = Number(transaction.paidAmount || 0);
+                    const pendingAmount = totalAmount - paidAmount;
+                    
+                    if (!isNaN(amount) && amount > pendingAmount) {
+                      // Show error styling
+                      e.target.classList.add("border-destructive");
+                    } else {
+                      e.target.classList.remove("border-destructive");
+                    }
+                  }
+                }}
+                max={transaction ? (Number(transaction.amount || 0) - Number(transaction.paidAmount || 0)) : undefined}
                 className="h-12 text-lg touch-manipulation"
               />
+              {transaction && paymentAmount && (() => {
+                const amount = parseFloat(paymentAmount);
+                const totalAmount = Number(transaction.amount || 0);
+                const paidAmount = Number(transaction.paidAmount || 0);
+                const pendingAmount = totalAmount - paidAmount;
+                if (!isNaN(amount) && amount > pendingAmount) {
+                  return (
+                    <p className="text-xs text-destructive">
+                      Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Receipt Upload */}
             <div className="space-y-2">
               <Label>Payment Receipt (Optional)</Label>
-              <div className="w-24">
+              <div className="w-44">
                 <ImageUpload
                   value={paymentReceipt}
                   onChange={setPaymentReceipt}
@@ -126,7 +171,15 @@ export function PaymentSheet({
               <Button
                 className="flex-1 touch-manipulation"
                 onClick={handleRecordPayment}
-                disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
+                disabled={(() => {
+                  if (!paymentAmount) return true;
+                  const amount = parseFloat(paymentAmount);
+                  if (isNaN(amount) || amount <= 0) return true;
+                  const totalAmount = Number(transaction?.amount || 0);
+                  const paidAmount = Number(transaction?.paidAmount || 0);
+                  const pendingAmount = totalAmount - paidAmount;
+                  return amount > pendingAmount;
+                })()}
               >
                 <CreditCard className="mr-2 h-4 w-4" />
                 Record Payment
