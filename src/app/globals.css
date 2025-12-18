@@ -96,12 +96,6 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Touch manipulation for better mobile UX */
-  .touch-manipulation {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
   /* Hardware acceleration for smoother animations */
   .hw-accelerate {
     transform: translateZ(0);

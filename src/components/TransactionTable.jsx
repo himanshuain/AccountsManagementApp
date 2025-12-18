@@ -336,7 +336,7 @@ export function TransactionTable({
                                 : "bg-amber-500/20 text-amber-600"
                           )}
                         >
-                          {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
+                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
                         </Badge>
                       </div>
 
