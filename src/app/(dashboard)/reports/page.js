@@ -699,11 +699,12 @@ export default function ReportsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-8 w-20 text-xs"
                           onClick={() => handleEdit(income)}
                           disabled={!isOnline}
                         >
                           <Edit className="h-4 w-4" />
+                          Edit
                         </Button>
                         <Button
                           variant="ghost"

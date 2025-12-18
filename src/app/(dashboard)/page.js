@@ -173,7 +173,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 2x2 Quick Action Grid */}
-      <div className="grid flex-1 grid-cols-2 gap-4">
+      <div className="grid flex-1 grid-cols-3 gap-4">
         {/* Vyapari Bill (Quick Bill Capture) */}
         <Card
           className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
@@ -239,7 +239,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Add Customer */}
-        <Card
+        {/* <Card
           className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
             isOnline
               ? "bg-gradient-to-br from-cyan-500 to-blue-600 hover:scale-[1.02] hover:shadow-xl"
@@ -262,7 +262,7 @@ export default function DashboardPage() {
             <span className="text-center text-base font-semibold text-white">Add Customer</span>
             <span className="mt-1 text-xs text-white/70">New customer</span>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Forms */}

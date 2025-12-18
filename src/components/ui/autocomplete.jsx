@@ -5,6 +5,20 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Lightweight debug logger for debug mode (NDJSON to provided endpoint)
+const logAutocomplete = (payload) => {
+  fetch("http://127.0.0.1:7245/ingest/cde8c359-2ac1-4713-9a87-cbd976795216", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId: "debug-session",
+      runId: "pre-fix",
+      timestamp: Date.now(),
+      ...payload,
+    }),
+  }).catch(() => {});
+};
+
 /**
  * Autocomplete Select Component
  * A searchable dropdown with autocomplete functionality
@@ -32,6 +46,22 @@ export function Autocomplete({
   const dropdownRef = React.useRef(null);
   const inputRef = React.useRef(null);
 
+  // Global focus tracker to see where focus ends up
+  React.useEffect(() => {
+    const handler = e => {
+      // #region agent log
+      logAutocomplete({
+        hypothesisId: "E",
+        location: "autocomplete.jsx:focusin",
+        message: "Document focusin",
+        data: { target: e.target?.tagName, active: document.activeElement?.tagName, open },
+      });
+      // #endregion
+    };
+    document.addEventListener("focusin", handler, true);
+    return () => document.removeEventListener("focusin", handler, true);
+  }, [open]);
+
   // Find selected option
   const selectedOption = React.useMemo(() => {
     return options.find(opt => getOptionValue(opt) === value);
@@ -57,7 +87,23 @@ export function Autocomplete({
         left: rect.left,
         width: Math.max(rect.width, 200), // Minimum width of 200px
       });
+      // #region agent log
+      logAutocomplete({
+        hypothesisId: "A",
+        location: "autocomplete.jsx:openEffect",
+        message: "Dropdown opened; computed position",
+        data: { top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 200) },
+      });
+      // #endregion
     }
+    // #region agent log
+    logAutocomplete({
+      hypothesisId: "F",
+      location: "autocomplete.jsx:openState",
+      message: "Open state changed",
+      data: { open },
+    });
+    // #endregion
   }, [open]);
 
   // Close on outside click
@@ -69,6 +115,14 @@ export function Autocomplete({
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target)
       ) {
+        // #region agent log
+        logAutocomplete({
+          hypothesisId: "G",
+          location: "autocomplete.jsx:clickOutside",
+          message: "Click outside detected, closing dropdown",
+          data: { target: event.target?.tagName, open },
+        });
+        // #endregion
         setOpen(false);
         setSearchQuery("");
       }
@@ -100,6 +154,14 @@ export function Autocomplete({
         return;
       }
       if (open) {
+        // #region agent log
+        logAutocomplete({
+          hypothesisId: "G",
+          location: "autocomplete.jsx:scrollClose",
+          message: "Scroll detected, closing dropdown",
+          data: { target: e.target?.tagName },
+        });
+        // #endregion
         setOpen(false);
         setSearchQuery("");
       }
@@ -126,7 +188,17 @@ export function Autocomplete({
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => !disabled && setOpen(!open)}
+        onClick={() => {
+          // #region agent log
+          logAutocomplete({
+            hypothesisId: "B",
+            location: "autocomplete.jsx:triggerClick",
+            message: "Trigger clicked",
+            data: { disabled, openBefore: open },
+          });
+          // #endregion
+          if (!disabled) setOpen(!open);
+        }}
         disabled={disabled}
         className={cn(
           "flex h-12 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background",
@@ -152,13 +224,28 @@ export function Autocomplete({
         <div 
           ref={dropdownRef}
           className={cn(
-            "fixed z-[100] rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95",
+            "fixed z-[9999] rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95 pointer-events-auto",
             dropdownClassName
           )}
+          onMouseDownCapture={e => e.stopPropagation()}
+          onTouchStartCapture={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          onTouchStart={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
+          }}
+          onFocusCapture={e => {
+            // #region agent log
+            logAutocomplete({
+              hypothesisId: "C",
+              location: "autocomplete.jsx:dropdownFocus",
+              message: "Dropdown focus capture",
+              data: { target: e.target?.tagName },
+            });
+            // #endregion
           }}
         >
           {/* Search Input */}
@@ -170,6 +257,53 @@ export function Autocomplete({
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onMouseDownCapture={e => {
+                // #region agent log
+                logAutocomplete({
+                  hypothesisId: "D",
+                  location: "autocomplete.jsx:searchMouseDownCapture",
+                  message: "Search input mousedown capture",
+                  data: {
+                    defaultPrevented: e.defaultPrevented,
+                    button: e.button,
+                    open,
+                  },
+                });
+                // #endregion
+                e.stopPropagation();
+              }}
+              onTouchStartCapture={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
+              onTouchStart={e => e.stopPropagation()}
+              onFocus={e => {
+                // #region agent log
+                logAutocomplete({
+                  hypothesisId: "D",
+                  location: "autocomplete.jsx:searchFocus",
+                  message: "Search input focus",
+                  data: {
+                    value: searchQuery,
+                    target: e.target?.tagName,
+                    activeBefore: document.activeElement?.tagName,
+                    open,
+                  },
+                });
+                // #endregion
+              }}
+              onClick={e => {
+                // #region agent log
+                logAutocomplete({
+                  hypothesisId: "D",
+                  location: "autocomplete.jsx:searchClick",
+                  message: "Search input click",
+                  data: {
+                    value: searchQuery,
+                    activeBefore: document.activeElement?.tagName,
+                    open,
+                  },
+                });
+                // #endregion
+              }}
               className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
             />
             {searchQuery && (

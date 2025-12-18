@@ -29,6 +29,8 @@ export function CustomerForm({
   const [khataPhotos, setKhataPhotos] = useState(
     initialData?.khataPhotos || (initialData?.khataPhoto ? [initialData.khataPhoto] : [])
   );
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingKhata, setUploadingKhata] = useState(false);
 
   const defaultFormValues = {
     name: "",
@@ -85,6 +87,7 @@ export function CustomerForm({
 
   const handleFormSubmit = async data => {
     if (!isOnline) return;
+    if (uploadingProfile || uploadingKhata) return;
 
     setIsSubmitting(true);
     try {
@@ -154,7 +157,7 @@ export function CustomerForm({
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !isOnline}
+              disabled={isSubmitting || !isOnline || uploadingProfile || uploadingKhata}
               className="h-9 px-3"
             >
               {isSubmitting ? (
@@ -179,13 +182,14 @@ export function CustomerForm({
 
             {/* Profile Picture */}
             <div className="flex justify-center">
-              <div className="w-28">
+              <div className="w-44">
                 <ImageUpload
                   value={profilePicture}
                   onChange={setProfilePicture}
                   placeholder="Add Photo"
                   aspectRatio="square"
                   disabled={!isOnline}
+                  onUploadingChange={setUploadingProfile}
                 />
               </div>
             </div>
@@ -277,6 +281,7 @@ export function CustomerForm({
                 onChange={setKhataPhotos}
                 maxImages={5}
                 disabled={!isOnline}
+                onUploadingChange={setUploadingKhata}
               />
             </div>
 

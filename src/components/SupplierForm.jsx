@@ -24,6 +24,8 @@ export function SupplierForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingUpiQr, setUploadingUpiQr] = useState(false);
 
   const defaultFormValues = {
     companyName: "",
@@ -87,6 +89,7 @@ export function SupplierForm({
 
   const handleFormSubmit = async data => {
     if (!isOnline) return;
+    if (uploadingProfile || uploadingUpiQr) return;
 
     setIsSubmitting(true);
     try {
@@ -155,7 +158,7 @@ export function SupplierForm({
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !isOnline}
+              disabled={isSubmitting || !isOnline || uploadingProfile || uploadingUpiQr}
               className="h-9 px-3"
             >
               {isSubmitting ? (
@@ -181,13 +184,14 @@ export function SupplierForm({
 
             {/* Profile Picture - At Top */}
             <div className="flex justify-center">
-              <div className="w-28">
+              <div className="w-44">
                 <ImageUpload
                   value={profilePicture}
                   onChange={setProfilePicture}
                   placeholder="Add Photo"
                   aspectRatio="square"
                   disabled={!isOnline}
+                  onUploadingChange={setUploadingProfile}
                 />
               </div>
             </div>
@@ -271,6 +275,7 @@ export function SupplierForm({
                     placeholder="Add QR Code"
                     aspectRatio="square"
                     disabled={!isOnline}
+                    onUploadingChange={setUploadingUpiQr}
                   />
                 </div>
               </div>

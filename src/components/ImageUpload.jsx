@@ -15,6 +15,7 @@ export function ImageUpload({
   placeholder = "Upload Image",
   aspectRatio = "square",
   disabled = false,
+  onUploadingChange,
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
@@ -23,6 +24,11 @@ export function ImageUpload({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+
+  const setUploadingState = state => {
+    setIsUploading(state);
+    onUploadingChange?.(state);
+  };
 
   // Sync preview with value and get optimized URLs
   useEffect(() => {
@@ -46,7 +52,7 @@ export function ImageUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
+    setUploadingState(true);
 
     try {
       // Compress image before upload
@@ -92,7 +98,7 @@ export function ImageUpload({
       // Keep local preview for offline mode
       onChange?.(preview);
     } finally {
-      setIsUploading(false);
+      setUploadingState(false);
     }
   };
 
@@ -253,12 +259,23 @@ export function ImageUpload({
   );
 }
 
-export function MultiImageUpload({ value = [], onChange, maxImages = 5, disabled = false }) {
+export function MultiImageUpload({
+  value = [],
+  onChange,
+  maxImages = 5,
+  disabled = false,
+  onUploadingChange,
+}) {
   const [isUploading, setIsUploading] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+
+  const setUploadingState = state => {
+    setIsUploading(state);
+    onUploadingChange?.(state);
+  };
 
   const handleFilesSelect = async (e, fromCamera = false) => {
     const files = Array.from(e.target.files || []);
@@ -267,7 +284,7 @@ export function MultiImageUpload({ value = [], onChange, maxImages = 5, disabled
     const remainingSlots = maxImages - value.length;
     const filesToUpload = files.slice(0, remainingSlots);
 
-    setIsUploading(true);
+    setUploadingState(true);
     const newUrls = [];
 
     for (const file of filesToUpload) {
@@ -312,7 +329,7 @@ export function MultiImageUpload({ value = [], onChange, maxImages = 5, disabled
     }
 
     onChange?.([...value, ...newUrls]);
-    setIsUploading(false);
+    setUploadingState(false);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };

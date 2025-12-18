@@ -111,6 +111,7 @@ export default function SuppliersPage() {
   const [transactionToPay, setTransactionToPay] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentReceipt, setPaymentReceipt] = useState(null);
+const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false);
 
   // Bill gallery viewer
   const [billGalleryOpen, setBillGalleryOpen] = useState(false);
@@ -443,12 +444,19 @@ export default function SuppliersPage() {
   };
 
   const handleRecordPayment = async () => {
-    if (!transactionToPay || !paymentAmount) return;
+  if (!transactionToPay || !paymentAmount || isUploadingPaymentReceipt) return;
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
+  const totalAmount = Number(transactionToPay.amount || 0);
+  const paidAmount = Number(transactionToPay.paidAmount || 0);
+  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+  if (amount > pendingAmount) {
+    toast.error(`Payment cannot exceed pending amount of ₹${pendingAmount.toLocaleString()}`);
+    return;
+  }
     const result = await recordPayment(transactionToPay.id, amount, paymentReceipt);
     if (result.success) {
       toast.success("Payment recorded");
@@ -462,7 +470,7 @@ export default function SuppliersPage() {
   };
 
   const handleMarkFullPaid = async () => {
-    if (!transactionToPay) return;
+  if (!transactionToPay || isUploadingPaymentReceipt) return;
     const result = await markFullPaid(transactionToPay.id, paymentReceipt);
     if (result.success) {
       toast.success("Marked as fully paid");
@@ -856,7 +864,7 @@ export default function SuppliersPage() {
                                 isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                               )}
                             >
-                              {isPending ? "Pending" : isPartial ? "Partial" : isPaid ? "Paid" : "New"}
+                              {isPending ? "Total Pending" : isPartial ? "Partially Paid" : isPaid ? "Fully Paid" : "No Dues"}
                             </Badge>
                           </div>
 
@@ -1238,11 +1246,12 @@ export default function SuppliersPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-8 w-40 text-xs"
                           onClick={() => handleEditSupplier(selectedSupplier)}
                           disabled={!isOnline}
                         >
                           <Edit className="h-4 w-4" />
+                          Edit Vyapari Profile
                         </Button>
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild className="z-[100]">
@@ -1463,7 +1472,8 @@ export default function SuppliersPage() {
                                                     : "bg-amber-100 text-amber-700"
                                               )}
                                             >
-                                              {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                                                                                        {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
+
                                             </Badge>
                                           </div>
                                           <p className="text-xs text-muted-foreground">
@@ -1719,81 +1729,97 @@ export default function SuppliersPage() {
             <SheetTitle>Record Payment</SheetTitle>
           </SheetHeader>
 
-          {transactionToPay && (
-            <div className="space-y-4 px-4 pb-6">
-              {/* Summary */}
-              <div className="space-y-2 rounded-xl bg-muted/50 p-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-semibold">
-                    ₹{Number(transactionToPay.amount || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Already Paid</span>
-                  <span className="font-semibold text-green-600">
-                    ₹{Number(transactionToPay.paidAmount || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-2 text-sm">
-                  <span className="text-muted-foreground">Pending</span>
-                  <span className="font-semibold text-amber-600">
-                    ₹
-                    {(
-                      Number(transactionToPay.amount || 0) -
-                      Number(transactionToPay.paidAmount || 0)
-                    ).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+          {transactionToPay &&
+            (() => {
+              const totalAmount = Number(transactionToPay.amount || 0);
+              const paidAmount = Number(transactionToPay.paidAmount || 0);
+              const pendingAmount = Math.max(0, totalAmount - paidAmount);
+              const numericPayment = Number(paymentAmount);
+              const paymentExceedsPending = !isNaN(numericPayment) && numericPayment > pendingAmount;
 
-              {/* Amount Input */}
-              <div className="space-y-2">
-                <Label htmlFor="paymentAmount">Payment Amount</Label>
-                <Input
-                  id="paymentAmount"
-                  type="number"
-                  placeholder="Enter amount"
-                  value={paymentAmount}
-                  onChange={e => setPaymentAmount(e.target.value)}
-                  className="text-lg"
-                />
-              </div>
+              return (
+                <div className="space-y-4 px-4 pb-6">
+                  {/* Summary */}
+                  <div className="space-y-2 rounded-xl bg-muted/50 p-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Amount</span>
+                      <span className="font-semibold">₹{totalAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Already Paid</span>
+                      <span className="font-semibold text-green-600">
+                        ₹{paidAmount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2 text-sm">
+                      <span className="text-muted-foreground">Pending</span>
+                      <span className="font-semibold text-amber-600">
+                        ₹{pendingAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Receipt Upload */}
-              <div className="space-y-2">
-                <Label>Payment Receipt (Optional)</Label>
-                <div className="w-24">
-                  <ImageUpload
-                    value={paymentReceipt}
-                    onChange={setPaymentReceipt}
-                    placeholder="Receipt"
-                    aspectRatio="square"
-                  />
+                  {/* Amount Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentAmount">Payment Amount</Label>
+                    <Input
+                      id="paymentAmount"
+                      type="number"
+                      placeholder="Enter amount"
+                      value={paymentAmount}
+                      onChange={e => setPaymentAmount(e.target.value)}
+                      className="text-lg"
+                      max={pendingAmount}
+                    />
+                    {paymentAmount && paymentExceedsPending && (
+                      <p className="text-xs text-destructive">
+                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Receipt Upload */}
+                  <div className="space-y-2">
+                    <Label>Payment Receipt (Optional)</Label>
+                    <div className="w-44">
+                      <ImageUpload
+                        value={paymentReceipt}
+                        onChange={setPaymentReceipt}
+                        placeholder="Receipt"
+                        aspectRatio="square"
+                        onUploadingChange={setIsUploadingPaymentReceipt}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      onClick={handleRecordPayment}
+                      disabled={
+                        !paymentAmount ||
+                        parseFloat(paymentAmount) <= 0 ||
+                        paymentExceedsPending ||
+                        isUploadingPaymentReceipt
+                      }
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Record Payment
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-green-200 text-green-600 hover:bg-green-50"
+                      onClick={handleMarkFullPaid}
+                      disabled={isUploadingPaymentReceipt}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Mark Full Paid
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1"
-                  onClick={handleRecordPayment}
-                  disabled={!paymentAmount || parseFloat(paymentAmount) <= 0}
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Record Payment
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 border-green-200 text-green-600 hover:bg-green-50"
-                  onClick={handleMarkFullPaid}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Mark Full Paid
-                </Button>
-              </div>
-            </div>
-          )}
+              );
+            })()}
         </SheetContent>
       </Sheet>
 

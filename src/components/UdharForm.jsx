@@ -30,6 +30,7 @@ export function UdharForm({
     initialData?.customerId || defaultCustomerId || ""
   );
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
+  const [isUploadingKhata, setIsUploadingKhata] = useState(false);
 
   const defaultFormValues = {
     date: new Date().toISOString().split("T")[0],
@@ -74,6 +75,7 @@ export function UdharForm({
       return;
     }
     if (!isOnline) return;
+    if (isUploadingKhata) return;
 
     setIsSubmitting(true);
     try {
@@ -148,7 +150,7 @@ export function UdharForm({
               <Button
                 size="sm"
                 onClick={handleSubmit(handleFormSubmit)}
-                disabled={isSubmitting || !selectedCustomerId || !isOnline}
+                disabled={isSubmitting || !selectedCustomerId || !isOnline || isUploadingKhata}
                 className="h-9 px-3"
               >
                 {isSubmitting ? (
@@ -189,7 +191,7 @@ export function UdharForm({
                       triggerClassName="h-12 text-base"
                     />
                   </div>
-                  <Button
+                  {/* <Button
                     type="button"
                     variant="outline"
                     size="icon"
@@ -198,7 +200,7 @@ export function UdharForm({
                     disabled={!isOnline}
                   >
                     <UserPlus className="h-4 w-4" />
-                  </Button>
+                  </Button> */}
                 </div>
                 {!selectedCustomerId && (
                   <p className="text-xs text-muted-foreground">Select a customer or add new</p>
@@ -213,6 +215,7 @@ export function UdharForm({
                   onChange={setKhataPhotos}
                   maxImages={5}
                   disabled={!isOnline}
+                  onUploadingChange={setIsUploadingKhata}
                 />
               </div>
 

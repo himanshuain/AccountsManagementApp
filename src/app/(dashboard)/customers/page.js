@@ -999,7 +999,7 @@ export default function CustomersPage() {
           disabled={!isOnline}
         >
           <Plus className="mr-1 h-4 w-4" />
-          Add
+          Add New Customer
         </Button>
       </div>
 
@@ -1364,7 +1364,8 @@ export default function CustomersPage() {
                                   isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                 )}
                               >
-                                {isPending ? "Pending" : isPartial ? "Partial" : isPaid ? "Paid" : "New"}
+                                                                {isPending ? "Total Pending" : isPartial ? "Partially Paid" : isPaid ? "Fully Paid" : "No Udhar"}
+
                               </Badge>
                             </div>
 
@@ -1443,7 +1444,7 @@ export default function CustomersPage() {
                           {customerPayments.length > 0 && (
                             <div className="pb-2 pt-2">
                               <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                Payment History
+                                Received Payments History
                               </p>
                               <div className="max-h-[150px] space-y-0 overflow-y-auto">
                                 {customerPayments.slice(0, 5).map((payment, index, arr) => (
@@ -2626,7 +2627,7 @@ export default function CustomersPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-40 text-xs"
                       onClick={() => {
                         if (!isOnline) {
                           toast.error("Cannot edit while offline");
@@ -2637,6 +2638,7 @@ export default function CustomersPage() {
                       disabled={!isOnline}
                     >
                       <Edit className="h-4 w-4" />
+                      Edit Customer Profile
                     </Button>
                     <Button
                       variant="ghost"
@@ -2801,7 +2803,8 @@ export default function CustomersPage() {
                                                 : "bg-amber-100 text-amber-700"
                                           )}
                                         >
-                                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                                                                                    {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
+
                                         </Badge>
                                       </div>
                                       <p className="text-xs text-muted-foreground">
@@ -2954,7 +2957,7 @@ export default function CustomersPage() {
 
                                     <div className="pt-2">
                                       <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                        Payment History
+                                        Received Payments History
                                       </p>
                                       <div className="space-y-0">
                                         {txn.payments
@@ -3183,7 +3186,8 @@ export default function CustomersPage() {
                                                 : "bg-amber-100 text-amber-700"
                                           )}
                                         >
-                                          {isPaid ? "Paid" : isPartial ? "Partial" : "Pending"}
+                                                                                    {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
+
                                         </Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground">
@@ -3339,7 +3343,7 @@ export default function CustomersPage() {
                                     {hasPayments && (
                                       <div className="pt-3">
                                         <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                          Payment History
+                                          Received Payments History
                                         </p>
                                         <div className="space-y-0">
                                           {txn.payments

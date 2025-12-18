@@ -32,6 +32,7 @@ export function TransactionForm({
   );
   const [isPaid, setIsPaid] = useState(initialData?.paymentStatus === "paid" || false);
   const [isCash, setIsCash] = useState(initialData?.paymentMode === "cash" || false);
+  const [isUploadingBills, setIsUploadingBills] = useState(false);
   useEffect(() => {
     if (open && quickCaptureData) {
       setSelectedSupplierId(quickCaptureData.supplierId);
@@ -72,6 +73,7 @@ export function TransactionForm({
     if (!selectedSupplierId || !isOnline) {
       return;
     }
+    if (isUploadingBills) return;
 
     setIsSubmitting(true);
     try {
@@ -199,7 +201,7 @@ export function TransactionForm({
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !selectedSupplierId || !isOnline}
+              disabled={isSubmitting || !selectedSupplierId || !isOnline || isUploadingBills}
               className="h-9 px-3"
             >
               {isSubmitting ? (
@@ -276,6 +278,7 @@ export function TransactionForm({
                   onChange={setBillImages}
                   maxImages={5}
                   disabled={!isOnline}
+                  onUploadingChange={setIsUploadingBills}
                 />
               )}
             </div>
