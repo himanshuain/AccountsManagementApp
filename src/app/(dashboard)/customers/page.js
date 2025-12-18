@@ -75,7 +75,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Autocomplete } from "@/components/ui/autocomplete";
+import { Autocomplete, TextField as MuiTextField } from "@mui/material";
 import { compressImage } from "@/lib/image-compression";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
@@ -1776,18 +1776,80 @@ export default function CustomersPage() {
               {/* Customer filter as autocomplete */}
               <Autocomplete
                 options={[{ id: "all", name: "All Customers" }, ...customers]}
-                value={udharCustomerFilter}
-                onValueChange={(val) => {
+                value={[{ id: "all", name: "All Customers" }, ...customers].find(c => c.id === udharCustomerFilter) || null}
+                onChange={(_, newValue) => {
                   haptics.light();
-                  setUdharCustomerFilter(val || "all");
+                  setUdharCustomerFilter(newValue?.id || "all");
                 }}
-                placeholder="All Customers"
-                searchPlaceholder="Search customer..."
-                emptyText="No customer found"
-                className="w-[160px] shrink-0"
-                triggerClassName="h-8 rounded-full border-dashed px-3 text-xs"
                 getOptionLabel={(opt) => opt?.name || ""}
-                getOptionValue={(opt) => opt?.id || ""}
+                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                renderInput={(params) => (
+                  <MuiTextField
+                    {...params}
+                    placeholder="All Customers"
+                    size="small"
+                    sx={{
+                      minWidth: 160,
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'hsl(var(--background))',
+                        color: 'hsl(var(--foreground))',
+                        '& fieldset': {
+                          borderColor: 'hsl(var(--border))',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'hsl(var(--primary))',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'hsl(var(--primary))',
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        color: 'hsl(var(--foreground))',
+                      },
+                      '& .MuiAutocomplete-endAdornment': {
+                        '& .MuiSvgIcon-root': {
+                          color: 'hsl(var(--foreground))',
+                        },
+                      },
+                    }}
+                  />
+                )}
+                noOptionsText="No customer found"
+                size="small"
+                sx={{ width: 160, flexShrink: 0 }}
+                slotProps={{
+                  paper: {
+                    elevation: 8,
+                    sx: {
+                      mt: 0.5,
+                      bgcolor: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      '& .MuiAutocomplete-listbox': {
+                        padding: '4px',
+                        '& .MuiAutocomplete-option': {
+                          borderRadius: '6px',
+                          color: 'hsl(var(--foreground))',
+                          '&:hover': {
+                            bgcolor: 'hsl(var(--accent))',
+                          },
+                          '&[aria-selected="true"]': {
+                            bgcolor: 'hsl(var(--primary) / 0.1)',
+                          },
+                          '&.Mui-focused': {
+                            bgcolor: 'hsl(var(--accent))',
+                          },
+                        },
+                      },
+                      '& .MuiAutocomplete-noOptions': {
+                        color: 'hsl(var(--muted-foreground))',
+                      },
+                    },
+                  },
+                  popper: {
+                    sx: { zIndex: 99999 },
+                  },
+                }}
               />
             </div>
 

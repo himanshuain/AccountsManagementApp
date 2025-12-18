@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, UserPlus, X, Check } from "lucide-react";
+import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
-import { Autocomplete } from "@/components/ui/autocomplete";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 
@@ -175,35 +175,123 @@ export function UdharForm({
 
               {/* Customer Selection */}
               <div className="space-y-2">
-                <Label>Customer *</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Autocomplete
-                      options={customers}
-                      value={selectedCustomerId}
-                      onValueChange={setSelectedCustomerId}
+                <Autocomplete
+                  options={customers}
+                  value={customers.find(c => c.id === selectedCustomerId) || null}
+                  onChange={(_, newValue) => setSelectedCustomerId(newValue?.id || "")}
+                  disabled={!!defaultCustomerId || !isOnline}
+                  getOptionLabel={opt => opt?.name || ""}
+                  isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      label="Customer"
                       placeholder="Select customer"
-                      searchPlaceholder="Search customer..."
-                      emptyText="No customer found"
-                      disabled={!!defaultCustomerId || !isOnline}
-                      getOptionLabel={opt => opt?.name || ""}
-                      getOptionValue={opt => opt?.id || ""}
-                      triggerClassName="h-12 text-base"
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'hsl(var(--background))',
+                          color: 'hsl(var(--foreground))',
+                          '& fieldset': {
+                            borderColor: 'hsl(var(--border))',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'hsl(var(--primary))',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'hsl(var(--primary))',
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: 'hsl(var(--muted-foreground))',
+                          '&.Mui-focused': {
+                            color: 'hsl(var(--primary))',
+                          },
+                        },
+                        '& .MuiInputBase-input': {
+                          color: 'hsl(var(--foreground))',
+                        },
+                        '& .MuiAutocomplete-endAdornment': {
+                          '& .MuiSvgIcon-root': {
+                            color: 'hsl(var(--foreground))',
+                          },
+                        },
+                      }}
                     />
-                  </div>
-                  {/* <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-12 w-12"
-                    onClick={() => setCustomerFormOpen(true)}
-                    disabled={!isOnline}
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </Button> */}
-                </div>
+                  )}
+                  renderOption={(props, option) => {
+                    const { key, ...otherProps } = props;
+                    return (
+                      <li {...otherProps} key={option.id}>
+                        <div className="flex w-full items-center gap-3">
+                          <Avatar
+                            src={option.profilePicture}
+                            alt={option.name}
+                            sx={{ width: 32, height: 32 }}
+                          >
+                            {(option.name || "").charAt(0).toUpperCase()}
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="font-medium">{option.name}</div>
+                            {option.phone && <div className="text-xs opacity-70">{option.phone}</div>}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  }}
+                  noOptionsText="No customer found"
+                  fullWidth
+                  slotProps={{
+                  paper: {
+                    elevation: 8,
+                    sx: {
+                      mt: 1,
+                      bgcolor: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      pointerEvents: 'auto',
+                      '& .MuiAutocomplete-listbox': {
+                        padding: '4px',
+                        pointerEvents: 'auto',
+                        '& .MuiAutocomplete-option': {
+                          minHeight: 48,
+                          borderRadius: '6px',
+                          color: 'hsl(var(--foreground))',
+                          pointerEvents: 'auto',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            bgcolor: 'hsl(var(--accent))',
+                          },
+                          '&[aria-selected="true"]': {
+                            bgcolor: 'hsl(var(--primary) / 0.1)',
+                          },
+                          '&.Mui-focused': {
+                            bgcolor: 'hsl(var(--accent))',
+                          },
+                        },
+                      },
+                      '& .MuiAutocomplete-noOptions': {
+                        color: 'hsl(var(--muted-foreground))',
+                      },
+                    },
+                  },
+                  popper: {
+                    disablePortal: false,
+                    sx: {
+                      zIndex: 2147483647,
+                    },
+                    container: typeof document !== 'undefined' ? document.body : undefined,
+                    modifiers: [
+                      {
+                        name: 'preventOverflow',
+                        enabled: false,
+                      },
+                    ],
+                  },
+                  }}
+                />
                 {!selectedCustomerId && (
-                  <p className="text-xs text-muted-foreground">Select a customer or add new</p>
+                  <p className="text-xs text-gray-500">Select a customer or add new</p>
                 )}
               </div>
 

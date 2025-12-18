@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, X, Check } from "lucide-react";
+import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Switch } from "@/components/ui/switch";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
-import { Autocomplete } from "@/components/ui/autocomplete";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 export function TransactionForm({
@@ -227,18 +227,120 @@ export function TransactionForm({
 
             {/* Supplier Selection */}
             <div className="space-y-2">
-              <Label>Vyapari *</Label>
               <Autocomplete
                 options={suppliers}
-                value={selectedSupplierId}
-                onValueChange={setSelectedSupplierId}
-                placeholder="Select vyapari"
-                searchPlaceholder="Search vyapari..."
-                emptyText="No vyapari found"
-                disabled={!!defaultSupplierId}
+                value={suppliers.find(s => s.id === selectedSupplierId) || null}
+                onChange={(_, newValue) => setSelectedSupplierId(newValue?.id || "")}
+                disabled={!!defaultSupplierId || !isOnline}
                 getOptionLabel={opt => opt?.companyName || opt?.name || ""}
-                getOptionValue={opt => opt?.id || ""}
-                triggerClassName="h-12 text-base"
+                isOptionEqualToValue={(option, value) => option?.id === value?.id}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    label="Vyapari"
+                    placeholder="Select vyapari"
+                    required
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: 'hsl(var(--background))',
+                        color: 'hsl(var(--foreground))',
+                        '& fieldset': {
+                          borderColor: 'hsl(var(--border))',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'hsl(var(--primary))',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'hsl(var(--primary))',
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: 'hsl(var(--muted-foreground))',
+                        '&.Mui-focused': {
+                          color: 'hsl(var(--primary))',
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        color: 'hsl(var(--foreground))',
+                      },
+                      '& .MuiAutocomplete-endAdornment': {
+                        '& .MuiSvgIcon-root': {
+                          color: 'hsl(var(--foreground))',
+                        },
+                      },
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props;
+                  return (
+                    <li {...otherProps} key={option.id}>
+                      <div className="flex w-full items-center gap-3">
+                        <Avatar
+                          src={option.profilePicture}
+                          alt={option.companyName}
+                          sx={{ width: 32, height: 32 }}
+                        >
+                          {(option.companyName || option.name || "").charAt(0).toUpperCase()}
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="font-medium">{option.companyName || option.name}</div>
+                          {option.phone && <div className="text-xs opacity-70">{option.phone}</div>}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                }}
+                noOptionsText="No vyapari found"
+                fullWidth
+                slotProps={{
+                  paper: {
+                    elevation: 8,
+                    sx: {
+                      mt: 1,
+                      bgcolor: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                      pointerEvents: 'auto',
+                      '& .MuiAutocomplete-listbox': {
+                        padding: '4px',
+                        pointerEvents: 'auto',
+                        '& .MuiAutocomplete-option': {
+                          minHeight: 48,
+                          borderRadius: '6px',
+                          color: 'hsl(var(--foreground))',
+                          pointerEvents: 'auto',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            bgcolor: 'hsl(var(--accent))',
+                          },
+                          '&[aria-selected="true"]': {
+                            bgcolor: 'hsl(var(--primary) / 0.1)',
+                          },
+                          '&.Mui-focused': {
+                            bgcolor: 'hsl(var(--accent))',
+                          },
+                        },
+                      },
+                      '& .MuiAutocomplete-noOptions': {
+                        color: 'hsl(var(--muted-foreground))',
+                      },
+                    },
+                  },
+                  popper: {
+                    disablePortal: false,
+                    sx: {
+                      zIndex: 2147483647,
+                    },
+                    container: typeof document !== 'undefined' ? document.body : undefined,
+                    modifiers: [
+                      {
+                        name: 'preventOverflow',
+                        enabled: false,
+                      },
+                    ],
+                  },
+                }}
               />
             </div>
 
