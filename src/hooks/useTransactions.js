@@ -124,7 +124,7 @@ export function useTransactions(supplierId = null) {
 
   // Record a partial payment for a transaction
   const recordPayment = useCallback(
-    async (id, amount, receiptUrl = null) => {
+    async (id, amount, receiptUrl = null, paymentDate = null) => {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return { success: false, error: "Transaction not found" };
 
@@ -135,7 +135,7 @@ export function useTransactions(supplierId = null) {
       const newPayment = {
         id: crypto.randomUUID(),
         amount: amount,
-        date: new Date().toISOString(),
+        date: paymentDate || new Date().toISOString(),
         receiptUrl: receiptUrl,
       };
 
@@ -152,7 +152,7 @@ export function useTransactions(supplierId = null) {
 
   // Mark transaction as fully paid
   const markFullPaid = useCallback(
-    async (id, receiptUrl = null) => {
+    async (id, receiptUrl = null, paymentDate = null) => {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return { success: false, error: "Transaction not found" };
 
@@ -161,11 +161,12 @@ export function useTransactions(supplierId = null) {
       const remainingAmount = totalAmount - currentPaid;
 
       const payments = [...(transaction.payments || [])];
+      const dateToUse = paymentDate || new Date().toISOString();
       if (remainingAmount > 0) {
         payments.push({
           id: crypto.randomUUID(),
           amount: remainingAmount,
-          date: new Date().toISOString(),
+          date: dateToUse,
           receiptUrl: receiptUrl,
           isFinalPayment: true,
         });
@@ -174,8 +175,46 @@ export function useTransactions(supplierId = null) {
       return await updateTransaction(id, {
         paymentStatus: "paid",
         paidAmount: totalAmount,
-        paidDate: new Date().toISOString(),
+        paidDate: dateToUse,
         payments: payments,
+      });
+    },
+    [transactions, updateTransaction]
+  );
+
+  // Delete a specific payment from a transaction
+  const deletePayment = useCallback(
+    async (transactionId, paymentId) => {
+      const transaction = transactions.find(t => t.id === transactionId);
+      if (!transaction) return { success: false, error: "Transaction not found" };
+
+      const payments = [...(transaction.payments || [])];
+      const paymentIndex = payments.findIndex(p => p.id === paymentId);
+
+      if (paymentIndex === -1) {
+        return { success: false, error: "Payment not found" };
+      }
+
+      // Remove the payment
+      payments.splice(paymentIndex, 1);
+
+      // Recalculate paid amount
+      const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalAmount = transaction.amount || 0;
+
+      // Determine new payment status
+      let paymentStatus = "pending";
+      if (newPaidAmount >= totalAmount) {
+        paymentStatus = "paid";
+      } else if (newPaidAmount > 0) {
+        paymentStatus = "partial";
+      }
+
+      return await updateTransaction(transactionId, {
+        payments: payments,
+        paidAmount: newPaidAmount,
+        paymentStatus: paymentStatus,
+        paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
       });
     },
     [transactions, updateTransaction]
@@ -207,6 +246,7 @@ export function useTransactions(supplierId = null) {
     deleteTransaction,
     recordPayment,
     markFullPaid,
+    deletePayment,
     getPendingPayments,
     getRecentTransactions,
     refresh,

@@ -124,7 +124,7 @@ export function useUdhar() {
   );
 
   const recordDeposit = useCallback(
-    async (id, amount, receiptUrl = null, notes = null) => {
+    async (id, amount, receiptUrl = null, notes = null, paymentDate = null) => {
       const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
@@ -135,7 +135,7 @@ export function useUdhar() {
       const newPayment = {
         id: crypto.randomUUID(),
         amount: amount,
-        date: new Date().toISOString(),
+        date: paymentDate || new Date().toISOString(),
         receiptUrl: receiptUrl,
         notes: notes,
       };
@@ -153,7 +153,7 @@ export function useUdhar() {
   );
 
   const markFullPaid = useCallback(
-    async (id, receiptUrl = null) => {
+    async (id, receiptUrl = null, paymentDate = null) => {
       const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
@@ -162,11 +162,12 @@ export function useUdhar() {
       const remainingAmount = totalAmount - currentPaid;
 
       const payments = [...(udhar.payments || [])];
+      const dateToUse = paymentDate || new Date().toISOString();
       if (remainingAmount > 0) {
         payments.push({
           id: crypto.randomUUID(),
           amount: remainingAmount,
-          date: new Date().toISOString(),
+          date: dateToUse,
           receiptUrl: receiptUrl,
           isFinalPayment: true,
         });
@@ -176,7 +177,7 @@ export function useUdhar() {
         paymentStatus: "paid",
         paidAmount: totalAmount,
         paidCash: totalAmount,
-        paidDate: new Date().toISOString(),
+        paidDate: dateToUse,
         payments: payments,
       });
     },

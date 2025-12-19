@@ -139,6 +139,7 @@ export default function CustomersPage() {
   const [paymentUdhar, setPaymentUdhar] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentReceipts, setPaymentReceipts] = useState([]);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const paymentInputRef = useRef(null);
   const receiptInputRef = useRef(null);
@@ -729,6 +730,7 @@ export default function CustomersPage() {
 
     setPaymentUdhar(txn);
     setPaymentAmount(pending.toString());
+    setPaymentDate(new Date().toISOString().split("T")[0]);
     setPaymentDialogOpen(true);
   };
 
@@ -818,8 +820,9 @@ export default function CustomersPage() {
     try {
       // Use first receipt or null
       const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
+      const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
 
-      const result = await recordDeposit(paymentUdhar.id, Number(paymentAmount), receiptUrl);
+      const result = await recordDeposit(paymentUdhar.id, Number(paymentAmount), receiptUrl, null, paymentDateTime);
 
       if (result.success) {
         toast.success(`₹${Number(paymentAmount).toLocaleString()} payment recorded`);
@@ -827,6 +830,7 @@ export default function CustomersPage() {
         setPaymentUdhar(null);
         setPaymentAmount("");
         setPaymentReceipts([]);
+        setPaymentDate(new Date().toISOString().split("T")[0]);
       } else {
         toast.error(result.error || "Failed to record payment");
       }
@@ -842,8 +846,9 @@ export default function CustomersPage() {
     try {
       // Use first receipt or null
       const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
+      const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
 
-      const result = await markFullPaid(paymentUdhar.id, receiptUrl);
+      const result = await markFullPaid(paymentUdhar.id, receiptUrl, paymentDateTime);
 
       if (result.success) {
         toast.success("Marked as fully paid");
@@ -851,6 +856,7 @@ export default function CustomersPage() {
         setPaymentUdhar(null);
         setPaymentAmount("");
         setPaymentReceipts([]);
+        setPaymentDate(new Date().toISOString().split("T")[0]);
       } else {
         toast.error(result.error || "Failed to mark as paid");
       }
@@ -2364,6 +2370,7 @@ export default function CustomersPage() {
                   setPaymentUdhar(null);
                   setPaymentAmount("");
                   setPaymentReceipts([]);
+                  setPaymentDate(new Date().toISOString().split("T")[0]);
                 }}
                 className="h-9 px-3"
               >
@@ -2506,6 +2513,18 @@ export default function CustomersPage() {
                   }
                   return null;
                 })()}
+              </div>
+
+              {/* Payment Date */}
+              <div className="space-y-2">
+                <Label>Payment Date</Label>
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={e => setPaymentDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="h-12 text-base"
+                />
               </div>
 
               {/* Payment Receipts Upload - Multiple */}

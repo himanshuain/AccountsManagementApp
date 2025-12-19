@@ -454,6 +454,7 @@ export default function DashboardPage() {
                     type="date"
                     value={incomeFormData.date}
                     onChange={e => setIncomeFormData({ ...incomeFormData, date: e.target.value })}
+                    max={new Date().toISOString().split("T")[0]}
                     className="h-12"
                   />
                 )}

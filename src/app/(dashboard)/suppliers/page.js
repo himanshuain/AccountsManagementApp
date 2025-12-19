@@ -82,6 +82,7 @@ export default function SuppliersPage() {
     deleteTransaction,
     recordPayment,
     markFullPaid,
+    deletePayment,
   } = useTransactions();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,7 +112,10 @@ export default function SuppliersPage() {
   const [transactionToPay, setTransactionToPay] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentReceipt, setPaymentReceipt] = useState(null);
-const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false);
+  const [deletePaymentDialogOpen, setDeletePaymentDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
 
   // Bill gallery viewer
   const [billGalleryOpen, setBillGalleryOpen] = useState(false);
@@ -440,45 +444,62 @@ const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false
     setTransactionToPay(txn);
     setPaymentAmount("");
     setPaymentReceipt(null);
+    setPaymentDate(new Date().toISOString().split("T")[0]);
     setPaymentSheetOpen(true);
   };
 
   const handleRecordPayment = async () => {
-  if (!transactionToPay || !paymentAmount || isUploadingPaymentReceipt) return;
+    if (!transactionToPay || !paymentAmount || isUploadingPaymentReceipt) return;
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-  const totalAmount = Number(transactionToPay.amount || 0);
-  const paidAmount = Number(transactionToPay.paidAmount || 0);
-  const pendingAmount = Math.max(0, totalAmount - paidAmount);
-  if (amount > pendingAmount) {
-    toast.error(`Payment cannot exceed pending amount of ₹${pendingAmount.toLocaleString()}`);
-    return;
-  }
-    const result = await recordPayment(transactionToPay.id, amount, paymentReceipt);
+    const totalAmount = Number(transactionToPay.amount || 0);
+    const paidAmount = Number(transactionToPay.paidAmount || 0);
+    const pendingAmount = Math.max(0, totalAmount - paidAmount);
+    if (amount > pendingAmount) {
+      toast.error(`Payment cannot exceed pending amount of ₹${pendingAmount.toLocaleString()}`);
+      return;
+    }
+    const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
+    const result = await recordPayment(transactionToPay.id, amount, paymentReceipt, paymentDateTime);
     if (result.success) {
       toast.success("Payment recorded");
       setPaymentSheetOpen(false);
       setTransactionToPay(null);
       setPaymentAmount("");
       setPaymentReceipt(null);
+      setPaymentDate(new Date().toISOString().split("T")[0]);
     } else {
       toast.error("Failed to record payment");
     }
   };
 
   const handleMarkFullPaid = async () => {
-  if (!transactionToPay || isUploadingPaymentReceipt) return;
-    const result = await markFullPaid(transactionToPay.id, paymentReceipt);
+    if (!transactionToPay || isUploadingPaymentReceipt) return;
+    const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
+    const result = await markFullPaid(transactionToPay.id, paymentReceipt, paymentDateTime);
     if (result.success) {
       toast.success("Marked as fully paid");
       setPaymentSheetOpen(false);
       setTransactionToPay(null);
       setPaymentReceipt(null);
+      setPaymentDate(new Date().toISOString().split("T")[0]);
     } else {
       toast.error("Failed to mark as paid");
+    }
+  };
+
+  const handleDeletePayment = async () => {
+    if (!paymentToDelete) return;
+    const result = await deletePayment(paymentToDelete.transactionId, paymentToDelete.paymentId);
+    if (result.success) {
+      toast.success(`₹${paymentToDelete.amount.toLocaleString()} payment deleted`);
+      setDeletePaymentDialogOpen(false);
+      setPaymentToDelete(null);
+    } else {
+      toast.error("Failed to delete payment");
     }
   };
 
@@ -1673,6 +1694,23 @@ const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false
                                                           Receipt
                                                         </Button>
                                                       )}
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                                        onClick={e => {
+                                                          e.stopPropagation();
+                                                          setPaymentToDelete({
+                                                            transactionId: txn.id,
+                                                            paymentId: payment.id,
+                                                            amount: payment.amount,
+                                                          });
+                                                          setDeletePaymentDialogOpen(true);
+                                                        }}
+                                                        disabled={!isOnline}
+                                                      >
+                                                        <Trash2 className="h-3 w-3" />
+                                                      </Button>
                                                     </div>
                                                     {payment.isFinalPayment && (
                                                       <span className="text-xs text-green-600">
@@ -1779,6 +1817,16 @@ const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false
         }
       />
 
+      {/* Payment Delete Confirmation */}
+      <DeleteConfirmDialog
+        open={deletePaymentDialogOpen}
+        onOpenChange={setDeletePaymentDialogOpen}
+        onConfirm={handleDeletePayment}
+        title="Delete Payment"
+        description="Are you sure you want to delete this payment record? The transaction pending amount will be updated accordingly."
+        itemName={paymentToDelete ? `₹${paymentToDelete.amount?.toLocaleString()}` : ""}
+      />
+
       {/* Payment Sheet */}
       <Sheet open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen}>
         <SheetContent side="top" className="h-auto max-h-[70vh] rounded-b-2xl p-0" hideClose>
@@ -1838,6 +1886,19 @@ const [isUploadingPaymentReceipt, setIsUploadingPaymentReceipt] = useState(false
                         Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
                       </p>
                     )}
+                  </div>
+
+                  {/* Payment Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentDate">Payment Date</Label>
+                    <Input
+                      id="paymentDate"
+                      type="date"
+                      value={paymentDate}
+                      onChange={e => setPaymentDate(e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
+                      className="text-base"
+                    />
                   </div>
 
                   {/* Receipt Upload */}

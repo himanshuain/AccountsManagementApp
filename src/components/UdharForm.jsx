@@ -334,6 +334,7 @@ export function UdharForm({
                   type="date"
                   {...register("date", { required: "Date is required" })}
                   disabled={!isOnline}
+                  max={new Date().toISOString().split("T")[0]}
                   className="h-12"
                 />
                 {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}

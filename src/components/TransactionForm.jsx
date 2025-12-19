@@ -437,6 +437,7 @@ export function TransactionForm({
                   id="date"
                   type="date"
                   {...register("date", { required: "Date is required" })}
+                  max={new Date().toISOString().split("T")[0]}
                   className="h-12"
                 />
               </div>
