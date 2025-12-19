@@ -1033,7 +1033,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
                 className={cn(
                   "h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                   idx === currentIndex
-                    ? "scale-110 border-white"
+                    ? "h-16 w-16 border-white"
                     : "border-transparent opacity-60 hover:opacity-100"
                 )}
                 style={{ pointerEvents: "auto" }}

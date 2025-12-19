@@ -63,29 +63,52 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get("customerId");
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
+    const offset = (page - 1) * (limit || 0);
 
-    let query = supabase.from("udhar").select("*").order("updated_at", { ascending: false });
+    let query = supabase.from("udhar").select("*", { count: "exact" }).order("updated_at", { ascending: false });
 
     if (customerId) {
       query = query.eq("customer_id", customerId);
     }
 
-    const { data, error } = await query;
+    // Apply pagination only if limit is specified
+    if (limit > 0) {
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
       console.error("Load udhar failed:", error);
       return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, data: (data || []).map(toCamelCase) },
-      {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-      }
-    );
+    const responseData = {
+      success: true,
+      data: (data || []).map(toCamelCase),
+    };
+
+    // Include pagination metadata if limit was specified
+    if (limit > 0) {
+      responseData.pagination = {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+        hasMore: offset + (data?.length || 0) < (count || 0),
+      };
+    }
+
+    return NextResponse.json(responseData, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
+    });
   } catch (error) {
     console.error("Load udhar failed:", error);
     return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });

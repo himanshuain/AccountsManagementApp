@@ -58,6 +58,7 @@ import useTransactions from "@/hooks/useTransactions";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { InfiniteScrollTrigger } from "@/components/InfiniteScrollTrigger";
 import { TransactionForm } from "@/components/TransactionForm";
 import { TransactionTable } from "@/components/TransactionTable";
 import { BillGallery } from "@/components/BillGallery";
@@ -90,6 +91,10 @@ export default function TransactionsPage() {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    totalCount: transactionsTotalCount,
+    fetchNextPage: fetchNextTransactions,
+    hasNextPage: hasMoreTransactions,
+    isFetchingNextPage: isFetchingMoreTransactions,
   } = useTransactions();
   const { customers, addCustomer } = useCustomers();
   const {
@@ -101,6 +106,10 @@ export default function TransactionsPage() {
     recordDeposit,
     markFullPaid,
     deletePayment,
+    totalCount: udharTotalCount,
+    fetchNextPage: fetchNextUdhar,
+    hasNextPage: hasMoreUdhar,
+    isFetchingNextPage: isFetchingMoreUdhar,
   } = useUdhar();
 
   // Tab state - read from URL, localStorage, or default to customers
@@ -635,6 +644,15 @@ export default function TransactionsPage() {
             onDeletePayment={deletePayment}
             loading={udharLoading}
           />
+
+          {/* API Infinite Scroll - fetch more udhar from server */}
+          <InfiniteScrollTrigger
+            onLoadMore={fetchNextUdhar}
+            hasMore={hasMoreUdhar}
+            isLoading={isFetchingMoreUdhar}
+            loadedCount={udharList.length}
+            totalCount={udharTotalCount}
+          />
         </TabsContent>
 
         {/* Suppliers Tab */}
@@ -755,13 +773,24 @@ export default function TransactionsPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <TransactionTable
-                  transactions={filteredTransactions}
-                  suppliers={suppliers}
-                  onEdit={handleEditTransaction}
-                  onDelete={handleDeleteClick}
-                  loading={transactionsLoading}
-                />
+                <>
+                  <TransactionTable
+                    transactions={filteredTransactions}
+                    suppliers={suppliers}
+                    onEdit={handleEditTransaction}
+                    onDelete={handleDeleteClick}
+                    loading={transactionsLoading}
+                  />
+
+                  {/* API Infinite Scroll - fetch more transactions from server */}
+                  <InfiniteScrollTrigger
+                    onLoadMore={fetchNextTransactions}
+                    hasMore={hasMoreTransactions}
+                    isLoading={isFetchingMoreTransactions}
+                    loadedCount={transactions.length}
+                    totalCount={transactionsTotalCount}
+                  />
+                </>
               )}
             </TabsContent>
 

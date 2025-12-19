@@ -80,6 +80,7 @@ import { compressImage } from "@/lib/image-compression";
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { InfiniteScrollTrigger } from "@/components/InfiniteScrollTrigger";
 import { CustomerForm } from "@/components/CustomerForm";
 import { UdharForm } from "@/components/UdharForm";
 import { UdharList } from "@/components/UdharList";
@@ -100,6 +101,10 @@ export default function CustomersPage() {
     updateCustomer,
     deleteCustomer,
     loading: customersLoading,
+    totalCount: customersApiTotalCount,
+    fetchNextPage: fetchNextCustomersApi,
+    hasNextPage: hasMoreCustomersApi,
+    isFetchingNextPage: isFetchingMoreCustomersApi,
   } = useCustomers();
   const {
     udharList,
@@ -110,6 +115,10 @@ export default function CustomersPage() {
     markFullPaid,
     deletePayment,
     loading: udharLoading,
+    totalCount: udharApiTotalCount,
+    fetchNextPage: fetchNextUdharApi,
+    hasNextPage: hasMoreUdharApi,
+    isFetchingNextPage: isFetchingMoreUdharApi,
   } = useUdhar();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -1061,7 +1070,7 @@ export default function CustomersPage() {
             className="h-8 shrink-0 rounded-full px-3 text-xs"
             onClick={() => handleFilterChange("all")}
           >
-            All ({customers.length})
+            All ({customersApiTotalCount})
           </Button>
           
           {/* Sorting Chips - After All */}
@@ -1636,13 +1645,22 @@ export default function CustomersPage() {
                 );
               })}
 
-              {/* Load More Trigger */}
+              {/* Load More Trigger - UI progressive loading */}
               <LoadMoreTrigger
                 loadMoreRef={customersLoadMoreRef}
                 hasMore={hasMoreCustomers}
                 remainingCount={customersRemaining}
                 onLoadMore={loadMoreCustomers}
                 totalCount={customersTotalCount}
+              />
+
+              {/* API Infinite Scroll - fetch more from server */}
+              <InfiniteScrollTrigger
+                onLoadMore={fetchNextCustomersApi}
+                hasMore={hasMoreCustomersApi}
+                isLoading={isFetchingMoreCustomersApi}
+                loadedCount={customers.length}
+                totalCount={customersApiTotalCount}
               />
             </div>
           )}
@@ -1657,7 +1675,7 @@ export default function CustomersPage() {
               <Receipt className="h-5 w-5 text-amber-500" />
               <span className="font-semibold">All Transactions</span>
               <Badge variant="secondary" className="text-xs">
-                {udharList.length}
+                {udharApiTotalCount}
               </Badge>
             </div>
             <ChevronDown
@@ -1682,7 +1700,7 @@ export default function CustomersPage() {
                   setUdharAmountSort("newest");
                 }}
               >
-                All ({udharList.length})
+                All ({udharApiTotalCount})
               </Button>
               
               {/* Sorting Chips */}
@@ -1930,6 +1948,15 @@ export default function CustomersPage() {
               }}
               onDeletePayment={deletePayment}
               loading={udharLoading}
+            />
+
+            {/* API Infinite Scroll - fetch more udhar from server */}
+            <InfiniteScrollTrigger
+              onLoadMore={fetchNextUdharApi}
+              hasMore={hasMoreUdharApi}
+              isLoading={isFetchingMoreUdharApi}
+              loadedCount={udharList.length}
+              totalCount={udharApiTotalCount}
             />
           </div>
         </CollapsibleContent>

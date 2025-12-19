@@ -68,13 +68,24 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { Label } from "@/components/ui/label";
 import { BillGallery } from "@/components/BillGallery";
 import { TransactionTable } from "@/components/TransactionTable";
+import { InfiniteScrollTrigger } from "@/components/InfiniteScrollTrigger";
 import { haptics } from "@/hooks/useHaptics";
 
 export default function SuppliersPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const isOnline = useOnlineStatus();
-  const { suppliers, loading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
+  const {
+    suppliers,
+    loading,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
+    totalCount: suppliersTotalCount,
+    fetchNextPage: fetchNextSuppliers,
+    hasNextPage: hasMoreSuppliers,
+    isFetchingNextPage: isFetchingMoreSuppliers,
+  } = useSuppliers();
   const {
     transactions,
     addTransaction,
@@ -83,6 +94,10 @@ export default function SuppliersPage() {
     recordPayment,
     markFullPaid,
     deletePayment,
+    totalCount: transactionsTotalCount,
+    fetchNextPage: fetchNextTransactions,
+    hasNextPage: hasMoreTransactions,
+    isFetchingNextPage: isFetchingMoreTransactions,
   } = useTransactions();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -619,7 +634,7 @@ export default function SuppliersPage() {
             className="h-8 shrink-0 rounded-full px-3 text-xs"
             onClick={() => handleFilterChange("all")}
           >
-            All ({suppliers.length})
+            All ({suppliersTotalCount})
           </Button>
           
           {/* Sorting Chips - After All */}
@@ -912,6 +927,15 @@ export default function SuppliersPage() {
                   </Card>
                 );
               })}
+
+              {/* Infinite scroll trigger for loading more suppliers */}
+              <InfiniteScrollTrigger
+                onLoadMore={fetchNextSuppliers}
+                hasMore={hasMoreSuppliers}
+                isLoading={isFetchingMoreSuppliers}
+                loadedCount={suppliers.length}
+                totalCount={suppliersTotalCount}
+              />
             </div>
           )}
         </CollapsibleContent>
@@ -925,7 +949,7 @@ export default function SuppliersPage() {
               <Receipt className="h-5 w-5 text-purple-500" />
               <span className="font-semibold">All Transactions</span>
               <Badge variant="secondary" className="text-xs">
-                {transactions.length}
+                {transactionsTotalCount}
               </Badge>
             </div>
             <ChevronDown
@@ -1200,27 +1224,37 @@ export default function SuppliersPage() {
                     )}
                   </div>
                 ) : (
-                  <TransactionTable
-                    transactions={allFilteredTransactions}
-                    suppliers={suppliers}
-                    onEdit={txn => {
-                      if (!isOnline) {
-                        toast.error("Cannot edit while offline");
-                        return;
-                      }
-                      setTransactionToEdit(txn);
-                      setTransactionFormOpen(true);
-                    }}
-                    onDelete={txn => {
-                      if (!isOnline) {
-                        toast.error("Cannot delete while offline");
-                        return;
-                      }
-                      setTransactionToDelete(txn);
-                      setTxnDeleteDialogOpen(true);
-                    }}
-                    loading={false}
-                  />
+                  <>
+                    <TransactionTable
+                      transactions={allFilteredTransactions}
+                      suppliers={suppliers}
+                      onEdit={txn => {
+                        if (!isOnline) {
+                          toast.error("Cannot edit while offline");
+                          return;
+                        }
+                        setTransactionToEdit(txn);
+                        setTransactionFormOpen(true);
+                      }}
+                      onDelete={txn => {
+                        if (!isOnline) {
+                          toast.error("Cannot delete while offline");
+                          return;
+                        }
+                        setTransactionToDelete(txn);
+                        setTxnDeleteDialogOpen(true);
+                      }}
+                      loading={false}
+                    />
+                    {/* Infinite scroll trigger for loading more transactions */}
+                    <InfiniteScrollTrigger
+                      onLoadMore={fetchNextTransactions}
+                      hasMore={hasMoreTransactions}
+                      isLoading={isFetchingMoreTransactions}
+                      loadedCount={transactions.length}
+                      totalCount={transactionsTotalCount}
+                    />
+                  </>
                 )}
               </TabsContent>
 

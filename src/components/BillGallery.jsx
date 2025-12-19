@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { X, User, Calendar, IndianRupee, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
+import { PROGRESSIVE_LOAD } from "@/lib/constants";
 
 export function BillGallery({ transactions, suppliers }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [zoom, setZoom] = useState(1);
-  const [allBills, setAllBills] = useState([]);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageErrors, setImageErrors] = useState({});
 
@@ -22,8 +23,8 @@ export function BillGallery({ transactions, suppliers }) {
   const imageContainerRef = useRef(null);
   const lastTapRef = useRef(0);
 
-  // Flatten all bills from all transactions
-  useEffect(() => {
+  // Flatten all bills from all transactions - memoized to avoid recalculation
+  const allBills = useMemo(() => {
     const bills = [];
     transactions.forEach(transaction => {
       if (transaction.billImages && transaction.billImages.length > 0) {
@@ -39,8 +40,22 @@ export function BillGallery({ transactions, suppliers }) {
         });
       }
     });
-    setAllBills(bills);
+    return bills;
   }, [transactions, suppliers]);
+
+  // Progressive loading - configurable via constants
+  const {
+    visibleItems: visibleBills,
+    hasMore,
+    loadMore,
+    loadMoreRef,
+    remainingCount,
+    totalCount,
+  } = useProgressiveList(
+    allBills,
+    PROGRESSIVE_LOAD.BILL_GALLERY_INITIAL,
+    PROGRESSIVE_LOAD.BILL_GALLERY_BATCH
+  );
 
   const currentIndex = allBills.findIndex(b => b.url === selectedImage);
 
@@ -178,9 +193,9 @@ export function BillGallery({ transactions, suppliers }) {
 
   return (
     <>
-      {/* Gallery Grid */}
+      {/* Gallery Grid - Progressive Loading */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {allBills.map(bill => {
+        {visibleBills.map(bill => {
           const billId = `${bill.transaction.id}-${bill.index}`;
           const hasError = imageErrors[billId];
 
@@ -229,6 +244,15 @@ export function BillGallery({ transactions, suppliers }) {
           );
         })}
       </div>
+
+      {/* Load More Trigger for Progressive Loading */}
+      <LoadMoreTrigger
+        loadMoreRef={loadMoreRef}
+        hasMore={hasMore}
+        remainingCount={remainingCount}
+        onLoadMore={loadMore}
+        totalCount={totalCount}
+      />
 
       {/* Lightbox */}
       {selectedImage && (
@@ -316,27 +340,21 @@ export function BillGallery({ transactions, suppliers }) {
             </div>
           )}
 
-          {/* Thumbnail strip */}
+          {/* Thumbnail strip - Lazy loaded */}
           <div className="overflow-x-auto bg-black p-2">
             <div className="flex justify-start gap-2">
-              {allBills.map(bill => (
-                <button
+              {allBills.map((bill, idx) => (
+                <LazyThumbnailButton
                   key={`thumb-${bill.transaction.id}-${bill.index}`}
+                  bill={bill}
+                  isSelected={bill.url === selectedImage}
                   onClick={() => {
                     setSelectedImage(bill.url);
                     setSelectedTransaction(bill.transaction);
                     setZoom(1);
                     setPosition({ x: 0, y: 0 });
                   }}
-                  className={cn(
-                    "h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
-                    bill.url === selectedImage
-                      ? "border-primary ring-2 ring-primary/50"
-                      : "border-transparent opacity-60"
-                  )}
-                >
-                  <img src={bill.url} alt="" className="h-full w-full object-cover" />
-                </button>
+                />
               ))}
             </div>
           </div>
@@ -379,6 +397,63 @@ function OptimizedBillThumbnail({ url, alt, onError }) {
         loading="lazy"
       />
     </>
+  );
+}
+
+// Lazy loading thumbnail button for the lightbox strip
+function LazyThumbnailButton({ bill, isSelected, onClick }) {
+  const [isInView, setIsInView] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const buttonRef = useRef(null);
+
+  // Use IntersectionObserver for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100px 0px", threshold: 0.01 }
+    );
+
+    if (buttonRef.current) {
+      observer.observe(buttonRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const urls = getOptimizedImageUrl(bill.url);
+  const isImageKit = bill.url.includes("ik.imagekit.io");
+
+  return (
+    <button
+      ref={buttonRef}
+      onClick={onClick}
+      className={cn(
+        "h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+        isSelected
+          ? "border-primary ring-2 ring-primary/50"
+          : "border-transparent opacity-60"
+      )}
+    >
+      {isInView ? (
+        <img
+          src={isImageKit ? urls.thumbnail : bill.url}
+          alt=""
+          className={cn(
+            "h-full w-full object-cover transition-opacity duration-200",
+            isLoaded ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={() => setIsLoaded(true)}
+          loading="lazy"
+        />
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted" />
+      )}
+    </button>
   );
 }
 

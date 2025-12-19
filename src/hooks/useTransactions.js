@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const TRANSACTIONS_KEY = ["transactions"];
 
@@ -10,26 +11,53 @@ export function useTransactions(supplierId = null) {
 
   const queryKey = supplierId ? [...TRANSACTIONS_KEY, { supplierId }] : TRANSACTIONS_KEY;
 
-  // Fetch transactions directly from cloud API
+  // Fetch transactions with pagination using infinite query
   const {
-    data: transactions = [],
+    data,
     isLoading: loading,
     error,
     refetch,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey,
-    queryFn: async () => {
-      const url = supplierId ? `/api/transactions?supplierId=${supplierId}` : "/api/transactions";
+    queryFn: async ({ pageParam = 1 }) => {
+      let url = `/api/transactions?page=${pageParam}&limit=${PAGE_SIZE.TRANSACTIONS}`;
+      if (supplierId) {
+        url += `&supplierId=${supplierId}`;
+      }
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch transactions");
       }
       const result = await response.json();
-      return result.data || [];
+      return {
+        data: result.data || [],
+        pagination: result.pagination || { hasMore: false, page: pageParam },
+      };
     },
-    staleTime: 1000 * 60 * 2,
-    retry: 2,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination?.hasMore) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    staleTime: CACHE_SETTINGS.STALE_TIME,
+    retry: CACHE_SETTINGS.RETRY_COUNT,
   });
+
+  // Flatten all pages into a single array for backward compatibility
+  const transactions = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.data);
+  }, [data]);
+
+  // Get total count from the first page's pagination
+  const totalCount = useMemo(() => {
+    return data?.pages?.[0]?.pagination?.total ?? transactions.length;
+  }, [data, transactions.length]);
 
   // Add transaction mutation - directly to cloud
   const addMutation = useMutation({
@@ -237,6 +265,13 @@ export function useTransactions(supplierId = null) {
     queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
   }, [queryClient]);
 
+  // Load all remaining pages (for components that need complete data)
+  const loadAll = useCallback(async () => {
+    while (hasNextPage) {
+      await fetchNextPage();
+    }
+  }, [hasNextPage, fetchNextPage]);
+
   return {
     transactions,
     loading,
@@ -250,6 +285,12 @@ export function useTransactions(supplierId = null) {
     getPendingPayments,
     getRecentTransactions,
     refresh,
+    // Pagination helpers
+    totalCount,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    loadAll,
   };
 }
 

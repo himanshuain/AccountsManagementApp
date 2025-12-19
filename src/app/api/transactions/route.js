@@ -39,29 +39,52 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const supplierId = searchParams.get("supplierId");
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
+    const offset = (page - 1) * (limit || 0);
 
-    let query = supabase.from("transactions").select("*").order("updated_at", { ascending: false });
+    let query = supabase.from("transactions").select("*", { count: "exact" }).order("updated_at", { ascending: false });
 
     if (supplierId) {
       query = query.eq("supplier_id", supplierId);
     }
 
-    const { data, error } = await query;
+    // Apply pagination only if limit is specified
+    if (limit > 0) {
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
       console.error("Load transactions failed:", error);
       return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, data: (data || []).map(toCamelCase) },
-      {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
-      }
-    );
+    const responseData = {
+      success: true,
+      data: (data || []).map(toCamelCase),
+    };
+
+    // Include pagination metadata if limit was specified
+    if (limit > 0) {
+      responseData.pagination = {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
+        hasMore: offset + (data?.length || 0) < (count || 0),
+      };
+    }
+
+    return NextResponse.json(responseData, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
+    });
   } catch (error) {
     console.error("Load transactions failed:", error);
     return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });

@@ -1,32 +1,57 @@
 "use client";
 
-import { useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const SUPPLIERS_KEY = ["suppliers"];
 
 export function useSuppliers() {
   const queryClient = useQueryClient();
 
-  // Fetch suppliers directly from cloud API
+  // Fetch suppliers with pagination using infinite query
   const {
-    data: suppliers = [],
+    data,
     isLoading: loading,
     error,
     refetch,
-  } = useQuery({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: SUPPLIERS_KEY,
-    queryFn: async () => {
-      const response = await fetch("/api/suppliers");
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await fetch(`/api/suppliers?page=${pageParam}&limit=${PAGE_SIZE.SUPPLIERS}`);
       if (!response.ok) {
         throw new Error("Failed to fetch suppliers");
       }
       const result = await response.json();
-      return result.data || [];
+      return {
+        data: result.data || [],
+        pagination: result.pagination || { hasMore: false, page: pageParam },
+      };
     },
-    staleTime: 1000 * 60 * 2, // Consider data fresh for 2 minutes
-    retry: 2,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination?.hasMore) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    staleTime: CACHE_SETTINGS.STALE_TIME,
+    retry: CACHE_SETTINGS.RETRY_COUNT,
   });
+
+  // Flatten all pages into a single array for backward compatibility
+  const suppliers = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.data);
+  }, [data]);
+
+  // Get total count from the first page's pagination (all pages have same total)
+  const totalCount = useMemo(() => {
+    return data?.pages?.[0]?.pagination?.total ?? suppliers.length;
+  }, [data, suppliers.length]);
 
   // Add supplier mutation - directly to cloud
   const addMutation = useMutation({
@@ -146,6 +171,13 @@ export function useSuppliers() {
     queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
   }, [queryClient]);
 
+  // Load all remaining pages (for components that need complete data)
+  const loadAll = useCallback(async () => {
+    while (hasNextPage) {
+      await fetchNextPage();
+    }
+  }, [hasNextPage, fetchNextPage]);
+
   return {
     suppliers,
     loading,
@@ -156,6 +188,12 @@ export function useSuppliers() {
     searchSuppliers,
     getSupplierById,
     refresh,
+    // Pagination helpers
+    totalCount,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    loadAll,
   };
 }
 
