@@ -136,6 +136,9 @@ export default function SuppliersPage() {
   const [billGalleryOpen, setBillGalleryOpen] = useState(false);
   const [billGalleryImages, setBillGalleryImages] = useState([]);
 
+  // Supplier profile bill gallery (view all bills for selected supplier)
+  const [supplierBillGalleryOpen, setSupplierBillGalleryOpen] = useState(false);
+
   // Collapsible sections state
   const [profilesExpanded, setProfilesExpanded] = useState(true);
   const [transactionsExpanded, setTransactionsExpanded] = useState(false);
@@ -304,6 +307,22 @@ export default function SuppliersPage() {
       }
     }
   }, [suppliersWithStats, selectedSupplier]);
+
+  // Collect all bill images for the selected supplier
+  const selectedSupplierBillImages = useMemo(() => {
+    if (!selectedSupplier) return [];
+    const bills = [];
+    transactions
+      .filter(t => t.supplierId === selectedSupplier.id)
+      .forEach(txn => {
+        if (txn.billImages && txn.billImages.length > 0) {
+          txn.billImages.forEach(img => {
+            if (img) bills.push(img);
+          });
+        }
+      });
+    return bills;
+  }, [selectedSupplier, transactions]);
 
   // All filtered transactions for the transactions section
   const allFilteredTransactions = useMemo(() => {
@@ -1276,6 +1295,7 @@ export default function SuppliersPage() {
             !open &&
             (imageViewerOpen ||
               billGalleryOpen ||
+              supplierBillGalleryOpen ||
               supplierFormOpen ||
               imageViewerJustClosedRef.current)
           ) {
@@ -1506,6 +1526,28 @@ export default function SuppliersPage() {
                               </div>
                             )}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Bills Section - View all bills from transactions */}
+                      {selectedSupplierBillImages.length > 0 && (
+                        <div className="mb-4">
+                          <div className="mb-2 flex items-center justify-between">
+                            <h3 className="font-semibold">
+                              Photos ({selectedSupplierBillImages.length})
+                            </h3>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSupplierBillGalleryOpen(true)}
+                            >
+                              <ImageIcon className="mr-1 h-4 w-4" />
+                              View All
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            All bill photos from transactions
+                          </p>
                         </div>
                       )}
 
@@ -1800,8 +1842,31 @@ export default function SuppliersPage() {
       {/* Bill Gallery Viewer */}
       <ImageGalleryViewer
         open={billGalleryOpen}
-        onOpenChange={setBillGalleryOpen}
+        onOpenChange={open => {
+          if (!open) {
+            imageViewerJustClosedRef.current = true;
+            setTimeout(() => {
+              imageViewerJustClosedRef.current = false;
+            }, 100);
+          }
+          setBillGalleryOpen(open);
+        }}
         images={billGalleryImages}
+      />
+
+      {/* Supplier Profile Bill Gallery Viewer */}
+      <ImageGalleryViewer
+        open={supplierBillGalleryOpen}
+        onOpenChange={open => {
+          if (!open) {
+            imageViewerJustClosedRef.current = true;
+            setTimeout(() => {
+              imageViewerJustClosedRef.current = false;
+            }, 100);
+          }
+          setSupplierBillGalleryOpen(open);
+        }}
+        images={selectedSupplierBillImages}
       />
 
       {/* Supplier Form (Add/Edit) */}

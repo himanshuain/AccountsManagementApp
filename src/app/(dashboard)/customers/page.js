@@ -2675,8 +2675,8 @@ export default function CustomersPage() {
       <Sheet
         open={!!selectedCustomer}
         onOpenChange={open => {
-          // Don't close if image viewer or gallery viewer is open or was just closed
-          if (!open && (imageViewerOpen || galleryViewerOpen || imageViewerJustClosedRef.current)) {
+          // Don't close if image viewer, gallery viewer, khata photos sheet is open or was just closed
+          if (!open && (imageViewerOpen || galleryViewerOpen || allReceiptsGalleryOpen || khataPhotosSheetOpen || imageViewerJustClosedRef.current)) {
             imageViewerJustClosedRef.current = false;
             return;
           }
@@ -3559,7 +3559,7 @@ export default function CustomersPage() {
         open={allReceiptsSheetOpen}
         onOpenChange={open => {
           // Don't close if image viewer or gallery viewer is open or was just closed
-          if (!open && (imageViewerOpen || galleryViewerOpen || imageViewerJustClosedRef.current)) {
+          if (!open && (imageViewerOpen || galleryViewerOpen || allReceiptsGalleryOpen || imageViewerJustClosedRef.current)) {
             imageViewerJustClosedRef.current = false;
             return;
           }
@@ -3636,8 +3636,11 @@ export default function CustomersPage() {
       <Sheet
         open={khataPhotosSheetOpen}
         onOpenChange={open => {
-          // Don't close if gallery viewer is open
-          if (!open && galleryViewerOpen) return;
+          // Don't close if gallery viewer is open or was just closed
+          if (!open && (galleryViewerOpen || imageViewerJustClosedRef.current)) {
+            imageViewerJustClosedRef.current = false;
+            return;
+          }
           setKhataPhotosSheetOpen(open);
         }}
       >
@@ -3730,7 +3733,15 @@ export default function CustomersPage() {
         images={allReceiptsGalleryImages}
         initialIndex={allReceiptsGalleryInitialIndex}
         open={allReceiptsGalleryOpen}
-        onOpenChange={setAllReceiptsGalleryOpen}
+        onOpenChange={open => {
+          if (!open) {
+            imageViewerJustClosedRef.current = true;
+            setTimeout(() => {
+              imageViewerJustClosedRef.current = false;
+            }, 100);
+          }
+          setAllReceiptsGalleryOpen(open);
+        }}
       />
 
       {/* Image Viewer */}
@@ -3755,7 +3766,15 @@ export default function CustomersPage() {
         images={galleryImages}
         initialIndex={galleryInitialIndex}
         open={galleryViewerOpen}
-        onOpenChange={setGalleryViewerOpen}
+        onOpenChange={open => {
+          if (!open) {
+            imageViewerJustClosedRef.current = true;
+            setTimeout(() => {
+              imageViewerJustClosedRef.current = false;
+            }, 100);
+          }
+          setGalleryViewerOpen(open);
+        }}
       />
     </div>
   );

@@ -407,9 +407,9 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
       doc.roundedRect(margin, y, pageWidth - 2 * margin, 8, 2, 2, "F");
       doc.setTextColor(...mutedColor);
       doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
+      doc.setFont("helvetica", "bold");
       doc.text(
-        `Transaction: ${formatCurrency(transaction.amount || 0)} on ${transaction.date ? format(new Date(transaction.date), "dd/MM/yyyy") : "-"}`,
+        `${formatCurrency(transaction.amount || 0)} Bill of ${transaction.date ? format(new Date(transaction.date), "dd/MM/yyyy") : "-"}`,
         margin + 5,
         y + 5.5
       );
