@@ -1,28 +1,34 @@
 import Cookies from "js-cookie";
 
-const AUTH_COOKIE_NAME = "shop_auth";
+// UI indicator cookie (client-readable) - NOT used for actual auth
+// The real auth cookie is httpOnly and checked by server/middleware
+const AUTH_UI_COOKIE_NAME = "shop_auth_ui";
 const SESSION_DURATION_DAYS = 7;
 
 export function setAuthCookie(isAuthenticated) {
+  // Note: The actual httpOnly auth cookie is set by the server
+  // This only manages the UI indicator cookie for client-side state
   if (isAuthenticated) {
-    Cookies.set(AUTH_COOKIE_NAME, "authenticated", {
+    Cookies.set(AUTH_UI_COOKIE_NAME, "1", {
       expires: SESSION_DURATION_DAYS,
       sameSite: "lax",
       path: "/",
     });
   } else {
-    Cookies.remove(AUTH_COOKIE_NAME, { path: "/" });
+    Cookies.remove(AUTH_UI_COOKIE_NAME, { path: "/" });
   }
 }
 
-// Quick local check - use for initial UI rendering
+// Quick local check - use for initial UI rendering only
+// This checks the UI indicator, not the actual auth status
+// Real auth is verified server-side via httpOnly cookie
 export function isAuthenticated() {
-  return Cookies.get(AUTH_COOKIE_NAME) === "authenticated";
+  return Cookies.get(AUTH_UI_COOKIE_NAME) === "1";
 }
 
 export function logout() {
-  Cookies.remove(AUTH_COOKIE_NAME, { path: "/" });
-  Cookies.remove("shop_session_version", { path: "/" });
+  // Clear UI indicator cookie (server clears the httpOnly cookies)
+  Cookies.remove(AUTH_UI_COOKIE_NAME, { path: "/" });
 }
 
 // Server-side session validation - checks if session is still valid

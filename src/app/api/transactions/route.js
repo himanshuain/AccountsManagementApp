@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { transactionSchema, validateBody } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,6 +46,7 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
     const offset = (page - 1) * (limit || 0);
 
+    const supabase = getServerClient();
     let query = supabase.from("transactions").select("*", { count: "exact" }).order("updated_at", { ascending: false });
 
     if (supplierId) {
@@ -101,10 +103,20 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+
+    // Validate input
+    const validation = validateBody(body, transactionSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const now = new Date().toISOString();
 
     // Clean up empty date fields - Postgres doesn't accept empty strings for date type
-    const cleanedBody = { ...body };
+    const cleanedBody = { ...validation.data };
     if (cleanedBody.dueDate === "" || cleanedBody.dueDate === null) {
       delete cleanedBody.dueDate;
     }
@@ -121,6 +133,7 @@ export async function POST(request) {
 
     const record = toSnakeCase(transactionData);
 
+    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("transactions")
       .upsert(record, { onConflict: "id" })

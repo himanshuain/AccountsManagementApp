@@ -2,6 +2,79 @@ import { format } from "date-fns";
 import jsPDF from "jspdf";
 
 /**
+ * Export full database backup as JSON file
+ * Fetches all data from the backup API and triggers download
+ */
+export async function exportFullBackup() {
+  try {
+    const response = await fetch("/api/backup?format=download");
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to create backup");
+    }
+
+    // Get the blob from response
+    const blob = await response.blob();
+    const filename = `shop-backup-${format(new Date(), "yyyy-MM-dd-HHmm")}.json`;
+
+    // Trigger download
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return { success: true, filename };
+  } catch (error) {
+    console.error("Backup export failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get backup summary without downloading
+ */
+export async function getBackupSummary() {
+  try {
+    const response = await fetch("/api/backup");
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to get backup summary");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Backup summary failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Restore data from a backup file
+ * @param {Object} backup - The parsed backup JSON
+ */
+export async function restoreFromBackup(backup) {
+  try {
+    const response = await fetch("/api/backup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ backup }),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("Backup restore failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Convert data to CSV format and trigger download
  */
 export function exportToCSV(data, filename, columns) {

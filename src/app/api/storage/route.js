@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,7 @@ export async function GET() {
       });
     }
 
+    const supabase = getServerClient();
     // Get list of all files in the images bucket
     const { data: files, error } = await supabase.storage.from("images").list("", {
       limit: 1000,
@@ -32,7 +33,8 @@ export async function GET() {
 
     // Function to get size of a folder
     async function getFolderSize(folderPath) {
-      const { data: items, error } = await supabase.storage
+      const sb = getServerClient();
+      const { data: items, error } = await sb.storage
         .from("images")
         .list(folderPath || "", { limit: 1000 });
 

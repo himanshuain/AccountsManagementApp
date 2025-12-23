@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { supplierSchema, validateBody } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -44,6 +45,7 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
     const offset = (page - 1) * (limit || 0);
 
+    const supabase = getServerClient();
     let query = supabase
       .from("suppliers")
       .select("*", { count: "exact" })
@@ -99,17 +101,28 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+
+    // Validate input
+    const validation = validateBody(body, supplierSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const now = new Date().toISOString();
 
     const supplierData = {
-      ...body,
-      id: body.id || crypto.randomUUID(),
+      ...validation.data,
+      id: validation.data.id || crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
     };
 
     const record = toSnakeCase(supplierData);
 
+    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("suppliers")
       .upsert(record, { onConflict: "id" })

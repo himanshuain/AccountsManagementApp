@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -35,6 +35,7 @@ export async function GET(request, { params }) {
     }
 
     const { id } = await params;
+    const supabase = getServerClient();
 
     const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
 
@@ -79,6 +80,7 @@ export async function PUT(request, { params }) {
 
     const record = toSnakeCase(updates);
 
+    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("transactions")
       .update(record)
@@ -110,6 +112,7 @@ export async function DELETE(request, { params }) {
     }
 
     const { id } = await params;
+    const supabase = getServerClient();
 
     const { error } = await supabase.from("transactions").delete().eq("id", id);
 

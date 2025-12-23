@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -27,6 +27,7 @@ const toCamelCase = obj => {
 
 // Helper to update customer's total pending
 async function updateCustomerTotalPending(customerId) {
+  const supabase = getServerClient();
   const { data: udharRecords } = await supabase
     .from("udhar")
     .select("*")
@@ -59,6 +60,7 @@ export async function GET(request, { params }) {
     }
 
     const { id } = await params;
+    const supabase = getServerClient();
 
     const { data, error } = await supabase.from("udhar").select("*").eq("id", id).single();
 
@@ -86,6 +88,7 @@ export async function PUT(request, { params }) {
 
     const { id } = await params;
     const body = await request.json();
+    const supabase = getServerClient();
 
     // Get the current udhar to find customer ID
     const { data: currentUdhar } = await supabase
@@ -137,6 +140,7 @@ export async function DELETE(request, { params }) {
     }
 
     const { id } = await params;
+    const supabase = getServerClient();
 
     // Get the udhar to find customer ID before deleting
     const { data: udhar } = await supabase

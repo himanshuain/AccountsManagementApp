@@ -105,21 +105,55 @@ CREATE INDEX IF NOT EXISTS idx_udhar_payment_status ON udhar(payment_status);
 CREATE INDEX IF NOT EXISTS idx_income_date ON income(date);
 CREATE INDEX IF NOT EXISTS idx_income_type ON income(type);
 
--- Enable Row Level Security (RLS) - Optional but recommended
--- For now, we'll allow all operations for authenticated requests
+-- =====================================================
+-- ROW LEVEL SECURITY (RLS) CONFIGURATION
+-- =====================================================
+-- 
+-- SECURITY MODEL:
+-- - All data tables are protected with RLS enabled
+-- - The anon key (used in browser) has NO access to data tables
+-- - Only the service_role key (used in API routes) can access data
+-- - This means all database operations MUST go through our API routes
+--   which have authentication middleware protecting them
+--
+-- This is more secure than the previous "allow all" policies because:
+-- 1. The anon key exposed in NEXT_PUBLIC_ env vars cannot read data directly
+-- 2. All requests must go through our authenticated API endpoints
+-- 3. Even if someone extracts the anon key, they cannot access data
+-- =====================================================
+
+-- Enable Row Level Security on all tables
 ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE udhar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE income ENABLE ROW LEVEL SECURITY;
 
--- Create policies to allow all operations (since app uses PIN auth, not user-level auth)
--- These policies allow read/write for all requests with the anon key
-CREATE POLICY "Allow all operations on suppliers" ON suppliers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations on transactions" ON transactions FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations on customers" ON customers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations on udhar" ON udhar FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations on income" ON income FOR ALL USING (true) WITH CHECK (true);
+-- Drop old permissive policies if they exist
+DROP POLICY IF EXISTS "Allow all operations on suppliers" ON suppliers;
+DROP POLICY IF EXISTS "Allow all operations on transactions" ON transactions;
+DROP POLICY IF EXISTS "Allow all operations on customers" ON customers;
+DROP POLICY IF EXISTS "Allow all operations on udhar" ON udhar;
+DROP POLICY IF EXISTS "Allow all operations on income" ON income;
+
+-- Create restrictive policies that DENY access to anon key
+-- The service_role key bypasses RLS entirely, so API routes still work
+-- No explicit policies needed - RLS enabled with no policies = no access for anon
+
+-- App Settings table for storing PIN and session version
+-- This also needs RLS but should allow read for app_pin verification
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all operations on app_settings" ON app_settings;
+
+-- Note: With no policies and RLS enabled, only service_role can access these tables
+-- If you need anon key access for specific operations, add targeted policies below
 
 -- Function to auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

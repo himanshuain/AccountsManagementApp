@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { checkRateLimit, resetRateLimit, getClientIp } from "@/lib/rate-limit";
+import { verifyPin, hashPin } from "@/lib/password";
 
 const DEFAULT_PIN = process.env.APP_PIN || "123456";
 const AUTH_COOKIE_NAME = "shop_auth";
+const AUTH_UI_COOKIE_NAME = "shop_auth_ui"; // Client-readable indicator for UI
 const SESSION_VERSION_COOKIE = "shop_session_version";
 const SESSION_DURATION_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
+// Rate limit settings for PIN attempts
+const PIN_RATE_LIMIT = {
+  limit: 5, // 5 attempts
+  windowMs: 60 * 1000, // per 1 minute
+};
+
 // Helper to get PIN from database or env
-async function getAppPin() {
+async function getStoredPin() {
   if (!isSupabaseConfigured()) {
-    return DEFAULT_PIN;
+    return { value: DEFAULT_PIN, fromDb: false };
   }
 
   try {
@@ -21,12 +30,34 @@ async function getAppPin() {
       .single();
 
     if (error || !data) {
-      return DEFAULT_PIN;
+      return { value: DEFAULT_PIN, fromDb: false };
     }
 
-    return data.value || DEFAULT_PIN;
+    return { value: data.value || DEFAULT_PIN, fromDb: true };
   } catch {
-    return DEFAULT_PIN;
+    return { value: DEFAULT_PIN, fromDb: false };
+  }
+}
+
+// Helper to upgrade plaintext PIN to hashed version
+async function upgradeToHashedPin(pin) {
+  if (!isSupabaseConfigured()) return;
+
+  try {
+    const hashedPin = await hashPin(pin);
+    await supabase
+      .from("app_settings")
+      .upsert(
+        {
+          key: "app_pin",
+          value: hashedPin,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
+    console.log("PIN upgraded to hashed version");
+  } catch (error) {
+    console.error("Failed to upgrade PIN to hash:", error);
   }
 }
 
@@ -55,20 +86,78 @@ async function getSessionVersion() {
 
 export async function POST(request) {
   try {
+    // Get client IP for rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitKey = `pin_auth:${clientIp}`;
+
+    // Check rate limit before processing
+    const rateLimit = checkRateLimit(rateLimitKey, PIN_RATE_LIMIT);
+    
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Too many login attempts. Please try again in ${rateLimit.retryAfter} seconds.`,
+          retryAfter: rateLimit.retryAfter,
+        },
+        { 
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfter),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+    }
+
     const { pin } = await request.json();
 
     if (!pin) {
-      return NextResponse.json({ success: false, error: "PIN is required" }, { status: 400 });
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "PIN is required",
+          remaining: rateLimit.remaining,
+        }, 
+        { 
+          status: 400,
+          headers: {
+            "X-RateLimit-Remaining": String(rateLimit.remaining),
+          },
+        }
+      );
     }
 
-    const appPin = await getAppPin();
+    const storedPinData = await getStoredPin();
+    
+    // Verify PIN (handles both hashed and legacy plaintext)
+    const { valid, needsUpgrade } = await verifyPin(pin, storedPinData.value);
 
-    if (pin === appPin) {
+    if (valid) {
+      // Reset rate limit on successful login
+      resetRateLimit(rateLimitKey);
+
+      // Upgrade legacy plaintext PIN to hashed version (background, non-blocking)
+      if (needsUpgrade && storedPinData.fromDb) {
+        upgradeToHashedPin(pin).catch(() => {}); // Fire and forget
+      }
+
       const sessionVersion = await getSessionVersion();
       const cookieStore = await cookies();
 
-      // Set auth cookie (not httpOnly so client JS can read it for auth checks)
+      // Set main auth cookie (httpOnly for security - can't be stolen via XSS)
       cookieStore.set(AUTH_COOKIE_NAME, "authenticated", {
+        httpOnly: true, // SECURE: Not accessible via JavaScript
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: SESSION_DURATION_SECONDS,
+        path: "/",
+      });
+
+      // Set UI indicator cookie (NOT httpOnly - for client-side UI state only)
+      // This is NOT used for authentication, only for UI rendering decisions
+      // The actual auth check happens via the httpOnly cookie in middleware/API
+      cookieStore.set(AUTH_UI_COOKIE_NAME, "1", {
         httpOnly: false,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -88,7 +177,19 @@ export async function POST(request) {
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ success: false, error: "Invalid PIN" }, { status: 401 });
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: "Invalid PIN",
+        remaining: rateLimit.remaining,
+      }, 
+      { 
+        status: 401,
+        headers: {
+          "X-RateLimit-Remaining": String(rateLimit.remaining),
+        },
+      }
+    );
   } catch (error) {
     console.error("Auth error:", error);
     return NextResponse.json({ success: false, error: "Authentication failed" }, { status: 500 });
@@ -99,6 +200,7 @@ export async function DELETE() {
   try {
     const cookieStore = await cookies();
     cookieStore.delete(AUTH_COOKIE_NAME);
+    cookieStore.delete(AUTH_UI_COOKIE_NAME);
     cookieStore.delete(SESSION_VERSION_COOKIE);
 
     return NextResponse.json({ success: true });
@@ -124,6 +226,7 @@ export async function GET() {
       // Session has been invalidated (password was changed)
       // Clear the cookies
       cookieStore.delete(AUTH_COOKIE_NAME);
+      cookieStore.delete(AUTH_UI_COOKIE_NAME);
       cookieStore.delete(SESSION_VERSION_COOKIE);
       return NextResponse.json({
         authenticated: false,

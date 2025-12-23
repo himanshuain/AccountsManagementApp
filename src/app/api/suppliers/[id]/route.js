@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { supplierSchema, validateBody, validateUUID } from "@/lib/validation";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -36,6 +37,16 @@ export async function GET(request, { params }) {
 
     const { id } = await params;
 
+    // Validate UUID
+    if (!validateUUID(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid supplier ID format" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getServerClient();
+
     const { data, error } = await supabase.from("suppliers").select("*").eq("id", id).single();
 
     if (error) {
@@ -61,10 +72,30 @@ export async function PUT(request, { params }) {
     }
 
     const { id } = await params;
+
+    // Validate UUID
+    if (!validateUUID(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid supplier ID format" },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
 
+    // Validate input
+    const validation = validateBody(body, supplierSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getServerClient();
+
     const updates = {
-      ...body,
+      ...validation.data,
       updatedAt: new Date().toISOString(),
     };
 
@@ -101,6 +132,16 @@ export async function DELETE(request, { params }) {
     }
 
     const { id } = await params;
+
+    // Validate UUID
+    if (!validateUUID(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid supplier ID format" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getServerClient();
 
     // Delete related transactions first
     await supabase.from("transactions").delete().eq("supplier_id", id);

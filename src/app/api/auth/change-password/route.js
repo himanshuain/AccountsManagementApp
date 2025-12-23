@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { hashPin, verifyPin } from "@/lib/password";
 
 // Helper to increment session version (to logout all other devices)
 async function incrementSessionVersion() {
@@ -71,17 +72,21 @@ export async function POST(request) {
       // Table doesn't exist or no row - create settings with new password
       // First check if current password matches ENV variable
       const envPin = process.env.APP_PIN || "123456";
-      if (currentPassword && currentPassword !== envPin) {
+      const { valid: envPinValid } = await verifyPin(currentPassword, envPin);
+      if (currentPassword && !envPinValid) {
         return NextResponse.json(
           { success: false, error: "Current password is incorrect" },
           { status: 401 }
         );
       }
 
-      // Insert new setting
+      // Hash the new PIN before storing
+      const hashedNewPin = await hashPin(newPassword);
+
+      // Insert new setting with hashed PIN
       const { error: insertError } = await supabase
         .from("app_settings")
-        .insert({ key: "app_pin", value: newPassword });
+        .insert({ key: "app_pin", value: hashedNewPin });
 
       if (insertError) {
         console.error("Failed to save password:", insertError);
@@ -120,19 +125,23 @@ export async function POST(request) {
       );
     }
 
-    // Verify current password
+    // Verify current password (handles both hashed and legacy plaintext)
     const storedPin = existingSettings?.value || process.env.APP_PIN || "123456";
-    if (currentPassword !== storedPin) {
+    const { valid: currentPinValid } = await verifyPin(currentPassword, storedPin);
+    if (!currentPinValid) {
       return NextResponse.json(
         { success: false, error: "Current password is incorrect" },
         { status: 401 }
       );
     }
 
-    // Update password
+    // Hash the new PIN before storing
+    const hashedNewPin = await hashPin(newPassword);
+
+    // Update password with hashed value
     const { error: updateError } = await supabase
       .from("app_settings")
-      .update({ value: newPassword, updated_at: new Date().toISOString() })
+      .update({ value: hashedNewPin, updated_at: new Date().toISOString() })
       .eq("key", "app_pin");
 
     if (updateError) {

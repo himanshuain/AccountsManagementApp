@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { udharSchema, validateBody } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -30,6 +31,7 @@ const toCamelCase = obj => {
 
 // Helper to update customer's total pending
 async function updateCustomerTotalPending(customerId) {
+  const supabase = getServerClient();
   const { data: udharRecords } = await supabase
     .from("udhar")
     .select("*")
@@ -69,6 +71,7 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
     const offset = (page - 1) * (limit || 0);
 
+    const supabase = getServerClient();
     let query = supabase.from("udhar").select("*", { count: "exact" }).order("updated_at", { ascending: false });
 
     if (customerId) {
@@ -125,18 +128,29 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+
+    // Validate input
+    const validation = validateBody(body, udharSchema);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const now = new Date().toISOString();
 
     const udharData = {
-      ...body,
-      id: body.id || crypto.randomUUID(),
+      ...validation.data,
+      id: validation.data.id || crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
-      paymentStatus: body.paymentStatus || "pending",
+      paymentStatus: validation.data.paymentStatus || "pending",
     };
 
     const record = toSnakeCase(udharData);
 
+    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("udhar")
       .upsert(record, { onConflict: "id" })
@@ -149,8 +163,8 @@ export async function POST(request) {
     }
 
     // Update customer's total pending
-    if (body.customerId) {
-      await updateCustomerTotalPending(body.customerId);
+    if (validation.data.customerId) {
+      await updateCustomerTotalPending(validation.data.customerId);
     }
 
     return NextResponse.json({

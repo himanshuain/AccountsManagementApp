@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +27,7 @@ export async function POST(request) {
 
     // Get all image URLs used in the app
     const usedImageUrls = new Set();
+    const supabase = getServerClient();
 
     // Collect images from customers
     const { data: customers } = await supabase
@@ -151,6 +152,7 @@ export async function GET(request) {
 
     // Get all image URLs used in the app
     const usedImageUrls = new Set();
+    const supabase = getServerClient();
 
     // Collect images from all tables
     const { data: customers } = await supabase
