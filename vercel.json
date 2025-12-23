@@ -1,6 +1,12 @@
 {
   "buildCommand": "npm run build",
   "installCommand": "npm install --registry=https://registry.npmjs.org/",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/backup/cron",
+      "schedule": "0 0 1 1,4,7,10 *"
+    }
+  ]
 }
 

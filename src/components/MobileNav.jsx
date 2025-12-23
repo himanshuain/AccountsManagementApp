@@ -17,6 +17,7 @@ import {
   Trash2,
   Activity,
   Key,
+  HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -28,6 +29,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { logout } from "@/lib/auth";
 import { toast } from "sonner";
 import { useStorage } from "@/hooks/useStorage";
+import { BackupManager } from "./BackupManager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,6 +88,7 @@ export function MobileNav() {
   const [newPassword, setNewPassword] = useState("");
   const [pinError, setPinError] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [backupSheetOpen, setBackupSheetOpen] = useState(false);
   const scrollRef = useRef(null);
 
   const { storageInfo, loading: storageLoading, isBandwidth } = useStorage();
@@ -309,6 +312,16 @@ export function MobileNav() {
                   </div>
                   <Separator />
 
+                  {/* Backup & Restore Button */}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-muted-foreground"
+                    onClick={() => setBackupSheetOpen(true)}
+                  >
+                    <HardDrive className="mr-2 h-4 w-4" />
+                    Backup & Restore
+                  </Button>
+
                   {/* Change Password Button */}
                   <Button
                     variant="ghost"
@@ -480,6 +493,9 @@ export function MobileNav() {
           })}
         </div>
       </nav>
+
+      {/* Backup Manager Sheet */}
+      <BackupManager open={backupSheetOpen} onOpenChange={setBackupSheetOpen} />
     </>
   );
 }

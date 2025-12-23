@@ -123,7 +123,7 @@ export async function GET(request) {
     // Return as API response
     return NextResponse.json({
       success: true,
-      ...backup,
+      backup,
     });
   } catch (error) {
     console.error("[Backup API] Error:", error);

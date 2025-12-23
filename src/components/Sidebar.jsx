@@ -16,6 +16,7 @@ import {
   Trash2,
   Activity,
   Key,
+  HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PinInput } from "@/components/PinInput";
+import { BackupManager } from "./BackupManager";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -56,6 +58,7 @@ export function Sidebar() {
   const [newPassword, setNewPassword] = useState("");
   const [pinError, setPinError] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [backupSheetOpen, setBackupSheetOpen] = useState(false);
 
   const { storageInfo, loading: storageLoading, isBandwidth } = useStorage();
 
@@ -272,6 +275,16 @@ export function Sidebar() {
         </div>
         <Separator />
 
+        {/* Backup & Restore Button */}
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground"
+          onClick={() => setBackupSheetOpen(true)}
+        >
+          <HardDrive className="mr-2 h-4 w-4" />
+          Backup & Restore
+        </Button>
+
         {/* Change Password Button */}
         <Button
           variant="ghost"
@@ -394,6 +407,9 @@ export function Sidebar() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Backup Manager Sheet */}
+      <BackupManager open={backupSheetOpen} onOpenChange={setBackupSheetOpen} />
     </aside>
   );
 }

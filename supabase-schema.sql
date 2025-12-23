@@ -155,6 +155,20 @@ DROP POLICY IF EXISTS "Allow all operations on app_settings" ON app_settings;
 -- Note: With no policies and RLS enabled, only service_role can access these tables
 -- If you need anon key access for specific operations, add targeted policies below
 
+-- Backup logs table for tracking backup history
+CREATE TABLE IF NOT EXISTS backup_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type TEXT NOT NULL, -- 'manual_download', 'manual_email', 'scheduled_cron'
+  status TEXT DEFAULT 'success', -- 'success', 'failed'
+  email TEXT, -- email address if sent via email
+  record_counts JSONB, -- { suppliers: 10, transactions: 50, ... }
+  file_size_bytes INTEGER,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE backup_logs ENABLE ROW LEVEL SECURITY;
+
 -- Function to auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
