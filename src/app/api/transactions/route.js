@@ -40,14 +40,17 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const supplierId = searchParams.get("supplierId");
-    
+
     // Pagination parameters
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
     const offset = (page - 1) * (limit || 0);
 
     const supabase = getServerClient();
-    let query = supabase.from("transactions").select("*", { count: "exact" }).order("updated_at", { ascending: false });
+    let query = supabase
+      .from("transactions")
+      .select("*", { count: "exact" })
+      .order("updated_at", { ascending: false });
 
     if (supplierId) {
       query = query.eq("supplier_id", supplierId);
@@ -107,10 +110,7 @@ export async function POST(request) {
     // Validate input
     const validation = validateBody(body, transactionSchema);
     if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
     }
 
     const now = new Date().toISOString();

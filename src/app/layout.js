@@ -56,7 +56,7 @@ export default function RootLayout({ children }) {
             <MuiProvider>
               <ServiceWorkerRegistration />
               {children}
-              <Toaster position="top-right" theme="dark" />
+              <Toaster position="bottom-center" theme="dark" />
             </MuiProvider>
           </ThemeProvider>
         </QueryProvider>

@@ -31,19 +31,14 @@ async function logBackup(supabase, logData) {
 
 // Helper to create backup data
 async function createBackupData(supabase) {
-  const [
-    suppliersResult,
-    transactionsResult,
-    customersResult,
-    udharResult,
-    incomeResult,
-  ] = await Promise.all([
-    supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
-    supabase.from("transactions").select("*").order("created_at", { ascending: true }),
-    supabase.from("customers").select("*").order("created_at", { ascending: true }),
-    supabase.from("udhar").select("*").order("created_at", { ascending: true }),
-    supabase.from("income").select("*").order("created_at", { ascending: true }),
-  ]);
+  const [suppliersResult, transactionsResult, customersResult, udharResult, incomeResult] =
+    await Promise.all([
+      supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
+      supabase.from("transactions").select("*").order("created_at", { ascending: true }),
+      supabase.from("customers").select("*").order("created_at", { ascending: true }),
+      supabase.from("udhar").select("*").order("created_at", { ascending: true }),
+      supabase.from("income").select("*").order("created_at", { ascending: true }),
+    ]);
 
   const counts = {
     suppliers: suppliersResult.data?.length || 0,
@@ -79,13 +74,10 @@ export async function GET(request) {
     // Verify cron secret (Vercel sends this header)
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
-    
+
     // Allow if no secret is set (development) or if it matches
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!isSupabaseConfigured()) {
@@ -207,10 +199,6 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error("[Backup Cron] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

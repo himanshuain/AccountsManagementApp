@@ -26,4 +26,3 @@ export function GlobalLoadingBar() {
 }
 
 export default GlobalLoadingBar;
-

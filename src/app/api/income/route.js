@@ -78,10 +78,7 @@ export async function POST(request) {
     // Validate input
     const validation = validateBody(body, incomeSchema);
     if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
     }
 
     const now = new Date().toISOString();

@@ -63,7 +63,7 @@ export default function DashboardPage() {
   });
 
   // Helper function to get the last day of a month
-  const getLastDayOfMonth = (yearMonth) => {
+  const getLastDayOfMonth = yearMonth => {
     const [year, month] = yearMonth.split("-").map(Number);
     // Create date for first day of next month, then subtract one day
     const lastDay = new Date(year, month, 0);
@@ -102,9 +102,10 @@ export default function DashboardPage() {
     }
 
     // For monthly income, use the last day of the selected month
-    const finalDate = incomeFormData.type === "monthly" 
-      ? getLastDayOfMonth(incomeFormData.month)
-      : incomeFormData.date;
+    const finalDate =
+      incomeFormData.type === "monthly"
+        ? getLastDayOfMonth(incomeFormData.month)
+        : incomeFormData.date;
 
     const result = await addIncome({
       type: incomeFormData.type,

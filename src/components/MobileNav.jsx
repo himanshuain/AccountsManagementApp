@@ -269,13 +269,10 @@ export function MobileNav() {
                       <Activity className="h-4 w-4" />
                       {/* <span>{isBandwidth ? "Storage" : "Storage"}</span> */}
                       <span>Storage</span>
-
-                      
                     </div>
                     {storageLoading ? (
                       <div className="h-2 animate-pulse rounded-full bg-muted" />
-                    ) 
-                    : storageInfo ? (
+                    ) : storageInfo ? (
                       <div className="space-y-1">
                         {/* <div className="h-2 overflow-hidden rounded-full bg-muted">
                           <div
@@ -291,10 +288,13 @@ export function MobileNav() {
                           />
                         </div> */}
                         <p className="text-xs text-muted-foreground">
-                          {storageInfo.usedFormatted}<br /> 
+                          {storageInfo.usedFormatted}
+                          <br />
                           {storageInfo?.fileCount && (
-                        <span className="text-xs">Total {storageInfo.fileCount} photos on the server</span>
-                      )}
+                            <span className="text-xs">
+                              Total {storageInfo.fileCount} photos on the server
+                            </span>
+                          )}
                           {/* / {storageInfo.totalFormatted} ( */}
                           {/* {storageInfo.usedPercentage}%) */}
                         </p>

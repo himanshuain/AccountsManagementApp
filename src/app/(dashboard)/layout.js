@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }) {
     const initAuth = async () => {
       // Quick local check first
       if (!checkAuthLocal()) return;
-      
+
       // Then verify with server
       const isValid = await verifySessionWithServer();
       if (isValid) {
@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }) {
     };
 
     // Handle page show event (for PWA back/forward cache)
-    const handlePageShow = async (event) => {
+    const handlePageShow = async event => {
       if (event.persisted) {
         // Page was restored from cache - always verify with server
         setIsRehydrating(true);

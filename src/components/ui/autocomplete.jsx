@@ -6,7 +6,7 @@ import { Check, ChevronDown, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Lightweight debug logger for debug mode (NDJSON to provided endpoint)
-const logAutocomplete = (payload) => {
+const logAutocomplete = payload => {
   fetch("http://127.0.0.1:7245/ingest/cde8c359-2ac1-4713-9a87-cbd976795216", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -110,7 +110,7 @@ export function Autocomplete({
   React.useEffect(() => {
     const handleClickOutside = event => {
       if (
-        triggerRef.current && 
+        triggerRef.current &&
         !triggerRef.current.contains(event.target) &&
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target)
@@ -148,7 +148,7 @@ export function Autocomplete({
 
   // Close on scroll outside dropdown (to prevent misaligned dropdown)
   React.useEffect(() => {
-    const handleScroll = (e) => {
+    const handleScroll = e => {
       // Don't close if scrolling inside the dropdown
       if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
         return;
@@ -220,143 +220,145 @@ export function Autocomplete({
       </button>
 
       {/* Dropdown - Rendered via Portal */}
-      {open && typeof window !== "undefined" && createPortal(
-        <div 
-          ref={dropdownRef}
-          className={cn(
-            "fixed z-[9999] rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95 pointer-events-auto",
-            dropdownClassName
-          )}
-          onMouseDownCapture={e => e.stopPropagation()}
-          onTouchStartCapture={e => e.stopPropagation()}
-          onMouseDown={e => e.stopPropagation()}
-          onTouchStart={e => e.stopPropagation()}
-          onClick={e => e.stopPropagation()}
-          style={{
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-          }}
-          onFocusCapture={e => {
-            // #region agent log
-            logAutocomplete({
-              hypothesisId: "C",
-              location: "autocomplete.jsx:dropdownFocus",
-              message: "Dropdown focus capture",
-              data: { target: e.target?.tagName },
-            });
-            // #endregion
-          }}
-        >
-          {/* Search Input */}
-          <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onMouseDownCapture={e => {
-                // #region agent log
-                logAutocomplete({
-                  hypothesisId: "D",
-                  location: "autocomplete.jsx:searchMouseDownCapture",
-                  message: "Search input mousedown capture",
-                  data: {
-                    defaultPrevented: e.defaultPrevented,
-                    button: e.button,
-                    open,
-                  },
-                });
-                // #endregion
-                e.stopPropagation();
-              }}
-              onTouchStartCapture={e => e.stopPropagation()}
-              onMouseDown={e => e.stopPropagation()}
-              onTouchStart={e => e.stopPropagation()}
-              onFocus={e => {
-                // #region agent log
-                logAutocomplete({
-                  hypothesisId: "D",
-                  location: "autocomplete.jsx:searchFocus",
-                  message: "Search input focus",
-                  data: {
-                    value: searchQuery,
-                    target: e.target?.tagName,
-                    activeBefore: document.activeElement?.tagName,
-                    open,
-                  },
-                });
-                // #endregion
-              }}
-              onClick={e => {
-                // #region agent log
-                logAutocomplete({
-                  hypothesisId: "D",
-                  location: "autocomplete.jsx:searchClick",
-                  message: "Search input click",
-                  data: {
-                    value: searchQuery,
-                    activeBefore: document.activeElement?.tagName,
-                    open,
-                  },
-                });
-                // #endregion
-              }}
-              className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="rounded p-1 hover:bg-muted"
-              >
-                <X className="h-4 w-4 opacity-50" />
-              </button>
+      {open &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className={cn(
+              "pointer-events-auto fixed z-[9999] rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95",
+              dropdownClassName
             )}
-          </div>
+            onMouseDownCapture={e => e.stopPropagation()}
+            onTouchStartCapture={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+            onTouchStart={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+            }}
+            onFocusCapture={e => {
+              // #region agent log
+              logAutocomplete({
+                hypothesisId: "C",
+                location: "autocomplete.jsx:dropdownFocus",
+                message: "Dropdown focus capture",
+                data: { target: e.target?.tagName },
+              });
+              // #endregion
+            }}
+          >
+            {/* Search Input */}
+            <div className="flex items-center border-b px-3">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder={searchPlaceholder}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onMouseDownCapture={e => {
+                  // #region agent log
+                  logAutocomplete({
+                    hypothesisId: "D",
+                    location: "autocomplete.jsx:searchMouseDownCapture",
+                    message: "Search input mousedown capture",
+                    data: {
+                      defaultPrevented: e.defaultPrevented,
+                      button: e.button,
+                      open,
+                    },
+                  });
+                  // #endregion
+                  e.stopPropagation();
+                }}
+                onTouchStartCapture={e => e.stopPropagation()}
+                onMouseDown={e => e.stopPropagation()}
+                onTouchStart={e => e.stopPropagation()}
+                onFocus={e => {
+                  // #region agent log
+                  logAutocomplete({
+                    hypothesisId: "D",
+                    location: "autocomplete.jsx:searchFocus",
+                    message: "Search input focus",
+                    data: {
+                      value: searchQuery,
+                      target: e.target?.tagName,
+                      activeBefore: document.activeElement?.tagName,
+                      open,
+                    },
+                  });
+                  // #endregion
+                }}
+                onClick={e => {
+                  // #region agent log
+                  logAutocomplete({
+                    hypothesisId: "D",
+                    location: "autocomplete.jsx:searchClick",
+                    message: "Search input click",
+                    data: {
+                      value: searchQuery,
+                      activeBefore: document.activeElement?.tagName,
+                      open,
+                    },
+                  });
+                  // #endregion
+                }}
+                className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="rounded p-1 hover:bg-muted"
+                >
+                  <X className="h-4 w-4 opacity-50" />
+                </button>
+              )}
+            </div>
 
-          {/* Options List */}
-          <div className="max-h-60 overflow-y-auto p-1">
-            {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">{emptyText}</div>
-            ) : (
-              filteredOptions.map(option => {
-                const optValue = getOptionValue(option);
-                const optLabel = getOptionLabel(option);
-                const isSelected = optValue === value;
+            {/* Options List */}
+            <div className="max-h-60 overflow-y-auto p-1">
+              {filteredOptions.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">{emptyText}</div>
+              ) : (
+                filteredOptions.map(option => {
+                  const optValue = getOptionValue(option);
+                  const optLabel = getOptionLabel(option);
+                  const isSelected = optValue === value;
 
-                return (
-                  <button
-                    key={optValue}
-                    type="button"
-                    onClick={() => handleSelect(optValue)}
-                    className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      isSelected && "bg-accent"
-                    )}
-                  >
-                    <Check
+                  return (
+                    <button
+                      key={optValue}
+                      type="button"
+                      onClick={() => handleSelect(optValue)}
                       className={cn(
-                        "mr-2 h-4 w-4 shrink-0",
-                        isSelected ? "opacity-100" : "opacity-0"
+                        "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        isSelected && "bg-accent"
                       )}
-                    />
-                    {renderOption ? (
-                      renderOption(option, isSelected)
-                    ) : (
-                      <span className="truncate">{optLabel}</span>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4 shrink-0",
+                          isSelected ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {renderOption ? (
+                        renderOption(option, isSelected)
+                      ) : (
+                        <span className="truncate">{optLabel}</span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

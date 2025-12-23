@@ -48,7 +48,7 @@ export async function middleware(request) {
 
   // For non-API routes, check authentication and redirect to login if needed
   const authCookie = request.cookies.get(AUTH_COOKIE_NAME);
-  
+
   if (authCookie?.value !== "authenticated") {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
@@ -72,4 +72,3 @@ export const config = {
     "/",
   ],
 };
-

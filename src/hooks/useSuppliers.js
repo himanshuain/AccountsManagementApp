@@ -5,6 +5,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const SUPPLIERS_KEY = ["suppliers"];
+const TRANSACTIONS_KEY = ["transactions"];
 
 export function useSuppliers() {
   const queryClient = useQueryClient();
@@ -31,7 +32,7 @@ export function useSuppliers() {
         pagination: result.pagination || { hasMore: false, page: pageParam },
       };
     },
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: lastPage => {
       if (lastPage.pagination?.hasMore) {
         return lastPage.pagination.page + 1;
       }
@@ -105,6 +106,8 @@ export function useSuppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
+      // Also invalidate transactions since supplier deletion removes related transactions
+      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
     },
   });
 

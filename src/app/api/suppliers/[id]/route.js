@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { supplierSchema, validateBody, validateUUID } from "@/lib/validation";
+import {
+  deleteImagesFromImageKit,
+  collectSupplierImages,
+  collectTransactionImages,
+} from "@/lib/imagekit-server";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -86,10 +91,7 @@ export async function PUT(request, { params }) {
     // Validate input
     const validation = validateBody(body, supplierSchema);
     if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
     }
 
     const supabase = getServerClient();
@@ -142,6 +144,37 @@ export async function DELETE(request, { params }) {
     }
 
     const supabase = getServerClient();
+
+    // Collect all images to delete before removing records
+    const imagesToDelete = [];
+
+    // Get supplier data for images
+    const { data: supplier } = await supabase
+      .from("suppliers")
+      .select("profile_picture")
+      .eq("id", id)
+      .single();
+
+    if (supplier) {
+      imagesToDelete.push(...collectSupplierImages(supplier));
+    }
+
+    // Get all related transactions and their images
+    const { data: transactions } = await supabase
+      .from("transactions")
+      .select("bill_images, payments")
+      .eq("supplier_id", id);
+
+    if (transactions) {
+      transactions.forEach(txn => {
+        imagesToDelete.push(...collectTransactionImages(txn));
+      });
+    }
+
+    // Delete images from ImageKit (best-effort, non-blocking for response)
+    deleteImagesFromImageKit(imagesToDelete).catch(err => {
+      console.error("[Supplier Delete] ImageKit cleanup error:", err);
+    });
 
     // Delete related transactions first
     await supabase.from("transactions").delete().eq("supplier_id", id);

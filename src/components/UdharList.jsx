@@ -202,18 +202,18 @@ export function UdharList({
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
     if (!udharForDeposit) {
       toast.error("No udhar selected");
       return;
     }
-    
+
     // Calculate pending amount
     const totalAmount = getUdharAmount(udharForDeposit);
     const paidAmount = getPaidAmount(udharForDeposit);
     const pendingAmount = Math.max(0, totalAmount - paidAmount);
     const depositValue = Number(depositAmount);
-    
+
     // Validate that deposit amount doesn't exceed pending amount
     if (depositValue > pendingAmount) {
       toast.error(`Cannot deposit more than pending amount of ₹${pendingAmount.toLocaleString()}`);
@@ -246,12 +246,12 @@ export function UdharList({
         depositNotes || null
       );
       toast.success("Collect recorded!");
-      
+
       // Keep the udhar expanded and scroll into view
       const newExpanded = new Set(expandedItems);
       newExpanded.add(udharForDeposit.id);
       setExpandedItems(newExpanded);
-      
+
       resetDepositForm();
     } catch (error) {
       console.error("Error recording deposit:", error);
@@ -399,8 +399,7 @@ export function UdharList({
                                   : "bg-amber-500/20 text-amber-600"
                             )}
                           >
-                                                                      {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
-
+                            {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
                           </Badge>
                         </div>
                         {/* Customer with DP */}
@@ -692,14 +691,14 @@ export function UdharList({
                   onChange={e => {
                     const value = e.target.value;
                     setDepositAmount(value);
-                    
+
                     // Real-time validation feedback
                     if (value && udharForDeposit) {
                       const amount = parseFloat(value);
                       const totalAmount = getUdharAmount(udharForDeposit);
                       const paidAmount = getPaidAmount(udharForDeposit);
                       const pendingAmount = Math.max(0, totalAmount - paidAmount);
-                      
+
                       if (!isNaN(amount) && amount > pendingAmount) {
                         e.target.classList.add("border-destructive");
                       } else {
@@ -707,29 +706,35 @@ export function UdharList({
                       }
                     }
                   }}
-                  max={udharForDeposit ? (() => {
-                    const totalAmount = getUdharAmount(udharForDeposit);
-                    const paidAmount = getPaidAmount(udharForDeposit);
-                    return Math.max(0, totalAmount - paidAmount);
-                  })() : undefined}
+                  max={
+                    udharForDeposit
+                      ? (() => {
+                          const totalAmount = getUdharAmount(udharForDeposit);
+                          const paidAmount = getPaidAmount(udharForDeposit);
+                          return Math.max(0, totalAmount - paidAmount);
+                        })()
+                      : undefined
+                  }
                   placeholder="Enter amount"
                   className="h-14 text-xl font-semibold"
                   autoFocus
                 />
-                {udharForDeposit && depositAmount && (() => {
-                  const amount = parseFloat(depositAmount);
-                  const totalAmount = getUdharAmount(udharForDeposit);
-                  const paidAmount = getPaidAmount(udharForDeposit);
-                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
-                  if (!isNaN(amount) && amount > pendingAmount) {
-                    return (
-                      <p className="text-xs text-destructive mt-1">
-                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
-                      </p>
-                    );
-                  }
-                  return null;
-                })()}
+                {udharForDeposit &&
+                  depositAmount &&
+                  (() => {
+                    const amount = parseFloat(depositAmount);
+                    const totalAmount = getUdharAmount(udharForDeposit);
+                    const paidAmount = getPaidAmount(udharForDeposit);
+                    const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                    if (!isNaN(amount) && amount > pendingAmount) {
+                      return (
+                        <p className="mt-1 text-xs text-destructive">
+                          Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
               </div>
 
               {/* Notes Input */}

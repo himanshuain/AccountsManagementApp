@@ -241,31 +241,31 @@ export function TransactionForm({
                     placeholder="Select vyapari"
                     required
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'hsl(var(--background))',
-                        color: 'hsl(var(--foreground))',
-                        '& fieldset': {
-                          borderColor: 'hsl(var(--border))',
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "hsl(var(--background))",
+                        color: "hsl(var(--foreground))",
+                        "& fieldset": {
+                          borderColor: "hsl(var(--border))",
                         },
-                        '&:hover fieldset': {
-                          borderColor: 'hsl(var(--primary))',
+                        "&:hover fieldset": {
+                          borderColor: "hsl(var(--primary))",
                         },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'hsl(var(--primary))',
-                        },
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: 'hsl(var(--muted-foreground))',
-                        '&.Mui-focused': {
-                          color: 'hsl(var(--primary))',
+                        "&.Mui-focused fieldset": {
+                          borderColor: "hsl(var(--primary))",
                         },
                       },
-                      '& .MuiInputBase-input': {
-                        color: 'hsl(var(--foreground))',
+                      "& .MuiInputLabel-root": {
+                        color: "hsl(var(--muted-foreground))",
+                        "&.Mui-focused": {
+                          color: "hsl(var(--primary))",
+                        },
                       },
-                      '& .MuiAutocomplete-endAdornment': {
-                        '& .MuiSvgIcon-root': {
-                          color: 'hsl(var(--foreground))',
+                      "& .MuiInputBase-input": {
+                        color: "hsl(var(--foreground))",
+                      },
+                      "& .MuiAutocomplete-endAdornment": {
+                        "& .MuiSvgIcon-root": {
+                          color: "hsl(var(--foreground))",
                         },
                       },
                     }}
@@ -298,32 +298,32 @@ export function TransactionForm({
                     elevation: 8,
                     sx: {
                       mt: 1,
-                      bgcolor: 'hsl(var(--card))',
-                      color: 'hsl(var(--card-foreground))',
-                      border: '1px solid hsl(var(--border))',
-                      pointerEvents: 'auto',
-                      '& .MuiAutocomplete-listbox': {
-                        padding: '4px',
-                        pointerEvents: 'auto',
-                        '& .MuiAutocomplete-option': {
+                      bgcolor: "hsl(var(--card))",
+                      color: "hsl(var(--card-foreground))",
+                      border: "1px solid hsl(var(--border))",
+                      pointerEvents: "auto",
+                      "& .MuiAutocomplete-listbox": {
+                        padding: "4px",
+                        pointerEvents: "auto",
+                        "& .MuiAutocomplete-option": {
                           minHeight: 48,
-                          borderRadius: '6px',
-                          color: 'hsl(var(--foreground))',
-                          pointerEvents: 'auto',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            bgcolor: 'hsl(var(--accent))',
+                          borderRadius: "6px",
+                          color: "hsl(var(--foreground))",
+                          pointerEvents: "auto",
+                          cursor: "pointer",
+                          "&:hover": {
+                            bgcolor: "hsl(var(--accent))",
                           },
                           '&[aria-selected="true"]': {
-                            bgcolor: 'hsl(var(--primary) / 0.1)',
+                            bgcolor: "hsl(var(--primary) / 0.1)",
                           },
-                          '&.Mui-focused': {
-                            bgcolor: 'hsl(var(--accent))',
+                          "&.Mui-focused": {
+                            bgcolor: "hsl(var(--accent))",
                           },
                         },
                       },
-                      '& .MuiAutocomplete-noOptions': {
-                        color: 'hsl(var(--muted-foreground))',
+                      "& .MuiAutocomplete-noOptions": {
+                        color: "hsl(var(--muted-foreground))",
                       },
                     },
                   },
@@ -332,10 +332,10 @@ export function TransactionForm({
                     sx: {
                       zIndex: 2147483647,
                     },
-                    container: typeof document !== 'undefined' ? document.body : undefined,
+                    container: typeof document !== "undefined" ? document.body : undefined,
                     modifiers: [
                       {
-                        name: 'preventOverflow',
+                        name: "preventOverflow",
                         enabled: false,
                       },
                     ],
@@ -392,7 +392,7 @@ export function TransactionForm({
               <Label htmlFor="amount">Amount (₹) *</Label>
               <Input
                 id="amount"
-                type="text"
+                type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 {...register("amount", { required: "Amount is required" })}

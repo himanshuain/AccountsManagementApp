@@ -8,7 +8,7 @@ import jsPDF from "jspdf";
 export async function exportFullBackup() {
   try {
     const response = await fetch("/api/backup?format=download");
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || "Failed to create backup");
@@ -42,7 +42,7 @@ export async function exportFullBackup() {
 export async function getBackupSummary() {
   try {
     const response = await fetch("/api/backup");
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || "Failed to get backup summary");
@@ -271,7 +271,6 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text("Ganesh Bazaar, Narwar (473880), Madhya Pradesh", margin, 45);
-
 
   // Date on right
   doc.setFontSize(10);

@@ -12,14 +12,15 @@ export const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey)
 
 // Admin client for server-side operations (bypasses RLS)
 // Use this in API routes for protected operations
-export const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey 
-  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }) 
-  : null;
+export const supabaseAdmin =
+  supabaseUrl && supabaseServiceRoleKey
+    ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      })
+    : null;
 
 export const isSupabaseConfigured = () => {
   return !!supabase;

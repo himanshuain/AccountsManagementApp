@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { deleteImagesFromImageKit, collectUdharImages } from "@/lib/imagekit-server";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -142,12 +143,20 @@ export async function DELETE(request, { params }) {
     const { id } = await params;
     const supabase = getServerClient();
 
-    // Get the udhar to find customer ID before deleting
+    // Get the udhar data including images before deleting
     const { data: udhar } = await supabase
       .from("udhar")
-      .select("customer_id")
+      .select("customer_id, khata_photos, bill_image, payments")
       .eq("id", id)
       .single();
+
+    // Collect and delete images from ImageKit (best-effort)
+    if (udhar) {
+      const imagesToDelete = collectUdharImages(udhar);
+      deleteImagesFromImageKit(imagesToDelete).catch(err => {
+        console.error("[Udhar Delete] ImageKit cleanup error:", err);
+      });
+    }
 
     const { error } = await supabase.from("udhar").delete().eq("id", id);
 

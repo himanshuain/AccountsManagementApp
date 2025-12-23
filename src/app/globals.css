@@ -6,7 +6,7 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   /* Hide scrollbar for filter chips */
   .scrollbar-none {
     -ms-overflow-style: none;

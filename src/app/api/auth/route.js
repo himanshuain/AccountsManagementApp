@@ -47,16 +47,14 @@ async function upgradeToHashedPin(pin) {
   try {
     const supabase = getServerClient();
     const hashedPin = await hashPin(pin);
-    await supabase
-      .from("app_settings")
-      .upsert(
-        {
-          key: "app_pin",
-          value: hashedPin,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "key" }
-      );
+    await supabase.from("app_settings").upsert(
+      {
+        key: "app_pin",
+        value: hashedPin,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    );
     console.log("PIN upgraded to hashed version");
   } catch (error) {
     console.error("Failed to upgrade PIN to hash:", error);
@@ -95,15 +93,15 @@ export async function POST(request) {
 
     // Check rate limit before processing
     const rateLimit = checkRateLimit(rateLimitKey, PIN_RATE_LIMIT);
-    
+
     if (!rateLimit.success) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: `Too many login attempts. Please try again in ${rateLimit.retryAfter} seconds.`,
           retryAfter: rateLimit.retryAfter,
         },
-        { 
+        {
           status: 429,
           headers: {
             "Retry-After": String(rateLimit.retryAfter),
@@ -117,12 +115,12 @@ export async function POST(request) {
 
     if (!pin) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: "PIN is required",
           remaining: rateLimit.remaining,
-        }, 
-        { 
+        },
+        {
           status: 400,
           headers: {
             "X-RateLimit-Remaining": String(rateLimit.remaining),
@@ -132,7 +130,7 @@ export async function POST(request) {
     }
 
     const storedPinData = await getStoredPin();
-    
+
     // Verify PIN (handles both hashed and legacy plaintext)
     const { valid, needsUpgrade } = await verifyPin(pin, storedPinData.value);
 
@@ -181,12 +179,12 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: "Invalid PIN",
         remaining: rateLimit.remaining,
-      }, 
-      { 
+      },
+      {
         status: 401,
         headers: {
           "X-RateLimit-Remaining": String(rateLimit.remaining),

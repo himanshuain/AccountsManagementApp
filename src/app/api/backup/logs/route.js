@@ -40,10 +40,7 @@ export async function GET(request) {
 
     if (error) {
       console.error("Failed to fetch backup logs:", error);
-      return NextResponse.json(
-        { success: false, error: error.message, data: [] },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -52,10 +49,7 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error("[Backup Logs API] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message, data: [] },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
   }
 }
 
@@ -85,19 +79,12 @@ export async function POST(request) {
 
     if (error) {
       console.error("Failed to create backup log:", error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Backup Logs API] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

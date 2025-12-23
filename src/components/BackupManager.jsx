@@ -157,7 +157,7 @@ export function BackupManager({ open, onOpenChange }) {
     }
   };
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = e => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -170,10 +170,10 @@ export function BackupManager({ open, onOpenChange }) {
 
     // Read and preview the backup
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = event => {
       try {
         const backup = JSON.parse(event.target.result);
-        
+
         // Validate backup structure
         if (!backup.version || !backup.data) {
           toast.error("Invalid backup file format");
@@ -215,7 +215,7 @@ export function BackupManager({ open, onOpenChange }) {
       }
 
       toast.success(data.message);
-      
+
       // Clear the form
       setSelectedFile(null);
       setBackupPreview(null);
@@ -234,7 +234,7 @@ export function BackupManager({ open, onOpenChange }) {
     }
   };
 
-  const getTypeLabel = (type) => {
+  const getTypeLabel = type => {
     switch (type) {
       case "manual_download":
         return { label: "Download", color: "bg-blue-500" };
@@ -247,7 +247,7 @@ export function BackupManager({ open, onOpenChange }) {
     }
   };
 
-  const formatRecordCounts = (counts) => {
+  const formatRecordCounts = counts => {
     if (!counts) return "N/A";
     const total = Object.values(counts).reduce((sum, c) => sum + c, 0);
     return `${total} records`;
@@ -262,9 +262,7 @@ export function BackupManager({ open, onOpenChange }) {
               <HardDrive className="h-5 w-5" />
               Backup & Restore
             </SheetTitle>
-            <SheetDescription>
-              Download, email, or restore your shop data
-            </SheetDescription>
+            <SheetDescription>Download, email, or restore your shop data</SheetDescription>
           </SheetHeader>
 
           {/* Tab Navigation */}
@@ -320,11 +318,7 @@ export function BackupManager({ open, onOpenChange }) {
                       <p className="text-sm text-muted-foreground">
                         Download a JSON file containing all your data
                       </p>
-                      <Button
-                        className="mt-3"
-                        onClick={handleDownload}
-                        disabled={isDownloading}
-                      >
+                      <Button className="mt-3" onClick={handleDownload} disabled={isDownloading}>
                         {isDownloading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -357,13 +351,10 @@ export function BackupManager({ open, onOpenChange }) {
                           type="email"
                           placeholder="your@email.com"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={e => setEmail(e.target.value)}
                           className="flex-1"
                         />
-                        <Button
-                          onClick={handleEmailBackup}
-                          disabled={isEmailing || !email}
-                        >
+                        <Button onClick={handleEmailBackup} disabled={isEmailing || !email}>
                           {isEmailing ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
@@ -386,8 +377,8 @@ export function BackupManager({ open, onOpenChange }) {
                         Automatic Backups
                       </h3>
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        Your data is automatically backed up and emailed every 3 months.
-                        Configure BACKUP_EMAIL in your environment to receive scheduled backups.
+                        Your data is automatically backed up and emailed every 3 months. Configure
+                        BACKUP_EMAIL in your environment to receive scheduled backups.
                       </p>
                     </div>
                   </div>
@@ -438,7 +429,7 @@ export function BackupManager({ open, onOpenChange }) {
                 {/* Backup Preview */}
                 {backupPreview && (
                   <div className="rounded-lg border p-4">
-                    <h3 className="mb-3 font-medium flex items-center gap-2">
+                    <h3 className="mb-3 flex items-center gap-2 font-medium">
                       <FileJson className="h-4 w-4" />
                       Backup Preview
                     </h3>
@@ -545,13 +536,10 @@ export function BackupManager({ open, onOpenChange }) {
                     <p>No backup history yet</p>
                   </div>
                 ) : (
-                  logs.map((log) => {
+                  logs.map(log => {
                     const typeInfo = getTypeLabel(log.type);
                     return (
-                      <div
-                        key={log.id}
-                        className="flex items-center gap-3 rounded-lg border p-3"
-                      >
+                      <div key={log.id} className="flex items-center gap-3 rounded-lg border p-3">
                         <div
                           className={cn(
                             "flex h-8 w-8 items-center justify-center rounded-full",
@@ -566,11 +554,11 @@ export function BackupManager({ open, onOpenChange }) {
                             <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <Badge
                               variant="secondary"
-                              className={cn("text-white text-xs", typeInfo.color)}
+                              className={cn("text-xs text-white", typeInfo.color)}
                             >
                               {typeInfo.label}
                             </Badge>
@@ -581,9 +569,7 @@ export function BackupManager({ open, onOpenChange }) {
                           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                            {log.email && (
-                              <span className="truncate">• {log.email}</span>
-                            )}
+                            {log.email && <span className="truncate">• {log.email}</span>}
                           </div>
                         </div>
                       </div>
@@ -616,13 +602,11 @@ export function BackupManager({ open, onOpenChange }) {
             <AlertDialogDescription>
               {restoreMode === "replace" ? (
                 <>
-                  This will <strong>delete all existing data</strong> and replace it with
-                  the backup. This action cannot be undone.
+                  This will <strong>delete all existing data</strong> and replace it with the
+                  backup. This action cannot be undone.
                 </>
               ) : (
-                <>
-                  This will add new records from the backup. Existing records will be skipped.
-                </>
+                <>This will add new records from the backup. Existing records will be skipped.</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -646,4 +630,3 @@ export function useBackupManager() {
   const [open, setOpen] = useState(false);
   return { open, setOpen, BackupManager };
 }
-

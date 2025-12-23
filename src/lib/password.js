@@ -28,7 +28,7 @@ export async function verifyPin(pin, storedValue) {
     const valid = await bcrypt.compare(pin, storedValue);
     return { valid, needsUpgrade: false };
   }
-  
+
   // Legacy plaintext comparison
   const valid = pin === storedValue;
   return { valid, needsUpgrade: valid }; // Only upgrade if the PIN is correct
@@ -48,4 +48,3 @@ export default {
   verifyPin,
   isHashed,
 };
-

@@ -434,9 +434,7 @@ function LazyThumbnailButton({ bill, isSelected, onClick }) {
       onClick={onClick}
       className={cn(
         "h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
-        isSelected
-          ? "border-primary ring-2 ring-primary/50"
-          : "border-transparent opacity-60"
+        isSelected ? "border-primary ring-2 ring-primary/50" : "border-transparent opacity-60"
       )}
     >
       {isInView ? (

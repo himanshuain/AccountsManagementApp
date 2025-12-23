@@ -32,19 +32,14 @@ export async function GET(request) {
     const supabase = getServerClient();
 
     // Fetch all data from all tables in parallel
-    const [
-      suppliersResult,
-      transactionsResult,
-      customersResult,
-      udharResult,
-      incomeResult,
-    ] = await Promise.all([
-      supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
-      supabase.from("transactions").select("*").order("created_at", { ascending: true }),
-      supabase.from("customers").select("*").order("created_at", { ascending: true }),
-      supabase.from("udhar").select("*").order("created_at", { ascending: true }),
-      supabase.from("income").select("*").order("created_at", { ascending: true }),
-    ]);
+    const [suppliersResult, transactionsResult, customersResult, udharResult, incomeResult] =
+      await Promise.all([
+        supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
+        supabase.from("transactions").select("*").order("created_at", { ascending: true }),
+        supabase.from("customers").select("*").order("created_at", { ascending: true }),
+        supabase.from("udhar").select("*").order("created_at", { ascending: true }),
+        supabase.from("income").select("*").order("created_at", { ascending: true }),
+      ]);
 
     // Check for errors
     const errors = [];
@@ -127,10 +122,7 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error("[Backup API] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
@@ -151,10 +143,7 @@ export async function POST(request) {
     const { backup, options = {} } = body;
 
     if (!backup || !backup.data) {
-      return NextResponse.json(
-        { success: false, error: "Invalid backup format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Invalid backup format" }, { status: 400 });
     }
 
     const supabase = getServerClient();
@@ -182,10 +171,8 @@ export async function POST(request) {
     if (backup.data.suppliers?.length > 0) {
       for (const supplier of backup.data.suppliers) {
         const record = toSnakeCase(supplier);
-        const { error } = await supabase
-          .from("suppliers")
-          .upsert(record, { onConflict: "id" });
-        
+        const { error } = await supabase.from("suppliers").upsert(record, { onConflict: "id" });
+
         if (error) {
           results.suppliers.errors.push({ id: supplier.id, error: error.message });
         } else {
@@ -198,10 +185,8 @@ export async function POST(request) {
     if (backup.data.customers?.length > 0) {
       for (const customer of backup.data.customers) {
         const record = toSnakeCase(customer);
-        const { error } = await supabase
-          .from("customers")
-          .upsert(record, { onConflict: "id" });
-        
+        const { error } = await supabase.from("customers").upsert(record, { onConflict: "id" });
+
         if (error) {
           results.customers.errors.push({ id: customer.id, error: error.message });
         } else {
@@ -214,10 +199,8 @@ export async function POST(request) {
     if (backup.data.transactions?.length > 0) {
       for (const transaction of backup.data.transactions) {
         const record = toSnakeCase(transaction);
-        const { error } = await supabase
-          .from("transactions")
-          .upsert(record, { onConflict: "id" });
-        
+        const { error } = await supabase.from("transactions").upsert(record, { onConflict: "id" });
+
         if (error) {
           results.transactions.errors.push({ id: transaction.id, error: error.message });
         } else {
@@ -230,10 +213,8 @@ export async function POST(request) {
     if (backup.data.udhar?.length > 0) {
       for (const udhar of backup.data.udhar) {
         const record = toSnakeCase(udhar);
-        const { error } = await supabase
-          .from("udhar")
-          .upsert(record, { onConflict: "id" });
-        
+        const { error } = await supabase.from("udhar").upsert(record, { onConflict: "id" });
+
         if (error) {
           results.udhar.errors.push({ id: udhar.id, error: error.message });
         } else {
@@ -246,10 +227,8 @@ export async function POST(request) {
     if (backup.data.income?.length > 0) {
       for (const income of backup.data.income) {
         const record = toSnakeCase(income);
-        const { error } = await supabase
-          .from("income")
-          .upsert(record, { onConflict: "id" });
-        
+        const { error } = await supabase.from("income").upsert(record, { onConflict: "id" });
+
         if (error) {
           results.income.errors.push({ id: income.id, error: error.message });
         } else {
@@ -258,14 +237,8 @@ export async function POST(request) {
       }
     }
 
-    const totalErrors = Object.values(results).reduce(
-      (sum, r) => sum + r.errors.length,
-      0
-    );
-    const totalInserted = Object.values(results).reduce(
-      (sum, r) => sum + r.inserted,
-      0
-    );
+    const totalErrors = Object.values(results).reduce((sum, r) => sum + r.errors.length, 0);
+    const totalInserted = Object.values(results).reduce((sum, r) => sum + r.inserted, 0);
 
     return NextResponse.json({
       success: totalErrors === 0,
@@ -274,10 +247,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("[Backup API] Restore error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

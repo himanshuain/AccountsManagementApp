@@ -160,14 +160,15 @@ export default function SuppliersPage() {
         return sum;
       }, 0);
       const pendingAmount = totalAmount - paidAmount;
-      
+
       // Get the last transaction date for sorting
-      const lastTransactionDate = supplierTransactions.length > 0
-        ? supplierTransactions.reduce((latest, t) => {
-            const tDate = new Date(t.date || t.createdAt || 0);
-            return tDate > latest ? tDate : latest;
-          }, new Date(0))
-        : new Date(supplier.createdAt || 0);
+      const lastTransactionDate =
+        supplierTransactions.length > 0
+          ? supplierTransactions.reduce((latest, t) => {
+              const tDate = new Date(t.date || t.createdAt || 0);
+              return tDate > latest ? tDate : latest;
+            }, new Date(0))
+          : new Date(supplier.createdAt || 0);
 
       return {
         ...supplier,
@@ -185,22 +186,36 @@ export default function SuppliersPage() {
     const totalAmount = suppliersWithStats.reduce((sum, s) => sum + s.totalAmount, 0);
     const totalPaid = suppliersWithStats.reduce((sum, s) => sum + s.paidAmount, 0);
     const totalPending = suppliersWithStats.reduce((sum, s) => sum + s.pendingAmount, 0);
-    const pendingCount = suppliersWithStats.filter(s => s.pendingAmount > 0 && s.paidAmount === 0).length;
-    const partialCount = suppliersWithStats.filter(s => s.pendingAmount > 0 && s.paidAmount > 0).length;
-    const paidCount = suppliersWithStats.filter(s => s.pendingAmount === 0 && s.totalAmount > 0).length;
+    const pendingCount = suppliersWithStats.filter(
+      s => s.pendingAmount > 0 && s.paidAmount === 0
+    ).length;
+    const partialCount = suppliersWithStats.filter(
+      s => s.pendingAmount > 0 && s.paidAmount > 0
+    ).length;
+    const paidCount = suppliersWithStats.filter(
+      s => s.pendingAmount === 0 && s.totalAmount > 0
+    ).length;
     const highAmountCount = suppliersWithStats.filter(s => s.pendingAmount >= 10000).length;
-    return { totalAmount, totalPaid, totalPending, pendingCount, partialCount, paidCount, highAmountCount };
+    return {
+      totalAmount,
+      totalPaid,
+      totalPending,
+      pendingCount,
+      partialCount,
+      paidCount,
+      highAmountCount,
+    };
   }, [suppliersWithStats]);
 
   // Handle filter chip click with haptic feedback
-  const handleFilterChange = (filter) => {
+  const handleFilterChange = filter => {
     haptics.light();
     setActiveFilter(filter);
     setSortOrder("smart");
   };
 
   // Handle sort order change with haptic feedback
-  const handleSortChange = (order) => {
+  const handleSortChange = order => {
     haptics.light();
     setSortOrder(order);
   };
@@ -225,7 +240,7 @@ export default function SuppliersPage() {
   // Filter suppliers based on search and filter chips
   const filteredSuppliers = useMemo(() => {
     let filtered = [...suppliersWithStats]; // Create copy to avoid mutating source
-    
+
     // Search filter - context-aware (name, phone, or amount)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -236,7 +251,9 @@ export default function SuppliersPage() {
           s.companyName?.toLowerCase().includes(query) ||
           s.phone?.includes(query) ||
           // Also search by pending amount
-          (!isNaN(numericQuery) && s.pendingAmount >= numericQuery * 0.9 && s.pendingAmount <= numericQuery * 1.1)
+          (!isNaN(numericQuery) &&
+            s.pendingAmount >= numericQuery * 0.9 &&
+            s.pendingAmount <= numericQuery * 1.1)
       );
     }
 
@@ -252,12 +269,16 @@ export default function SuppliersPage() {
     }
 
     // Smart sorting based on active filter
-    const effectiveSort = sortOrder === "smart" 
-      ? (activeFilter === "pending" || activeFilter === "high" ? "highest" 
-         : activeFilter === "partial" ? "oldest" 
-         : activeFilter === "paid" ? "newest" 
-         : "highest") // default: show highest pending first
-      : sortOrder;
+    const effectiveSort =
+      sortOrder === "smart"
+        ? activeFilter === "pending" || activeFilter === "high"
+          ? "highest"
+          : activeFilter === "partial"
+            ? "oldest"
+            : activeFilter === "paid"
+              ? "newest"
+              : "highest" // default: show highest pending first
+        : sortOrder;
 
     if (effectiveSort === "highest") {
       return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
@@ -265,14 +286,26 @@ export default function SuppliersPage() {
       return filtered.sort((a, b) => a.pendingAmount - b.pendingAmount);
     } else if (effectiveSort === "oldest") {
       return filtered.sort((a, b) => {
-        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
-        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        const dateA =
+          a.lastTransactionDate instanceof Date
+            ? a.lastTransactionDate
+            : new Date(a.lastTransactionDate || 0);
+        const dateB =
+          b.lastTransactionDate instanceof Date
+            ? b.lastTransactionDate
+            : new Date(b.lastTransactionDate || 0);
         return dateA - dateB;
       });
     } else if (effectiveSort === "newest") {
       return filtered.sort((a, b) => {
-        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
-        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        const dateA =
+          a.lastTransactionDate instanceof Date
+            ? a.lastTransactionDate
+            : new Date(a.lastTransactionDate || 0);
+        const dateB =
+          b.lastTransactionDate instanceof Date
+            ? b.lastTransactionDate
+            : new Date(b.lastTransactionDate || 0);
         return dateB - dateA;
       });
     }
@@ -297,12 +330,13 @@ export default function SuppliersPage() {
   useEffect(() => {
     if (selectedSupplier) {
       const updatedSupplier = suppliersWithStats.find(s => s.id === selectedSupplier.id);
-      if (updatedSupplier && (
-        updatedSupplier.totalAmount !== selectedSupplier.totalAmount ||
-        updatedSupplier.paidAmount !== selectedSupplier.paidAmount ||
-        updatedSupplier.pendingAmount !== selectedSupplier.pendingAmount ||
-        updatedSupplier.transactionCount !== selectedSupplier.transactionCount
-      )) {
+      if (
+        updatedSupplier &&
+        (updatedSupplier.totalAmount !== selectedSupplier.totalAmount ||
+          updatedSupplier.paidAmount !== selectedSupplier.paidAmount ||
+          updatedSupplier.pendingAmount !== selectedSupplier.pendingAmount ||
+          updatedSupplier.transactionCount !== selectedSupplier.transactionCount)
+      ) {
         setSelectedSupplier(updatedSupplier);
       }
     }
@@ -496,8 +530,15 @@ export default function SuppliersPage() {
       toast.error(`Payment cannot exceed pending amount of ₹${pendingAmount.toLocaleString()}`);
       return;
     }
-    const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
-    const result = await recordPayment(transactionToPay.id, amount, paymentReceipt, paymentDateTime);
+    const paymentDateTime = paymentDate
+      ? new Date(paymentDate).toISOString()
+      : new Date().toISOString();
+    const result = await recordPayment(
+      transactionToPay.id,
+      amount,
+      paymentReceipt,
+      paymentDateTime
+    );
     if (result.success) {
       toast.success("Payment recorded");
       setPaymentSheetOpen(false);
@@ -512,7 +553,9 @@ export default function SuppliersPage() {
 
   const handleMarkFullPaid = async () => {
     if (!transactionToPay || isUploadingPaymentReceipt) return;
-    const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
+    const paymentDateTime = paymentDate
+      ? new Date(paymentDate).toISOString()
+      : new Date().toISOString();
     const result = await markFullPaid(transactionToPay.id, paymentReceipt, paymentDateTime);
     if (result.success) {
       toast.success("Marked as fully paid");
@@ -615,7 +658,12 @@ export default function SuppliersPage() {
                 </p>
               </div>
               <div className="text-right text-xs text-muted-foreground">
-                <p>Paid: <span className="font-medium text-green-600">₹{summaryStats.totalPaid.toLocaleString()}</span></p>
+                <p>
+                  Paid:{" "}
+                  <span className="font-medium text-green-600">
+                    ₹{summaryStats.totalPaid.toLocaleString()}
+                  </span>
+                </p>
                 <p>Total: ₹{summaryStats.totalAmount.toLocaleString()}</p>
               </div>
             </div>
@@ -646,7 +694,7 @@ export default function SuppliersPage() {
 
       {/* Sticky Filter Chips */}
       <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="scrollbar-none flex gap-2 overflow-x-auto pb-1">
           <Button
             variant={activeFilter === "all" ? "default" : "outline"}
             size="sm"
@@ -655,7 +703,7 @@ export default function SuppliersPage() {
           >
             All ({suppliersTotalCount})
           </Button>
-          
+
           {/* Sorting Chips - After All */}
           <div className="mx-1 h-8 w-px shrink-0 bg-border" />
           <Button
@@ -663,7 +711,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+              sortOrder !== "newest" &&
+                "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
             )}
             onClick={() => handleSortChange("newest")}
           >
@@ -675,7 +724,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+              sortOrder !== "oldest" &&
+                "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
             )}
             onClick={() => handleSortChange("oldest")}
           >
@@ -687,7 +737,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              sortOrder !== "highest" &&
+                "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
             )}
             onClick={() => handleSortChange("highest")}
           >
@@ -699,7 +750,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              sortOrder !== "lowest" &&
+                "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
             )}
             onClick={() => handleSortChange("lowest")}
           >
@@ -713,7 +765,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+              activeFilter !== "pending" &&
+                "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
             )}
             onClick={() => handleFilterChange("pending")}
           >
@@ -725,7 +778,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+              activeFilter !== "partial" &&
+                "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
             )}
             onClick={() => handleFilterChange("partial")}
           >
@@ -736,7 +790,8 @@ export default function SuppliersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+              activeFilter !== "paid" &&
+                "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
             )}
             onClick={() => handleFilterChange("paid")}
           >
@@ -749,7 +804,8 @@ export default function SuppliersPage() {
               size="sm"
               className={cn(
                 "h-8 shrink-0 rounded-full px-3 text-xs",
-                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                activeFilter !== "high" &&
+                  "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               )}
               onClick={() => handleFilterChange("high")}
             >
@@ -766,15 +822,15 @@ export default function SuppliersPage() {
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-emerald-500" />
               <span className="font-semibold">Vyapari Profiles</span>
-              <Badge 
+              <Badge
                 key={`${filteredSuppliers.length}-${activeFilter}-${sortOrder}`}
-                variant="secondary" 
-                className="text-xs animate-pop-in"
+                variant="secondary"
+                className="animate-pop-in text-xs"
               >
                 {filteredSuppliers.length}
               </Badge>
               {(activeFilter !== "all" || sortOrder !== "smart") && (
-                <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                <Badge variant="outline" className="animate-pop-in text-xs text-muted-foreground">
                   {activeFilter !== "all" && activeFilter}
                   {activeFilter !== "all" && sortOrder !== "smart" && " · "}
                   {sortOrder !== "smart" && sortOrder}
@@ -811,8 +867,15 @@ export default function SuppliersPage() {
               {searchQuery ? (
                 <>
                   <p className="font-medium">No vyapari matches &quot;{searchQuery}&quot;</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Try a different name or amount</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setSearchQuery("")}>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Try a different name or amount
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setSearchQuery("")}
+                  >
                     Clear search
                   </Button>
                 </>
@@ -825,16 +888,25 @@ export default function SuppliersPage() {
                     {activeFilter === "high" && "No high-value pending (₹10k+)"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {activeFilter === "paid" ? "Make payments to see them here" : "You're all caught up! 🎉"}
+                    {activeFilter === "paid"
+                      ? "Make payments to see them here"
+                      : "You're all caught up! 🎉"}
                   </p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setActiveFilter("all")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setActiveFilter("all")}
+                  >
                     Show all vyapari
                   </Button>
                 </>
               ) : (
                 <>
                   <p className="font-medium">No vyapari yet</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Add your first vyapari to start tracking</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add your first vyapari to start tracking
+                  </p>
                   <Button size="sm" className="mt-3" onClick={openAddForm} disabled={!isOnline}>
                     <Plus className="mr-1 h-4 w-4" />
                     Add Vyapari
@@ -850,7 +922,7 @@ export default function SuppliersPage() {
                   .filter(t => t.supplierId === supplier.id)
                   .sort((a, b) => new Date(b.date) - new Date(a.date));
                 const lastTxn = supplierTxns[0];
-                const lastTxnAmount = lastTxn ? (Number(lastTxn.amount) || 0) : 0;
+                const lastTxnAmount = lastTxn ? Number(lastTxn.amount) || 0 : 0;
 
                 // Determine payment status
                 const isPaid = supplier.pendingAmount === 0 && supplier.totalAmount > 0;
@@ -913,13 +985,22 @@ export default function SuppliersPage() {
                             <Badge
                               variant="secondary"
                               className={cn(
-                                "shrink-0 text-[10px] px-1.5 py-0",
-                                isPending && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                                isPartial && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                                isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                "shrink-0 px-1.5 py-0 text-[10px]",
+                                isPending &&
+                                  "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                isPartial &&
+                                  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                isPaid &&
+                                  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                               )}
                             >
-                              {isPending ? "Total Pending" : isPartial ? "Partially Paid" : isPaid ? "Fully Paid" : "No Dues"}
+                              {isPending
+                                ? "Total Pending"
+                                : isPartial
+                                  ? "Partially Paid"
+                                  : isPaid
+                                    ? "Fully Paid"
+                                    : "No Dues"}
                             </Badge>
                           </div>
 
@@ -933,8 +1014,10 @@ export default function SuppliersPage() {
                           {/* Row 3: Last transaction info */}
                           {lastTxn && (
                             <p className="mt-0.5 text-xs text-muted-foreground">
-                              Latest Vypari bill of: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
-                              {supplier.transactionCount > 1 && ` · ${supplier.transactionCount} txns`}
+                              Latest Vypari bill of: ₹{lastTxnAmount.toLocaleString()} ·{" "}
+                              {formatRelativeDate(lastTxn.date)}
+                              {supplier.transactionCount > 1 &&
+                                ` · ${supplier.transactionCount} txns`}
                             </p>
                           )}
                         </div>
@@ -982,7 +1065,7 @@ export default function SuppliersPage() {
         <CollapsibleContent>
           <div className="space-y-4 py-3">
             {/* Filter Chips - One-tap toggles - Sticky when expanded */}
-            <div className="sticky top-[102px] z-10 -mx-4 flex gap-2 overflow-x-auto border-b bg-background/95 px-5 pb-2 pt-4 backdrop-blur scrollbar-none supports-[backdrop-filter]:bg-background/80 lg:top-[153px]">
+            <div className="scrollbar-none sticky top-[102px] z-10 -mx-4 flex gap-2 overflow-x-auto border-b bg-background/95 px-5 pb-2 pt-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:top-[153px]">
               <Button
                 variant={allTxnStatusFilter === "all" ? "default" : "outline"}
                 size="sm"
@@ -995,7 +1078,7 @@ export default function SuppliersPage() {
               >
                 All ({transactions.length})
               </Button>
-              
+
               {/* Sorting Chips */}
               <div className="mx-1 h-8 w-px shrink-0 bg-border" />
               <Button
@@ -1003,7 +1086,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                  allTxnAmountSort !== "newest" &&
+                    "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1018,7 +1102,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                  allTxnAmountSort !== "oldest" &&
+                    "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1033,7 +1118,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  allTxnAmountSort !== "highest" &&
+                    "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1048,7 +1134,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  allTxnAmountSort !== "lowest" &&
+                    "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1065,7 +1152,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+                  allTxnStatusFilter !== "pending" &&
+                    "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1080,7 +1168,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+                  allTxnStatusFilter !== "partial" &&
+                    "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1094,7 +1183,8 @@ export default function SuppliersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+                  allTxnStatusFilter !== "paid" &&
+                    "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1107,39 +1197,43 @@ export default function SuppliersPage() {
               {/* Vyapari filter as autocomplete */}
               <Autocomplete
                 options={[{ id: "all", companyName: "All Vyapari" }, ...suppliers]}
-                value={[{ id: "all", companyName: "All Vyapari" }, ...suppliers].find(s => s.id === allTxnSupplierFilter) || null}
+                value={
+                  [{ id: "all", companyName: "All Vyapari" }, ...suppliers].find(
+                    s => s.id === allTxnSupplierFilter
+                  ) || null
+                }
                 onChange={(_, newValue) => {
                   haptics.light();
                   setAllTxnSupplierFilter(newValue?.id || "all");
                 }}
-                getOptionLabel={(opt) => opt?.companyName || opt?.name || ""}
+                getOptionLabel={opt => opt?.companyName || opt?.name || ""}
                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                renderInput={(params) => (
+                renderInput={params => (
                   <MuiTextField
                     {...params}
                     placeholder="All Vyapari"
                     size="small"
                     sx={{
                       minWidth: 160,
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'hsl(var(--background))',
-                        color: 'hsl(var(--foreground))',
-                        '& fieldset': {
-                          borderColor: 'hsl(var(--border))',
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "hsl(var(--background))",
+                        color: "hsl(var(--foreground))",
+                        "& fieldset": {
+                          borderColor: "hsl(var(--border))",
                         },
-                        '&:hover fieldset': {
-                          borderColor: 'hsl(var(--primary))',
+                        "&:hover fieldset": {
+                          borderColor: "hsl(var(--primary))",
                         },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'hsl(var(--primary))',
+                        "&.Mui-focused fieldset": {
+                          borderColor: "hsl(var(--primary))",
                         },
                       },
-                      '& .MuiInputBase-input': {
-                        color: 'hsl(var(--foreground))',
+                      "& .MuiInputBase-input": {
+                        color: "hsl(var(--foreground))",
                       },
-                      '& .MuiAutocomplete-endAdornment': {
-                        '& .MuiSvgIcon-root': {
-                          color: 'hsl(var(--foreground))',
+                      "& .MuiAutocomplete-endAdornment": {
+                        "& .MuiSvgIcon-root": {
+                          color: "hsl(var(--foreground))",
                         },
                       },
                     }}
@@ -1153,27 +1247,27 @@ export default function SuppliersPage() {
                     elevation: 8,
                     sx: {
                       mt: 0.5,
-                      bgcolor: 'hsl(var(--card))',
-                      color: 'hsl(var(--card-foreground))',
-                      border: '1px solid hsl(var(--border))',
-                      '& .MuiAutocomplete-listbox': {
-                        padding: '4px',
-                        '& .MuiAutocomplete-option': {
-                          borderRadius: '6px',
-                          color: 'hsl(var(--foreground))',
-                          '&:hover': {
-                            bgcolor: 'hsl(var(--accent))',
+                      bgcolor: "hsl(var(--card))",
+                      color: "hsl(var(--card-foreground))",
+                      border: "1px solid hsl(var(--border))",
+                      "& .MuiAutocomplete-listbox": {
+                        padding: "4px",
+                        "& .MuiAutocomplete-option": {
+                          borderRadius: "6px",
+                          color: "hsl(var(--foreground))",
+                          "&:hover": {
+                            bgcolor: "hsl(var(--accent))",
                           },
                           '&[aria-selected="true"]': {
-                            bgcolor: 'hsl(var(--primary) / 0.1)',
+                            bgcolor: "hsl(var(--primary) / 0.1)",
                           },
-                          '&.Mui-focused': {
-                            bgcolor: 'hsl(var(--accent))',
+                          "&.Mui-focused": {
+                            bgcolor: "hsl(var(--accent))",
                           },
                         },
                       },
-                      '& .MuiAutocomplete-noOptions': {
-                        color: 'hsl(var(--muted-foreground))',
+                      "& .MuiAutocomplete-noOptions": {
+                        color: "hsl(var(--muted-foreground))",
                       },
                     },
                   },
@@ -1187,15 +1281,16 @@ export default function SuppliersPage() {
             {/* Stats + View toggle */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge 
+                <Badge
                   key={`${allFilteredTransactions.length}-${allTxnStatusFilter}-${allTxnAmountSort}`}
-                  variant="secondary" 
-                  className="text-xs animate-pop-in"
+                  variant="secondary"
+                  className="animate-pop-in text-xs"
                 >
-                  {allFilteredTransactions.length} transaction{allFilteredTransactions.length !== 1 ? "s" : ""}
+                  {allFilteredTransactions.length} transaction
+                  {allFilteredTransactions.length !== 1 ? "s" : ""}
                 </Badge>
                 {(allTxnStatusFilter !== "all" || allTxnAmountSort !== "newest") && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                  <Badge variant="outline" className="animate-pop-in text-xs text-muted-foreground">
                     {allTxnStatusFilter !== "all" && allTxnStatusFilter}
                     {allTxnStatusFilter !== "all" && allTxnAmountSort !== "newest" && " · "}
                     {allTxnAmountSort !== "newest" && allTxnAmountSort}
@@ -1212,12 +1307,10 @@ export default function SuppliersPage() {
                   Transactions List
                 </TabsTrigger>
                 <TabsTrigger value="gallery" className="gap-1.5">
-
-                    <Badge  className="text-xs">
-                      <ImageIcon className="h-4 w-4 mr-1" />
-                      {totalBillsCount} Bills
-                    </Badge>
-                
+                  <Badge className="text-xs">
+                    <ImageIcon className="mr-1 h-4 w-4" />
+                    {totalBillsCount} Bills
+                  </Badge>
                 </TabsTrigger>
               </TabsList>
 
@@ -1234,10 +1327,17 @@ export default function SuppliersPage() {
                       {allTxnStatusFilter === "all" && "No transactions yet"}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {allTxnStatusFilter !== "all" ? "Try a different filter" : "Add transactions to see them here"}
+                      {allTxnStatusFilter !== "all"
+                        ? "Try a different filter"
+                        : "Add transactions to see them here"}
                     </p>
                     {allTxnStatusFilter !== "all" && (
-                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setAllTxnStatusFilter("all")}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => setAllTxnStatusFilter("all")}
+                      >
                         Show all
                       </Button>
                     )}
@@ -1532,22 +1632,18 @@ export default function SuppliersPage() {
                       {/* Bills Section - View all bills from transactions */}
                       {selectedSupplierBillImages.length > 0 && (
                         <div className="mb-4">
-                          <div className="mb-2 flex items-center justify-between">
-                            <h3 className="font-semibold">
-                              Photos ({selectedSupplierBillImages.length})
-                            </h3>
+                          <div className="mb-2 flex items-center justify-between ">                           
                             <Button
-                              variant="outline"
+                              className="bg-sky-800/10 text-sky-800  hover:bg-sky-800/20 "
+                              variant="secondary"
                               size="sm"
                               onClick={() => setSupplierBillGalleryOpen(true)}
                             >
                               <ImageIcon className="mr-1 h-4 w-4" />
-                              View All
+                              View All Bill Photos ({selectedSupplierBillImages.length})
                             </Button>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            All bill photos from transactions
-                          </p>
+                          
                         </div>
                       )}
 
@@ -1631,8 +1727,11 @@ export default function SuppliersPage() {
                                                     : "bg-amber-100 text-amber-700"
                                               )}
                                             >
-                                                                                        {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
-
+                                              {isPaid
+                                                ? "Fully Paid"
+                                                : isPartial
+                                                  ? "Partially Paid"
+                                                  : "Total Pending"}
                                             </Badge>
                                           </div>
                                           <p className="text-xs text-muted-foreground">
@@ -1944,7 +2043,8 @@ export default function SuppliersPage() {
               const paidAmount = Number(transactionToPay.paidAmount || 0);
               const pendingAmount = Math.max(0, totalAmount - paidAmount);
               const numericPayment = Number(paymentAmount);
-              const paymentExceedsPending = !isNaN(numericPayment) && numericPayment > pendingAmount;
+              const paymentExceedsPending =
+                !isNaN(numericPayment) && numericPayment > pendingAmount;
 
               return (
                 <div className="space-y-4 px-4 pb-6">

@@ -37,7 +37,7 @@ export function useTransactions(supplierId = null) {
         pagination: result.pagination || { hasMore: false, page: pageParam },
       };
     },
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: lastPage => {
       if (lastPage.pagination?.hasMore) {
         return lastPage.pagination.page + 1;
       }

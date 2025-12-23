@@ -39,7 +39,7 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    
+
     // Pagination parameters
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "0", 10); // 0 = no limit (backward compatible)
@@ -105,10 +105,7 @@ export async function POST(request) {
     // Validate input
     const validation = validateBody(body, customerSchema);
     if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
     }
 
     const now = new Date().toISOString();

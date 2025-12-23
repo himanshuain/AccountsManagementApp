@@ -31,19 +31,14 @@ async function logBackup(supabase, logData) {
 
 // Helper to create backup data
 async function createBackupData(supabase) {
-  const [
-    suppliersResult,
-    transactionsResult,
-    customersResult,
-    udharResult,
-    incomeResult,
-  ] = await Promise.all([
-    supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
-    supabase.from("transactions").select("*").order("created_at", { ascending: true }),
-    supabase.from("customers").select("*").order("created_at", { ascending: true }),
-    supabase.from("udhar").select("*").order("created_at", { ascending: true }),
-    supabase.from("income").select("*").order("created_at", { ascending: true }),
-  ]);
+  const [suppliersResult, transactionsResult, customersResult, udharResult, incomeResult] =
+    await Promise.all([
+      supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
+      supabase.from("transactions").select("*").order("created_at", { ascending: true }),
+      supabase.from("customers").select("*").order("created_at", { ascending: true }),
+      supabase.from("udhar").select("*").order("created_at", { ascending: true }),
+      supabase.from("income").select("*").order("created_at", { ascending: true }),
+    ]);
 
   const counts = {
     suppliers: suppliersResult.data?.length || 0,
@@ -95,7 +90,10 @@ export async function POST(request) {
 
     if (!resend) {
       return NextResponse.json(
-        { success: false, error: "Email service not configured. Add RESEND_API_KEY to environment." },
+        {
+          success: false,
+          error: "Email service not configured. Add RESEND_API_KEY to environment.",
+        },
         { status: 500 }
       );
     }
@@ -189,10 +187,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("[Backup Email API] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

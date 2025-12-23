@@ -1,6 +1,6 @@
 /**
  * Simple in-memory rate limiter for serverless environments
- * 
+ *
  * Note: This is reset when the serverless function cold starts.
  * For a production app with more users, consider using Redis-based rate limiting.
  */
@@ -15,7 +15,7 @@ let lastCleanup = Date.now();
 function cleanupExpired() {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL) return;
-  
+
   lastCleanup = now;
   for (const [key, value] of rateLimitStore.entries()) {
     if (value.resetTime < now) {
@@ -34,10 +34,10 @@ function cleanupExpired() {
  */
 export function checkRateLimit(identifier, { limit = 5, windowMs = 60000 } = {}) {
   cleanupExpired();
-  
+
   const now = Date.now();
   const data = rateLimitStore.get(identifier);
-  
+
   // If no previous record or window expired, start fresh
   if (!data || data.resetTime < now) {
     rateLimitStore.set(identifier, {
@@ -50,7 +50,7 @@ export function checkRateLimit(identifier, { limit = 5, windowMs = 60000 } = {})
       resetTime: now + windowMs,
     };
   }
-  
+
   // Check if limit exceeded
   if (data.count >= limit) {
     return {
@@ -60,7 +60,7 @@ export function checkRateLimit(identifier, { limit = 5, windowMs = 60000 } = {})
       retryAfter: Math.ceil((data.resetTime - now) / 1000),
     };
   }
-  
+
   // Increment count
   data.count++;
   return {
@@ -87,25 +87,25 @@ export function resetRateLimit(identifier) {
 export function getClientIp(request) {
   // Try various headers in order of preference
   const headers = request.headers;
-  
+
   // Vercel
   const xForwardedFor = headers.get("x-forwarded-for");
   if (xForwardedFor) {
     return xForwardedFor.split(",")[0].trim();
   }
-  
+
   // Cloudflare
   const cfConnectingIp = headers.get("cf-connecting-ip");
   if (cfConnectingIp) {
     return cfConnectingIp;
   }
-  
+
   // Standard
   const xRealIp = headers.get("x-real-ip");
   if (xRealIp) {
     return xRealIp;
   }
-  
+
   // Fallback
   return "unknown";
 }
@@ -115,4 +115,3 @@ export default {
   resetRateLimit,
   getClientIp,
 };
-

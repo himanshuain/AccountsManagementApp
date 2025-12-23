@@ -31,7 +31,7 @@ export function MuiProvider({ children }) {
         },
       },
       typography: {
-        fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+        fontFamily: "var(--font-outfit), system-ui, sans-serif",
       },
       shape: {
         borderRadius: 8,
@@ -48,10 +48,5 @@ export function MuiProvider({ children }) {
     });
   }, [nextTheme, resolvedTheme, mounted]);
 
-  return (
-    <MuiThemeProvider theme={theme}>
-      {children}
-    </MuiThemeProvider>
-  );
+  return <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>;
 }
-

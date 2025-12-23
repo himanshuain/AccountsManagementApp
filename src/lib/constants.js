@@ -14,10 +14,10 @@
  * - Higher values = Fewer requests, more data per request
  */
 export const PAGE_SIZE = {
-  SUPPLIERS: 5,      // Vyapari records per page
-  CUSTOMERS: 5,      // Customer records per page
-  TRANSACTIONS: 5,   // Transaction records per page
-  UDHAR: 5,          // Udhar records per page
+  SUPPLIERS: 5, // Vyapari records per page
+  CUSTOMERS: 5, // Customer records per page
+  TRANSACTIONS: 5, // Transaction records per page
+  UDHAR: 5, // Udhar records per page
 };
 
 // ======================
@@ -29,8 +29,8 @@ export const PAGE_SIZE = {
  * and how many more to load on scroll
  */
 export const PROGRESSIVE_LOAD = {
-  BILL_GALLERY_INITIAL: 8,   // Initial bills shown in gallery
-  BILL_GALLERY_BATCH: 8,     // Bills to load per scroll
+  BILL_GALLERY_INITIAL: 8, // Initial bills shown in gallery
+  BILL_GALLERY_BATCH: 8, // Bills to load per scroll
 };
 
 // ======================
@@ -41,14 +41,14 @@ export const PROGRESSIVE_LOAD = {
  * ImageKit image optimization settings
  */
 export const IMAGE_SETTINGS = {
-  THUMBNAIL_SIZE: 200,        // Thumbnail dimension (px)
-  THUMBNAIL_QUALITY: 60,      // Thumbnail quality (%)
-  MEDIUM_WIDTH: 400,          // Medium image width (px)
-  MEDIUM_QUALITY: 70,         // Medium image quality (%)
-  FULL_QUALITY: 80,           // Full image quality (%)
-  LQIP_WIDTH: 40,             // Low quality placeholder width (px)
-  LQIP_QUALITY: 20,           // LQIP quality (%)
-  LQIP_BLUR: 30,              // LQIP blur amount
+  THUMBNAIL_SIZE: 200, // Thumbnail dimension (px)
+  THUMBNAIL_QUALITY: 60, // Thumbnail quality (%)
+  MEDIUM_WIDTH: 400, // Medium image width (px)
+  MEDIUM_QUALITY: 70, // Medium image quality (%)
+  FULL_QUALITY: 80, // Full image quality (%)
+  LQIP_WIDTH: 40, // Low quality placeholder width (px)
+  LQIP_QUALITY: 20, // LQIP quality (%)
+  LQIP_BLUR: 30, // LQIP blur amount
 };
 
 // ======================
@@ -59,16 +59,15 @@ export const IMAGE_SETTINGS = {
  * React Query cache settings (in milliseconds)
  */
 export const CACHE_SETTINGS = {
-  STALE_TIME: 1000 * 60 * 2,  // 2 minutes - consider data fresh
-  RETRY_COUNT: 2,             // Number of retries on failure
+  STALE_TIME: 1000 * 60 * 2, // 2 minutes - consider data fresh
+  RETRY_COUNT: 2, // Number of retries on failure
 };
 
 const optimizedSettings = {
-    PAGE_SIZE,
-    PROGRESSIVE_LOAD,
-    IMAGE_SETTINGS,
-    CACHE_SETTINGS,
-  };
+  PAGE_SIZE,
+  PROGRESSIVE_LOAD,
+  IMAGE_SETTINGS,
+  CACHE_SETTINGS,
+};
 
 export default optimizedSettings;
-

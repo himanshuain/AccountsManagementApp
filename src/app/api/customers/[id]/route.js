@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  deleteImagesFromImageKit,
+  collectCustomerImages,
+  collectUdharImages,
+} from "@/lib/imagekit-server";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -104,6 +109,37 @@ export async function DELETE(request, { params }) {
 
     const { id } = await params;
     const supabase = getServerClient();
+
+    // Collect all images to delete before removing records
+    const imagesToDelete = [];
+
+    // Get customer data for images
+    const { data: customer } = await supabase
+      .from("customers")
+      .select("profile_picture, khata_photo, khata_photos")
+      .eq("id", id)
+      .single();
+
+    if (customer) {
+      imagesToDelete.push(...collectCustomerImages(customer));
+    }
+
+    // Get all related udhar records and their images
+    const { data: udharList } = await supabase
+      .from("udhar")
+      .select("khata_photos, bill_image, payments")
+      .eq("customer_id", id);
+
+    if (udharList) {
+      udharList.forEach(udhar => {
+        imagesToDelete.push(...collectUdharImages(udhar));
+      });
+    }
+
+    // Delete images from ImageKit (best-effort, non-blocking for response)
+    deleteImagesFromImageKit(imagesToDelete).catch(err => {
+      console.error("[Customer Delete] ImageKit cleanup error:", err);
+    });
 
     // Delete related udhar records first
     await supabase.from("udhar").delete().eq("customer_id", id);

@@ -282,12 +282,13 @@ export default function CustomersPage() {
       const transactionCount = customerUdhar.length;
 
       // Get the last transaction date for sorting
-      const lastTransactionDate = customerUdhar.length > 0
-        ? customerUdhar.reduce((latest, u) => {
-            const uDate = new Date(u.date || u.createdAt || 0);
-            return uDate > latest ? uDate : latest;
-          }, new Date(0))
-        : new Date(customer.createdAt || 0);
+      const lastTransactionDate =
+        customerUdhar.length > 0
+          ? customerUdhar.reduce((latest, u) => {
+              const uDate = new Date(u.date || u.createdAt || 0);
+              return uDate > latest ? uDate : latest;
+            }, new Date(0))
+          : new Date(customer.createdAt || 0);
 
       return {
         ...customer,
@@ -317,12 +318,13 @@ export default function CustomersPage() {
   useEffect(() => {
     if (selectedCustomer) {
       const updatedCustomer = customersWithStats.find(c => c.id === selectedCustomer.id);
-      if (updatedCustomer && (
-        updatedCustomer.totalAmount !== selectedCustomer.totalAmount ||
-        updatedCustomer.paidAmount !== selectedCustomer.paidAmount ||
-        updatedCustomer.pendingAmount !== selectedCustomer.pendingAmount ||
-        updatedCustomer.transactionCount !== selectedCustomer.transactionCount
-      )) {
+      if (
+        updatedCustomer &&
+        (updatedCustomer.totalAmount !== selectedCustomer.totalAmount ||
+          updatedCustomer.paidAmount !== selectedCustomer.paidAmount ||
+          updatedCustomer.pendingAmount !== selectedCustomer.pendingAmount ||
+          updatedCustomer.transactionCount !== selectedCustomer.transactionCount)
+      ) {
         setSelectedCustomer(updatedCustomer);
       }
     }
@@ -342,7 +344,9 @@ export default function CustomersPage() {
           c.phone?.includes(query) ||
           c.address?.toLowerCase().includes(query) ||
           // Also search by pending amount
-          (!isNaN(numericQuery) && c.pendingAmount >= numericQuery * 0.9 && c.pendingAmount <= numericQuery * 1.1)
+          (!isNaN(numericQuery) &&
+            c.pendingAmount >= numericQuery * 0.9 &&
+            c.pendingAmount <= numericQuery * 1.1)
       );
     }
 
@@ -358,12 +362,16 @@ export default function CustomersPage() {
     }
 
     // Smart sorting based on active filter
-    const effectiveSort = sortOrder === "smart" 
-      ? (activeFilter === "pending" || activeFilter === "high" ? "highest" 
-         : activeFilter === "partial" ? "oldest" 
-         : activeFilter === "paid" ? "newest" 
-         : "highest") // default: show highest pending first
-      : sortOrder;
+    const effectiveSort =
+      sortOrder === "smart"
+        ? activeFilter === "pending" || activeFilter === "high"
+          ? "highest"
+          : activeFilter === "partial"
+            ? "oldest"
+            : activeFilter === "paid"
+              ? "newest"
+              : "highest" // default: show highest pending first
+        : sortOrder;
 
     if (effectiveSort === "highest") {
       return filtered.sort((a, b) => b.pendingAmount - a.pendingAmount);
@@ -371,14 +379,26 @@ export default function CustomersPage() {
       return filtered.sort((a, b) => a.pendingAmount - b.pendingAmount);
     } else if (effectiveSort === "oldest") {
       return filtered.sort((a, b) => {
-        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
-        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        const dateA =
+          a.lastTransactionDate instanceof Date
+            ? a.lastTransactionDate
+            : new Date(a.lastTransactionDate || 0);
+        const dateB =
+          b.lastTransactionDate instanceof Date
+            ? b.lastTransactionDate
+            : new Date(b.lastTransactionDate || 0);
         return dateA - dateB;
       });
     } else if (effectiveSort === "newest") {
       return filtered.sort((a, b) => {
-        const dateA = a.lastTransactionDate instanceof Date ? a.lastTransactionDate : new Date(a.lastTransactionDate || 0);
-        const dateB = b.lastTransactionDate instanceof Date ? b.lastTransactionDate : new Date(b.lastTransactionDate || 0);
+        const dateA =
+          a.lastTransactionDate instanceof Date
+            ? a.lastTransactionDate
+            : new Date(a.lastTransactionDate || 0);
+        const dateB =
+          b.lastTransactionDate instanceof Date
+            ? b.lastTransactionDate
+            : new Date(b.lastTransactionDate || 0);
         return dateB - dateA;
       });
     }
@@ -533,7 +553,9 @@ export default function CustomersPage() {
 
       if (result.success) {
         haptics.success();
-        toast.success(`₹${Number(quickAddAmount).toLocaleString()} added for ${quickAddCustomer.name}`);
+        toast.success(
+          `₹${Number(quickAddAmount).toLocaleString()} added for ${quickAddCustomer.name}`
+        );
         setQuickAddOpen(false);
         setQuickAddAmount("");
         setQuickAddBillImages([]);
@@ -807,17 +829,15 @@ export default function CustomersPage() {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
     // Calculate pending amount
     const totalAmount =
-      paymentUdhar.amount ||
-      (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+      paymentUdhar.amount || (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
     const paidAmount =
-      paymentUdhar.paidAmount ||
-      (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+      paymentUdhar.paidAmount || (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
     const pendingAmount = Math.max(0, totalAmount - paidAmount);
     const paymentValue = Number(paymentAmount);
-    
+
     // Validate that payment amount doesn't exceed pending amount
     if (paymentValue > pendingAmount) {
       haptics.error();
@@ -829,9 +849,17 @@ export default function CustomersPage() {
     try {
       // Use first receipt or null
       const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
-      const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
+      const paymentDateTime = paymentDate
+        ? new Date(paymentDate).toISOString()
+        : new Date().toISOString();
 
-      const result = await recordDeposit(paymentUdhar.id, Number(paymentAmount), receiptUrl, null, paymentDateTime);
+      const result = await recordDeposit(
+        paymentUdhar.id,
+        Number(paymentAmount),
+        receiptUrl,
+        null,
+        paymentDateTime
+      );
 
       if (result.success) {
         toast.success(`₹${Number(paymentAmount).toLocaleString()} payment recorded`);
@@ -855,7 +883,9 @@ export default function CustomersPage() {
     try {
       // Use first receipt or null
       const receiptUrl = paymentReceipts.length > 0 ? paymentReceipts[0] : null;
-      const paymentDateTime = paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString();
+      const paymentDateTime = paymentDate
+        ? new Date(paymentDate).toISOString()
+        : new Date().toISOString();
 
       const result = await markFullPaid(paymentUdhar.id, receiptUrl, paymentDateTime);
 
@@ -889,11 +919,11 @@ export default function CustomersPage() {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
     // Validate that collect amount doesn't exceed pending amount
     const collectAmount = Number(quickCollectAmount);
     const pendingAmount = quickCollectCustomer.pendingAmount || 0;
-    
+
     if (collectAmount > pendingAmount) {
       haptics.error();
       toast.error(`Cannot collect more than pending amount of ₹${pendingAmount.toLocaleString()}`);
@@ -950,7 +980,9 @@ export default function CustomersPage() {
 
       const customerId = quickCollectCustomer.id;
       haptics.success();
-      toast.success(`₹${Number(quickCollectAmount).toLocaleString()} collected from ${quickCollectCustomer.name}`);
+      toast.success(
+        `₹${Number(quickCollectAmount).toLocaleString()} collected from ${quickCollectCustomer.name}`
+      );
       setQuickCollectOpen(false);
       setQuickCollectCustomer(null);
       setQuickCollectAmount("");
@@ -975,22 +1007,36 @@ export default function CustomersPage() {
     const totalUdhar = customersWithStats.reduce((sum, c) => sum + c.totalAmount, 0);
     const totalCollected = customersWithStats.reduce((sum, c) => sum + c.paidAmount, 0);
     const totalPending = customersWithStats.reduce((sum, c) => sum + c.pendingAmount, 0);
-    const pendingCount = customersWithStats.filter(c => c.pendingAmount > 0 && c.paidAmount === 0).length;
-    const partialCount = customersWithStats.filter(c => c.pendingAmount > 0 && c.paidAmount > 0).length;
-    const paidCount = customersWithStats.filter(c => c.pendingAmount === 0 && c.totalAmount > 0).length;
+    const pendingCount = customersWithStats.filter(
+      c => c.pendingAmount > 0 && c.paidAmount === 0
+    ).length;
+    const partialCount = customersWithStats.filter(
+      c => c.pendingAmount > 0 && c.paidAmount > 0
+    ).length;
+    const paidCount = customersWithStats.filter(
+      c => c.pendingAmount === 0 && c.totalAmount > 0
+    ).length;
     const highAmountCount = customersWithStats.filter(c => c.pendingAmount >= 5000).length;
-    return { totalUdhar, totalCollected, totalPending, pendingCount, partialCount, paidCount, highAmountCount };
+    return {
+      totalUdhar,
+      totalCollected,
+      totalPending,
+      pendingCount,
+      partialCount,
+      paidCount,
+      highAmountCount,
+    };
   }, [customersWithStats]);
 
   // Handle filter chip click with haptic feedback
-  const handleFilterChange = (filter) => {
+  const handleFilterChange = filter => {
     haptics.light();
     setActiveFilter(filter);
     setSortOrder("smart"); // Reset to smart sorting when filter changes
   };
 
   // Handle sort order change with haptic feedback
-  const handleSortChange = (order) => {
+  const handleSortChange = order => {
     haptics.light();
     setSortOrder(order);
   };
@@ -1032,7 +1078,12 @@ export default function CustomersPage() {
                 </p>
               </div>
               <div className="text-right text-xs text-muted-foreground">
-                <p>Collected: <span className="font-medium text-green-600">₹{summaryStats.totalCollected.toLocaleString()}</span></p>
+                <p>
+                  Collected:{" "}
+                  <span className="font-medium text-green-600">
+                    ₹{summaryStats.totalCollected.toLocaleString()}
+                  </span>
+                </p>
                 <p>Total: ₹{summaryStats.totalUdhar.toLocaleString()}</p>
               </div>
             </div>
@@ -1063,7 +1114,7 @@ export default function CustomersPage() {
 
       {/* Sticky Filter Chips */}
       <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="scrollbar-none flex gap-2 overflow-x-auto pb-1">
           <Button
             variant={activeFilter === "all" ? "default" : "outline"}
             size="sm"
@@ -1072,7 +1123,7 @@ export default function CustomersPage() {
           >
             All ({customersApiTotalCount})
           </Button>
-          
+
           {/* Sorting Chips - After All */}
           <div className="mx-1 h-8 w-px shrink-0 bg-border" />
           <Button
@@ -1080,7 +1131,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+              sortOrder !== "newest" &&
+                "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
             )}
             onClick={() => handleSortChange("newest")}
           >
@@ -1092,7 +1144,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+              sortOrder !== "oldest" &&
+                "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
             )}
             onClick={() => handleSortChange("oldest")}
           >
@@ -1104,7 +1157,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              sortOrder !== "highest" &&
+                "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
             )}
             onClick={() => handleSortChange("highest")}
           >
@@ -1116,7 +1170,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              sortOrder !== "lowest" &&
+                "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
             )}
             onClick={() => handleSortChange("lowest")}
           >
@@ -1130,7 +1185,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+              activeFilter !== "pending" &&
+                "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
             )}
             onClick={() => handleFilterChange("pending")}
           >
@@ -1142,7 +1198,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "partial" && "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+              activeFilter !== "partial" &&
+                "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
             )}
             onClick={() => handleFilterChange("partial")}
           >
@@ -1153,7 +1210,8 @@ export default function CustomersPage() {
             size="sm"
             className={cn(
               "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+              activeFilter !== "paid" &&
+                "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
             )}
             onClick={() => handleFilterChange("paid")}
           >
@@ -1166,7 +1224,8 @@ export default function CustomersPage() {
               size="sm"
               className={cn(
                 "h-8 shrink-0 rounded-full px-3 text-xs",
-                activeFilter !== "high" && "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                activeFilter !== "high" &&
+                  "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               )}
               onClick={() => handleFilterChange("high")}
             >
@@ -1183,15 +1242,15 @@ export default function CustomersPage() {
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-orange-500" />
               <span className="font-semibold">Customer Profiles</span>
-              <Badge 
+              <Badge
                 key={`${filteredCustomers.length}-${activeFilter}-${sortOrder}`}
-                variant="secondary" 
-                className="text-xs animate-pop-in"
+                variant="secondary"
+                className="animate-pop-in text-xs"
               >
                 {filteredCustomers.length}
               </Badge>
               {(activeFilter !== "all" || sortOrder !== "smart") && (
-                <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                <Badge variant="outline" className="animate-pop-in text-xs text-muted-foreground">
                   {activeFilter !== "all" && activeFilter}
                   {activeFilter !== "all" && sortOrder !== "smart" && " · "}
                   {sortOrder !== "smart" && sortOrder}
@@ -1237,8 +1296,15 @@ export default function CustomersPage() {
               {searchQuery ? (
                 <>
                   <p className="font-medium">No customer matches &quot;{searchQuery}&quot;</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Try a different name, phone, or amount</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setSearchQuery("")}>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Try a different name, phone, or amount
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setSearchQuery("")}
+                  >
                     Clear search
                   </Button>
                 </>
@@ -1251,16 +1317,25 @@ export default function CustomersPage() {
                     {activeFilter === "high" && "No high-value pending (₹5k+)"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {activeFilter === "paid" ? "Collect payments to see them here" : "You're all caught up! 🎉"}
+                    {activeFilter === "paid"
+                      ? "Collect payments to see them here"
+                      : "You're all caught up! 🎉"}
                   </p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setActiveFilter("all")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setActiveFilter("all")}
+                  >
                     Show all customers
                   </Button>
                 </>
               ) : (
                 <>
                   <p className="font-medium">No customers yet</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Add your first customer to start tracking</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add your first customer to start tracking
+                  </p>
                   <Button
                     size="sm"
                     className="mt-3"
@@ -1286,7 +1361,9 @@ export default function CustomersPage() {
                   .filter(u => u.customerId === customer.id)
                   .sort((a, b) => new Date(b.date) - new Date(a.date));
                 const lastTxn = customerUdhars[0];
-                const lastTxnAmount = lastTxn ? (lastTxn.amount || (lastTxn.cashAmount || 0) + (lastTxn.onlineAmount || 0)) : 0;
+                const lastTxnAmount = lastTxn
+                  ? lastTxn.amount || (lastTxn.cashAmount || 0) + (lastTxn.onlineAmount || 0)
+                  : 0;
 
                 // Get all payments for this customer from all udhar transactions
                 const customerPayments = isExpanded
@@ -1373,14 +1450,22 @@ export default function CustomersPage() {
                               <Badge
                                 variant="secondary"
                                 className={cn(
-                                  "shrink-0 text-[10px] px-1.5 py-0",
-                                  isPending && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                                  isPartial && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                                  isPaid && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  "shrink-0 px-1.5 py-0 text-[10px]",
+                                  isPending &&
+                                    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                                  isPartial &&
+                                    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                  isPaid &&
+                                    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                 )}
                               >
-                                                                {isPending ? "Total Pending" : isPartial ? "Partially Paid" : isPaid ? "Fully Paid" : "No Udhar"}
-
+                                {isPending
+                                  ? "Total Pending"
+                                  : isPartial
+                                    ? "Partially Paid"
+                                    : isPaid
+                                      ? "Fully Paid"
+                                      : "No Udhar"}
                               </Badge>
                             </div>
 
@@ -1394,8 +1479,10 @@ export default function CustomersPage() {
                             {/* Row 3: Last transaction info */}
                             {lastTxn && (
                               <p className="mt-0.5 text-xs text-muted-foreground">
-                                Latest Udhar of: ₹{lastTxnAmount.toLocaleString()} · {formatRelativeDate(lastTxn.date)}
-                                {customer.transactionCount > 1 && ` · ${customer.transactionCount} txns`}
+                                Latest Udhar of: ₹{lastTxnAmount.toLocaleString()} ·{" "}
+                                {formatRelativeDate(lastTxn.date)}
+                                {customer.transactionCount > 1 &&
+                                  ` · ${customer.transactionCount} txns`}
                               </p>
                             )}
                           </div>
@@ -1689,7 +1776,7 @@ export default function CustomersPage() {
         <CollapsibleContent>
           <div className="space-y-4 py-3">
             {/* Filter Chips - One-tap toggles - Sticky when expanded */}
-            <div className="sticky top-[102px] z-10 -mx-4 flex gap-2 overflow-x-auto border-b bg-background/95 px-5 py-4 backdrop-blur scrollbar-none supports-[backdrop-filter]:bg-background/80 lg:top-[153px]">
+            <div className="scrollbar-none sticky top-[102px] z-10 -mx-4 flex gap-2 overflow-x-auto border-b bg-background/95 px-5 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:top-[153px]">
               <Button
                 variant={udharStatusFilter === "all" ? "default" : "outline"}
                 size="sm"
@@ -1702,7 +1789,7 @@ export default function CustomersPage() {
               >
                 All ({udharApiTotalCount})
               </Button>
-              
+
               {/* Sorting Chips */}
               <div className="mx-1 h-8 w-px shrink-0 bg-border" />
               <Button
@@ -1710,7 +1797,8 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharAmountSort !== "newest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                  udharAmountSort !== "newest" &&
+                    "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1725,7 +1813,8 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharAmountSort !== "oldest" && "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                  udharAmountSort !== "oldest" &&
+                    "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1740,7 +1829,8 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharAmountSort !== "highest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  udharAmountSort !== "highest" &&
+                    "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1755,7 +1845,8 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharAmountSort !== "lowest" && "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  udharAmountSort !== "lowest" &&
+                    "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1772,7 +1863,8 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharStatusFilter !== "pending" && "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+                  udharStatusFilter !== "pending" &&
+                    "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1787,7 +1879,8 @@ export default function CustomersPage() {
                 size="sm"
                 className={cn(
                   "h-8 shrink-0 rounded-full px-3 text-xs",
-                  udharStatusFilter !== "paid" && "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+                  udharStatusFilter !== "paid" &&
+                    "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
                 )}
                 onClick={() => {
                   haptics.light();
@@ -1800,39 +1893,43 @@ export default function CustomersPage() {
               {/* Customer filter as autocomplete */}
               <Autocomplete
                 options={[{ id: "all", name: "All Customers" }, ...customers]}
-                value={[{ id: "all", name: "All Customers" }, ...customers].find(c => c.id === udharCustomerFilter) || null}
+                value={
+                  [{ id: "all", name: "All Customers" }, ...customers].find(
+                    c => c.id === udharCustomerFilter
+                  ) || null
+                }
                 onChange={(_, newValue) => {
                   haptics.light();
                   setUdharCustomerFilter(newValue?.id || "all");
                 }}
-                getOptionLabel={(opt) => opt?.name || ""}
+                getOptionLabel={opt => opt?.name || ""}
                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                renderInput={(params) => (
+                renderInput={params => (
                   <MuiTextField
                     {...params}
                     placeholder="All Customers"
                     size="small"
                     sx={{
                       minWidth: 160,
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'hsl(var(--background))',
-                        color: 'hsl(var(--foreground))',
-                        '& fieldset': {
-                          borderColor: 'hsl(var(--border))',
+                      "& .MuiOutlinedInput-root": {
+                        backgroundColor: "hsl(var(--background))",
+                        color: "hsl(var(--foreground))",
+                        "& fieldset": {
+                          borderColor: "hsl(var(--border))",
                         },
-                        '&:hover fieldset': {
-                          borderColor: 'hsl(var(--primary))',
+                        "&:hover fieldset": {
+                          borderColor: "hsl(var(--primary))",
                         },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'hsl(var(--primary))',
+                        "&.Mui-focused fieldset": {
+                          borderColor: "hsl(var(--primary))",
                         },
                       },
-                      '& .MuiInputBase-input': {
-                        color: 'hsl(var(--foreground))',
+                      "& .MuiInputBase-input": {
+                        color: "hsl(var(--foreground))",
                       },
-                      '& .MuiAutocomplete-endAdornment': {
-                        '& .MuiSvgIcon-root': {
-                          color: 'hsl(var(--foreground))',
+                      "& .MuiAutocomplete-endAdornment": {
+                        "& .MuiSvgIcon-root": {
+                          color: "hsl(var(--foreground))",
                         },
                       },
                     }}
@@ -1846,27 +1943,27 @@ export default function CustomersPage() {
                     elevation: 8,
                     sx: {
                       mt: 0.5,
-                      bgcolor: 'hsl(var(--card))',
-                      color: 'hsl(var(--card-foreground))',
-                      border: '1px solid hsl(var(--border))',
-                      '& .MuiAutocomplete-listbox': {
-                        padding: '4px',
-                        '& .MuiAutocomplete-option': {
-                          borderRadius: '6px',
-                          color: 'hsl(var(--foreground))',
-                          '&:hover': {
-                            bgcolor: 'hsl(var(--accent))',
+                      bgcolor: "hsl(var(--card))",
+                      color: "hsl(var(--card-foreground))",
+                      border: "1px solid hsl(var(--border))",
+                      "& .MuiAutocomplete-listbox": {
+                        padding: "4px",
+                        "& .MuiAutocomplete-option": {
+                          borderRadius: "6px",
+                          color: "hsl(var(--foreground))",
+                          "&:hover": {
+                            bgcolor: "hsl(var(--accent))",
                           },
                           '&[aria-selected="true"]': {
-                            bgcolor: 'hsl(var(--primary) / 0.1)',
+                            bgcolor: "hsl(var(--primary) / 0.1)",
                           },
-                          '&.Mui-focused': {
-                            bgcolor: 'hsl(var(--accent))',
+                          "&.Mui-focused": {
+                            bgcolor: "hsl(var(--accent))",
                           },
                         },
                       },
-                      '& .MuiAutocomplete-noOptions': {
-                        color: 'hsl(var(--muted-foreground))',
+                      "& .MuiAutocomplete-noOptions": {
+                        color: "hsl(var(--muted-foreground))",
                       },
                     },
                   },
@@ -1880,15 +1977,15 @@ export default function CustomersPage() {
             {/* Stats + Receipts Button */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge 
+                <Badge
                   key={`${filteredUdharList.length}-${udharStatusFilter}-${udharAmountSort}`}
-                  variant="secondary" 
-                  className="text-xs animate-pop-in"
+                  variant="secondary"
+                  className="animate-pop-in text-xs"
                 >
                   {filteredUdharList.length} transaction{filteredUdharList.length !== 1 ? "s" : ""}
                 </Badge>
                 {(udharStatusFilter !== "all" || udharAmountSort !== "newest") && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground animate-pop-in">
+                  <Badge variant="outline" className="animate-pop-in text-xs text-muted-foreground">
                     {udharStatusFilter !== "all" && udharStatusFilter}
                     {udharStatusFilter !== "all" && udharAmountSort !== "newest" && " · "}
                     {udharAmountSort !== "newest" && udharAmountSort}
@@ -2248,12 +2345,12 @@ export default function CustomersPage() {
                   onChange={e => {
                     const value = e.target.value;
                     setQuickCollectAmount(value);
-                    
+
                     // Real-time validation feedback
                     if (value && quickCollectCustomer) {
                       const amount = parseFloat(value);
                       const pendingAmount = quickCollectCustomer.pendingAmount || 0;
-                      
+
                       if (!isNaN(amount) && amount > pendingAmount) {
                         e.target.classList.add("border-destructive");
                       } else {
@@ -2265,18 +2362,20 @@ export default function CustomersPage() {
                   placeholder="Enter amount"
                   className="h-16 text-center text-3xl font-bold"
                 />
-                {quickCollectCustomer && quickCollectAmount && (() => {
-                  const amount = parseFloat(quickCollectAmount);
-                  const pendingAmount = quickCollectCustomer.pendingAmount || 0;
-                  if (!isNaN(amount) && amount > pendingAmount) {
-                    return (
-                      <p className="text-xs text-destructive mt-1">
-                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
-                      </p>
-                    );
-                  }
-                  return null;
-                })()}
+                {quickCollectCustomer &&
+                  quickCollectAmount &&
+                  (() => {
+                    const amount = parseFloat(quickCollectAmount);
+                    const pendingAmount = quickCollectCustomer.pendingAmount || 0;
+                    if (!isNaN(amount) && amount > pendingAmount) {
+                      return (
+                        <p className="mt-1 text-xs text-destructive">
+                          Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
               </div>
 
               {/* Notes */}
@@ -2491,7 +2590,7 @@ export default function CustomersPage() {
                   onChange={e => {
                     const value = e.target.value;
                     setPaymentAmount(value);
-                    
+
                     // Real-time validation feedback
                     if (value && paymentUdhar) {
                       const amount = parseFloat(value);
@@ -2502,7 +2601,7 @@ export default function CustomersPage() {
                         paymentUdhar.paidAmount ||
                         (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
                       const pendingAmount = Math.max(0, totalAmount - paidAmount);
-                      
+
                       if (!isNaN(amount) && amount > pendingAmount) {
                         e.target.classList.add("border-destructive");
                       } else {
@@ -2510,36 +2609,42 @@ export default function CustomersPage() {
                       }
                     }
                   }}
-                  max={paymentUdhar ? (() => {
+                  max={
+                    paymentUdhar
+                      ? (() => {
+                          const totalAmount =
+                            paymentUdhar.amount ||
+                            (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
+                          const paidAmount =
+                            paymentUdhar.paidAmount ||
+                            (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
+                          return Math.max(0, totalAmount - paidAmount);
+                        })()
+                      : undefined
+                  }
+                  placeholder="Enter amount"
+                  className="h-16 text-center text-3xl font-bold"
+                />
+                {paymentUdhar &&
+                  paymentAmount &&
+                  (() => {
+                    const amount = parseFloat(paymentAmount);
                     const totalAmount =
                       paymentUdhar.amount ||
                       (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
                     const paidAmount =
                       paymentUdhar.paidAmount ||
                       (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
-                    return Math.max(0, totalAmount - paidAmount);
-                  })() : undefined}
-                  placeholder="Enter amount"
-                  className="h-16 text-center text-3xl font-bold"
-                />
-                {paymentUdhar && paymentAmount && (() => {
-                  const amount = parseFloat(paymentAmount);
-                  const totalAmount =
-                    paymentUdhar.amount ||
-                    (paymentUdhar.cashAmount || 0) + (paymentUdhar.onlineAmount || 0);
-                  const paidAmount =
-                    paymentUdhar.paidAmount ||
-                    (paymentUdhar.paidCash || 0) + (paymentUdhar.paidOnline || 0);
-                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
-                  if (!isNaN(amount) && amount > pendingAmount) {
-                    return (
-                      <p className="text-xs text-destructive mt-1">
-                        Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
-                      </p>
-                    );
-                  }
-                  return null;
-                })()}
+                    const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                    if (!isNaN(amount) && amount > pendingAmount) {
+                      return (
+                        <p className="mt-1 text-xs text-destructive">
+                          Cannot exceed pending amount of ₹{pendingAmount.toLocaleString()}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
               </div>
 
               {/* Payment Date */}
@@ -2676,7 +2781,14 @@ export default function CustomersPage() {
         open={!!selectedCustomer}
         onOpenChange={open => {
           // Don't close if image viewer, gallery viewer, khata photos sheet is open or was just closed
-          if (!open && (imageViewerOpen || galleryViewerOpen || allReceiptsGalleryOpen || khataPhotosSheetOpen || imageViewerJustClosedRef.current)) {
+          if (
+            !open &&
+            (imageViewerOpen ||
+              galleryViewerOpen ||
+              allReceiptsGalleryOpen ||
+              khataPhotosSheetOpen ||
+              imageViewerJustClosedRef.current)
+          ) {
             imageViewerJustClosedRef.current = false;
             return;
           }
@@ -2911,8 +3023,11 @@ export default function CustomersPage() {
                                                 : "bg-amber-100 text-amber-700"
                                           )}
                                         >
-                                                                                    {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
-
+                                          {isPaid
+                                            ? "Fully Paid"
+                                            : isPartial
+                                              ? "Partially Paid"
+                                              : "Total Pending"}
                                         </Badge>
                                       </div>
                                       <p className="text-xs text-muted-foreground">
@@ -3294,8 +3409,11 @@ export default function CustomersPage() {
                                                 : "bg-amber-100 text-amber-700"
                                           )}
                                         >
-                                                                                    {isPaid ? "Fully Paid" : isPartial ? "Partially Paid" : "Total Pending"}
-
+                                          {isPaid
+                                            ? "Fully Paid"
+                                            : isPartial
+                                              ? "Partially Paid"
+                                              : "Total Pending"}
                                         </Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground">
@@ -3559,7 +3677,13 @@ export default function CustomersPage() {
         open={allReceiptsSheetOpen}
         onOpenChange={open => {
           // Don't close if image viewer or gallery viewer is open or was just closed
-          if (!open && (imageViewerOpen || galleryViewerOpen || allReceiptsGalleryOpen || imageViewerJustClosedRef.current)) {
+          if (
+            !open &&
+            (imageViewerOpen ||
+              galleryViewerOpen ||
+              allReceiptsGalleryOpen ||
+              imageViewerJustClosedRef.current)
+          ) {
             imageViewerJustClosedRef.current = false;
             return;
           }

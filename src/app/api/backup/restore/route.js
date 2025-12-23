@@ -18,7 +18,7 @@ const toSnakeCase = obj => {
 
 /**
  * POST: Restore data from backup file
- * 
+ *
  * Options:
  * - mode: "merge" (add new records, skip existing) or "replace" (clear and restore all)
  */
@@ -62,11 +62,14 @@ export async function POST(request) {
     // If replace mode, clear existing data first
     if (mode === "replace") {
       console.log("Replace mode: Clearing existing data...");
-      
+
       // Delete in correct order (children first due to foreign keys)
       await supabase.from("udhar").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("income").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("transactions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase
+        .from("transactions")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("customers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("suppliers").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     }
@@ -76,13 +79,11 @@ export async function POST(request) {
       for (const supplier of backupData.suppliers) {
         try {
           const snakeCaseData = toSnakeCase(supplier);
-          const { error } = await supabase
-            .from("suppliers")
-            .upsert(snakeCaseData, { 
-              onConflict: "id",
-              ignoreDuplicates: mode === "merge"
-            });
-          
+          const { error } = await supabase.from("suppliers").upsert(snakeCaseData, {
+            onConflict: "id",
+            ignoreDuplicates: mode === "merge",
+          });
+
           if (error) {
             if (error.code === "23505") {
               results.suppliers.skipped++;
@@ -104,13 +105,11 @@ export async function POST(request) {
       for (const customer of backupData.customers) {
         try {
           const snakeCaseData = toSnakeCase(customer);
-          const { error } = await supabase
-            .from("customers")
-            .upsert(snakeCaseData, { 
-              onConflict: "id",
-              ignoreDuplicates: mode === "merge"
-            });
-          
+          const { error } = await supabase.from("customers").upsert(snakeCaseData, {
+            onConflict: "id",
+            ignoreDuplicates: mode === "merge",
+          });
+
           if (error) {
             if (error.code === "23505") {
               results.customers.skipped++;
@@ -132,13 +131,11 @@ export async function POST(request) {
       for (const transaction of backupData.transactions) {
         try {
           const snakeCaseData = toSnakeCase(transaction);
-          const { error } = await supabase
-            .from("transactions")
-            .upsert(snakeCaseData, { 
-              onConflict: "id",
-              ignoreDuplicates: mode === "merge"
-            });
-          
+          const { error } = await supabase.from("transactions").upsert(snakeCaseData, {
+            onConflict: "id",
+            ignoreDuplicates: mode === "merge",
+          });
+
           if (error) {
             if (error.code === "23505") {
               results.transactions.skipped++;
@@ -160,13 +157,11 @@ export async function POST(request) {
       for (const udharItem of backupData.udhar) {
         try {
           const snakeCaseData = toSnakeCase(udharItem);
-          const { error } = await supabase
-            .from("udhar")
-            .upsert(snakeCaseData, { 
-              onConflict: "id",
-              ignoreDuplicates: mode === "merge"
-            });
-          
+          const { error } = await supabase.from("udhar").upsert(snakeCaseData, {
+            onConflict: "id",
+            ignoreDuplicates: mode === "merge",
+          });
+
           if (error) {
             if (error.code === "23505") {
               results.udhar.skipped++;
@@ -188,13 +183,11 @@ export async function POST(request) {
       for (const incomeItem of backupData.income) {
         try {
           const snakeCaseData = toSnakeCase(incomeItem);
-          const { error } = await supabase
-            .from("income")
-            .upsert(snakeCaseData, { 
-              onConflict: "id",
-              ignoreDuplicates: mode === "merge"
-            });
-          
+          const { error } = await supabase.from("income").upsert(snakeCaseData, {
+            onConflict: "id",
+            ignoreDuplicates: mode === "merge",
+          });
+
           if (error) {
             if (error.code === "23505") {
               results.income.skipped++;
@@ -230,10 +223,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("[Backup Restore API] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

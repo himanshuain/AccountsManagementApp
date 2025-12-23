@@ -9,7 +9,13 @@ export const uuidSchema = z.string().uuid("Invalid ID format");
 
 // Common field validators
 export const phoneSchema = z.string().max(20, "Phone number too long").optional().nullable();
-export const emailSchema = z.string().email("Invalid email").max(100).optional().nullable().or(z.literal(""));
+export const emailSchema = z
+  .string()
+  .email("Invalid email")
+  .max(100)
+  .optional()
+  .nullable()
+  .or(z.literal(""));
 export const textSchema = z.string().max(500, "Text too long").optional().nullable();
 export const longTextSchema = z.string().max(2000, "Text too long").optional().nullable();
 export const nameSchema = z.string().min(1, "Name is required").max(200, "Name too long");
@@ -50,15 +56,18 @@ export const paymentModeSchema = z
 export const imageUrlSchema = z
   .string()
   .max(2000, "URL too long")
-  .refine(
-    val => !val || val.startsWith("http") || val.startsWith("data:"),
-    { message: "Invalid image URL" }
-  )
+  .refine(val => !val || val.startsWith("http") || val.startsWith("data:"), {
+    message: "Invalid image URL",
+  })
   .optional()
   .nullable();
 
 // Array of image URLs
-export const imageArraySchema = z.array(imageUrlSchema).max(50, "Too many images").optional().nullable();
+export const imageArraySchema = z
+  .array(imageUrlSchema)
+  .max(50, "Too many images")
+  .optional()
+  .nullable();
 
 // JSONB payments array
 export const paymentsArraySchema = z
@@ -161,13 +170,13 @@ export function validateBody(body, schema) {
     if (result.success) {
       return { success: true, data: result.data };
     }
-    
+
     // Format Zod errors into readable message
     const errors = result.error.errors.map(err => {
       const path = err.path.join(".");
       return path ? `${path}: ${err.message}` : err.message;
     });
-    
+
     return { success: false, error: errors.join(", ") };
   } catch (error) {
     return { success: false, error: "Validation failed" };
@@ -180,7 +189,7 @@ export function validateBody(body, schema) {
 export function sanitizeString(value, maxLength = 500) {
   if (value === null || value === undefined) return null;
   if (typeof value !== "string") return String(value).slice(0, maxLength);
-  
+
   // Remove potential XSS characters and trim
   return value
     .replace(/<[^>]*>/g, "") // Remove HTML tags
@@ -206,4 +215,3 @@ export default {
   validateUUID,
   sanitizeString,
 };
-
