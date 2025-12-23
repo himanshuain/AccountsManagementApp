@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { hashPin, verifyPin } from "@/lib/password";
 
 // Helper to increment session version (to logout all other devices)
@@ -8,6 +8,7 @@ async function incrementSessionVersion() {
   if (!isSupabaseConfigured()) return;
 
   try {
+    const supabase = getServerClient();
     // Get current version
     const { data: currentData } = await supabase
       .from("app_settings")
@@ -60,6 +61,8 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    const supabase = getServerClient();
 
     // Check if settings table exists, if not create it
     const { data: existingSettings, error: fetchError } = await supabase

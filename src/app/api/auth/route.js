@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { checkRateLimit, resetRateLimit, getClientIp } from "@/lib/rate-limit";
 import { verifyPin, hashPin } from "@/lib/password";
 
@@ -23,6 +23,7 @@ async function getStoredPin() {
   }
 
   try {
+    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("app_settings")
       .select("value")
@@ -44,6 +45,7 @@ async function upgradeToHashedPin(pin) {
   if (!isSupabaseConfigured()) return;
 
   try {
+    const supabase = getServerClient();
     const hashedPin = await hashPin(pin);
     await supabase
       .from("app_settings")
@@ -68,6 +70,7 @@ async function getSessionVersion() {
   }
 
   try {
+    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("app_settings")
       .select("value")
