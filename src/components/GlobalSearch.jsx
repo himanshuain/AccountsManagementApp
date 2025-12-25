@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export function GlobalSearch({ className }) {
   const router = useRouter();
@@ -294,7 +295,7 @@ export function GlobalSearch({ className }) {
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={customer.profilePicture} />
+                        <AvatarImage src={resolveImageUrl(customer.profilePicture)} />
                         <AvatarFallback className="bg-amber-100 text-xs text-amber-700">
                           {getInitials(customer.name)}
                         </AvatarFallback>
@@ -375,7 +376,7 @@ export function GlobalSearch({ className }) {
                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
                     >
                       <Avatar className="h-9 w-9">
-                        <AvatarImage src={supplier.profilePicture} />
+                        <AvatarImage src={resolveImageUrl(supplier.profilePicture)} />
                         <AvatarFallback className="bg-primary/10 text-xs text-primary">
                           {getInitials(supplier.name)}
                         </AvatarFallback>

@@ -90,6 +90,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { haptics } from "@/hooks/useHaptics";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export default function CustomersPage() {
   const searchParams = useSearchParams();
@@ -480,7 +481,7 @@ export default function CustomersPage() {
       if (udhar.khataPhotos?.length > 0) {
         udhar.khataPhotos.forEach(photo => {
           receipts.push({
-            url: photo,
+            url: resolveImageUrl(photo),
             type: "khata",
             date: udhar.date,
             customerName,
@@ -491,7 +492,7 @@ export default function CustomersPage() {
       if (udhar.billImages?.length > 0) {
         udhar.billImages.forEach(photo => {
           receipts.push({
-            url: photo,
+            url: resolveImageUrl(photo),
             type: "khata",
             date: udhar.date,
             customerName,
@@ -504,7 +505,7 @@ export default function CustomersPage() {
         udhar.payments.forEach(payment => {
           if (payment.receiptUrl) {
             receipts.push({
-              url: payment.receiptUrl,
+              url: resolveImageUrl(payment.receiptUrl),
               type: "receipt",
               date: payment.date,
               customerName,
@@ -678,7 +679,7 @@ export default function CustomersPage() {
         txn.khataPhotos.forEach((photo, index) => {
           if (photo && typeof photo === "string") {
             photos.push({
-              url: photo,
+              url: resolveImageUrl(photo),
               udharId: txn.id,
               photoIndex: index,
               date: txn.date,
@@ -1386,7 +1387,7 @@ export default function CustomersPage() {
                       .flatMap(u => {
                         const photos = u.khataPhotos || u.billImages || [];
                         return photos.map(photo => ({
-                          url: photo,
+                          url: resolveImageUrl(photo),
                           amount: u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0),
                           date: u.date,
                           customerName: customer.name,
@@ -1436,7 +1437,7 @@ export default function CustomersPage() {
                               setSelectedCustomer(customer);
                             }}
                           >
-                            <AvatarImage src={customer.profilePicture} />
+                            <AvatarImage src={resolveImageUrl(customer.profilePicture)} />
                             <AvatarFallback className="bg-muted text-sm font-medium text-muted-foreground">
                               {getCustomerInitials(customer.name)}
                             </AvatarFallback>
@@ -1582,7 +1583,7 @@ export default function CustomersPage() {
                                             className="h-6 gap-1 px-2 text-xs"
                                             onClick={e => {
                                               e.stopPropagation();
-                                              setImageViewerSrc(payment.receiptUrl);
+                                              setImageViewerSrc(resolveImageUrl(payment.receiptUrl));
                                               setImageViewerOpen(true);
                                             }}
                                           >
@@ -2813,14 +2814,14 @@ export default function CustomersPage() {
                       selectedCustomer.profilePicture &&
                         "cursor-pointer transition-all hover:ring-2 hover:ring-primary"
                     )}
-                    onClick={() => {
-                      if (selectedCustomer.profilePicture) {
-                        setImageViewerSrc(selectedCustomer.profilePicture);
-                        setImageViewerOpen(true);
-                      }
-                    }}
-                  >
-                    <AvatarImage src={selectedCustomer.profilePicture} />
+                                    onClick={() => {
+                                      if (selectedCustomer.profilePicture) {
+                                        setImageViewerSrc(resolveImageUrl(selectedCustomer.profilePicture));
+                                        setImageViewerOpen(true);
+                                      }
+                                    }}
+                                  >
+                                    <AvatarImage src={resolveImageUrl(selectedCustomer.profilePicture)} />
                     <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
                       {getCustomerInitials(selectedCustomer.name)}
                     </AvatarFallback>
@@ -3146,7 +3147,7 @@ export default function CustomersPage() {
                                             .filter(p => p.receiptUrl)
                                             .map((payment, idx, filteredPayments) => {
                                               const receiptPhotos = filteredPayments.map(p => ({
-                                                url: p.receiptUrl,
+                                                url: resolveImageUrl(p.receiptUrl),
                                                 amount: p.amount,
                                                 date: p.date,
                                                 customerName: selectedCustomer?.name,
@@ -3164,7 +3165,7 @@ export default function CustomersPage() {
                                                   }}
                                                 >
                                                   <img
-                                                    src={payment.receiptUrl}
+                                                    src={resolveImageUrl(payment.receiptUrl)}
                                                     alt={`Receipt ${idx + 1}`}
                                                     className="h-full w-full object-cover"
                                                   />
@@ -3338,7 +3339,7 @@ export default function CustomersPage() {
                   <SheetHeader className="border-b px-4 pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={udharDrawerCustomer.profilePicture} />
+                        <AvatarImage src={resolveImageUrl(udharDrawerCustomer.profilePicture)} />
                         <AvatarFallback className="bg-primary/10 font-semibold text-primary">
                           {getCustomerInitials(udharDrawerCustomer.name)}
                         </AvatarFallback>
@@ -3492,7 +3493,7 @@ export default function CustomersPage() {
                                               ...(txn.khataPhotos || []),
                                               ...(txn.billImages || []),
                                             ].map(p => ({
-                                              url: p,
+                                              url: resolveImageUrl(p),
                                               amount: total,
                                               date: txn.date,
                                               customerName: selectedCustomer?.name,
@@ -3510,7 +3511,7 @@ export default function CustomersPage() {
                                                 }}
                                               >
                                                 <img
-                                                  src={photo}
+                                                  src={resolveImageUrl(photo)}
                                                   alt={`Khata ${idx + 1}`}
                                                   className="h-full w-full object-cover"
                                                 />
@@ -3533,7 +3534,7 @@ export default function CustomersPage() {
                                             .filter(p => p.receiptUrl)
                                             .map((payment, idx, filteredPayments) => {
                                               const receiptPhotos = filteredPayments.map(p => ({
-                                                url: p.receiptUrl,
+                                                url: resolveImageUrl(p.receiptUrl),
                                                 amount: p.amount,
                                                 date: p.date,
                                                 customerName: selectedCustomer?.name,
@@ -3551,7 +3552,7 @@ export default function CustomersPage() {
                                                   }}
                                                 >
                                                   <img
-                                                    src={payment.receiptUrl}
+                                                    src={resolveImageUrl(payment.receiptUrl)}
                                                     alt={`Receipt ${idx + 1}`}
                                                     className="h-full w-full object-cover"
                                                   />
@@ -3604,7 +3605,7 @@ export default function CustomersPage() {
                                                         className="h-6 px-2 text-xs"
                                                         onClick={e => {
                                                           e.stopPropagation();
-                                                          setImageViewerSrc(payment.receiptUrl);
+                                                          setImageViewerSrc(resolveImageUrl(payment.receiptUrl));
                                                           setImageViewerOpen(true);
                                                         }}
                                                       >

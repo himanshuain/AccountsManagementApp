@@ -12,6 +12,7 @@ import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export function UdharForm({
   open,
@@ -225,7 +226,7 @@ export function UdharForm({
                       <li {...otherProps} key={option.id}>
                         <div className="flex w-full items-center gap-3">
                           <Avatar
-                            src={option.profilePicture}
+                            src={resolveImageUrl(option.profilePicture)}
                             alt={option.name}
                             sx={{ width: 32, height: 32 }}
                           >
@@ -299,13 +300,14 @@ export function UdharForm({
 
               {/* Khata Photos */}
               <div className="space-y-2">
-                <Label>Khata Photos</Label>
+                <Label>Bill Images (Optional)</Label>
                 <MultiImageUpload
                   value={khataPhotos}
                   onChange={setKhataPhotos}
                   maxImages={5}
                   disabled={!isOnline}
                   onUploadingChange={setIsUploadingKhata}
+                  folder="khata"
                 />
               </div>
 

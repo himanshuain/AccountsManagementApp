@@ -70,6 +70,7 @@ import { BillGallery } from "@/components/BillGallery";
 import { TransactionTable } from "@/components/TransactionTable";
 import { InfiniteScrollTrigger } from "@/components/InfiniteScrollTrigger";
 import { haptics } from "@/hooks/useHaptics";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export default function SuppliersPage() {
   const searchParams = useSearchParams();
@@ -965,7 +966,7 @@ export default function SuppliersPage() {
                           <div className="h-full w-full rounded-full bg-background">
                             {supplier.profilePicture ? (
                               <img
-                                src={supplier.profilePicture}
+                                src={resolveImageUrl(supplier.profilePicture)}
                                 alt={supplier.companyName}
                                 className="h-full w-full rounded-full object-cover"
                               />
@@ -1440,7 +1441,7 @@ export default function SuppliersPage() {
                         )}
                         onClick={() => {
                           if (selectedSupplier.profilePicture) {
-                            setImageViewerSrc(selectedSupplier.profilePicture);
+                            setImageViewerSrc(resolveImageUrl(selectedSupplier.profilePicture));
                             setImageViewerOpen(true);
                           }
                         }}
@@ -1448,7 +1449,7 @@ export default function SuppliersPage() {
                         <div className="h-full w-full rounded-full bg-background p-0.5">
                           {selectedSupplier.profilePicture ? (
                             <img
-                              src={selectedSupplier.profilePicture}
+                              src={resolveImageUrl(selectedSupplier.profilePicture)}
                               alt={selectedSupplier.name}
                               className="h-full w-full rounded-full object-cover"
                             />
@@ -1538,11 +1539,11 @@ export default function SuppliersPage() {
                         <div className="rounded-xl bg-muted/30 p-4 text-center">
                           <p className="mb-2 text-xs text-muted-foreground">UPI QR Code</p>
                           <img
-                            src={selectedSupplier.upiQrCode}
+                            src={resolveImageUrl(selectedSupplier.upiQrCode)}
                             alt="UPI QR"
                             className="mx-auto h-32 w-32 cursor-pointer rounded-lg transition-opacity hover:opacity-90"
                             onClick={() => {
-                              setImageViewerSrc(selectedSupplier.upiQrCode);
+                              setImageViewerSrc(resolveImageUrl(selectedSupplier.upiQrCode));
                               setImageViewerOpen(true);
                             }}
                           />
@@ -2110,6 +2111,7 @@ export default function SuppliersPage() {
                         placeholder="Receipt"
                         aspectRatio="square"
                         onUploadingChange={setIsUploadingPaymentReceipt}
+                        folder="receipts"
                       />
                     </div>
                   </div>
@@ -2195,7 +2197,7 @@ export default function SuppliersPage() {
                       <div className="h-full w-full rounded-full bg-background p-0.5">
                         {supplier.profilePicture ? (
                           <img
-                            src={supplier.profilePicture}
+                            src={resolveImageUrl(supplier.profilePicture)}
                             alt={supplier.companyName}
                             className="h-full w-full rounded-full object-cover"
                           />

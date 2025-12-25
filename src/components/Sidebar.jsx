@@ -60,7 +60,7 @@ export function Sidebar() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [backupSheetOpen, setBackupSheetOpen] = useState(false);
 
-  const { storageInfo, loading: storageLoading, isBandwidth } = useStorage();
+  const { storageInfo, loading: storageLoading } = useStorage();
 
   const handleLogout = () => {
     logout();
@@ -219,40 +219,44 @@ export function Sidebar() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Activity className="h-4 w-4" />
-            {/* <span>{isBandwidth ? "Storage" : "Storage"}</span> */}
             <span>Storage</span>
           </div>
           {storageLoading ? (
             <div className="h-2 animate-pulse rounded-full bg-muted" />
           ) : storageInfo ? (
-            <div className="space-y-1">
-              {/* <div className="h-2 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn(
-                              "h-full rounded-full transition-all",
-                              storageInfo.usedPercentage > 80
-                                ? "bg-destructive"
-                                : storageInfo.usedPercentage > 50
-                                  ? "bg-amber-500"
-                                  : "bg-green-500"
-                            )}
-                            style={{ width: `${Math.min(storageInfo.usedPercentage, 100)}%` }}
-                          />
-                        </div> */}
-              <p className="text-xs text-muted-foreground">
-                {storageInfo.usedFormatted}
-                <br />
-                {storageInfo?.fileCount && (
-                  <span className="text-xs">
-                    Total {storageInfo.fileCount} photos on the server
-                  </span>
+            <div className="space-y-2">
+              {/* Progress bar */}
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    storageInfo.usedPercentage > 80
+                      ? "bg-destructive"
+                      : storageInfo.usedPercentage > 50
+                        ? "bg-amber-500"
+                        : "bg-green-500"
+                  )}
+                  style={{ width: `${Math.min(storageInfo.usedPercentage, 100)}%` }}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{storageInfo.usedFormatted}</span>
+                  {" / "}
+                  {storageInfo.totalFormatted} ({storageInfo.usedPercentage}%)
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  {storageInfo.remainingFormatted} remaining
+                </p>
+                {storageInfo?.fileCount > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {storageInfo.fileCount} files stored
+                  </p>
                 )}
-                {/* / {storageInfo.totalFormatted} ( */}
-                {/* {storageInfo.usedPercentage}%) */}
-              </p>
+              </div>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">Unable to load</p>
+            <p className="text-xs text-muted-foreground">Unable to load storage info</p>
           )}
         </div>
 

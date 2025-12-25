@@ -52,17 +52,28 @@ export const paymentModeSchema = z
   .optional()
   .default("upi");
 
-// URL validation for images
+// URL validation for images - supports both storage keys and full URLs
 export const imageUrlSchema = z
   .string()
   .max(2000, "URL too long")
-  .refine(val => !val || val.startsWith("http") || val.startsWith("data:"), {
-    message: "Invalid image URL",
-  })
+  .refine(
+    val => {
+      if (!val) return true; // Allow empty
+      // Allow: storage keys, http URLs, https URLs, and data URLs
+      // Storage keys: don't start with http/data, contain only safe path characters
+      const isStorageKey = /^[a-zA-Z0-9_\-\/\.]+$/.test(val) && !val.startsWith("http") && !val.startsWith("data:");
+      const isUrl = val.startsWith("http://") || val.startsWith("https://");
+      const isDataUrl = val.startsWith("data:");
+      return isStorageKey || isUrl || isDataUrl;
+    },
+    {
+      message: "Invalid image URL or storage key",
+    }
+  )
   .optional()
   .nullable();
 
-// Array of image URLs
+// Array of image URLs/storage keys
 export const imageArraySchema = z
   .array(imageUrlSchema)
   .max(50, "Too many images")
@@ -205,7 +216,7 @@ export function validateUUID(id) {
   return result.success;
 }
 
-export default {
+const validationSchemas = {
   supplierSchema,
   transactionSchema,
   customerSchema,
@@ -215,3 +226,5 @@ export default {
   validateUUID,
   sanitizeString,
 };
+
+export default validationSchemas;

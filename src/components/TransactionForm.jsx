@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export function TransactionForm({
   open,
@@ -277,7 +278,7 @@ export function TransactionForm({
                     <li {...otherProps} key={option.id}>
                       <div className="flex w-full items-center gap-3">
                         <Avatar
-                          src={option.profilePicture}
+                          src={resolveImageUrl(option.profilePicture)}
                           alt={option.companyName}
                           sx={{ width: 32, height: 32 }}
                         >
@@ -363,7 +364,7 @@ export function TransactionForm({
                         className="relative aspect-square overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50"
                       >
                         <img
-                          src={url}
+                          src={resolveImageUrl(url)}
                           alt={`Captured bill ${index + 1}`}
                           className="h-full w-full object-cover"
                         />
@@ -381,6 +382,7 @@ export function TransactionForm({
                   maxImages={5}
                   disabled={!isOnline}
                   onUploadingChange={setIsUploadingBills}
+                  folder="bills"
                 />
               )}
             </div>

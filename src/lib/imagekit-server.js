@@ -1,194 +1,90 @@
 /**
- * Server-side ImageKit utilities for image deletion
- * This module handles deleting images from ImageKit storage
+ * Server-side Image Storage Utilities
+ *
+ * This module handles server-side image operations:
+ * - Deleting images from R2 storage
+ * - Collecting image references from records
+ *
+ * Images are stored in Cloudflare R2 and served via ImageKit CDN.
  */
 
+import { deleteMultipleFromR2, isR2Configured } from "./r2-storage";
+import { normalizeToStorageKey, isStorageKey, isDataUrl } from "./image-url";
+
 /**
- * Check if ImageKit is configured for server-side operations
+ * Check if storage is configured for server-side operations
  */
-function isImageKitConfigured() {
-  return !!process.env.IMAGEKIT_PRIVATE_KEY;
+export function isStorageConfigured() {
+  return isR2Configured();
 }
 
 /**
- * Extract file path from ImageKit URL
- * ImageKit URL format: https://ik.imagekit.io/{imagekit_id}/{folder}/{filename}
- * or with transforms: https://ik.imagekit.io/{imagekit_id}/tr:{transforms}/{folder}/{filename}
- *
- * @param {string} url - The ImageKit URL
- * @returns {string|null} The file path (e.g., "/folder/filename.jpg") or null
+ * Normalize a value to storage key, handling legacy URLs
+ * @param {string} value - Storage key or legacy URL
+ * @returns {string|null} Storage key or null if invalid
  */
-function extractFilePathFromUrl(url) {
-  if (!url || typeof url !== "string") return null;
+function toStorageKey(value) {
+  if (!value || typeof value !== "string") return null;
 
-  try {
-    const urlObj = new URL(url);
+  // Skip data URLs
+  if (isDataUrl(value)) return null;
 
-    // Check if it's an ImageKit URL
-    if (!urlObj.hostname.includes("imagekit.io")) {
-      return null;
-    }
+  // Normalize to storage key (extracts from legacy URLs if needed)
+  const key = normalizeToStorageKey(value);
 
-    // Get path parts: [imagekit_id, ...rest]
-    const pathParts = urlObj.pathname.split("/").filter(Boolean);
-
-    if (pathParts.length < 2) return null;
-
-    // First part is the imagekit ID
-    // If second part starts with "tr:", it's a transform, skip it
-    let startIndex = 1;
-    if (pathParts[1]?.startsWith("tr:")) {
-      startIndex = 2;
-    }
-
-    // Rest is the file path
-    const filePath = "/" + pathParts.slice(startIndex).join("/");
-    return filePath;
-  } catch (e) {
-    console.error("[ImageKit] Error extracting file path:", e);
+  // If it's still a full URL (not ImageKit), we can't delete it
+  if (key && (key.startsWith("http://") || key.startsWith("https://"))) {
     return null;
   }
+
+  return key;
 }
 
 /**
- * Search for a file in ImageKit by its path and get its fileId
+ * Delete images from R2 storage
+ * Accepts storage keys or legacy ImageKit URLs
  *
- * @param {string} filePath - The file path (e.g., "/suppliers/image.jpg")
- * @param {string} authString - Base64 encoded auth string
- * @returns {Promise<string|null>} The fileId or null if not found
+ * @param {string[]} imageValues - Array of storage keys or URLs
+ * @returns {Promise<{deleted: number, failed: number}>}
  */
-async function getFileIdByPath(filePath, authString) {
-  try {
-    // Extract just the filename for search
-    const fileName = filePath.split("/").pop();
-
-    // Search by name
-    const searchUrl = `https://api.imagekit.io/v1/files?name=${encodeURIComponent(fileName)}`;
-
-    const response = await fetch(searchUrl, {
-      headers: {
-        Authorization: `Basic ${authString}`,
-      },
-    });
-
-    if (!response.ok) {
-      console.error("[ImageKit] Search failed:", response.status);
-      return null;
-    }
-
-    const files = await response.json();
-
-    // Find the file that matches our path
-    const matchingFile = files.find(f => f.filePath === filePath);
-
-    return matchingFile?.fileId || null;
-  } catch (error) {
-    console.error("[ImageKit] Error searching for file:", error);
-    return null;
-  }
-}
-
-/**
- * Delete a single file from ImageKit by fileId
- *
- * @param {string} fileId - The ImageKit file ID
- * @param {string} authString - Base64 encoded auth string
- * @returns {Promise<boolean>} True if deleted successfully
- */
-async function deleteFileById(fileId, authString) {
-  try {
-    const response = await fetch(`https://api.imagekit.io/v1/files/${fileId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Basic ${authString}`,
-      },
-    });
-
-    if (response.ok) {
-      console.log("[ImageKit] Deleted file:", fileId);
-      return true;
-    } else {
-      console.error("[ImageKit] Delete failed:", response.status);
-      return false;
-    }
-  } catch (error) {
-    console.error("[ImageKit] Error deleting file:", error);
-    return false;
-  }
-}
-
-/**
- * Delete multiple images from ImageKit by their URLs
- * This is a best-effort operation - failures are logged but don't throw
- *
- * @param {string[]} imageUrls - Array of ImageKit URLs to delete
- * @returns {Promise<{deleted: number, failed: number}>} Count of deleted and failed files
- */
-export async function deleteImagesFromImageKit(imageUrls) {
+export async function deleteImagesFromStorage(imageValues) {
   const result = { deleted: 0, failed: 0 };
 
-  // Skip if ImageKit is not configured
-  if (!isImageKitConfigured()) {
-    console.log("[ImageKit] Not configured, skipping image deletion");
+  if (!isR2Configured()) {
+    console.log("[Storage] Not configured, skipping image deletion");
     return result;
   }
 
-  // Filter out null/undefined/empty values and non-ImageKit URLs
-  const validUrls = (imageUrls || []).filter(
-    url => url && typeof url === "string" && url.includes("ik.imagekit.io")
-  );
+  // Convert to storage keys
+  const storageKeys = (imageValues || [])
+    .map(toStorageKey)
+    .filter(key => key !== null);
 
-  if (validUrls.length === 0) {
+  if (storageKeys.length === 0) {
     return result;
   }
 
-  console.log(`[ImageKit] Attempting to delete ${validUrls.length} images`);
-
-  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-  const authString = Buffer.from(`${privateKey}:`).toString("base64");
-
-  // Process deletions
-  for (const url of validUrls) {
-    try {
-      const filePath = extractFilePathFromUrl(url);
-
-      if (!filePath) {
-        console.log("[ImageKit] Could not extract path from URL:", url);
-        result.failed++;
-        continue;
-      }
-
-      const fileId = await getFileIdByPath(filePath, authString);
-
-      if (!fileId) {
-        console.log("[ImageKit] File not found in ImageKit:", filePath);
-        result.failed++;
-        continue;
-      }
-
-      const deleted = await deleteFileById(fileId, authString);
-
-      if (deleted) {
-        result.deleted++;
-      } else {
-        result.failed++;
-      }
-    } catch (error) {
-      console.error("[ImageKit] Error processing URL:", url, error);
-      result.failed++;
-    }
-  }
-
-  console.log(`[ImageKit] Deletion complete: ${result.deleted} deleted, ${result.failed} failed`);
-  return result;
+  console.log(`[Storage] Deleting ${storageKeys.length} images from R2`);
+  return deleteMultipleFromR2(storageKeys);
 }
 
 /**
- * Collect all image URLs from a transaction record
- * Includes billImages and payment receiptUrls
- *
+ * @deprecated Use deleteImagesFromStorage instead
+ * Kept for backwards compatibility
+ */
+export async function deleteImagesFromImageKit(imageUrls) {
+  console.warn("[Storage] deleteImagesFromImageKit is deprecated, use deleteImagesFromStorage");
+  return deleteImagesFromStorage(imageUrls);
+}
+
+// ==================== Record Image Collectors ====================
+// These functions extract image references from database records
+// They handle both storage keys and legacy full URLs
+
+/**
+ * Collect all image references from a transaction record
  * @param {Object} transaction - Transaction record
- * @returns {string[]} Array of image URLs
+ * @returns {string[]} Array of storage keys/URLs
  */
 export function collectTransactionImages(transaction) {
   const images = [];
@@ -210,18 +106,20 @@ export function collectTransactionImages(transaction) {
       if (payment.receiptUrl) {
         images.push(payment.receiptUrl);
       }
+      // Handle storage key format
+      if (payment.receiptKey) {
+        images.push(payment.receiptKey);
+      }
     });
   }
 
-  return images;
+  return images.filter(Boolean);
 }
 
 /**
- * Collect all image URLs from a udhar record
- * Includes khataPhotos and payment receiptUrls
- *
+ * Collect all image references from an udhar record
  * @param {Object} udhar - Udhar record
- * @returns {string[]} Array of image URLs
+ * @returns {string[]} Array of storage keys/URLs
  */
 export function collectUdharImages(udhar) {
   const images = [];
@@ -251,17 +149,19 @@ export function collectUdharImages(udhar) {
       if (payment.receiptUrl) {
         images.push(payment.receiptUrl);
       }
+      if (payment.receiptKey) {
+        images.push(payment.receiptKey);
+      }
     });
   }
 
-  return images;
+  return images.filter(Boolean);
 }
 
 /**
- * Collect all image URLs from a supplier record
- *
+ * Collect all image references from a supplier record
  * @param {Object} supplier - Supplier record
- * @returns {string[]} Array of image URLs
+ * @returns {string[]} Array of storage keys/URLs
  */
 export function collectSupplierImages(supplier) {
   const images = [];
@@ -282,19 +182,26 @@ export function collectSupplierImages(supplier) {
     images.push(supplier.logo);
   }
 
+  // Add UPI QR code
+  if (supplier.upiQrCode) {
+    images.push(supplier.upiQrCode);
+  }
+  if (supplier.upi_qr_code) {
+    images.push(supplier.upi_qr_code);
+  }
+
   // Add photos array if exists
   if (supplier.photos && Array.isArray(supplier.photos)) {
     images.push(...supplier.photos);
   }
 
-  return images;
+  return images.filter(Boolean);
 }
 
 /**
- * Collect all image URLs from a customer record
- *
+ * Collect all image references from a customer record
  * @param {Object} customer - Customer record
- * @returns {string[]} Array of image URLs
+ * @returns {string[]} Array of storage keys/URLs
  */
 export function collectCustomerImages(customer) {
   const images = [];
@@ -326,11 +233,13 @@ export function collectCustomerImages(customer) {
     images.push(...customer.khata_photos);
   }
 
-  return images;
+  return images.filter(Boolean);
 }
 
 export default {
-  deleteImagesFromImageKit,
+  isStorageConfigured,
+  deleteImagesFromStorage,
+  deleteImagesFromImageKit, // deprecated alias
   collectTransactionImages,
   collectUdharImages,
   collectSupplierImages,

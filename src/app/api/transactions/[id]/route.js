@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
-import { deleteImagesFromImageKit, collectTransactionImages } from "@/lib/imagekit-server";
+import { deleteImagesFromStorage, collectTransactionImages } from "@/lib/imagekit-server";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -65,6 +65,15 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const body = await request.json();
 
+    const supabase = getServerClient();
+
+    // Get existing transaction to check for image changes
+    const { data: existingTransaction } = await supabase
+      .from("transactions")
+      .select("bill_images, payments")
+      .eq("id", id)
+      .single();
+
     // Clean up empty date fields - Postgres doesn't accept empty strings for date type
     const cleanedBody = { ...body };
     if (cleanedBody.dueDate === "" || cleanedBody.dueDate === null) {
@@ -81,7 +90,6 @@ export async function PUT(request, { params }) {
 
     const record = toSnakeCase(updates);
 
-    const supabase = getServerClient();
     const { data, error } = await supabase
       .from("transactions")
       .update(record)
@@ -92,6 +100,38 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update transaction failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    // Clean up old images that were removed (best-effort, non-blocking)
+    if (existingTransaction) {
+      const imagesToDelete = [];
+      
+      // Check for removed bill images
+      const oldBillImages = existingTransaction.bill_images || [];
+      const newBillImages = record.bill_images || [];
+      oldBillImages.forEach(img => {
+        if (!newBillImages.includes(img)) {
+          imagesToDelete.push(img);
+        }
+      });
+      
+      // Check for removed payment receipts
+      const oldPayments = existingTransaction.payments || [];
+      const newPayments = record.payments || [];
+      const newReceiptUrls = newPayments.map(p => p.receiptUrl || p.receipt_url).filter(Boolean);
+      
+      oldPayments.forEach(payment => {
+        const receiptUrl = payment.receiptUrl || payment.receipt_url;
+        if (receiptUrl && !newReceiptUrls.includes(receiptUrl)) {
+          imagesToDelete.push(receiptUrl);
+        }
+      });
+      
+      if (imagesToDelete.length > 0) {
+        deleteImagesFromStorage(imagesToDelete).catch(err => {
+          console.error("[Transaction Update] Image cleanup error:", err);
+        });
+      }
     }
 
     return NextResponse.json({
@@ -122,11 +162,11 @@ export async function DELETE(request, { params }) {
       .eq("id", id)
       .single();
 
-    // Collect and delete images from ImageKit (best-effort)
+    // Collect and delete images from R2 storage (best-effort)
     if (transaction) {
       const imagesToDelete = collectTransactionImages(transaction);
-      deleteImagesFromImageKit(imagesToDelete).catch(err => {
-        console.error("[Transaction Delete] ImageKit cleanup error:", err);
+      deleteImagesFromStorage(imagesToDelete).catch(err => {
+        console.error("[Transaction Delete] Storage cleanup error:", err);
       });
     }
 

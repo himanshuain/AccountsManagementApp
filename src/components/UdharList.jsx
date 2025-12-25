@@ -23,6 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { resolveImageUrl } from "@/lib/image-url";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -415,7 +416,7 @@ export function UdharList({
                                 >
                                   {customer?.profilePicture ? (
                                     <img
-                                      src={customer.profilePicture}
+                                      src={resolveImageUrl(customer.profilePicture)}
                                       alt=""
                                       className="h-7 w-7 flex-shrink-0 rounded-full object-cover"
                                     />
@@ -799,11 +800,11 @@ export function UdharList({
                         className="group relative h-20 w-20 overflow-hidden rounded-lg border"
                       >
                         <img
-                          src={url}
+                          src={resolveImageUrl(url)}
                           alt={`Receipt ${idx + 1}`}
                           className="h-full w-full cursor-pointer object-cover"
                           onClick={() => {
-                            setReceiptViewerSrc(url);
+                            setReceiptViewerSrc(resolveImageUrl(url));
                             setReceiptViewerOpen(true);
                           }}
                         />

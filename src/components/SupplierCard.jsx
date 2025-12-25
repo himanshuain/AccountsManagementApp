@@ -5,6 +5,7 @@ import { Building2, Phone, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export function SupplierCard({ supplier, transactionCount = 0 }) {
   // Show company name prominently, person name secondary
@@ -26,7 +27,7 @@ export function SupplierCard({ supplier, transactionCount = 0 }) {
           <div className="flex items-center gap-3">
             {/* Avatar */}
             <Avatar className="h-12 w-12 border-2 border-primary/10">
-              <AvatarImage src={supplier.profilePicture} alt={displayName} />
+              <AvatarImage src={resolveImageUrl(supplier.profilePicture)} alt={displayName} />
               <AvatarFallback className="bg-primary/10 font-semibold text-primary">
                 {initials}
               </AvatarFallback>

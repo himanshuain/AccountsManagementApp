@@ -2,29 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-const BANDWIDTH_KEY = ["bandwidth"];
+const STORAGE_KEY = ["r2-storage"];
 
 /**
- * Fetch bandwidth usage from ImageKit
- * Falls back to Supabase storage info if ImageKit is not configured
+ * Fetch storage usage from Cloudflare R2
  */
-async function fetchBandwidthInfo() {
-  // Try ImageKit bandwidth first
-  try {
-    const response = await fetch("/api/imagekit/bandwidth");
-    const data = await response.json();
-
-    if (data.success) {
-      return {
-        ...data.data,
-        type: "bandwidth", // Indicates this is bandwidth data
-      };
-    }
-  } catch (error) {
-    console.warn("ImageKit bandwidth fetch failed, falling back to storage");
-  }
-
-  // Fallback to Supabase storage
+async function fetchStorageInfo() {
   const response = await fetch("/api/storage");
   const data = await response.json();
 
@@ -32,10 +15,7 @@ async function fetchBandwidthInfo() {
     throw new Error(data.error || "Failed to fetch storage info");
   }
 
-  return {
-    ...data.data,
-    type: "storage", // Indicates this is storage data
-  };
+  return data.data;
 }
 
 export function useStorage() {
@@ -45,8 +25,8 @@ export function useStorage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: BANDWIDTH_KEY,
-    queryFn: fetchBandwidthInfo,
+    queryKey: STORAGE_KEY,
+    queryFn: fetchStorageInfo,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
@@ -56,8 +36,6 @@ export function useStorage() {
     loading,
     error: error?.message || null,
     refetch,
-    // Helper to check if this is bandwidth or storage data
-    isBandwidth: storageInfo?.type === "bandwidth",
   };
 }
 

@@ -192,6 +192,7 @@ export function SupplierForm({
                   aspectRatio="square"
                   disabled={!isOnline}
                   onUploadingChange={setUploadingProfile}
+                  folder="suppliers"
                 />
               </div>
             </div>
@@ -276,6 +277,7 @@ export function SupplierForm({
                     aspectRatio="square"
                     disabled={!isOnline}
                     onUploadingChange={setUploadingUpiQr}
+                    folder="qr-codes"
                   />
                 </div>
               </div>

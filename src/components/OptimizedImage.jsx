@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { getOptimizedImageUrl, isImageKitConfigured } from "@/lib/imagekit";
+import { getImageUrls, isCdnConfigured, isDataUrl } from "@/lib/image-url";
 
 /**
  * Optimized image component with:
@@ -10,6 +10,8 @@ import { getOptimizedImageUrl, isImageKitConfigured } from "@/lib/imagekit";
  * - Lazy loading with IntersectionObserver
  * - Progressive loading
  * - Thumbnail generation
+ *
+ * Accepts both storage keys (new format) and full URLs (legacy)
  */
 export function OptimizedImage({
   src,
@@ -32,16 +34,17 @@ export function OptimizedImage({
   const imgRef = useRef(null);
   const containerRef = useRef(null);
 
-  // Get optimized URLs from ImageKit
+  // Get optimized URLs from storage key or URL
   useEffect(() => {
     if (!src) return;
 
-    if (isImageKitConfigured() && src && !src.startsWith("data:")) {
-      const urls = getOptimizedImageUrl(src, { width, height, quality });
+    // Get optimized URLs (handles both storage keys and legacy URLs)
+    if (!isDataUrl(src)) {
+      const urls = getImageUrls(src, { width, height, quality });
       setLqipSrc(urls.lqip);
       setCurrentSrc(urls.src);
     } else {
-      // Fallback - use original URL
+      // Data URL - use as-is
       setLqipSrc(src);
       setCurrentSrc(src);
     }
@@ -141,6 +144,8 @@ export function OptimizedImage({
 /**
  * Thumbnail version of OptimizedImage
  * Uses lower quality and smaller dimensions automatically
+ *
+ * Accepts both storage keys and full URLs
  */
 export function ThumbnailImage({ src, alt = "", className, size = 150, ...props }) {
   const [thumbSrc, setThumbSrc] = useState("");
@@ -149,13 +154,13 @@ export function ThumbnailImage({ src, alt = "", className, size = 150, ...props 
   useEffect(() => {
     if (!src) return;
 
-    if (isImageKitConfigured() && !src.startsWith("data:")) {
-      const urls = getOptimizedImageUrl(src, {
+    if (!isDataUrl(src)) {
+      const urls = getImageUrls(src, {
         width: size,
         height: size,
         quality: 50,
       });
-      setThumbSrc(urls.thumbnail);
+      setThumbSrc(urls.thumbnail || urls.src);
     } else {
       setThumbSrc(src);
     }

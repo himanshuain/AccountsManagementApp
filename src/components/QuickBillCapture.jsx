@@ -22,6 +22,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { resolveImageUrl } from "@/lib/image-url";
 
 export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "button" }) {
   const [open, setOpen] = useState(false);
@@ -179,7 +180,7 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "bu
                         <div className="flex items-center gap-2">
                           {supplier.profilePicture ? (
                             <img
-                              src={supplier.profilePicture}
+                              src={resolveImageUrl(supplier.profilePicture)}
                               alt=""
                               className="h-6 w-6 rounded-full object-cover"
                             />

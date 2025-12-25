@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getOptimizedImageUrl, resolveImageUrl } from "@/lib/imagekit";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { PROGRESSIVE_LOAD } from "@/lib/constants";
 
@@ -60,7 +60,7 @@ export function BillGallery({ transactions, suppliers }) {
   const currentIndex = allBills.findIndex(b => b.url === selectedImage);
 
   const openLightbox = bill => {
-    setSelectedImage(bill.url);
+    setSelectedImage(resolveImageUrl(bill.url));
     setSelectedTransaction(bill.transaction);
     setZoom(1);
     setPosition({ x: 0, y: 0 });
@@ -76,7 +76,7 @@ export function BillGallery({ transactions, suppliers }) {
   const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
       const prevBill = allBills[currentIndex - 1];
-      setSelectedImage(prevBill.url);
+      setSelectedImage(resolveImageUrl(prevBill.url));
       setSelectedTransaction(prevBill.transaction);
       setZoom(1);
       setPosition({ x: 0, y: 0 });
@@ -86,7 +86,7 @@ export function BillGallery({ transactions, suppliers }) {
   const goToNext = useCallback(() => {
     if (currentIndex < allBills.length - 1) {
       const nextBill = allBills[currentIndex + 1];
-      setSelectedImage(nextBill.url);
+      setSelectedImage(resolveImageUrl(nextBill.url));
       setSelectedTransaction(nextBill.transaction);
       setZoom(1);
       setPosition({ x: 0, y: 0 });
@@ -347,9 +347,9 @@ export function BillGallery({ transactions, suppliers }) {
                 <LazyThumbnailButton
                   key={`thumb-${bill.transaction.id}-${bill.index}`}
                   bill={bill}
-                  isSelected={bill.url === selectedImage}
+                  isSelected={resolveImageUrl(bill.url) === selectedImage}
                   onClick={() => {
-                    setSelectedImage(bill.url);
+                    setSelectedImage(resolveImageUrl(bill.url));
                     setSelectedTransaction(bill.transaction);
                     setZoom(1);
                     setPosition({ x: 0, y: 0 });
@@ -367,8 +367,10 @@ export function BillGallery({ transactions, suppliers }) {
 // Optimized thumbnail component with LQIP support
 function OptimizedBillThumbnail({ url, alt, onError }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  // Resolve storage key to full URL first, then get optimized versions
+  const resolvedUrl = resolveImageUrl(url);
   const urls = getOptimizedImageUrl(url);
-  const isImageKit = url.includes("ik.imagekit.io");
+  const isImageKit = resolvedUrl.includes("ik.imagekit.io");
 
   return (
     <>
@@ -386,7 +388,7 @@ function OptimizedBillThumbnail({ url, alt, onError }) {
       )}
       {/* Thumbnail */}
       <img
-        src={isImageKit ? urls.thumbnail : url}
+        src={isImageKit ? urls.thumbnail : resolvedUrl}
         alt={alt}
         className={cn(
           "h-full w-full object-cover transition-opacity duration-500",
@@ -425,8 +427,10 @@ function LazyThumbnailButton({ bill, isSelected, onClick }) {
     return () => observer.disconnect();
   }, []);
 
+  // Resolve storage key to full URL first, then get optimized versions
+  const resolvedUrl = resolveImageUrl(bill.url);
   const urls = getOptimizedImageUrl(bill.url);
-  const isImageKit = bill.url.includes("ik.imagekit.io");
+  const isImageKit = resolvedUrl.includes("ik.imagekit.io");
 
   return (
     <button
@@ -439,7 +443,7 @@ function LazyThumbnailButton({ bill, isSelected, onClick }) {
     >
       {isInView ? (
         <img
-          src={isImageKit ? urls.thumbnail : bill.url}
+          src={isImageKit ? urls.thumbnail : resolvedUrl}
           alt=""
           className={cn(
             "h-full w-full object-cover transition-opacity duration-200",

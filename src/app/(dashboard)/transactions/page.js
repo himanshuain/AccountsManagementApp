@@ -71,6 +71,7 @@ import { ImageGalleryViewer } from "@/components/ImageViewer";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { resolveImageUrl } from "@/lib/image-url";
 
 const DATE_FILTERS = [
   { value: "all", label: "All Time" },
@@ -176,7 +177,7 @@ export default function TransactionsPage() {
       if (udhar.khataPhotos?.length > 0) {
         udhar.khataPhotos.forEach(photo => {
           receipts.push({
-            url: photo,
+            url: resolveImageUrl(photo),
             type: "bill",
             date: udhar.date,
             customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
@@ -187,7 +188,7 @@ export default function TransactionsPage() {
       if (udhar.billImages?.length > 0) {
         udhar.billImages.forEach(photo => {
           receipts.push({
-            url: photo,
+            url: resolveImageUrl(photo),
             type: "bill",
             date: udhar.date,
             customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",
@@ -200,7 +201,7 @@ export default function TransactionsPage() {
         udhar.payments.forEach(payment => {
           if (payment.receiptUrl) {
             receipts.push({
-              url: payment.receiptUrl,
+              url: resolveImageUrl(payment.receiptUrl),
               type: "receipt",
               date: payment.date,
               customerName: customers.find(c => c.id === udhar.customerId)?.name || "Unknown",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
-import { deleteImagesFromImageKit, collectUdharImages } from "@/lib/imagekit-server";
+import { deleteImagesFromStorage, collectUdharImages } from "@/lib/imagekit-server";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -91,10 +91,10 @@ export async function PUT(request, { params }) {
     const body = await request.json();
     const supabase = getServerClient();
 
-    // Get the current udhar to find customer ID
+    // Get the current udhar to find customer ID and check for image changes
     const { data: currentUdhar } = await supabase
       .from("udhar")
-      .select("customer_id")
+      .select("customer_id, khata_photos, bill_image, payments")
       .eq("id", id)
       .single();
 
@@ -115,6 +115,44 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update udhar failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    // Clean up old images that were removed (best-effort, non-blocking)
+    if (currentUdhar) {
+      const imagesToDelete = [];
+      
+      // Check if bill image was replaced
+      if (currentUdhar.bill_image && 
+          currentUdhar.bill_image !== record.bill_image) {
+        imagesToDelete.push(currentUdhar.bill_image);
+      }
+      
+      // Check for removed khata photos
+      const oldKhataPhotos = currentUdhar.khata_photos || [];
+      const newKhataPhotos = record.khata_photos || [];
+      oldKhataPhotos.forEach(photo => {
+        if (!newKhataPhotos.includes(photo)) {
+          imagesToDelete.push(photo);
+        }
+      });
+      
+      // Check for removed payment receipts
+      const oldPayments = currentUdhar.payments || [];
+      const newPayments = record.payments || [];
+      const newReceiptUrls = newPayments.map(p => p.receiptUrl || p.receipt_url).filter(Boolean);
+      
+      oldPayments.forEach(payment => {
+        const receiptUrl = payment.receiptUrl || payment.receipt_url;
+        if (receiptUrl && !newReceiptUrls.includes(receiptUrl)) {
+          imagesToDelete.push(receiptUrl);
+        }
+      });
+      
+      if (imagesToDelete.length > 0) {
+        deleteImagesFromStorage(imagesToDelete).catch(err => {
+          console.error("[Udhar Update] Image cleanup error:", err);
+        });
+      }
     }
 
     // Update customer's total pending
@@ -150,11 +188,11 @@ export async function DELETE(request, { params }) {
       .eq("id", id)
       .single();
 
-    // Collect and delete images from ImageKit (best-effort)
+    // Collect and delete images from R2 storage (best-effort)
     if (udhar) {
       const imagesToDelete = collectUdharImages(udhar);
-      deleteImagesFromImageKit(imagesToDelete).catch(err => {
-        console.error("[Udhar Delete] ImageKit cleanup error:", err);
+      deleteImagesFromStorage(imagesToDelete).catch(err => {
+        console.error("[Udhar Delete] Storage cleanup error:", err);
       });
     }
 

@@ -190,6 +190,7 @@ export function CustomerForm({
                   aspectRatio="square"
                   disabled={!isOnline}
                   onUploadingChange={setUploadingProfile}
+                  folder="customers"
                 />
               </div>
             </div>
@@ -282,6 +283,7 @@ export function CustomerForm({
                 maxImages={5}
                 disabled={!isOnline}
                 onUploadingChange={setUploadingKhata}
+                folder="khata"
               />
             </div>
 

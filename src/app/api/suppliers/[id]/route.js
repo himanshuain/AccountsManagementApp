@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { supplierSchema, validateBody, validateUUID } from "@/lib/validation";
 import {
-  deleteImagesFromImageKit,
+  deleteImagesFromStorage,
   collectSupplierImages,
   collectTransactionImages,
 } from "@/lib/imagekit-server";
@@ -96,6 +96,13 @@ export async function PUT(request, { params }) {
 
     const supabase = getServerClient();
 
+    // Get existing supplier to check for image changes
+    const { data: existingSupplier } = await supabase
+      .from("suppliers")
+      .select("profile_picture, upi_qr_code")
+      .eq("id", id)
+      .single();
+
     const updates = {
       ...validation.data,
       updatedAt: new Date().toISOString(),
@@ -113,6 +120,29 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update supplier failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    // Clean up old images that were replaced (best-effort, non-blocking)
+    if (existingSupplier) {
+      const imagesToDelete = [];
+      
+      // Check if profile picture was replaced
+      if (existingSupplier.profile_picture && 
+          existingSupplier.profile_picture !== record.profile_picture) {
+        imagesToDelete.push(existingSupplier.profile_picture);
+      }
+      
+      // Check if UPI QR code was replaced
+      if (existingSupplier.upi_qr_code && 
+          existingSupplier.upi_qr_code !== record.upi_qr_code) {
+        imagesToDelete.push(existingSupplier.upi_qr_code);
+      }
+      
+      if (imagesToDelete.length > 0) {
+        deleteImagesFromStorage(imagesToDelete).catch(err => {
+          console.error("[Supplier Update] Image cleanup error:", err);
+        });
+      }
     }
 
     return NextResponse.json({
@@ -171,9 +201,9 @@ export async function DELETE(request, { params }) {
       });
     }
 
-    // Delete images from ImageKit (best-effort, non-blocking for response)
-    deleteImagesFromImageKit(imagesToDelete).catch(err => {
-      console.error("[Supplier Delete] ImageKit cleanup error:", err);
+    // Delete images from R2 storage (best-effort, non-blocking for response)
+    deleteImagesFromStorage(imagesToDelete).catch(err => {
+      console.error("[Supplier Delete] Storage cleanup error:", err);
     });
 
     // Delete related transactions first

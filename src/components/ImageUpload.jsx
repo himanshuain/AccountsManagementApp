@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
 import { compressImage } from "@/lib/image-compression";
-import { getOptimizedImageUrl, isImageKitConfigured } from "@/lib/imagekit";
+import { getImageUrls, isDataUrl, isCdnConfigured } from "@/lib/image-url";
 
 export function ImageUpload({
   value,
@@ -16,11 +16,12 @@ export function ImageUpload({
   aspectRatio = "square",
   disabled = false,
   onUploadingChange,
+  folder = "general",
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [optimizedUrls, setOptimizedUrls] = useState({ src: "", lqip: "" });
+  const [optimizedUrls, setOptimizedUrls] = useState({ src: "", lqip: "", medium: "" });
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
@@ -34,17 +35,18 @@ export function ImageUpload({
   useEffect(() => {
     if (value) {
       setPreview(value);
-      if (!value.startsWith("data:") && value.includes("ik.imagekit.io")) {
-        const urls = getOptimizedImageUrl(value);
+      // Get optimized URLs (handles both storage keys and legacy URLs)
+      if (!isDataUrl(value)) {
+        const urls = getImageUrls(value);
         setOptimizedUrls(urls);
         setIsImageLoaded(false);
       } else {
-        setOptimizedUrls({ src: value, lqip: value, medium: value });
+        setOptimizedUrls({ src: value, lqip: value, medium: value, original: value });
         setIsImageLoaded(true);
       }
     } else {
       setPreview(null);
-      setOptimizedUrls({ src: "", lqip: "", medium: "" });
+      setOptimizedUrls({ src: "", lqip: "", medium: "", original: "" });
     }
   }, [value]);
 
@@ -73,6 +75,7 @@ export function ImageUpload({
       // Upload compressed file
       const formData = new FormData();
       formData.append("file", compressedFile);
+      formData.append("folder", folder);
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -80,9 +83,11 @@ export function ImageUpload({
       });
 
       if (response.ok) {
-        const { url } = await response.json();
-        onChange?.(url);
-        setPreview(url);
+        const result = await response.json();
+        // Store the storage key (not the full URL)
+        const storageKey = result.storageKey || result.url;
+        onChange?.(storageKey);
+        setPreview(storageKey);
       } else {
         // Keep local preview for offline mode
         const localUrl = await new Promise(resolve => {
@@ -123,6 +128,11 @@ export function ImageUpload({
     portrait: "aspect-[3/4]",
   };
 
+  // Determine display URL
+  const displayUrl = isDataUrl(preview) ? preview : (optimizedUrls.medium || optimizedUrls.src || "");
+  const lqipUrl = isDataUrl(preview) ? preview : optimizedUrls.lqip;
+  const isBase64 = isDataUrl(preview);
+
   return (
     <>
       <div className={cn("relative", className)}>
@@ -154,9 +164,9 @@ export function ImageUpload({
             onClick={handleViewImage}
           >
             {/* LQIP blurred background - shows while main image loads */}
-            {!preview.startsWith("data:") && optimizedUrls.lqip && (
+            {!isBase64 && lqipUrl && (
               <img
-                src={optimizedUrls.lqip}
+                src={lqipUrl}
                 alt=""
                 aria-hidden="true"
                 className={cn(
@@ -167,15 +177,11 @@ export function ImageUpload({
             )}
             {/* Main image - use medium quality for form previews */}
             <img
-              src={
-                preview.startsWith("data:")
-                  ? preview
-                  : optimizedUrls.medium || optimizedUrls.src || preview
-              }
+              src={displayUrl}
               alt="Preview"
               className={cn(
                 "h-full w-full object-cover transition-opacity duration-500",
-                !isImageLoaded && !preview.startsWith("data:") ? "opacity-0" : "opacity-100"
+                !isImageLoaded && !isBase64 ? "opacity-0" : "opacity-100"
               )}
               onLoad={() => setIsImageLoaded(true)}
               loading="lazy"
@@ -253,8 +259,13 @@ export function ImageUpload({
         )}
       </div>
 
-      {/* Image Viewer */}
-      <ImageViewer src={preview} alt="Preview" open={viewerOpen} onOpenChange={setViewerOpen} />
+      {/* Image Viewer - pass original URL for full quality */}
+      <ImageViewer
+        src={optimizedUrls.original || preview}
+        alt="Preview"
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
     </>
   );
 }
@@ -265,6 +276,7 @@ export function MultiImageUpload({
   maxImages = 5,
   disabled = false,
   onUploadingChange,
+  folder = "general",
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -285,7 +297,7 @@ export function MultiImageUpload({
     const filesToUpload = files.slice(0, remainingSlots);
 
     setUploadingState(true);
-    const newUrls = [];
+    const newKeys = [];
 
     for (const file of filesToUpload) {
       try {
@@ -307,6 +319,7 @@ export function MultiImageUpload({
         // Try to upload
         const formData = new FormData();
         formData.append("file", compressedFile);
+        formData.append("folder", folder);
 
         try {
           const response = await fetch("/api/upload", {
@@ -315,20 +328,21 @@ export function MultiImageUpload({
           });
 
           if (response.ok) {
-            const { url } = await response.json();
-            newUrls.push(url);
+            const result = await response.json();
+            // Store the storage key (not the full URL)
+            newKeys.push(result.storageKey || result.url);
           } else {
-            newUrls.push(localUrl);
+            newKeys.push(localUrl);
           }
         } catch {
-          newUrls.push(localUrl);
+          newKeys.push(localUrl);
         }
       } catch (error) {
         console.error("File processing failed:", error);
       }
     }
 
-    onChange?.([...value, ...newUrls]);
+    onChange?.([...value, ...newKeys]);
     setUploadingState(false);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -343,6 +357,12 @@ export function MultiImageUpload({
     setViewerIndex(index);
     setViewerOpen(true);
   };
+
+  // Get resolved URLs for viewer
+  const viewerImages = value.map(v => {
+    const urls = getImageUrls(v);
+    return urls.original || v;
+  });
 
   return (
     <>
@@ -369,10 +389,9 @@ export function MultiImageUpload({
 
         {/* Image grid */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {value.map((url, index) => {
-            const urls = url.startsWith("data:")
-              ? { src: url, lqip: url, thumbnail: url }
-              : getOptimizedImageUrl(url);
+          {value.map((storageKey, index) => {
+            const urls = getImageUrls(storageKey);
+            const isBase64 = isDataUrl(storageKey);
             return (
               <div
                 key={index}
@@ -380,7 +399,12 @@ export function MultiImageUpload({
                 onClick={() => handleViewImage(index)}
               >
                 {/* Render optimized thumbnail with LQIP */}
-                <MultiImageThumbnail url={url} urls={urls} index={index} />
+                <MultiImageThumbnail
+                  storageKey={storageKey}
+                  urls={urls}
+                  index={index}
+                  isBase64={isBase64}
+                />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
                   <Expand className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
@@ -453,7 +477,7 @@ export function MultiImageUpload({
 
       {/* Gallery Viewer */}
       <ImageGalleryViewer
-        images={value}
+        images={viewerImages}
         initialIndex={viewerIndex}
         open={viewerOpen}
         onOpenChange={setViewerOpen}
@@ -463,14 +487,26 @@ export function MultiImageUpload({
 }
 
 // Helper component for optimized thumbnails in MultiImageUpload
-function MultiImageThumbnail({ url, urls, index }) {
+function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const isDataUrl = url.startsWith("data:");
+  const [hasError, setHasError] = useState(false);
+
+  // Get the resolved URL - for base64, use as-is; otherwise use CDN URLs
+  const imageSrc = isBase64 ? storageKey : (urls.thumbnail || urls.src || urls.original || storageKey);
+
+  if (hasError) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+        <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+        <span className="mt-1 text-xs text-muted-foreground">Failed to load</span>
+      </div>
+    );
+  }
 
   return (
     <>
       {/* LQIP blurred background - shows while thumbnail loads */}
-      {!isDataUrl && urls.lqip && (
+      {!isBase64 && urls.lqip && !hasError && (
         <img
           src={urls.lqip}
           alt=""
@@ -483,13 +519,14 @@ function MultiImageThumbnail({ url, urls, index }) {
       )}
       {/* Thumbnail image */}
       <img
-        src={isDataUrl ? url : urls.thumbnail || url}
+        src={imageSrc}
         alt={`Image ${index + 1}`}
         className={cn(
           "absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
-          !isLoaded && !isDataUrl ? "opacity-0" : "opacity-100"
+          !isLoaded && !isBase64 ? "opacity-0" : "opacity-100"
         )}
         onLoad={() => setIsLoaded(true)}
+        onError={() => setHasError(true)}
         loading="lazy"
       />
     </>

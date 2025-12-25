@@ -6,7 +6,7 @@ import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getImageUrls, resolveImageUrl, isDataUrl } from "@/lib/image-url";
 
 /**
  * Simple and reliable Image Viewer with touch gestures
@@ -14,6 +14,8 @@ import { getOptimizedImageUrl } from "@/lib/imagekit";
  * - Double tap to zoom at tap location
  * - Pan when zoomed
  * - Swipe down to close
+ *
+ * Accepts both storage keys (new format) and full URLs (legacy)
  */
 export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   const [scale, setScale] = useState(1);
@@ -24,11 +26,16 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
-  // Get optimized image URLs for ImageKit images
+  // Get optimized image URLs (works with both storage keys and legacy URLs)
   const optimizedUrls = useMemo(() => {
-    if (!src) return { src: "", lqip: "", medium: "" };
-    return getOptimizedImageUrl(src);
+    if (!src) return { src: "", lqip: "", medium: "", original: "" };
+    return getImageUrls(src);
   }, [src]);
+
+  // Check if it's an ImageKit URL (for LQIP display)
+  const isImageKit = useMemo(() => {
+    return optimizedUrls.original?.includes("ik.imagekit.io");
+  }, [optimizedUrls.original]);
 
   // Touch gesture state
   const touchState = useRef({
@@ -258,10 +265,11 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
   // Handle share
   const handleShare = async () => {
-    if (!src) return;
+    const imageUrl = optimizedUrls.original;
+    if (!imageUrl) return;
 
     try {
-      const response = await fetch(src?.url);
+      const response = await fetch(imageUrl);
       const blob = await response.blob();
       const file = new File([blob], "image.jpg", { type: blob.type });
 
@@ -274,11 +282,11 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       } else if (navigator.share) {
         await navigator.share({
           title: "Shared Image",
-          url: src,
+          url: imageUrl,
         });
         toast.success("Shared successfully");
       } else {
-        await navigator.clipboard.writeText(src);
+        await navigator.clipboard.writeText(imageUrl);
         toast.success("Link copied to clipboard");
       }
     } catch (error) {
@@ -291,10 +299,11 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 
   // Handle download
   const handleDownload = async () => {
-    if (!src) return;
+    const imageUrl = optimizedUrls.original;
+    if (!imageUrl) return;
 
     try {
-      const response = await fetch(src?.url);
+      const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -433,7 +442,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
         onClick={handleBackdropClick}
       >
         {/* LQIP blurred background for slow connections */}
-        {isLoading && optimizedUrls.lqip && src?.includes("ik.imagekit.io") && (
+        {isLoading && optimizedUrls.lqip && isImageKit && (
           <img
             src={optimizedUrls.lqip}
             alt=""
@@ -454,7 +463,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imageRef}
-          src={src?.includes("ik.imagekit.io") ? optimizedUrls.original : src}
+          src={optimizedUrls.original}
           alt={alt}
           className={cn(
             "max-h-full max-w-full select-none object-contain transition-opacity duration-500",
@@ -489,6 +498,8 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 /**
  * Gallery Viewer for multiple images
  * Supports both string URLs and objects with { url, amount, date, customerName, type }
+ *
+ * Accepts both storage keys (new format) and full URLs (legacy)
  */
 export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -516,11 +527,16 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   const currentImage = normalizedImages[currentIndex] || {};
   const currentSrc = currentImage.url;
 
-  // Get optimized URLs for current image
+  // Get optimized URLs for current image (works with storage keys and URLs)
   const optimizedUrls = useMemo(() => {
-    if (!currentSrc) return { src: "", lqip: "", thumbnail: "" };
-    return getOptimizedImageUrl(currentSrc);
+    if (!currentSrc) return { src: "", lqip: "", thumbnail: "", original: "" };
+    return getImageUrls(currentSrc);
   }, [currentSrc]);
+
+  // Check if it's an ImageKit URL (for LQIP display)
+  const isImageKit = useMemo(() => {
+    return optimizedUrls.original?.includes("ik.imagekit.io");
+  }, [optimizedUrls.original]);
 
   // Reset currentIndex when opening with a new initialIndex
   useEffect(() => {
@@ -757,11 +773,11 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   );
 
   const handleShare = async () => {
-    const src = images[currentIndex];
-    if (!src) return;
+    const imageUrl = optimizedUrls.original;
+    if (!imageUrl) return;
 
     try {
-      const response = await fetch(src?.url);
+      const response = await fetch(imageUrl);
       const blob = await response.blob();
       const file = new File([blob], "image.jpg", { type: blob.type });
 
@@ -769,10 +785,10 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         await navigator.share({ files: [file], title: "Shared Image" });
         toast.success("Shared successfully");
       } else if (navigator.share) {
-        await navigator.share({ title: "Shared Image", url: src });
+        await navigator.share({ title: "Shared Image", url: imageUrl });
         toast.success("Shared successfully");
       } else {
-        await navigator.clipboard.writeText(src);
+        await navigator.clipboard.writeText(imageUrl);
         toast.success("Link copied to clipboard");
       }
     } catch (error) {
@@ -783,11 +799,11 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   };
 
   const handleDownload = async () => {
-    const src = images[currentIndex];
-    if (!src) return;
+    const imageUrl = optimizedUrls.original;
+    if (!imageUrl) return;
 
     try {
-      const response = await fetch(src?.url);
+      const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -895,7 +911,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         onWheel={handleWheel}
       >
         {/* LQIP blurred background for slow connections */}
-        {isLoading && optimizedUrls.lqip && currentSrc?.includes("ik.imagekit.io") && (
+        {isLoading && optimizedUrls.lqip && isImageKit && (
           <img
             src={optimizedUrls.lqip}
             alt=""
@@ -915,7 +931,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={currentSrc?.includes("ik.imagekit.io") ? optimizedUrls.original : currentSrc}
+          src={optimizedUrls.original}
           alt={`Image ${currentIndex + 1}`}
           className={cn(
             "max-h-full max-w-full select-none object-contain transition-opacity duration-500",
@@ -1027,6 +1043,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         >
           {normalizedImages.slice(0, 8).map((img, idx) => {
             const imgUrl = img.url || img;
+            const thumbUrls = getImageUrls(imgUrl);
             return (
               <button
                 key={idx}
@@ -1044,11 +1061,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={
-                    imgUrl?.includes?.("ik.imagekit.io")
-                      ? getOptimizedImageUrl(imgUrl).thumbnail
-                      : imgUrl
-                  }
+                  src={thumbUrls.thumbnail || thumbUrls.original || imgUrl}
                   alt={`Thumbnail ${idx + 1}`}
                   className="h-full w-full object-cover"
                   loading="lazy"

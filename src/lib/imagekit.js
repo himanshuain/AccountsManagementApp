@@ -1,10 +1,40 @@
 /**
- * ImageKit integration for image storage and optimization
- * Supports lazy loading, LQIP, and thumbnail generation
+ * ImageKit CDN Integration
  *
- * URL Format: https://ik.imagekit.io/{id}/tr:{transformations}/{path}
- * See: https://imagekit.io/docs/image-transformation
+ * This module provides image optimization via ImageKit CDN.
+ * Images are stored in Cloudflare R2 and served through ImageKit.
+ *
+ * Storage Strategy:
+ * - Database stores: storage_key (e.g., "suppliers/123.jpg")
+ * - At display time: resolve to ImageKit CDN URL
+ *
+ * This module re-exports from image-url.js for backwards compatibility.
  */
+
+import {
+  isCdnConfigured,
+  isStorageKey,
+  isImageKitUrl,
+  isDataUrl,
+  resolveImageUrl,
+  buildTransformUrl,
+  getImageUrls,
+  generateSrcSet,
+  normalizeToStorageKey,
+} from "./image-url";
+
+// Re-export URL resolution functions
+export {
+  isCdnConfigured,
+  isStorageKey,
+  isImageKitUrl,
+  isDataUrl,
+  resolveImageUrl,
+  buildTransformUrl,
+  getImageUrls,
+  generateSrcSet,
+  normalizeToStorageKey,
+};
 
 // ImageKit configuration
 const IMAGEKIT_URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || "";
@@ -12,9 +42,10 @@ const IMAGEKIT_PUBLIC_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || "";
 
 /**
  * Check if ImageKit is properly configured
+ * @deprecated Use isCdnConfigured() instead
  */
 export function isImageKitConfigured() {
-  return !!(IMAGEKIT_URL_ENDPOINT && IMAGEKIT_PUBLIC_KEY);
+  return isCdnConfigured();
 }
 
 /**
@@ -25,136 +56,33 @@ export function getImageKitUrlEndpoint() {
 }
 
 /**
- * Build ImageKit transformation URL
- * ImageKit URL format: https://ik.imagekit.io/{imagekit_id}/tr:{transformations}/{file_path}
- *
- * @param {string} imageUrl - Original ImageKit URL
- * @param {string} transformString - Transformation string (e.g., "w-300,h-300,q-80")
- * @returns {string} Transformed URL
- */
-function buildTransformUrl(imageUrl, transformString) {
-  if (!imageUrl || !transformString) return imageUrl;
-
-  try {
-    const url = new URL(imageUrl);
-
-    // Check if it's an ImageKit URL
-    if (!url.hostname.includes("imagekit.io")) {
-      return imageUrl;
-    }
-
-    // Get path parts: [imagekit_id, ...rest]
-    const pathParts = url.pathname.split("/").filter(Boolean);
-
-    if (pathParts.length < 2) return imageUrl;
-
-    // First part is the imagekit ID, rest is the file path
-    const imagekitId = pathParts[0];
-    const filePath = pathParts.slice(1).join("/");
-
-    // Build new URL with transformation
-    // Format: /imagekit_id/tr:transformations/filepath
-    url.pathname = `/${imagekitId}/tr:${transformString}/${filePath}`;
-
-    return url.toString();
-  } catch (e) {
-    console.error("Error building transform URL:", e);
-    return imageUrl;
-  }
-}
-
-/**
  * Get optimized image URL with ImageKit transformations
- * @param {string} imagePath - The image path or full URL
+ * Handles both storage keys (new) and full URLs (legacy)
+ *
+ * @param {string} value - Storage key or full URL
  * @param {Object} options - Transformation options
- * @returns {Object} Object containing src, lqip, and thumbnail URLs
+ * @returns {Object} Object containing src, lqip, thumbnail, medium, original URLs
  */
-export function getOptimizedImageUrl(imagePath, options = {}) {
-  const emptyResult = { src: "", lqip: "", thumbnail: "", medium: "", original: "" };
-
-  // Handle null, undefined, or non-string values
-  if (!imagePath || typeof imagePath !== "string") {
-    return emptyResult;
-  }
-
-  // If it's a base64 data URL, return as-is
-  if (imagePath.startsWith("data:")) {
-    return {
-      src: imagePath,
-      lqip: imagePath,
-      thumbnail: imagePath,
-      medium: imagePath,
-      original: imagePath,
-    };
-  }
-
-  // If it's not an ImageKit URL, return as-is
-  if (!imagePath.includes("ik.imagekit.io")) {
-    return {
-      src: imagePath,
-      lqip: imagePath,
-      thumbnail: imagePath,
-      medium: imagePath,
-      original: imagePath,
-    };
-  }
-
-  const { width, height, quality = 80, blur } = options;
-
-  // Build main transformation string
-  const transforms = [];
-  if (width) transforms.push(`w-${width}`);
-  if (height) transforms.push(`h-${height}`);
-  if (quality) transforms.push(`q-${quality}`);
-  if (blur) transforms.push(`bl-${blur}`);
-  transforms.push("f-auto"); // Auto format (WebP/AVIF)
-  transforms.push("pr-true"); // Progressive loading
-
-  const mainTransform = transforms.join(",");
-
-  // LQIP: Very small, heavily blurred placeholder for slow connections
-  const lqipTransform = "w-40,q-20,bl-30,f-auto";
-
-  // Thumbnail: Small, optimized for grids/lists
-  const thumbnailTransform = "w-200,h-200,q-60,c-at_max,f-auto";
-
-  // Medium: For previews in forms
-  const mediumTransform = "w-400,q-70,f-auto,pr-true";
-
-  return {
-    src: buildTransformUrl(imagePath, mainTransform),
-    lqip: buildTransformUrl(imagePath, lqipTransform),
-    thumbnail: buildTransformUrl(imagePath, thumbnailTransform),
-    medium: buildTransformUrl(imagePath, mediumTransform),
-    original: imagePath,
-  };
-}
-
-/**
- * Generate srcset for responsive images
- * @param {string} imagePath - The image path
- * @param {number[]} widths - Array of widths for srcset
- * @returns {string} srcset string
- */
-export function generateSrcSet(imagePath, widths = [320, 640, 768, 1024, 1280]) {
-  if (!imagePath || !imagePath.includes("ik.imagekit.io")) return "";
-
-  return widths
-    .map(w => {
-      const transform = `w-${w},q-75,f-auto`;
-      return `${buildTransformUrl(imagePath, transform)} ${w}w`;
-    })
-    .join(", ");
+export function getOptimizedImageUrl(value, options = {}) {
+  return getImageUrls(value, options);
 }
 
 /**
  * Get a specific transformation URL
- * @param {string} imageUrl - Original ImageKit URL
+ * @param {string} value - Storage key or ImageKit URL
  * @param {Object} options - Transformation options
  * @returns {string} Transformed URL
  */
-export function getTransformedUrl(imageUrl, options = {}) {
-  if (!imageUrl || !imageUrl.includes("ik.imagekit.io")) return imageUrl;
+export function getTransformedUrl(value, options = {}) {
+  if (!value) return "";
+
+  const fullUrl = resolveImageUrl(value);
+
+  // Data URLs can't be transformed
+  if (isDataUrl(fullUrl)) return fullUrl;
+
+  // Only transform ImageKit URLs
+  if (!fullUrl.includes("ik.imagekit.io")) return fullUrl;
 
   const transforms = [];
   if (options.width) transforms.push(`w-${options.width}`);
@@ -165,39 +93,20 @@ export function getTransformedUrl(imageUrl, options = {}) {
   if (options.format !== false) transforms.push("f-auto");
   if (options.progressive !== false) transforms.push("pr-true");
 
-  return buildTransformUrl(imageUrl, transforms.join(","));
+  return buildTransformUrl(value, transforms.join(","));
 }
 
 /**
- * Get ImageKit upload authentication parameters
- * This should be called from a server-side API route
- */
-export async function getUploadAuthParams() {
-  const response = await fetch("/api/imagekit/auth");
-  if (!response.ok) {
-    throw new Error("Failed to get upload authentication");
-  }
-  return response.json();
-}
-
-/**
- * Upload image to ImageKit
+ * Upload image to storage (via API route)
  * @param {File|Blob} file - The file to upload
  * @param {string} folder - The folder to upload to
- * @param {string} fileName - Optional custom file name
- * @returns {Promise<Object>} Upload response with URL
+ * @param {string} fileName - Optional custom file name (ignored, auto-generated)
+ * @returns {Promise<Object>} Upload response with storageKey
  */
 export async function uploadToImageKit(file, folder = "general", fileName = null) {
-  if (!isImageKitConfigured()) {
-    throw new Error("ImageKit is not configured");
-  }
-
   const formData = new FormData();
   formData.append("file", file);
   formData.append("folder", folder);
-  if (fileName) {
-    formData.append("fileName", fileName);
-  }
 
   const response = await fetch("/api/upload", {
     method: "POST",
@@ -209,29 +118,49 @@ export async function uploadToImageKit(file, folder = "general", fileName = null
     throw new Error(error.error || "Upload failed");
   }
 
+  const result = await response.json();
+
+  // Return storage key and resolved URL for backwards compatibility
+  return {
+    storageKey: result.storageKey,
+    url: resolveImageUrl(result.storageKey),
+  };
+}
+
+/**
+ * Get ImageKit upload authentication parameters
+ * @deprecated Not needed for R2 uploads (handled server-side)
+ */
+export async function getUploadAuthParams() {
+  const response = await fetch("/api/imagekit/auth");
+  if (!response.ok) {
+    throw new Error("Failed to get upload authentication");
+  }
   return response.json();
 }
 
 /**
- * Delete image from ImageKit
- * @param {string} fileId - The ImageKit file ID
+ * Delete image from storage
+ * @deprecated Use server-side deletion via API routes
+ * @param {string} fileId - The file ID to delete
  * @returns {Promise<boolean>} Success status
  */
 export async function deleteFromImageKit(fileId) {
-  const response = await fetch(`/api/imagekit/delete?fileId=${fileId}`, {
-    method: "DELETE",
-  });
-
-  return response.ok;
+  console.warn("[ImageKit] deleteFromImageKit is deprecated. Use server-side deletion.");
+  return false;
 }
 
 const imageKitUtils = {
   isImageKitConfigured,
+  isCdnConfigured,
   getImageKitUrlEndpoint,
   getOptimizedImageUrl,
+  getTransformedUrl,
   generateSrcSet,
   uploadToImageKit,
   deleteFromImageKit,
+  resolveImageUrl,
+  normalizeToStorageKey,
 };
 
 export default imageKitUtils;

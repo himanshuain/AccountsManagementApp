@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ImageGalleryViewer } from "./ImageViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
+import { resolveImageUrl } from "@/lib/image-url";
 
 const paymentModeLabels = {
   cash: "Cash",
@@ -95,7 +96,7 @@ export function TransactionTable({
 
   const handleViewImages = (images, e) => {
     e.stopPropagation();
-    setSelectedImages(images);
+    setSelectedImages(images.map(img => resolveImageUrl(img)));
     setImageDialogOpen(true);
   };
 
@@ -267,7 +268,7 @@ export function TransactionTable({
                               >
                                 {supplier?.profilePicture ? (
                                   <img
-                                    src={supplier.profilePicture}
+                                    src={resolveImageUrl(supplier.profilePicture)}
                                     alt=""
                                     className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
                                   />
@@ -300,7 +301,7 @@ export function TransactionTable({
                               >
                                 {customer?.profilePicture ? (
                                   <img
-                                    src={customer.profilePicture}
+                                    src={resolveImageUrl(customer.profilePicture)}
                                     alt=""
                                     className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
                                   />
@@ -503,7 +504,7 @@ export function TransactionTable({
                                         <button
                                           onClick={e => {
                                             e.stopPropagation();
-                                            setSelectedImages([payment.receiptUrl]);
+                                            setSelectedImages([resolveImageUrl(payment.receiptUrl)]);
                                             setImageDialogOpen(true);
                                           }}
                                           className="ml-auto rounded-full bg-primary/10 p-1.5 text-primary transition-colors hover:bg-primary/20"
