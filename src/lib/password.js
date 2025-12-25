@@ -2,8 +2,19 @@ import bcrypt from "bcryptjs";
 
 const SALT_ROUNDS = 10;
 
-// Prefix to identify hashed PINs (vs legacy plaintext)
-const HASH_PREFIX = "$2a$";
+// Regex to identify bcrypt hashes (supports $2a$, $2b$, $2y$ prefixes)
+const BCRYPT_HASH_REGEX = /^\$2[aby]\$\d{2}\$.{53}$/;
+
+/**
+ * Check if a value looks like a bcrypt hash
+ * @param {string} value - The value to check
+ * @returns {boolean}
+ */
+function isBcryptHash(value) {
+  if (!value || typeof value !== "string") return false;
+  // bcrypt hashes are always 60 characters and start with $2a$, $2b$, or $2y$
+  return BCRYPT_HASH_REGEX.test(value);
+}
 
 /**
  * Hash a PIN using bcrypt
@@ -11,7 +22,7 @@ const HASH_PREFIX = "$2a$";
  * @returns {Promise<string>} - The hashed PIN
  */
 export async function hashPin(pin) {
-  return bcrypt.hash(pin, SALT_ROUNDS);
+  return bcrypt.hash(String(pin), SALT_ROUNDS);
 }
 
 /**
@@ -22,15 +33,23 @@ export async function hashPin(pin) {
  * @returns {Promise<{ valid: boolean, needsUpgrade: boolean }>}
  */
 export async function verifyPin(pin, storedValue) {
+  // Ensure pin is a string
+  const pinStr = String(pin);
+  
   // Check if the stored value is a bcrypt hash
-  if (storedValue && storedValue.startsWith(HASH_PREFIX)) {
+  if (isBcryptHash(storedValue)) {
     // It's a hash - use bcrypt compare
-    const valid = await bcrypt.compare(pin, storedValue);
-    return { valid, needsUpgrade: false };
+    try {
+      const valid = await bcrypt.compare(pinStr, storedValue);
+      return { valid, needsUpgrade: false };
+    } catch (error) {
+      console.error("bcrypt compare error:", error);
+      return { valid: false, needsUpgrade: false };
+    }
   }
 
   // Legacy plaintext comparison
-  const valid = pin === storedValue;
+  const valid = pinStr === storedValue;
   return { valid, needsUpgrade: valid }; // Only upgrade if the PIN is correct
 }
 
@@ -40,7 +59,7 @@ export async function verifyPin(pin, storedValue) {
  * @returns {boolean}
  */
 export function isHashed(value) {
-  return value && value.startsWith(HASH_PREFIX);
+  return isBcryptHash(value);
 }
 
 export default {
