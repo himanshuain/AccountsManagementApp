@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
-import { hashPin, verifyPin } from "@/lib/password";
+import { hashPassword, verifyPassword, validatePasswordStrength } from "@/lib/password";
 
 // Helper to increment session version (to logout all other devices)
 async function incrementSessionVersion() {
@@ -54,42 +54,61 @@ export async function POST(request) {
       );
     }
 
-    // Validate PIN is exactly 6 digits
-    if (!/^\d{6}$/.test(newPassword)) {
+    // Validate password strength
+    const { valid, errors } = validatePasswordStrength(newPassword);
+    if (!valid) {
       return NextResponse.json(
-        { success: false, error: "PIN must be exactly 6 digits" },
+        { success: false, error: errors[0] },
         { status: 400 }
       );
     }
 
     const supabase = getServerClient();
 
-    // Check if settings table exists, if not create it
-    const { data: existingSettings, error: fetchError } = await supabase
+    // Try to get existing password (check both new 'app_password' and legacy 'app_pin' keys)
+    let existingSettings = null;
+    let settingsKey = "app_password";
+
+    const { data: passwordSettings, error: passwordFetchError } = await supabase
       .from("app_settings")
       .select("*")
-      .eq("key", "app_pin")
+      .eq("key", "app_password")
       .single();
 
-    if (fetchError && fetchError.code === "PGRST116") {
-      // Table doesn't exist or no row - create settings with new password
-      // First check if current password matches ENV variable
-      const envPin = process.env.APP_PIN || "123456";
-      const { valid: envPinValid } = await verifyPin(currentPassword, envPin);
-      if (currentPassword && !envPinValid) {
+    if (passwordFetchError && passwordFetchError.code === "PGRST116") {
+      // No app_password, try legacy app_pin
+      const { data: pinSettings, error: pinFetchError } = await supabase
+        .from("app_settings")
+        .select("*")
+        .eq("key", "app_pin")
+        .single();
+
+      if (!pinFetchError && pinSettings) {
+        existingSettings = pinSettings;
+        settingsKey = "app_pin";
+      }
+    } else if (!passwordFetchError) {
+      existingSettings = passwordSettings;
+    }
+
+    if (!existingSettings) {
+      // No existing password in database - check against ENV variable
+      const envPassword = process.env.APP_PASSWORD || process.env.APP_PIN || "admin123";
+      const { valid: envPasswordValid } = await verifyPassword(currentPassword, envPassword);
+      if (currentPassword && !envPasswordValid) {
         return NextResponse.json(
           { success: false, error: "Current password is incorrect" },
           { status: 401 }
         );
       }
 
-      // Hash the new PIN before storing
-      const hashedNewPin = await hashPin(newPassword);
+      // Hash the new password before storing
+      const hashedNewPassword = await hashPassword(newPassword);
 
-      // Insert new setting with hashed PIN
+      // Insert new setting with hashed password
       const { error: insertError } = await supabase
         .from("app_settings")
-        .insert({ key: "app_pin", value: hashedNewPin });
+        .insert({ key: "app_password", value: hashedNewPassword });
 
       if (insertError) {
         console.error("Failed to save password:", insertError);
@@ -120,39 +139,50 @@ export async function POST(request) {
       return NextResponse.json({ success: true, loggedOutOtherDevices: true });
     }
 
-    if (fetchError) {
-      console.error("Error fetching settings:", fetchError);
-      return NextResponse.json(
-        { success: false, error: "Failed to verify password" },
-        { status: 500 }
-      );
-    }
-
     // Verify current password (handles both hashed and legacy plaintext)
-    const storedPin = existingSettings?.value || process.env.APP_PIN || "123456";
-    const { valid: currentPinValid } = await verifyPin(currentPassword, storedPin);
-    if (!currentPinValid) {
+    const storedPassword = existingSettings?.value || process.env.APP_PASSWORD || process.env.APP_PIN || "admin123";
+    const { valid: currentPasswordValid } = await verifyPassword(currentPassword, storedPassword);
+    if (!currentPasswordValid) {
       return NextResponse.json(
         { success: false, error: "Current password is incorrect" },
         { status: 401 }
       );
     }
 
-    // Hash the new PIN before storing
-    const hashedNewPin = await hashPin(newPassword);
+    // Hash the new password before storing
+    const hashedNewPassword = await hashPassword(newPassword);
 
-    // Update password with hashed value
-    const { error: updateError } = await supabase
-      .from("app_settings")
-      .update({ value: hashedNewPin, updated_at: new Date().toISOString() })
-      .eq("key", "app_pin");
+    // If we were using legacy app_pin, migrate to app_password
+    if (settingsKey === "app_pin") {
+      // Delete the old app_pin entry
+      await supabase.from("app_settings").delete().eq("key", "app_pin");
+      
+      // Insert new app_password entry
+      const { error: insertError } = await supabase
+        .from("app_settings")
+        .insert({ key: "app_password", value: hashedNewPassword, updated_at: new Date().toISOString() });
 
-    if (updateError) {
-      console.error("Failed to update password:", updateError);
-      return NextResponse.json(
-        { success: false, error: "Failed to update password" },
-        { status: 500 }
-      );
+      if (insertError) {
+        console.error("Failed to migrate password:", insertError);
+        return NextResponse.json(
+          { success: false, error: "Failed to update password" },
+          { status: 500 }
+        );
+      }
+    } else {
+      // Update password with hashed value
+      const { error: updateError } = await supabase
+        .from("app_settings")
+        .update({ value: hashedNewPassword, updated_at: new Date().toISOString() })
+        .eq("key", "app_password");
+
+      if (updateError) {
+        console.error("Failed to update password:", updateError);
+        return NextResponse.json(
+          { success: false, error: "Failed to update password" },
+          { status: 500 }
+        );
+      }
     }
 
     // Increment session version to logout other devices

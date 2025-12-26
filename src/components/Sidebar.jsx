@@ -7,7 +7,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Users,
-  Receipt,
   LogOut,
   Store,
   RefreshCw,
@@ -17,14 +16,23 @@ import {
   Activity,
   Key,
   HardDrive,
+  Fingerprint,
+  Loader2,
+  Eye,
+  EyeOff,
+  Lock,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "./ThemeToggle";
 import { logout } from "@/lib/auth";
 import { toast } from "sonner";
 import { useStorage } from "@/hooks/useStorage";
+import { useBiometric } from "@/hooks/useBiometric";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,8 +44,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { PinInput } from "@/components/PinInput";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { BackupManager } from "./BackupManager";
 
 const navItems = [
@@ -53,39 +60,52 @@ export function Sidebar() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
+  const [biometricSheetOpen, setBiometricSheetOpen] = useState(false);
   const [passwordStep, setPasswordStep] = useState("current"); // "current", "new", "confirm"
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [pinError, setPinError] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [backupSheetOpen, setBackupSheetOpen] = useState(false);
 
   const { storageInfo, loading: storageLoading } = useStorage();
+  const {
+    isSupported: biometricSupported,
+    isEnabled: biometricEnabled,
+    isLoading: biometricLoading,
+    registerBiometric,
+    disableBiometric,
+  } = useBiometric();
 
   const handleLogout = () => {
     logout();
     window.location.href = "/login";
   };
 
-  const handleCurrentPinComplete = pin => {
-    setCurrentPassword(pin);
-    setPasswordStep("new");
-  };
+  const handlePasswordChange = async () => {
+    setPasswordError("");
 
-  const handleNewPinComplete = pin => {
-    setNewPassword(pin);
-    setPasswordStep("confirm");
-  };
+    if (!currentPassword) {
+      setPasswordError("Current password is required");
+      return;
+    }
 
-  const handleConfirmPinComplete = async pin => {
-    if (pin !== newPassword) {
-      setPinError(true);
-      toast.error("PINs do not match. Please try again.");
-      setTimeout(() => {
-        setPinError(false);
-        setPasswordStep("new");
-        setNewPassword("");
-      }, 1000);
+    if (!newPassword) {
+      setPasswordError("New password is required");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
       return;
     }
 
@@ -103,19 +123,13 @@ export function Sidebar() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success("PIN changed successfully");
+        toast.success("Password changed successfully");
         resetPasswordForm();
       } else {
-        setPinError(true);
-        toast.error(data.error || "Failed to change PIN");
-        setTimeout(() => {
-          setPinError(false);
-          resetPasswordForm();
-        }, 1000);
+        setPasswordError(data.error || "Failed to change password");
       }
     } catch (error) {
-      toast.error("Failed to change PIN");
-      resetPasswordForm();
+      setPasswordError("Failed to change password");
     } finally {
       setIsChangingPassword(false);
     }
@@ -126,7 +140,31 @@ export function Sidebar() {
     setPasswordStep("current");
     setCurrentPassword("");
     setNewPassword("");
-    setPinError(false);
+    setConfirmPassword("");
+    setPasswordError("");
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  const handleBiometricSetup = async () => {
+    try {
+      await registerBiometric();
+      toast.success("Biometric login enabled!");
+      setBiometricSheetOpen(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to setup biometric login");
+    }
+  };
+
+  const handleBiometricDisable = async () => {
+    try {
+      await disableBiometric();
+      toast.success("Biometric login disabled");
+      setBiometricSheetOpen(false);
+    } catch (error) {
+      toast.error("Failed to disable biometric login");
+    }
   };
 
   const handleRefresh = async () => {
@@ -289,6 +327,21 @@ export function Sidebar() {
           Backup & Restore
         </Button>
 
+        {/* Biometric Login Button */}
+        {biometricSupported && (
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground"
+            onClick={() => setBiometricSheetOpen(true)}
+          >
+            <Fingerprint className="mr-2 h-4 w-4" />
+            Biometric Login
+            {biometricEnabled && (
+              <CheckCircle2 className="ml-auto h-4 w-4 text-green-500" />
+            )}
+          </Button>
+        )}
+
         {/* Change Password Button */}
         <Button
           variant="ghost"
@@ -336,7 +389,7 @@ export function Sidebar() {
         </Button>
       </div>
 
-      {/* Change PIN Sheet */}
+      {/* Change Password Sheet */}
       <Sheet
         open={passwordSheetOpen}
         onOpenChange={open => {
@@ -344,70 +397,216 @@ export function Sidebar() {
           else setPasswordSheetOpen(open);
         }}
       >
-        <SheetContent side="bottom" className="h-auto rounded-t-2xl" hideClose>
-          <SheetHeader className="pb-4 text-center">
-            <SheetTitle>
-              {passwordStep === "current" && "Enter Current PIN"}
-              {passwordStep === "new" && "Enter New PIN"}
-              {passwordStep === "confirm" && "Confirm New PIN"}
+        <SheetContent side="bottom" className="h-auto rounded-t-2xl">
+          <SheetHeader className="pb-4 text-left">
+            <SheetTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Change Password
             </SheetTitle>
-            <p className="text-sm text-muted-foreground">
-              {passwordStep === "current" && "Enter your current 6-digit PIN"}
-              {passwordStep === "new" && "Enter your new 6-digit PIN"}
-              {passwordStep === "confirm" && "Re-enter your new PIN to confirm"}
-            </p>
+            <SheetDescription>
+              Enter your current password and choose a new one
+            </SheetDescription>
           </SheetHeader>
-          <div className="py-6">
-            {passwordStep === "current" && (
-              <PinInput
-                key="current-pin"
-                length={6}
-                onComplete={handleCurrentPinComplete}
-                error={pinError}
-              />
-            )}
-            {passwordStep === "new" && (
-              <PinInput
-                key="new-pin"
-                length={6}
-                onComplete={handleNewPinComplete}
-                error={pinError}
-              />
-            )}
-            {passwordStep === "confirm" && (
-              <PinInput
-                key="confirm-pin"
-                length={6}
-                onComplete={handleConfirmPinComplete}
-                error={pinError}
-              />
-            )}
 
-            {isChangingPassword && (
-              <p className="mt-4 text-center text-sm text-muted-foreground">Changing PIN...</p>
+          <div className="space-y-4 py-4">
+            {/* Current Password */}
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="current-password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="pl-10 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* New Password */}
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="pl-10 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="pl-10 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {passwordError && (
+              <p className="text-sm text-destructive">{passwordError}</p>
             )}
           </div>
+
           <div className="flex gap-3 pb-6">
             <Button variant="outline" className="flex-1" onClick={resetPasswordForm}>
               Cancel
             </Button>
-            {passwordStep !== "current" && (
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  if (passwordStep === "new") {
-                    setPasswordStep("current");
-                    setCurrentPassword("");
-                  } else if (passwordStep === "confirm") {
-                    setPasswordStep("new");
-                    setNewPassword("");
-                  }
-                }}
-              >
-                Back
-              </Button>
+            <Button
+              className="flex-1"
+              onClick={handlePasswordChange}
+              disabled={isChangingPassword}
+            >
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Changing...
+                </>
+              ) : (
+                "Change Password"
+              )}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Biometric Setup Sheet */}
+      <Sheet open={biometricSheetOpen} onOpenChange={setBiometricSheetOpen}>
+        <SheetContent side="bottom" className="h-auto rounded-t-2xl">
+          <SheetHeader className="pb-4 text-left">
+            <SheetTitle className="flex items-center gap-2">
+              <Fingerprint className="h-5 w-5" />
+              Biometric Login
+            </SheetTitle>
+            <SheetDescription>
+              {biometricEnabled
+                ? "Biometric login is currently enabled"
+                : "Enable Face ID, Touch ID, or Fingerprint login"}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-4 py-4">
+            {biometricEnabled ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+                  <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div>
+                    <p className="font-medium text-green-800 dark:text-green-200">
+                      Biometric login is enabled
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      You can use Face ID, Touch ID, or Fingerprint to login
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={handleBiometricDisable}
+                  disabled={biometricLoading}
+                >
+                  {biometricLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Disabling...
+                    </>
+                  ) : (
+                    "Disable Biometric Login"
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm text-muted-foreground">
+                    Enable biometric authentication to quickly login using your device&apos;s
+                    Face ID, Touch ID, or Fingerprint sensor. This is more convenient and secure.
+                  </p>
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={handleBiometricSetup}
+                  disabled={biometricLoading}
+                >
+                  {biometricLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Setting up...
+                    </>
+                  ) : (
+                    <>
+                      <Fingerprint className="mr-2 h-4 w-4" />
+                      Enable Biometric Login
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
+          </div>
+
+          <div className="pb-6">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setBiometricSheetOpen(false)}
+            >
+              Close
+            </Button>
           </div>
         </SheetContent>
       </Sheet>

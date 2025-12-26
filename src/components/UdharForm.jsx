@@ -22,13 +22,14 @@ export function UdharForm({
   customers = [],
   initialData = null,
   defaultCustomerId = null,
+  autoOpenCustomerDropdown = false,
   title = "Add Udhar",
 }) {
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [khataPhotos, setKhataPhotos] = useState(initialData?.khataPhotos || []);
+  const [khataPhotos, setKhataPhotos] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(
-    initialData?.customerId || defaultCustomerId || ""
+    defaultCustomerId || ""
   );
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [isUploadingKhata, setIsUploadingKhata] = useState(false);
@@ -46,30 +47,40 @@ export function UdharForm({
     reset,
     formState: { errors, isDirty },
   } = useForm({
-    defaultValues: initialData || defaultFormValues,
+    defaultValues: defaultFormValues,
   });
 
+  // Handle initialData changes - separate effect for better reactivity
   useEffect(() => {
-    if (open) {
-      if (initialData) {
-        setKhataPhotos(initialData.khataPhotos || []);
-        setSelectedCustomerId(initialData.customerId || "");
-        // Calculate total from old cash+online or use amount directly
-        const totalAmount =
-          initialData.amount || (initialData.cashAmount || 0) + (initialData.onlineAmount || 0);
-        reset({
-          date: initialData.date || new Date().toISOString().split("T")[0],
-          amount: totalAmount || "",
-          notes: initialData.notes || "",
-          itemDescription: initialData.itemDescription || "",
-        });
-      } else {
-        setKhataPhotos([]);
-        setSelectedCustomerId(defaultCustomerId || "");
-        reset(defaultFormValues);
+    if (open && initialData) {
+      // Set khataPhotos from initialData
+      if (initialData.khataPhotos && initialData.khataPhotos.length > 0) {
+        setKhataPhotos(initialData.khataPhotos);
       }
+      if (initialData.customerId) {
+        setSelectedCustomerId(initialData.customerId);
+      }
+      // Calculate total from old cash+online or use amount directly
+      const totalAmount =
+        initialData.amount || (initialData.cashAmount || 0) + (initialData.onlineAmount || 0);
+      reset({
+        date: initialData.date || new Date().toISOString().split("T")[0],
+        amount: totalAmount || "",
+        notes: initialData.notes || "",
+        itemDescription: initialData.itemDescription || "",
+      });
     }
-  }, [open, initialData, defaultCustomerId, reset]);
+  }, [open, initialData, reset]);
+
+  // Reset form state when opening without initialData
+  useEffect(() => {
+    if (open && !initialData) {
+      setKhataPhotos([]);
+      setSelectedCustomerId(defaultCustomerId || "");
+      reset(defaultFormValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultCustomerId]);
 
   const handleFormSubmit = async data => {
     if (!selectedCustomerId) {

@@ -17,30 +17,37 @@ function isBcryptHash(value) {
 }
 
 /**
- * Hash a PIN using bcrypt
- * @param {string} pin - The plain text PIN
- * @returns {Promise<string>} - The hashed PIN
+ * Hash a password using bcrypt
+ * @param {string} password - The plain text password
+ * @returns {Promise<string>} - The hashed password
  */
-export async function hashPin(pin) {
-  return bcrypt.hash(String(pin), SALT_ROUNDS);
+export async function hashPassword(password) {
+  return bcrypt.hash(String(password), SALT_ROUNDS);
 }
 
 /**
- * Verify a PIN against a hash
- * Handles both legacy plaintext PINs and new bcrypt hashes
- * @param {string} pin - The plain text PIN to verify
- * @param {string} storedValue - The stored PIN (either hash or legacy plaintext)
+ * Legacy function name for backwards compatibility
+ */
+export async function hashPin(pin) {
+  return hashPassword(pin);
+}
+
+/**
+ * Verify a password against a hash
+ * Handles both legacy plaintext passwords and bcrypt hashes
+ * @param {string} password - The plain text password to verify
+ * @param {string} storedValue - The stored password (either hash or legacy plaintext)
  * @returns {Promise<{ valid: boolean, needsUpgrade: boolean }>}
  */
-export async function verifyPin(pin, storedValue) {
-  // Ensure pin is a string
-  const pinStr = String(pin);
+export async function verifyPassword(password, storedValue) {
+  // Ensure password is a string
+  const passwordStr = String(password);
   
   // Check if the stored value is a bcrypt hash
   if (isBcryptHash(storedValue)) {
     // It's a hash - use bcrypt compare
     try {
-      const valid = await bcrypt.compare(pinStr, storedValue);
+      const valid = await bcrypt.compare(passwordStr, storedValue);
       return { valid, needsUpgrade: false };
     } catch (error) {
       console.error("bcrypt compare error:", error);
@@ -49,8 +56,15 @@ export async function verifyPin(pin, storedValue) {
   }
 
   // Legacy plaintext comparison
-  const valid = pinStr === storedValue;
-  return { valid, needsUpgrade: valid }; // Only upgrade if the PIN is correct
+  const valid = passwordStr === storedValue;
+  return { valid, needsUpgrade: valid }; // Only upgrade if the password is correct
+}
+
+/**
+ * Legacy function name for backwards compatibility
+ */
+export async function verifyPin(pin, storedValue) {
+  return verifyPassword(pin, storedValue);
 }
 
 /**
@@ -62,8 +76,36 @@ export function isHashed(value) {
   return isBcryptHash(value);
 }
 
+/**
+ * Validate password strength
+ * @param {string} password - The password to validate
+ * @returns {{ valid: boolean, errors: string[] }}
+ */
+export function validatePasswordStrength(password) {
+  const errors = [];
+
+  if (!password || password.length < 6) {
+    errors.push("Password must be at least 6 characters long");
+  }
+
+  if (password && password.length > 128) {
+    errors.push("Password must be less than 128 characters");
+  }
+
+  // Note: We're keeping it simple - no complex requirements
+  // This allows the user to set a simple but secure password
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 export default {
+  hashPassword,
   hashPin,
+  verifyPassword,
   verifyPin,
   isHashed,
+  validatePasswordStrength,
 };

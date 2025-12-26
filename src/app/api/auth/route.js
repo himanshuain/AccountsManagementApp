@@ -2,24 +2,24 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { checkRateLimit, resetRateLimit, getClientIp } from "@/lib/rate-limit";
-import { verifyPin, hashPin } from "@/lib/password";
+import { verifyPassword, hashPassword } from "@/lib/password";
 
-const DEFAULT_PIN = process.env.APP_PIN || "123456";
+const DEFAULT_PASSWORD = process.env.APP_PASSWORD || process.env.APP_PIN || "admin123";
 const AUTH_COOKIE_NAME = "shop_auth";
 const AUTH_UI_COOKIE_NAME = "shop_auth_ui"; // Client-readable indicator for UI
 const SESSION_VERSION_COOKIE = "shop_session_version";
 const SESSION_DURATION_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
-// Rate limit settings for PIN attempts
-const PIN_RATE_LIMIT = {
+// Rate limit settings for login attempts
+const LOGIN_RATE_LIMIT = {
   limit: 5, // 5 attempts
   windowMs: 60 * 1000, // per 1 minute
 };
 
-// Helper to get PIN from database or env
-async function getStoredPin() {
+// Helper to get password from database or env
+async function getStoredPassword() {
   if (!isSupabaseConfigured()) {
-    return { value: DEFAULT_PIN, fromDb: false };
+    return { value: DEFAULT_PASSWORD, fromDb: false };
   }
 
   try {
@@ -27,37 +27,48 @@ async function getStoredPin() {
     const { data, error } = await supabase
       .from("app_settings")
       .select("value")
-      .eq("key", "app_pin")
+      .eq("key", "app_password")
       .single();
 
     if (error || !data) {
-      return { value: DEFAULT_PIN, fromDb: false };
+      // Try legacy app_pin key for backwards compatibility
+      const { data: legacyData, error: legacyError } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "app_pin")
+        .single();
+
+      if (legacyError || !legacyData) {
+        return { value: DEFAULT_PASSWORD, fromDb: false };
+      }
+
+      return { value: legacyData.value || DEFAULT_PASSWORD, fromDb: true, isLegacy: true };
     }
 
-    return { value: data.value || DEFAULT_PIN, fromDb: true };
+    return { value: data.value || DEFAULT_PASSWORD, fromDb: true };
   } catch {
-    return { value: DEFAULT_PIN, fromDb: false };
+    return { value: DEFAULT_PASSWORD, fromDb: false };
   }
 }
 
-// Helper to upgrade plaintext PIN to hashed version
-async function upgradeToHashedPin(pin) {
+// Helper to upgrade plaintext password to hashed version
+async function upgradeToHashedPassword(password) {
   if (!isSupabaseConfigured()) return;
 
   try {
     const supabase = getServerClient();
-    const hashedPin = await hashPin(pin);
+    const hashedPassword = await hashPassword(password);
     await supabase.from("app_settings").upsert(
       {
-        key: "app_pin",
-        value: hashedPin,
+        key: "app_password",
+        value: hashedPassword,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "key" }
     );
-    console.log("PIN upgraded to hashed version");
+    console.log("Password upgraded to hashed version");
   } catch (error) {
-    console.error("Failed to upgrade PIN to hash:", error);
+    console.error("Failed to upgrade password to hash:", error);
   }
 }
 
@@ -89,10 +100,10 @@ export async function POST(request) {
   try {
     // Get client IP for rate limiting
     const clientIp = getClientIp(request);
-    const rateLimitKey = `pin_auth:${clientIp}`;
+    const rateLimitKey = `login_auth:${clientIp}`;
 
     // Check rate limit before processing
-    const rateLimit = checkRateLimit(rateLimitKey, PIN_RATE_LIMIT);
+    const rateLimit = checkRateLimit(rateLimitKey, LOGIN_RATE_LIMIT);
 
     if (!rateLimit.success) {
       return NextResponse.json(
@@ -111,13 +122,15 @@ export async function POST(request) {
       );
     }
 
-    const { pin } = await request.json();
+    const body = await request.json();
+    // Support both 'password' and legacy 'pin' field names
+    const password = body.password || body.pin;
 
-    if (!pin) {
+    if (!password) {
       return NextResponse.json(
         {
           success: false,
-          error: "PIN is required",
+          error: "Password is required",
           remaining: rateLimit.remaining,
         },
         {
@@ -129,18 +142,18 @@ export async function POST(request) {
       );
     }
 
-    const storedPinData = await getStoredPin();
+    const storedPasswordData = await getStoredPassword();
 
-    // Verify PIN (handles both hashed and legacy plaintext)
-    const { valid, needsUpgrade } = await verifyPin(pin, storedPinData.value);
+    // Verify password (handles both hashed and legacy plaintext)
+    const { valid, needsUpgrade } = await verifyPassword(password, storedPasswordData.value);
 
     if (valid) {
       // Reset rate limit on successful login
       resetRateLimit(rateLimitKey);
 
-      // Upgrade legacy plaintext PIN to hashed version (background, non-blocking)
-      if (needsUpgrade && storedPinData.fromDb) {
-        upgradeToHashedPin(pin).catch(() => {}); // Fire and forget
+      // Upgrade legacy plaintext password to hashed version (background, non-blocking)
+      if (needsUpgrade && storedPasswordData.fromDb) {
+        upgradeToHashedPassword(password).catch(() => {}); // Fire and forget
       }
 
       const sessionVersion = await getSessionVersion();
@@ -181,7 +194,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: false,
-        error: "Invalid PIN",
+        error: "Invalid password",
         remaining: rateLimit.remaining,
       },
       {

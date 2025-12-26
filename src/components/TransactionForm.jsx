@@ -22,6 +22,8 @@ export function TransactionForm({
   initialData = null,
   defaultSupplierId = null,
   quickCaptureData = null,
+  initialBillImages = [],
+  autoOpenSupplierDropdown = false,
   title = "Add Transaction",
 }) {
   const isOnline = useOnlineStatus();
@@ -34,6 +36,8 @@ export function TransactionForm({
   const [isPaid, setIsPaid] = useState(initialData?.paymentStatus === "paid" || false);
   const [isCash, setIsCash] = useState(initialData?.paymentMode === "cash" || false);
   const [isUploadingBills, setIsUploadingBills] = useState(false);
+  
+  // Handle quickCaptureData (legacy support)
   useEffect(() => {
     if (open && quickCaptureData) {
       setSelectedSupplierId(quickCaptureData.supplierId);
@@ -43,6 +47,14 @@ export function TransactionForm({
     }
   }, [open, quickCaptureData]);
 
+  // Handle initialBillImages (new prop for captured images)
+  useEffect(() => {
+    if (open && initialBillImages && initialBillImages.length > 0) {
+      // initialBillImages are base64 data URLs, set them directly as previews
+      setBillImages(initialBillImages);
+    }
+  }, [open, initialBillImages]);
+
   // Reset form state when opening
   useEffect(() => {
     if (open) {
@@ -50,11 +62,13 @@ export function TransactionForm({
       setIsCash(initialData?.paymentMode === "cash" || false);
       // Set supplier from initialData or defaultSupplierId
       setSelectedSupplierId(initialData?.supplierId || defaultSupplierId || "");
-      // Reset bill images
-      setBillImages(initialData?.billImages || []);
+      // Reset bill images only if no initialBillImages provided
+      if (!initialBillImages || initialBillImages.length === 0) {
+        setBillImages(initialData?.billImages || []);
+      }
       setPendingFiles([]);
     }
-  }, [open, initialData, defaultSupplierId]);
+  }, [open, initialData, defaultSupplierId, initialBillImages]);
 
   const {
     register,

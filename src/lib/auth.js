@@ -62,12 +62,18 @@ export async function verifySession() {
   }
 }
 
+// Legacy function name for backwards compatibility
 export async function verifyPin(pin) {
+  return verifyPassword(pin);
+}
+
+// Verify password with the server
+export async function verifyPassword(password) {
   try {
     const response = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin }),
+      body: JSON.stringify({ password }),
     });
 
     const data = await response.json();
@@ -77,7 +83,7 @@ export async function verifyPin(pin) {
       return { success: true };
     }
 
-    return { success: false, error: data.error || "Invalid PIN" };
+    return { success: false, error: data.error || "Invalid password" };
   } catch (error) {
     return { success: false, error: "Connection error" };
   }

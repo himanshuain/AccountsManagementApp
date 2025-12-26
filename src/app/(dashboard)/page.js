@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   Users,
-  Receipt,
   IndianRupee,
   Plus,
   Store,
@@ -13,6 +12,12 @@ import {
   UserPlus,
   X,
   Check,
+  Camera,
+  TrendingUp,
+  TrendingDown,
+  Receipt,
+  Wallet,
+  Calendar,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,28 +30,43 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
 import { CustomerForm } from "@/components/CustomerForm";
+import { SupplierForm } from "@/components/SupplierForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { haptics } from "@/hooks/useHaptics";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const isOnline = useOnlineStatus();
-  const { suppliers } = useSuppliers();
-  const { addTransaction } = useTransactions();
+  const { suppliers, addSupplier } = useSuppliers();
+  const { transactions } = useTransactions();
   const { customers, addCustomer } = useCustomers();
-  const { addUdhar } = useUdhar();
-  const { addIncome } = useIncome();
+  const { udharList, addUdhar } = useUdhar();
+  const { incomes, addIncome } = useIncome();
+  const { addTransaction } = useTransactions();
 
   // Form states
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
-  const [quickCaptureData, setQuickCaptureData] = useState(null);
+  const [supplierFormOpen, setSupplierFormOpen] = useState(false);
   const [initialUdharAmount, setInitialUdharAmount] = useState("");
+
+  // Image data to pass to forms
+  const [udharInitialData, setUdharInitialData] = useState(null);
+  const [transactionInitialImages, setTransactionInitialImages] = useState([]);
+
+  // Floating action button state
+  const [fabOpen, setFabOpen] = useState(false);
+
+  // Camera capture state
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const cameraInputRef = useRef(null);
 
   // For auto-opening dropdowns
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
@@ -58,14 +78,69 @@ export default function DashboardPage() {
     cashAmount: "",
     onlineAmount: "",
     date: new Date().toISOString().split("T")[0],
-    month: new Date().toISOString().slice(0, 7), // YYYY-MM format for month picker
+    month: new Date().toISOString().slice(0, 7),
     description: "",
   });
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const thisMonth = now.toISOString().slice(0, 7);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+
+    // Today's income
+    const todayIncomes = incomes?.filter(i => i.date === today) || [];
+    const todayTotal = todayIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const todayCash = todayIncomes.reduce((sum, i) => sum + (i.cashAmount || 0), 0);
+    const todayOnline = todayIncomes.reduce((sum, i) => sum + (i.onlineAmount || 0), 0);
+
+    // This month's income
+    const thisMonthIncomes = incomes?.filter(i => i.date?.startsWith(thisMonth)) || [];
+    const thisMonthTotal = thisMonthIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
+
+    // Last month's income
+    const lastMonthIncomes = incomes?.filter(i => i.date?.startsWith(lastMonth)) || [];
+    const lastMonthTotal = lastMonthIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
+
+    // Income trend
+    const incomeTrend = lastMonthTotal > 0 
+      ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 
+      : thisMonthTotal > 0 ? 100 : 0;
+
+    // Pending amounts
+    const totalPendingUdhar = udharList
+      ?.filter(u => u.paymentStatus !== "paid")
+      .reduce((sum, u) => {
+        const total = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+        const paid = u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+        return sum + Math.max(0, total - paid);
+      }, 0) || 0;
+
+    const totalPendingTransactions = transactions
+      ?.filter(t => t.paymentStatus !== "paid")
+      .reduce((sum, t) => {
+        const paid = t.paidAmount || (t.paidCash || 0) + (t.paidOnline || 0);
+        return sum + Math.max(0, t.amount - paid);
+      }, 0) || 0;
+
+    return {
+      todayTotal,
+      todayCash,
+      todayOnline,
+      thisMonthTotal,
+      lastMonthTotal,
+      incomeTrend,
+      totalPendingUdhar,
+      totalPendingTransactions,
+      totalCustomers: customers?.length || 0,
+      totalSuppliers: suppliers?.length || 0,
+    };
+  }, [incomes, udharList, transactions, customers, suppliers]);
 
   // Helper function to get the last day of a month
   const getLastDayOfMonth = yearMonth => {
     const [year, month] = yearMonth.split("-").map(Number);
-    // Create date for first day of next month, then subtract one day
     const lastDay = new Date(year, month, 0);
     return lastDay.toISOString().split("T")[0];
   };
@@ -84,11 +159,12 @@ export default function DashboardPage() {
 
   const handleAddTransaction = async data => {
     await addTransaction(data);
-    setQuickCaptureData(null);
+    setTransactionInitialImages([]);
   };
 
   const handleAddUdhar = async data => {
     await addUdhar(data);
+    setUdharInitialData(null);
   };
 
   const handleAddIncome = async () => {
@@ -101,7 +177,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // For monthly income, use the last day of the selected month
     const finalDate =
       incomeFormData.type === "monthly"
         ? getLastDayOfMonth(incomeFormData.month)
@@ -135,152 +210,498 @@ export default function DashboardPage() {
   const incomeFormTotal =
     (Number(incomeFormData.cashAmount) || 0) + (Number(incomeFormData.onlineAmount) || 0);
 
-  // Open Vyapari Bill (transaction form with supplier dropdown open)
+  // Open Vyapari Bill
   const openVyapariBill = () => {
     haptics.light();
+    setFabOpen(false);
     if (!isOnline) {
       haptics.error();
       toast.error("Cannot add while offline");
       return;
     }
     if (suppliers.length === 0) {
-      toast.error("Please add a supplier first");
+      toast.error("Please add a vyapari first");
       return;
     }
     setSupplierDropdownOpen(true);
     setTransactionFormOpen(true);
   };
 
-  // Open Add Udhar (with customer dropdown open)
+  // Open Add Udhar
   const openAddUdhar = () => {
     haptics.light();
+    setFabOpen(false);
     if (!isOnline) {
       haptics.error();
       toast.error("Cannot add while offline");
+      return;
+    }
+    if (customers.length === 0) {
+      toast.error("Please add a customer first");
       return;
     }
     setCustomerDropdownOpen(true);
     setUdharFormOpen(true);
   };
 
+  // Open Income Form
+  const openIncomeForm = () => {
+    haptics.light();
+    setFabOpen(false);
+    if (!isOnline) {
+      haptics.error();
+      toast.error("Cannot add while offline");
+      return;
+    }
+    setIncomeFormOpen(true);
+  };
+
+  // Open Customer Form
+  const openCustomerForm = () => {
+    haptics.light();
+    setFabOpen(false);
+    if (!isOnline) {
+      haptics.error();
+      toast.error("Cannot add while offline");
+      return;
+    }
+    setCustomerFormOpen(true);
+  };
+
+  // Open Supplier Form
+  const openSupplierForm = () => {
+    haptics.light();
+    setFabOpen(false);
+    if (!isOnline) {
+      haptics.error();
+      toast.error("Cannot add while offline");
+      return;
+    }
+    setSupplierFormOpen(true);
+  };
+
+  // Camera capture functions
+  const handleCameraCapture = () => {
+    haptics.light();
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  };
+
+  const handleImageCapture = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedImage(reader.result);
+        setCameraOpen(true);
+      };
+      reader.readAsDataURL(file);
+      // Reset the input so the same file can be selected again
+      e.target.value = "";
+    }
+  };
+
+  const handleAttachToUdhar = () => {
+    haptics.light();
+    setCameraOpen(false);
+    
+    if (!isOnline) {
+      haptics.error();
+      toast.error("Cannot add while offline");
+      setCapturedImage(null);
+      return;
+    }
+
+    if (customers.length === 0) {
+      // No customers, open customer form instead
+      toast.info("Please add a customer first");
+      setCustomerFormOpen(true);
+      setCapturedImage(null);
+      return;
+    }
+
+    // Set the captured image as khataPhotos for the udhar form
+    setUdharInitialData({
+      khataPhotos: [capturedImage],
+    });
+    setCustomerDropdownOpen(true);
+    setUdharFormOpen(true);
+    setCapturedImage(null);
+  };
+
+  const handleAttachToVyapari = () => {
+    haptics.light();
+    setCameraOpen(false);
+    
+    if (!isOnline) {
+      haptics.error();
+      toast.error("Cannot add while offline");
+      setCapturedImage(null);
+      return;
+    }
+
+    if (suppliers.length === 0) {
+      // No suppliers, open supplier form instead
+      toast.info("Please add a vyapari first");
+      setSupplierFormOpen(true);
+      setCapturedImage(null);
+      return;
+    }
+
+    // Set the captured image for the transaction form
+    setTransactionInitialImages([capturedImage]);
+    setSupplierDropdownOpen(true);
+    setTransactionFormOpen(true);
+    setCapturedImage(null);
+  };
+
+  // Check if we have customers/suppliers
+  const hasCustomers = customers && customers.length > 0;
+  const hasSuppliers = suppliers && suppliers.length > 0;
+
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col p-4 lg:p-6">
+    <div className="flex min-h-[calc(100vh-8rem)] flex-col p-4 pb-24 lg:p-6 lg:pb-6">
       {/* Header */}
       <div className="mb-6">
         <h1 className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-2xl font-bold text-transparent">
           Dashboard
         </h1>
-        <p className="text-sm text-muted-foreground">Quick actions for your shop</p>
+        <p className="text-sm text-muted-foreground">Overview of your shop</p>
       </div>
 
-      {/* 2x2 Quick Action Grid */}
-      <div className="grid flex-1 grid-cols-3 gap-4">
-        {/* Vyapari Bill (Quick Bill Capture) */}
-        <Card
-          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
-            isOnline && suppliers.length > 0
-              ? "bg-gradient-to-br from-indigo-500 to-purple-600 hover:scale-[1.02] hover:shadow-xl"
-              : "cursor-not-allowed bg-gradient-to-br from-indigo-400 to-purple-500 opacity-50"
-          }`}
-          onClick={openVyapariBill}
-        >
-          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
-            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
-              <Store className="h-8 w-8 text-white" />
+      {/* Stats Grid */}
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Today's Income */}
+        <Card className="border-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Today&apos;s Income</p>
+                <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                  ₹{stats.todayTotal.toLocaleString()}
+                </p>
+                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-0.5">
+                    <Banknote className="h-3 w-3" />
+                    ₹{stats.todayCash.toLocaleString()}
+                  </span>
+                  <span className="flex items-center gap-0.5">
+                    <Smartphone className="h-3 w-3" />
+                    ₹{stats.todayOnline.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-lg bg-emerald-500/20 p-2">
+                <IndianRupee className="h-4 w-4 text-emerald-600" />
+              </div>
             </div>
-            <span className="text-center text-base font-semibold text-white">
-              Capture Vyapari Bill
-            </span>
-            <span className="mt-1 text-xs text-white/70">Quick scan</span>
           </CardContent>
         </Card>
 
-        {/* Daily Income */}
-        <Card
-          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
-            isOnline
-              ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:scale-[1.02] hover:shadow-xl"
-              : "cursor-not-allowed bg-gradient-to-br from-emerald-400 to-teal-500 opacity-50"
-          }`}
-          onClick={() => {
-            haptics.light();
-            if (!isOnline) {
-              haptics.error();
-              toast.error("Cannot add while offline");
-              return;
-            }
-            setIncomeFormOpen(true);
-          }}
-        >
-          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
-            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
-              <IndianRupee className="h-8 w-8 text-white" />
+        {/* Monthly Income */}
+        <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">This Month</p>
+                <p className="mt-1 text-xl font-bold text-blue-600 dark:text-blue-400">
+                  ₹{stats.thisMonthTotal.toLocaleString()}
+                </p>
+                <div className="mt-1 flex items-center gap-1 text-xs">
+                  {stats.incomeTrend >= 0 ? (
+                    <span className="flex items-center text-emerald-600">
+                      <TrendingUp className="h-3 w-3" />
+                      +{stats.incomeTrend.toFixed(0)}%
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-red-500">
+                      <TrendingDown className="h-3 w-3" />
+                      {stats.incomeTrend.toFixed(0)}%
+                    </span>
+                  )}
+                  <span className="text-muted-foreground">vs last month</span>
+                </div>
+              </div>
+              <div className="rounded-lg bg-blue-500/20 p-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+              </div>
             </div>
-            <span className="text-center text-base font-semibold text-white">Daily Income</span>
-            <span className="mt-1 text-xs text-white/70">Record earnings</span>
           </CardContent>
         </Card>
 
-        {/* Add Udhar */}
-        <Card
-          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
-            isOnline
-              ? "bg-gradient-to-br from-orange-500 to-rose-500 hover:scale-[1.02] hover:shadow-xl"
-              : "cursor-not-allowed bg-gradient-to-br from-orange-400 to-rose-400 opacity-50"
-          }`}
-          onClick={openAddUdhar}
-        >
-          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
-            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
-              <Banknote className="h-8 w-8 text-white" />
+        {/* Pending Udhar */}
+        <Card className="border-0 bg-gradient-to-br from-orange-500/10 to-rose-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Pending Udhar</p>
+                <p className="mt-1 text-xl font-bold text-orange-600 dark:text-orange-400">
+                  ₹{stats.totalPendingUdhar.toLocaleString()}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {stats.totalCustomers} customers
+                </p>
+              </div>
+              <div className="rounded-lg bg-orange-500/20 p-2">
+                <Wallet className="h-4 w-4 text-orange-600" />
+              </div>
             </div>
-            <span className="text-center text-base font-semibold text-white">Add Udhar</span>
-            <span className="mt-1 text-xs text-white/70">Customer lending</span>
           </CardContent>
         </Card>
 
-        {/* Add Customer */}
-        {/* <Card
-          className={`cursor-pointer border-0 shadow-sm transition-all active:scale-[0.98] ${
-            isOnline
-              ? "bg-gradient-to-br from-cyan-500 to-blue-600 hover:scale-[1.02] hover:shadow-xl"
-              : "cursor-not-allowed bg-gradient-to-br from-cyan-400 to-blue-500 opacity-50"
-          }`}
-          onClick={() => {
-            haptics.light();
-            if (!isOnline) {
-              haptics.error();
-              toast.error("Cannot add while offline");
-              return;
-            }
-            setCustomerFormOpen(true);
-          }}
-        >
-          <CardContent className="flex h-full min-h-[140px] flex-col items-center justify-center p-6">
-            <div className="mb-3 rounded-2xl bg-white/20 p-4 shadow-lg backdrop-blur-sm">
-              <UserPlus className="h-8 w-8 text-white" />
+        {/* Pending Vyapari Bills */}
+        <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Pending Bills</p>
+                <p className="mt-1 text-xl font-bold text-purple-600 dark:text-purple-400">
+                  ₹{stats.totalPendingTransactions.toLocaleString()}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {stats.totalSuppliers} vyaparis
+                </p>
+              </div>
+              <div className="rounded-lg bg-purple-500/20 p-2">
+                <Receipt className="h-4 w-4 text-purple-600" />
+              </div>
             </div>
-            <span className="text-center text-base font-semibold text-white">Add Customer</span>
-            <span className="mt-1 text-xs text-white/70">New customer</span>
           </CardContent>
-        </Card> */}
+        </Card>
       </div>
+
+      {/* Quick Camera Access */}
+      <div className="mb-6">
+        <Card 
+          className="cursor-pointer border-2 border-dashed border-pink-300 bg-gradient-to-br from-pink-500/5 to-rose-500/5 transition-all hover:border-pink-400 hover:from-pink-500/10 hover:to-rose-500/10 active:scale-[0.98] dark:border-pink-800"
+          onClick={handleCameraCapture}
+        >
+          <CardContent className="flex items-center justify-center gap-3 p-6">
+            <div className="rounded-full bg-pink-500/20 p-3">
+              <Camera className="h-6 w-6 text-pink-600" />
+            </div>
+            <div>
+              <p className="font-medium text-pink-600">Quick Bill Capture</p>
+              <p className="text-xs text-muted-foreground">Tap to capture bill image</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity Placeholder */}
+      <div className="flex-1">
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Quick Actions</h2>
+        <Card className="border-0 bg-muted/30">
+          <CardContent className="flex min-h-[200px] flex-col items-center justify-center p-6 text-center">
+            <div className="rounded-full bg-muted p-4">
+              <Plus className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Use the + button to add transactions, udhar, or income
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Hidden Camera Input */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleImageCapture}
+        className="hidden"
+      />
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-24 right-4 z-50 lg:bottom-8">
+        {/* FAB Menu Items */}
+        <div
+          className={cn(
+            "mb-3 flex flex-col items-end gap-2 transition-all duration-300",
+            fabOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+          )}
+        >
+          {/* Camera Capture */}
+          <Button
+            size="sm"
+            className="h-10 gap-2 rounded-full bg-pink-500 pr-4 shadow-lg hover:bg-pink-600"
+            onClick={handleCameraCapture}
+          >
+            <Camera className="h-4 w-4" />
+            <span>Capture Bill</span>
+          </Button>
+
+          {/* Add Customer */}
+          <Button
+            size="sm"
+            className="h-10 gap-2 rounded-full bg-cyan-500 pr-4 shadow-lg hover:bg-cyan-600"
+            onClick={openCustomerForm}
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Add Customer</span>
+          </Button>
+
+          {/* Add Supplier */}
+          <Button
+            size="sm"
+            className="h-10 gap-2 rounded-full bg-indigo-400 pr-4 shadow-lg hover:bg-indigo-500"
+            onClick={openSupplierForm}
+          >
+            <Store className="h-4 w-4" />
+            <span>Add Vyapari</span>
+          </Button>
+
+          {/* Add Udhar */}
+          <Button
+            size="sm"
+            className="h-10 gap-2 rounded-full bg-orange-500 pr-4 shadow-lg hover:bg-orange-600"
+            onClick={openAddUdhar}
+            disabled={!hasCustomers}
+          >
+            <Banknote className="h-4 w-4" />
+            <span>Add Udhar</span>
+          </Button>
+
+          {/* Daily Income */}
+          <Button
+            size="sm"
+            className="h-10 gap-2 rounded-full bg-emerald-500 pr-4 shadow-lg hover:bg-emerald-600"
+            onClick={openIncomeForm}
+          >
+            <IndianRupee className="h-4 w-4" />
+            <span>Add Income</span>
+          </Button>
+
+          {/* Vyapari Bill */}
+          <Button
+            size="sm"
+            className="h-10 gap-2 rounded-full bg-indigo-500 pr-4 shadow-lg hover:bg-indigo-600"
+            onClick={openVyapariBill}
+            disabled={!hasSuppliers}
+          >
+            <Receipt className="h-4 w-4" />
+            <span>Vyapari Bill</span>
+          </Button>
+        </div>
+
+        {/* Main FAB Button */}
+        <Button
+          size="lg"
+          className={cn(
+            "h-14 w-14 rounded-full shadow-lg transition-all duration-300",
+            fabOpen
+              ? "bg-red-500 hover:bg-red-600 rotate-45"
+              : "bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+          )}
+          onClick={() => {
+            haptics.light();
+            setFabOpen(!fabOpen);
+          }}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* FAB Backdrop */}
+      {fabOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+          onClick={() => setFabOpen(false)}
+        />
+      )}
+
+      {/* Camera Capture Sheet */}
+      <Sheet open={cameraOpen} onOpenChange={setCameraOpen}>
+        <SheetContent side="bottom" className="h-auto rounded-t-2xl">
+          <SheetHeader className="pb-4 text-center">
+            <SheetTitle className="flex items-center justify-center gap-2">
+              <Camera className="h-5 w-5" />
+              Captured Image
+            </SheetTitle>
+          </SheetHeader>
+
+          {capturedImage && (
+            <div className="space-y-4 pb-6">
+              <div className="mx-auto max-w-sm overflow-hidden rounded-lg border">
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  className="h-auto w-full object-cover"
+                />
+              </div>
+
+              <p className="text-center text-sm text-muted-foreground">
+                Where do you want to attach this image?
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  className="h-16 flex-col gap-1"
+                  onClick={handleAttachToUdhar}
+                >
+                  {hasCustomers ? (
+                    <>
+                      <Banknote className="h-5 w-5 text-orange-500" />
+                      <span className="text-xs">Add to Udhar</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-5 w-5 text-cyan-500" />
+                      <span className="text-xs">Add Customer</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-16 flex-col gap-1"
+                  onClick={handleAttachToVyapari}
+                >
+                  {hasSuppliers ? (
+                    <>
+                      <Receipt className="h-5 w-5 text-indigo-500" />
+                      <span className="text-xs">Add to Vyapari Bill</span>
+                    </>
+                  ) : (
+                    <>
+                      <Store className="h-5 w-5 text-indigo-500" />
+                      <span className="text-xs">Add Vyapari</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setCameraOpen(false);
+                  setCapturedImage(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Forms */}
-
       <TransactionForm
         open={transactionFormOpen}
         onOpenChange={open => {
           setTransactionFormOpen(open);
           if (!open) {
-            setQuickCaptureData(null);
+            setTransactionInitialImages([]);
             setSupplierDropdownOpen(false);
           }
         }}
         onSubmit={handleAddTransaction}
         suppliers={suppliers}
-        quickCaptureData={quickCaptureData}
         autoOpenSupplierDropdown={supplierDropdownOpen}
+        initialBillImages={transactionInitialImages}
       />
 
       <UdharForm
@@ -288,6 +709,7 @@ export default function DashboardPage() {
         onOpenChange={open => {
           setUdharFormOpen(open);
           if (!open) {
+            setUdharInitialData(null);
             setCustomerDropdownOpen(false);
           }
         }}
@@ -295,6 +717,7 @@ export default function DashboardPage() {
         onAddCustomer={addCustomer}
         customers={customers}
         autoOpenCustomerDropdown={customerDropdownOpen}
+        initialData={udharInitialData}
       />
 
       {/* Customer Form */}
@@ -334,6 +757,21 @@ export default function DashboardPage() {
         showInitialAmount={true}
         initialAmount={initialUdharAmount}
         onInitialAmountChange={setInitialUdharAmount}
+      />
+
+      {/* Supplier Form */}
+      <SupplierForm
+        open={supplierFormOpen}
+        onOpenChange={setSupplierFormOpen}
+        onSubmit={async data => {
+          const result = await addSupplier(data);
+          if (result.success) {
+            toast.success("Vyapari added successfully");
+          } else {
+            toast.error("Failed to add vyapari");
+          }
+        }}
+        title="Add Vyapari"
       />
 
       {/* Daily Income Form - Sheet sliding from top */}
@@ -428,7 +866,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Total Display - Prominent at top */}
+              {/* Total Display */}
               <div className="rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-5">
                 <div className="text-center">
                   <span className="text-sm text-muted-foreground">Total Income</span>

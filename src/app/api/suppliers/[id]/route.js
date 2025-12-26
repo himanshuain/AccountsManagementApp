@@ -178,10 +178,10 @@ export async function DELETE(request, { params }) {
     // Collect all images to delete before removing records
     const imagesToDelete = [];
 
-    // Get supplier data for images
+    // Get supplier data for images (include all image fields)
     const { data: supplier } = await supabase
       .from("suppliers")
-      .select("profile_picture")
+      .select("profile_picture, upi_qr_code, logo, photos")
       .eq("id", id)
       .single();
 
