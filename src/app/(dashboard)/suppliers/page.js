@@ -327,6 +327,16 @@ export default function SuppliersPage() {
     }
   }, [searchParams, suppliersWithStats, loading, router]);
 
+  // Handle filter URL parameter (e.g., from dashboard)
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam && ["all", "pending", "partial", "paid", "high"].includes(filterParam)) {
+      setActiveFilter(filterParam);
+      // Clear the query parameter from URL without triggering a navigation
+      router.replace("/suppliers", { scroll: false });
+    }
+  }, [searchParams, router]);
+
   // Keep selectedSupplier in sync with updated data (fixes totalAmount not updating after transaction)
   useEffect(() => {
     if (selectedSupplier) {

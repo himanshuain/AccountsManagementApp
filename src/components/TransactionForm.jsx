@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, X, Check } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
@@ -14,18 +14,26 @@ import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
 
+// Stable empty array reference to prevent infinite re-renders
+const EMPTY_ARRAY = [];
+
 export function TransactionForm({
   open,
   onOpenChange,
   onSubmit,
-  suppliers = [],
+  suppliers = EMPTY_ARRAY,
   initialData = null,
   defaultSupplierId = null,
   quickCaptureData = null,
-  initialBillImages = [],
+  initialBillImages,
   autoOpenSupplierDropdown = false,
   title = "Add Transaction",
 }) {
+  // Use stable reference for initialBillImages
+  const stableInitialBillImages = useMemo(
+    () => initialBillImages || EMPTY_ARRAY,
+    [initialBillImages]
+  );
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billImages, setBillImages] = useState(initialData?.billImages || []);
@@ -49,11 +57,11 @@ export function TransactionForm({
 
   // Handle initialBillImages (new prop for captured images)
   useEffect(() => {
-    if (open && initialBillImages && initialBillImages.length > 0) {
+    if (open && stableInitialBillImages && stableInitialBillImages.length > 0) {
       // initialBillImages are base64 data URLs, set them directly as previews
-      setBillImages(initialBillImages);
+      setBillImages(stableInitialBillImages);
     }
-  }, [open, initialBillImages]);
+  }, [open, stableInitialBillImages]);
 
   // Reset form state when opening
   useEffect(() => {
@@ -63,12 +71,12 @@ export function TransactionForm({
       // Set supplier from initialData or defaultSupplierId
       setSelectedSupplierId(initialData?.supplierId || defaultSupplierId || "");
       // Reset bill images only if no initialBillImages provided
-      if (!initialBillImages || initialBillImages.length === 0) {
+      if (stableInitialBillImages.length === 0) {
         setBillImages(initialData?.billImages || []);
       }
       setPendingFiles([]);
     }
-  }, [open, initialData, defaultSupplierId, initialBillImages]);
+  }, [open, initialData, defaultSupplierId, stableInitialBillImages]);
 
   const {
     register,
@@ -186,8 +194,15 @@ export function TransactionForm({
     }
   };
 
+  // Handler for Sheet's onOpenChange - only close, don't interfere with opening
+  const handleSheetOpenChange = (isOpen) => {
+    if (!isOpen) {
+      handleClose();
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
+    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
       <SheetContent
         side="bottom"
         className="flex h-[90vh] flex-col rounded-t-2xl p-0"

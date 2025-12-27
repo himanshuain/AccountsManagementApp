@@ -17,12 +17,10 @@ import {
   Activity,
   Key,
   HardDrive,
-  Fingerprint,
   Loader2,
   Eye,
   EyeOff,
   Lock,
-  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -35,7 +33,6 @@ import { ThemeToggle } from "./ThemeToggle";
 import { logout } from "@/lib/auth";
 import { toast } from "sonner";
 import { useStorage } from "@/hooks/useStorage";
-import { useBiometric } from "@/hooks/useBiometric";
 import { BackupManager } from "./BackupManager";
 import {
   AlertDialog,
@@ -90,7 +87,6 @@ export function MobileNav() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
-  const [biometricSheetOpen, setBiometricSheetOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -103,13 +99,6 @@ export function MobileNav() {
   const scrollRef = useRef(null);
 
   const { storageInfo, loading: storageLoading } = useStorage();
-  const {
-    isSupported: biometricSupported,
-    isEnabled: biometricEnabled,
-    isLoading: biometricLoading,
-    registerBiometric,
-    disableBiometric,
-  } = useBiometric();
 
   const handleLogout = () => {
     logout();
@@ -174,26 +163,6 @@ export function MobileNav() {
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
-  };
-
-  const handleBiometricSetup = async () => {
-    try {
-      await registerBiometric();
-      toast.success("Biometric login enabled!");
-      setBiometricSheetOpen(false);
-    } catch (error) {
-      toast.error(error.message || "Failed to setup biometric login");
-    }
-  };
-
-  const handleBiometricDisable = async () => {
-    try {
-      await disableBiometric();
-      toast.success("Biometric login disabled");
-      setBiometricSheetOpen(false);
-    } catch (error) {
-      toast.error("Failed to disable biometric login");
-    }
   };
 
   const handleRefresh = async () => {
@@ -361,21 +330,6 @@ export function MobileNav() {
                     <HardDrive className="mr-2 h-4 w-4" />
                     Backup & Restore
                   </Button>
-
-                  {/* Biometric Login Button */}
-                  {biometricSupported && (
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-muted-foreground"
-                      onClick={() => setBiometricSheetOpen(true)}
-                    >
-                      <Fingerprint className="mr-2 h-4 w-4" />
-                      Biometric Login
-                      {biometricEnabled && (
-                        <CheckCircle2 className="ml-auto h-4 w-4 text-green-500" />
-                      )}
-                    </Button>
-                  )}
 
                   {/* Change Password Button */}
                   <Button
@@ -602,94 +556,6 @@ export function MobileNav() {
               ) : (
                 "Change Password"
               )}
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Biometric Setup Sheet */}
-      <Sheet open={biometricSheetOpen} onOpenChange={setBiometricSheetOpen}>
-        <SheetContent side="bottom" className="h-auto rounded-t-2xl">
-          <SheetHeader className="pb-4 text-left">
-            <SheetTitle className="flex items-center gap-2">
-              <Fingerprint className="h-5 w-5" />
-              Biometric Login
-            </SheetTitle>
-            <SheetDescription>
-              {biometricEnabled
-                ? "Biometric login is currently enabled"
-                : "Enable Face ID, Touch ID, or Fingerprint login"}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="space-y-4 py-4">
-            {biometricEnabled ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
-                  <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">
-                      Biometric login is enabled
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      You can use Face ID, Touch ID, or Fingerprint to login
-                    </p>
-                  </div>
-                </div>
-
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleBiometricDisable}
-                  disabled={biometricLoading}
-                >
-                  {biometricLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Disabling...
-                    </>
-                  ) : (
-                    "Disable Biometric Login"
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Enable biometric authentication to quickly login using your device&apos;s
-                    Face ID, Touch ID, or Fingerprint sensor. This is more convenient and secure.
-                  </p>
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={handleBiometricSetup}
-                  disabled={biometricLoading}
-                >
-                  {biometricLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Setting up...
-                    </>
-                  ) : (
-                    <>
-                      <Fingerprint className="mr-2 h-4 w-4" />
-                      Enable Biometric Login
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="pb-6">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setBiometricSheetOpen(false)}
-            >
-              Close
             </Button>
           </div>
         </SheetContent>

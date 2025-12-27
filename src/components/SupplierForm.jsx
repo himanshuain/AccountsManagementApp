@@ -128,8 +128,15 @@ export function SupplierForm({
     }
   };
 
+  // Handler for Sheet's onOpenChange - only close, don't interfere with opening
+  const handleSheetOpenChange = (isOpen) => {
+    if (!isOpen) {
+      handleClose();
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
+    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
       <SheetContent
         side="bottom"
         className="flex h-[90vh] flex-col rounded-t-2xl p-0"

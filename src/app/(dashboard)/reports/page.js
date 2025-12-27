@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart,
   Bar,
@@ -105,6 +105,7 @@ const getYAxisTicks = maxValue => {
 
 export default function ReportsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
   const {
     incomeList,
@@ -137,6 +138,36 @@ export default function ReportsPage() {
       }, 500);
     }
   }, [incomeFormOpen]);
+
+  // Handle URL params for scrolling and expanding sections (e.g., from dashboard)
+  useEffect(() => {
+    const scrollTo = searchParams.get("scrollTo");
+    const expandIncome = searchParams.get("expandIncome");
+    const expandMonthly = searchParams.get("expandMonthly");
+    
+    if (scrollTo || expandIncome || expandMonthly) {
+      // Expand relevant sections
+      if (expandIncome === "true") {
+        setIncomeListExpanded(true);
+      }
+      if (expandMonthly === "true") {
+        setMonthlyListExpanded(true);
+      }
+      
+      // Scroll to relevant section after a short delay to allow expansion
+      setTimeout(() => {
+        if (scrollTo === "income" && incomeListRef.current) {
+          incomeListRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (scrollTo === "monthly" && incomeListRef.current) {
+          // Scroll to income list which contains both daily and monthly entries
+          incomeListRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        
+        // Clear the query parameters from URL without triggering a navigation
+        router.replace("/reports", { scroll: false });
+      }, 300);
+    }
+  }, [searchParams, router]);
 
   // Scroll to section handler
   const scrollToSection = ref => {

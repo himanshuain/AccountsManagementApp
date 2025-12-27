@@ -120,6 +120,7 @@ export default function CustomersPage() {
     fetchNextPage: fetchNextUdharApi,
     hasNextPage: hasMoreUdharApi,
     isFetchingNextPage: isFetchingMoreUdharApi,
+    refresh: refreshUdhar,
   } = useUdhar();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -314,6 +315,16 @@ export default function CustomersPage() {
       }
     }
   }, [searchParams, customersWithStats, customersLoading, router]);
+
+  // Handle filter URL parameter (e.g., from dashboard)
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam && ["all", "pending", "partial", "paid", "high"].includes(filterParam)) {
+      setActiveFilter(filterParam);
+      // Clear the query parameter from URL without triggering a navigation
+      router.replace("/customers", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Keep selectedCustomer in sync with updated data (fixes totalAmount not updating after transaction)
   useEffect(() => {
@@ -749,6 +760,8 @@ export default function CustomersPage() {
       if (selectedCustomer?.id === customerToDelete.id) {
         setSelectedCustomer(null);
       }
+      // Refresh udhar list to remove deleted customer's transactions
+      refreshUdhar();
     } else {
       toast.error("Failed to delete customer");
     }

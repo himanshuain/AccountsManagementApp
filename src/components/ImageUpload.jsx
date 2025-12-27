@@ -107,8 +107,23 @@ export function ImageUpload({
     }
   };
 
-  const handleRemove = e => {
+  const handleRemove = async e => {
     e.stopPropagation();
+    
+    // If the current value is a storage key (not data URL), delete it from R2
+    if (value && typeof value === "string" && !isDataUrl(value)) {
+      try {
+        // Delete from R2 in background - don't block UI
+        fetch("/api/upload/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ storageKey: value }),
+        }).catch(err => console.error("Failed to delete image from R2:", err));
+      } catch (err) {
+        console.error("Failed to delete image:", err);
+      }
+    }
+    
     setPreview(null);
     onChange?.(null);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -348,7 +363,23 @@ export function MultiImageUpload({
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
 
-  const handleRemove = index => {
+  const handleRemove = async index => {
+    const removedKey = value[index];
+    
+    // If the removed item is a storage key (not data URL), delete it from R2
+    if (removedKey && typeof removedKey === "string" && !isDataUrl(removedKey)) {
+      try {
+        // Delete from R2 in background - don't block UI
+        fetch("/api/upload/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ storageKey: removedKey }),
+        }).catch(err => console.error("Failed to delete image from R2:", err));
+      } catch (err) {
+        console.error("Failed to delete image:", err);
+      }
+    }
+    
     const newValue = value.filter((_, i) => i !== index);
     onChange?.(newValue);
   };

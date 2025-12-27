@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Users,
   IndianRupee,
@@ -18,6 +20,7 @@ import {
   Receipt,
   Wallet,
   Calendar,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,12 +43,13 @@ import { haptics } from "@/hooks/useHaptics";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const isOnline = useOnlineStatus();
   const { suppliers, addSupplier } = useSuppliers();
   const { transactions } = useTransactions();
   const { customers, addCustomer } = useCustomers();
   const { udharList, addUdhar } = useUdhar();
-  const { incomes, addIncome } = useIncome();
+  const { incomeList, addIncome } = useIncome();
   const { addTransaction } = useTransactions();
 
   // Form states
@@ -90,17 +94,17 @@ export default function DashboardPage() {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
 
     // Today's income
-    const todayIncomes = incomes?.filter(i => i.date === today) || [];
+    const todayIncomes = incomeList?.filter(i => i.date === today) || [];
     const todayTotal = todayIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
     const todayCash = todayIncomes.reduce((sum, i) => sum + (i.cashAmount || 0), 0);
     const todayOnline = todayIncomes.reduce((sum, i) => sum + (i.onlineAmount || 0), 0);
 
     // This month's income
-    const thisMonthIncomes = incomes?.filter(i => i.date?.startsWith(thisMonth)) || [];
+    const thisMonthIncomes = incomeList?.filter(i => i.date?.startsWith(thisMonth)) || [];
     const thisMonthTotal = thisMonthIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
 
     // Last month's income
-    const lastMonthIncomes = incomes?.filter(i => i.date?.startsWith(lastMonth)) || [];
+    const lastMonthIncomes = incomeList?.filter(i => i.date?.startsWith(lastMonth)) || [];
     const lastMonthTotal = lastMonthIncomes.reduce((sum, i) => sum + (i.amount || 0), 0);
 
     // Income trend
@@ -136,7 +140,7 @@ export default function DashboardPage() {
       totalCustomers: customers?.length || 0,
       totalSuppliers: suppliers?.length || 0,
     };
-  }, [incomes, udharList, transactions, customers, suppliers]);
+  }, [incomeList, udharList, transactions, customers, suppliers]);
 
   // Helper function to get the last day of a month
   const getLastDayOfMonth = yearMonth => {
@@ -359,6 +363,28 @@ export default function DashboardPage() {
   // Check if we have customers/suppliers
   const hasCustomers = customers && customers.length > 0;
   const hasSuppliers = suppliers && suppliers.length > 0;
+  const hasAnyData = hasCustomers || hasSuppliers;
+
+  // Navigation handlers for stat tiles
+  const handleTodayIncomeClick = () => {
+    haptics.light();
+    router.push("/reports?scrollTo=income&expandIncome=true");
+  };
+
+  const handleThisMonthClick = () => {
+    haptics.light();
+    router.push("/reports?scrollTo=monthly&expandMonthly=true");
+  };
+
+  const handlePendingUdharClick = () => {
+    haptics.light();
+    router.push("/customers?filter=pending");
+  };
+
+  const handlePendingBillsClick = () => {
+    haptics.light();
+    router.push("/suppliers?filter=pending");
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col p-4 pb-24 lg:p-6 lg:pb-6">
@@ -373,7 +399,10 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {/* Today's Income */}
-        <Card className="border-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
+        <Card 
+          className="cursor-pointer border-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          onClick={handleTodayIncomeClick}
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -396,11 +425,18 @@ export default function DashboardPage() {
                 <IndianRupee className="h-4 w-4 text-emerald-600" />
               </div>
             </div>
+            <div className="mt-2 flex items-center justify-end text-xs text-emerald-600">
+              <span>View details</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
           </CardContent>
         </Card>
 
         {/* Monthly Income */}
-        <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10">
+        <Card 
+          className="cursor-pointer border-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          onClick={handleThisMonthClick}
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -427,11 +463,18 @@ export default function DashboardPage() {
                 <Calendar className="h-4 w-4 text-blue-600" />
               </div>
             </div>
+            <div className="mt-2 flex items-center justify-end text-xs text-blue-600">
+              <span>View breakdown</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
           </CardContent>
         </Card>
 
         {/* Pending Udhar */}
-        <Card className="border-0 bg-gradient-to-br from-orange-500/10 to-rose-500/10">
+        <Card 
+          className="cursor-pointer border-0 bg-gradient-to-br from-orange-500/10 to-rose-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          onClick={handlePendingUdharClick}
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -447,11 +490,18 @@ export default function DashboardPage() {
                 <Wallet className="h-4 w-4 text-orange-600" />
               </div>
             </div>
+            <div className="mt-2 flex items-center justify-end text-xs text-orange-600">
+              <span>View pending</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
           </CardContent>
         </Card>
 
         {/* Pending Vyapari Bills */}
-        <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+        <Card 
+          className="cursor-pointer border-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          onClick={handlePendingBillsClick}
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -467,6 +517,10 @@ export default function DashboardPage() {
                 <Receipt className="h-4 w-4 text-purple-600" />
               </div>
             </div>
+            <div className="mt-2 flex items-center justify-end text-xs text-purple-600">
+              <span>View pending</span>
+              <ChevronRight className="h-3 w-3" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -474,16 +528,36 @@ export default function DashboardPage() {
       {/* Quick Camera Access */}
       <div className="mb-6">
         <Card 
-          className="cursor-pointer border-2 border-dashed border-pink-300 bg-gradient-to-br from-pink-500/5 to-rose-500/5 transition-all hover:border-pink-400 hover:from-pink-500/10 hover:to-rose-500/10 active:scale-[0.98] dark:border-pink-800"
-          onClick={handleCameraCapture}
+          className={cn(
+            "border-2 border-dashed transition-all",
+            hasAnyData 
+              ? "cursor-pointer border-pink-300 bg-gradient-to-br from-pink-500/5 to-rose-500/5 hover:border-pink-400 hover:from-pink-500/10 hover:to-rose-500/10 active:scale-[0.98] dark:border-pink-800"
+              : "cursor-not-allowed border-muted bg-muted/20 opacity-60"
+          )}
+          onClick={hasAnyData ? handleCameraCapture : undefined}
         >
           <CardContent className="flex items-center justify-center gap-3 p-6">
-            <div className="rounded-full bg-pink-500/20 p-3">
-              <Camera className="h-6 w-6 text-pink-600" />
+            <div className={cn(
+              "rounded-full p-3",
+              hasAnyData ? "bg-pink-500/20" : "bg-muted"
+            )}>
+              <Camera className={cn(
+                "h-6 w-6",
+                hasAnyData ? "text-pink-600" : "text-muted-foreground"
+              )} />
             </div>
             <div>
-              <p className="font-medium text-pink-600">Quick Bill Capture</p>
-              <p className="text-xs text-muted-foreground">Tap to capture bill image</p>
+              <p className={cn(
+                "font-medium",
+                hasAnyData ? "text-pink-600" : "text-muted-foreground"
+              )}>
+                Quick Bill Capture
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {hasAnyData 
+                  ? "Tap to capture bill image" 
+                  : "Add a customer or vyapari first"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -512,6 +586,7 @@ export default function DashboardPage() {
         capture="environment"
         onChange={handleImageCapture}
         className="hidden"
+        disabled={!hasAnyData}
       />
 
       {/* Floating Action Button */}
@@ -523,67 +598,97 @@ export default function DashboardPage() {
             fabOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           )}
         >
-          {/* Camera Capture */}
-          <Button
-            size="sm"
-            className="h-10 gap-2 rounded-full bg-pink-500 pr-4 shadow-lg hover:bg-pink-600"
-            onClick={handleCameraCapture}
-          >
-            <Camera className="h-4 w-4" />
-            <span>Capture Bill</span>
-          </Button>
+          {/* Each FAB item with label badge */}
+          
+          {/* Camera Capture - Only show if there's data */}
+          {hasAnyData && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-pink-500 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
+                Capture Bill
+              </span>
+              <Button
+                size="icon"
+                className="h-12 w-12 rounded-full bg-pink-500 shadow-lg hover:bg-pink-600"
+                onClick={handleCameraCapture}
+              >
+                <Camera className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
 
           {/* Add Customer */}
-          <Button
-            size="sm"
-            className="h-10 gap-2 rounded-full bg-cyan-500 pr-4 shadow-lg hover:bg-cyan-600"
-            onClick={openCustomerForm}
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Add Customer</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-cyan-500 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
+              Add Customer
+            </span>
+            <Button
+              size="icon"
+              className="h-12 w-12 rounded-full bg-cyan-500 shadow-lg hover:bg-cyan-600"
+              onClick={openCustomerForm}
+            >
+              <UserPlus className="h-5 w-5" />
+            </Button>
+          </div>
 
           {/* Add Supplier */}
-          <Button
-            size="sm"
-            className="h-10 gap-2 rounded-full bg-indigo-400 pr-4 shadow-lg hover:bg-indigo-500"
-            onClick={openSupplierForm}
-          >
-            <Store className="h-4 w-4" />
-            <span>Add Vyapari</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-indigo-400 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
+              Add Vyapari
+            </span>
+            <Button
+              size="icon"
+              className="h-12 w-12 rounded-full bg-indigo-400 shadow-lg hover:bg-indigo-500"
+              onClick={openSupplierForm}
+            >
+              <Store className="h-5 w-5" />
+            </Button>
+          </div>
 
-          {/* Add Udhar */}
-          <Button
-            size="sm"
-            className="h-10 gap-2 rounded-full bg-orange-500 pr-4 shadow-lg hover:bg-orange-600"
-            onClick={openAddUdhar}
-            disabled={!hasCustomers}
-          >
-            <Banknote className="h-4 w-4" />
-            <span>Add Udhar</span>
-          </Button>
+          {/* Add Udhar - only if customers exist */}
+          {hasCustomers && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
+                Add Udhar
+              </span>
+              <Button
+                size="icon"
+                className="h-12 w-12 rounded-full bg-orange-500 shadow-lg hover:bg-orange-600"
+                onClick={openAddUdhar}
+              >
+                <Banknote className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
 
           {/* Daily Income */}
-          <Button
-            size="sm"
-            className="h-10 gap-2 rounded-full bg-emerald-500 pr-4 shadow-lg hover:bg-emerald-600"
-            onClick={openIncomeForm}
-          >
-            <IndianRupee className="h-4 w-4" />
-            <span>Add Income</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
+              Add Income
+            </span>
+            <Button
+              size="icon"
+              className="h-12 w-12 rounded-full bg-emerald-500 shadow-lg hover:bg-emerald-600"
+              onClick={openIncomeForm}
+            >
+              <IndianRupee className="h-5 w-5" />
+            </Button>
+          </div>
 
-          {/* Vyapari Bill */}
-          <Button
-            size="sm"
-            className="h-10 gap-2 rounded-full bg-indigo-500 pr-4 shadow-lg hover:bg-indigo-600"
-            onClick={openVyapariBill}
-            disabled={!hasSuppliers}
-          >
-            <Receipt className="h-4 w-4" />
-            <span>Vyapari Bill</span>
-          </Button>
+          {/* Vyapari Bill - only if suppliers exist */}
+          {hasSuppliers && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-medium text-white shadow-lg">
+                Vyapari Bill
+              </span>
+              <Button
+                size="icon"
+                className="h-12 w-12 rounded-full bg-indigo-500 shadow-lg hover:bg-indigo-600"
+                onClick={openVyapariBill}
+              >
+                <Receipt className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Main FAB Button */}
@@ -636,41 +741,34 @@ export default function DashboardPage() {
                 Where do you want to attach this image?
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  className="h-16 flex-col gap-1"
-                  onClick={handleAttachToUdhar}
-                >
-                  {hasCustomers ? (
-                    <>
-                      <Banknote className="h-5 w-5 text-orange-500" />
-                      <span className="text-xs">Add to Udhar</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-5 w-5 text-cyan-500" />
-                      <span className="text-xs">Add Customer</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-16 flex-col gap-1"
-                  onClick={handleAttachToVyapari}
-                >
-                  {hasSuppliers ? (
-                    <>
-                      <Receipt className="h-5 w-5 text-indigo-500" />
-                      <span className="text-xs">Add to Vyapari Bill</span>
-                    </>
-                  ) : (
-                    <>
-                      <Store className="h-5 w-5 text-indigo-500" />
-                      <span className="text-xs">Add Vyapari</span>
-                    </>
-                  )}
-                </Button>
+              {/* Show only relevant options based on data availability */}
+              <div className={cn(
+                "grid gap-3",
+                hasCustomers && hasSuppliers ? "grid-cols-2" : "grid-cols-1"
+              )}>
+                {/* Add to Udhar - Only show if customers exist */}
+                {hasCustomers && (
+                  <Button
+                    variant="outline"
+                    className="h-16 flex-col gap-1"
+                    onClick={handleAttachToUdhar}
+                  >
+                    <Banknote className="h-5 w-5 text-orange-500" />
+                    <span className="text-xs">Add to Udhar</span>
+                  </Button>
+                )}
+
+                {/* Add to Vyapari - Only show if suppliers exist */}
+                {hasSuppliers && (
+                  <Button
+                    variant="outline"
+                    className="h-16 flex-col gap-1"
+                    onClick={handleAttachToVyapari}
+                  >
+                    <Receipt className="h-5 w-5 text-indigo-500" />
+                    <span className="text-xs">Add to Vyapari Bill</span>
+                  </Button>
+                )}
               </div>
 
               <Button

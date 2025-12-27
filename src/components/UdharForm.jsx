@@ -125,6 +125,13 @@ export function UdharForm({
     }
   };
 
+  // Handler for Sheet's onOpenChange - only close, don't interfere with opening
+  const handleSheetOpenChange = (isOpen) => {
+    if (!isOpen) {
+      handleClose();
+    }
+  };
+
   const handleNewCustomer = async customerData => {
     const result = await onAddCustomer(customerData);
     if (result.success) {
@@ -136,7 +143,7 @@ export function UdharForm({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={handleClose}>
+      <Sheet open={open} onOpenChange={handleSheetOpenChange}>
         <SheetContent side="bottom" className="flex h-[90vh] flex-col rounded-t-2xl p-0" hideClose>
           {/* Drag handle */}
           <div className="flex justify-center pb-2 pt-3" data-drag-handle>

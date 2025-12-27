@@ -7,7 +7,6 @@ const SESSION_VERSION_COOKIE = "shop_session_version";
 const PUBLIC_ROUTES = [
   "/login",
   "/api/auth", // Main auth endpoint (login/logout/verify)
-  "/api/auth/biometric/authenticate", // Biometric authentication
 ];
 
 // API routes that need protection
