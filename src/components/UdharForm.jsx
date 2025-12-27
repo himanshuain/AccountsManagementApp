@@ -82,6 +82,19 @@ export function UdharForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultCustomerId]);
 
+  // Helper function to convert base64 data URL to File
+  const base64ToFile = (dataUrl, filename) => {
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   const handleFormSubmit = async data => {
     if (!selectedCustomerId) {
       return;
@@ -91,10 +104,41 @@ export function UdharForm({
 
     setIsSubmitting(true);
     try {
+      // Upload any base64 images that haven't been uploaded yet
+      let uploadedPhotos = [];
+      for (let i = 0; i < khataPhotos.length; i++) {
+        const photo = khataPhotos[i];
+        if (photo.startsWith("data:")) {
+          // Base64 data URL - needs uploading
+          try {
+            const file = base64ToFile(photo, `khata-${Date.now()}-${i}.jpg`);
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await fetch("/api/upload", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (response.ok) {
+              const { url } = await response.json();
+              uploadedPhotos.push(url);
+            } else {
+              console.error("Failed to upload khata image");
+            }
+          } catch (error) {
+            console.error("Khata image upload failed:", error);
+          }
+        } else {
+          // Already a URL, keep it
+          uploadedPhotos.push(photo);
+        }
+      }
+
       await onSubmit({
         ...data,
         customerId: selectedCustomerId,
-        khataPhotos,
+        khataPhotos: uploadedPhotos,
         amount: Number(data.amount) || 0,
         // Keep for backward compatibility
         cashAmount: Number(data.amount) || 0,

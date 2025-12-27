@@ -127,6 +127,7 @@ export default function ReportsPage() {
 
   // Refs for scrolling and input focus
   const incomeListRef = useRef(null);
+  const monthlyListRef = useRef(null);
   const chartsRef = useRef(null);
   const cashInputRef = useRef(null);
 
@@ -154,18 +155,30 @@ export default function ReportsPage() {
         setMonthlyListExpanded(true);
       }
       
-      // Scroll to relevant section after a short delay to allow expansion
-      setTimeout(() => {
-        if (scrollTo === "income" && incomeListRef.current) {
-          incomeListRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-        } else if (scrollTo === "monthly" && incomeListRef.current) {
-          // Scroll to income list which contains both daily and monthly entries
-          incomeListRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Clear the query parameters from URL immediately
+      router.replace("/reports", { scroll: false });
+      
+      // Scroll to relevant section after a longer delay to allow expansion and render
+      // Use requestAnimationFrame for smoother scrolling on mobile
+      const scrollToSection = () => {
+        const targetRef = scrollTo === "monthly" ? monthlyListRef : incomeListRef;
+        if (targetRef.current) {
+          // Calculate offset for fixed header (56px on mobile)
+          const headerOffset = 80;
+          const elementPosition = targetRef.current.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth"
+          });
         }
-        
-        // Clear the query parameters from URL without triggering a navigation
-        router.replace("/reports", { scroll: false });
-      }, 300);
+      };
+      
+      // Wait for sections to expand and DOM to update
+      setTimeout(() => {
+        requestAnimationFrame(scrollToSection);
+      }, 400);
     }
   }, [searchParams, router]);
 
@@ -765,7 +778,7 @@ export default function ReportsPage() {
 
       {/* Monthly Breakdown - Collapsible */}
       <Collapsible open={monthlyListExpanded} onOpenChange={setMonthlyListExpanded}>
-        <Card>
+        <Card ref={monthlyListRef} className="scroll-mt-20">
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer transition-colors hover:bg-muted/30">
               <div className="flex items-center justify-between">

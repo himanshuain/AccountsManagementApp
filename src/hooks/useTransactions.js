@@ -117,8 +117,8 @@ export function useTransactions(supplierId = null) {
   const addTransaction = useCallback(
     async transactionData => {
       try {
-        await addMutation.mutateAsync(transactionData);
-        return { success: true };
+        const result = await addMutation.mutateAsync(transactionData);
+        return { success: true, data: result?.data };
       } catch (err) {
         return { success: false, error: err.message };
       }

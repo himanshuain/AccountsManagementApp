@@ -115,8 +115,8 @@ export function useUdhar() {
   const addUdhar = useCallback(
     async udharData => {
       try {
-        await addMutation.mutateAsync(udharData);
-        return { success: true };
+        const result = await addMutation.mutateAsync(udharData);
+        return { success: true, data: result?.data };
       } catch (err) {
         return { success: false, error: err.message };
       }

@@ -337,6 +337,40 @@ export default function SuppliersPage() {
     }
   }, [searchParams, router]);
 
+  // Handle scrollToSupplier URL parameter (e.g., from dashboard camera capture)
+  useEffect(() => {
+    const scrollToSupplierId = searchParams.get("scrollToSupplier");
+    const highlightTxnId = searchParams.get("highlight");
+    
+    if (scrollToSupplierId && suppliersWithStats.length > 0 && !loading) {
+      const supplierToScrollTo = suppliersWithStats.find(s => s.id === scrollToSupplierId);
+      if (supplierToScrollTo) {
+        // Clear URL params first
+        router.replace("/suppliers", { scroll: false });
+        
+        // Open the supplier detail drawer
+        setSelectedSupplier(supplierToScrollTo);
+        
+        // If a transaction ID is provided for highlighting, expand it
+        if (highlightTxnId) {
+          setExpandedTransactionId(highlightTxnId);
+          // Scroll to the transaction after a small delay to allow drawer to open
+          setTimeout(() => {
+            const txnElement = document.getElementById(`transaction-${highlightTxnId}`);
+            if (txnElement) {
+              txnElement.scrollIntoView({ behavior: "smooth", block: "center" });
+              // Add a brief highlight effect
+              txnElement.classList.add("ring-2", "ring-primary", "ring-offset-2");
+              setTimeout(() => {
+                txnElement.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+              }, 2000);
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [searchParams, suppliersWithStats, loading, router]);
+
   // Keep selectedSupplier in sync with updated data (fixes totalAmount not updating after transaction)
   useEffect(() => {
     if (selectedSupplier) {
@@ -706,6 +740,7 @@ export default function SuppliersPage() {
       {/* Sticky Filter Chips */}
       <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="scrollbar-none flex gap-2 overflow-x-auto pb-1">
+          {/* All button - always first */}
           <Button
             variant={activeFilter === "all" ? "default" : "outline"}
             size="sm"
@@ -715,7 +750,103 @@ export default function SuppliersPage() {
             All ({suppliersTotalCount})
           </Button>
 
-          {/* Sorting Chips - After All */}
+          {/* Active filter chips - shown immediately after All */}
+          {activeFilter !== "all" && (
+            <>
+              <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+              {activeFilter === "pending" && (
+                <Button
+                  key="active-pending"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleFilterChange("pending")}
+                >
+                  <Clock className="mr-1 h-3 w-3" />
+                  Pending ({summaryStats.pendingCount})
+                </Button>
+              )}
+              {activeFilter === "partial" && (
+                <Button
+                  key="active-partial"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleFilterChange("partial")}
+                >
+                  Partial ({summaryStats.partialCount})
+                </Button>
+              )}
+              {activeFilter === "paid" && (
+                <Button
+                  key="active-paid"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleFilterChange("paid")}
+                >
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  All Paid Up ({summaryStats.paidCount})
+                </Button>
+              )}
+              {activeFilter === "high" && summaryStats.highAmountCount > 0 && (
+                <Button
+                  key="active-high"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleFilterChange("high")}
+                >
+                  High ₹10k+ ({summaryStats.highAmountCount})
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* Active sort chips - shown after active filter */}
+          {sortOrder !== "smart" && sortOrder !== "newest" && (
+            <>
+              {activeFilter === "all" && <div className="mx-1 h-8 w-px shrink-0 bg-border" />}
+              {sortOrder === "oldest" && (
+                <Button
+                  key="active-oldest"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleSortChange("oldest")}
+                >
+                  <ArrowUp className="mr-1 h-3 w-3" />
+                  Oldest
+                </Button>
+              )}
+              {sortOrder === "highest" && (
+                <Button
+                  key="active-highest"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleSortChange("highest")}
+                >
+                  <TrendingUp className="mr-1 h-3 w-3" />
+                  Max ₹
+                </Button>
+              )}
+              {sortOrder === "lowest" && (
+                <Button
+                  key="active-lowest"
+                  variant="default"
+                  size="sm"
+                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  onClick={() => handleSortChange("lowest")}
+                >
+                  <TrendingDown className="mr-1 h-3 w-3" />
+                  Min ₹
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* Sorting Chips */}
           <div className="mx-1 h-8 w-px shrink-0 bg-border" />
           <Button
             variant={sortOrder === "newest" ? "default" : "outline"}
@@ -730,94 +861,79 @@ export default function SuppliersPage() {
             <ArrowDown className="mr-1 h-3 w-3" />
             Newest
           </Button>
-          <Button
-            variant={sortOrder === "oldest" ? "default" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "oldest" &&
-                "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
-            )}
-            onClick={() => handleSortChange("oldest")}
-          >
-            <ArrowUp className="mr-1 h-3 w-3" />
-            Oldest
-          </Button>
-          <Button
-            variant={sortOrder === "highest" ? "default" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "highest" &&
-                "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
-            )}
-            onClick={() => handleSortChange("highest")}
-          >
-            <TrendingUp className="mr-1 h-3 w-3" />
-            Max ₹
-          </Button>
-          <Button
-            variant={sortOrder === "lowest" ? "default" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 shrink-0 rounded-full px-3 text-xs",
-              sortOrder !== "lowest" &&
-                "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
-            )}
-            onClick={() => handleSortChange("lowest")}
-          >
-            <TrendingDown className="mr-1 h-3 w-3" />
-            Min ₹
-          </Button>
+          {sortOrder !== "oldest" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 rounded-full border-purple-200 px-3 text-xs text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+              onClick={() => handleSortChange("oldest")}
+            >
+              <ArrowUp className="mr-1 h-3 w-3" />
+              Oldest
+            </Button>
+          )}
+          {sortOrder !== "highest" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 rounded-full border-emerald-200 px-3 text-xs text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              onClick={() => handleSortChange("highest")}
+            >
+              <TrendingUp className="mr-1 h-3 w-3" />
+              Max ₹
+            </Button>
+          )}
+          {sortOrder !== "lowest" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 rounded-full border-emerald-200 px-3 text-xs text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+              onClick={() => handleSortChange("lowest")}
+            >
+              <TrendingDown className="mr-1 h-3 w-3" />
+              Min ₹
+            </Button>
+          )}
           <div className="mx-1 h-8 w-px shrink-0 bg-border" />
 
-          <Button
-            variant={activeFilter === "pending" ? "default" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "pending" &&
-                "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
-            )}
-            onClick={() => handleFilterChange("pending")}
-          >
-            <Clock className="mr-1 h-3 w-3" />
-            Pending ({summaryStats.pendingCount})
-          </Button>
-          <Button
-            variant={activeFilter === "partial" ? "default" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "partial" &&
-                "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
-            )}
-            onClick={() => handleFilterChange("partial")}
-          >
-            Partial ({summaryStats.partialCount})
-          </Button>
-          <Button
-            variant={activeFilter === "paid" ? "default" : "outline"}
-            size="sm"
-            className={cn(
-              "h-8 shrink-0 rounded-full px-3 text-xs",
-              activeFilter !== "paid" &&
-                "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
-            )}
-            onClick={() => handleFilterChange("paid")}
-          >
-            <CheckCircle className="mr-1 h-3 w-3" />
-            All Paid Up ({summaryStats.paidCount})
-          </Button>
-          {summaryStats.highAmountCount > 0 && (
+          {/* Status filter chips - only show if not already shown as active */}
+          {activeFilter !== "pending" && (
             <Button
-              variant={activeFilter === "high" ? "default" : "outline"}
+              variant="outline"
               size="sm"
-              className={cn(
-                "h-8 shrink-0 rounded-full px-3 text-xs",
-                activeFilter !== "high" &&
-                  "border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
-              )}
+              className="h-8 shrink-0 rounded-full border-amber-200 px-3 text-xs text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+              onClick={() => handleFilterChange("pending")}
+            >
+              <Clock className="mr-1 h-3 w-3" />
+              Pending ({summaryStats.pendingCount})
+            </Button>
+          )}
+          {activeFilter !== "partial" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 rounded-full border-blue-200 px-3 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+              onClick={() => handleFilterChange("partial")}
+            >
+              Partial ({summaryStats.partialCount})
+            </Button>
+          )}
+          {activeFilter !== "paid" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 rounded-full border-green-200 px-3 text-xs text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+              onClick={() => handleFilterChange("paid")}
+            >
+              <CheckCircle className="mr-1 h-3 w-3" />
+              All Paid Up ({summaryStats.paidCount})
+            </Button>
+          )}
+          {summaryStats.highAmountCount > 0 && activeFilter !== "high" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 rounded-full border-red-200 px-3 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
               onClick={() => handleFilterChange("high")}
             >
               High ₹10k+ ({summaryStats.highAmountCount})
@@ -1090,6 +1206,109 @@ export default function SuppliersPage() {
                 All ({transactions.length})
               </Button>
 
+              {/* Active filter chips - shown immediately after All */}
+              {allTxnStatusFilter !== "all" && (
+                <>
+                  <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+                  {allTxnStatusFilter === "pending" && (
+                    <Button
+                      key="txn-active-pending"
+                      variant="default"
+                      size="sm"
+                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      onClick={() => {
+                        haptics.light();
+                        setAllTxnStatusFilter("pending");
+                      }}
+                    >
+                      <Clock className="mr-1 h-3 w-3" />
+                      Pending
+                    </Button>
+                  )}
+                  {allTxnStatusFilter === "partial" && (
+                    <Button
+                      key="txn-active-partial"
+                      variant="default"
+                      size="sm"
+                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      onClick={() => {
+                        haptics.light();
+                        setAllTxnStatusFilter("partial");
+                      }}
+                    >
+                      Partial
+                    </Button>
+                  )}
+                  {allTxnStatusFilter === "paid" && (
+                    <Button
+                      key="txn-active-paid"
+                      variant="default"
+                      size="sm"
+                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      onClick={() => {
+                        haptics.light();
+                        setAllTxnStatusFilter("paid");
+                      }}
+                    >
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      All Paid Up
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Active sort chips - shown after active filter */}
+              {allTxnAmountSort !== "newest" && (
+                <>
+                  {allTxnStatusFilter === "all" && <div className="mx-1 h-8 w-px shrink-0 bg-border" />}
+                  {allTxnAmountSort === "oldest" && (
+                    <Button
+                      key="txn-active-oldest"
+                      variant="default"
+                      size="sm"
+                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      onClick={() => {
+                        haptics.light();
+                        setAllTxnAmountSort("oldest");
+                      }}
+                    >
+                      <ArrowUp className="mr-1 h-3 w-3" />
+                      Oldest
+                    </Button>
+                  )}
+                  {allTxnAmountSort === "highest" && (
+                    <Button
+                      key="txn-active-highest"
+                      variant="default"
+                      size="sm"
+                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      onClick={() => {
+                        haptics.light();
+                        setAllTxnAmountSort("highest");
+                      }}
+                    >
+                      <TrendingUp className="mr-1 h-3 w-3" />
+                      Max ₹
+                    </Button>
+                  )}
+                  {allTxnAmountSort === "lowest" && (
+                    <Button
+                      key="txn-active-lowest"
+                      variant="default"
+                      size="sm"
+                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      onClick={() => {
+                        haptics.light();
+                        setAllTxnAmountSort("lowest");
+                      }}
+                    >
+                      <TrendingDown className="mr-1 h-3 w-3" />
+                      Min ₹
+                    </Button>
+                  )}
+                </>
+              )}
+
               {/* Sorting Chips */}
               <div className="mx-1 h-8 w-px shrink-0 bg-border" />
               <Button
@@ -1108,103 +1327,92 @@ export default function SuppliersPage() {
                 <ArrowDown className="mr-1 h-3 w-3" />
                 Newest
               </Button>
-              <Button
-                variant={allTxnAmountSort === "oldest" ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "oldest" &&
-                    "border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
-                )}
-                onClick={() => {
-                  haptics.light();
-                  setAllTxnAmountSort("oldest");
-                }}
-              >
-                <ArrowUp className="mr-1 h-3 w-3" />
-                Oldest
-              </Button>
-              <Button
-                variant={allTxnAmountSort === "highest" ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "highest" &&
-                    "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
-                )}
-                onClick={() => {
-                  haptics.light();
-                  setAllTxnAmountSort("highest");
-                }}
-              >
-                <TrendingUp className="mr-1 h-3 w-3" />
-                Max ₹
-              </Button>
-              <Button
-                variant={allTxnAmountSort === "lowest" ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnAmountSort !== "lowest" &&
-                    "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
-                )}
-                onClick={() => {
-                  haptics.light();
-                  setAllTxnAmountSort("lowest");
-                }}
-              >
-                <TrendingDown className="mr-1 h-3 w-3" />
-                Min ₹
-              </Button>
+              {allTxnAmountSort !== "oldest" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-purple-200 px-3 text-xs text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-950"
+                  onClick={() => {
+                    haptics.light();
+                    setAllTxnAmountSort("oldest");
+                  }}
+                >
+                  <ArrowUp className="mr-1 h-3 w-3" />
+                  Oldest
+                </Button>
+              )}
+              {allTxnAmountSort !== "highest" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-emerald-200 px-3 text-xs text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  onClick={() => {
+                    haptics.light();
+                    setAllTxnAmountSort("highest");
+                  }}
+                >
+                  <TrendingUp className="mr-1 h-3 w-3" />
+                  Max ₹
+                </Button>
+              )}
+              {allTxnAmountSort !== "lowest" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-emerald-200 px-3 text-xs text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                  onClick={() => {
+                    haptics.light();
+                    setAllTxnAmountSort("lowest");
+                  }}
+                >
+                  <TrendingDown className="mr-1 h-3 w-3" />
+                  Min ₹
+                </Button>
+              )}
               <div className="mx-1 h-8 w-px shrink-0 bg-border" />
 
-              <Button
-                variant={allTxnStatusFilter === "pending" ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "pending" &&
-                    "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
-                )}
-                onClick={() => {
-                  haptics.light();
-                  setAllTxnStatusFilter("pending");
-                }}
-              >
-                <Clock className="mr-1 h-3 w-3" />
-                Pending
-              </Button>
-              <Button
-                variant={allTxnStatusFilter === "partial" ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "partial" &&
-                    "border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
-                )}
-                onClick={() => {
-                  haptics.light();
-                  setAllTxnStatusFilter("partial");
-                }}
-              >
-                Partial
-              </Button>
-              <Button
-                variant={allTxnStatusFilter === "paid" ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 shrink-0 rounded-full px-3 text-xs",
-                  allTxnStatusFilter !== "paid" &&
-                    "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
-                )}
-                onClick={() => {
-                  haptics.light();
-                  setAllTxnStatusFilter("paid");
-                }}
-              >
-                <CheckCircle className="mr-1 h-3 w-3" />
-                All Paid Up
-              </Button>
+              {/* Status filter chips - only show if not already shown as active */}
+              {allTxnStatusFilter !== "pending" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-amber-200 px-3 text-xs text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+                  onClick={() => {
+                    haptics.light();
+                    setAllTxnStatusFilter("pending");
+                  }}
+                >
+                  <Clock className="mr-1 h-3 w-3" />
+                  Pending
+                </Button>
+              )}
+              {allTxnStatusFilter !== "partial" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-blue-200 px-3 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950"
+                  onClick={() => {
+                    haptics.light();
+                    setAllTxnStatusFilter("partial");
+                  }}
+                >
+                  Partial
+                </Button>
+              )}
+              {allTxnStatusFilter !== "paid" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-green-200 px-3 text-xs text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+                  onClick={() => {
+                    haptics.light();
+                    setAllTxnStatusFilter("paid");
+                  }}
+                >
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  All Paid Up
+                </Button>
+              )}
               {/* Vyapari filter as autocomplete */}
               <Autocomplete
                 options={[{ id: "all", companyName: "All Vyapari" }, ...suppliers]}
@@ -1698,6 +1906,7 @@ export default function SuppliersPage() {
                               return (
                                 <Card
                                   key={txn.id}
+                                  id={`transaction-${txn.id}`}
                                   className={cn(
                                     "overflow-hidden transition-all",
                                     isPaid

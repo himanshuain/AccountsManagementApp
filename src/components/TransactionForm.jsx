@@ -92,6 +92,19 @@ export function TransactionForm({
     },
   });
 
+  // Helper function to convert base64 data URL to File
+  const base64ToFile = (dataUrl, filename) => {
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   const handleFormSubmit = async data => {
     if (!selectedSupplierId || !isOnline) {
       return;
@@ -101,6 +114,8 @@ export function TransactionForm({
     setIsSubmitting(true);
     try {
       let uploadedUrls = [];
+      
+      // Upload pending files (from file picker)
       if (pendingFiles.length > 0) {
         for (const file of pendingFiles) {
           try {
@@ -128,8 +143,41 @@ export function TransactionForm({
           }
         }
       }
+      
+      // Upload base64 images (from camera capture) that haven't been uploaded yet
+      if (pendingFiles.length === 0 && billImages.length > 0) {
+        for (let i = 0; i < billImages.length; i++) {
+          const img = billImages[i];
+          // Check if this is a base64 data URL that needs uploading
+          if (img.startsWith("data:")) {
+            try {
+              const file = base64ToFile(img, `bill-${Date.now()}-${i}.jpg`);
+              const formData = new FormData();
+              formData.append("file", file);
 
-      const finalBillImages = pendingFiles.length > 0 ? uploadedUrls : billImages;
+              const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+              });
+
+              if (response.ok) {
+                const { url } = await response.json();
+                uploadedUrls.push(url);
+              } else {
+                // If upload fails, we can't use the base64 - it's too large for DB
+                console.error("Failed to upload camera image");
+              }
+            } catch (error) {
+              console.error("Camera image upload failed:", error);
+            }
+          } else {
+            // Already a URL, keep it
+            uploadedUrls.push(img);
+          }
+        }
+      }
+
+      const finalBillImages = uploadedUrls.length > 0 ? uploadedUrls : billImages.filter(img => !img.startsWith("data:"));
 
       // Calculate payment status based on existing payments and new amount
       const newAmount = Number(data.amount) || 0;

@@ -706,6 +706,25 @@ button:active:not(:disabled),
   animation: popIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+/* Filter chip slide-in animation for active filters */
+@keyframes filterSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.9);
+  }
+  60% {
+    transform: translateX(3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-filter-active {
+  animation: filterSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 /* Smooth bounce animation */
 @keyframes smoothBounce {
   0%,

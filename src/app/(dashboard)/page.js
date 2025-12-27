@@ -20,7 +20,6 @@ import {
   Receipt,
   Wallet,
   Calendar,
-  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +62,9 @@ export default function DashboardPage() {
   // Image data to pass to forms
   const [udharInitialData, setUdharInitialData] = useState(null);
   const [transactionInitialImages, setTransactionInitialImages] = useState([]);
+  
+  // Flag to track if transaction was added from camera (to trigger navigation)
+  const [navigateAfterSubmit, setNavigateAfterSubmit] = useState(null); // "customers" or "suppliers"
 
   // Floating action button state
   const [fabOpen, setFabOpen] = useState(false);
@@ -162,13 +164,49 @@ export default function DashboardPage() {
   }, [incomeFormOpen]);
 
   const handleAddTransaction = async data => {
-    await addTransaction(data);
+    const shouldNavigate = navigateAfterSubmit === "suppliers";
+    
+    const result = await addTransaction(data);
     setTransactionInitialImages([]);
+    
+    if (result?.success) {
+      toast.success("Transaction added successfully!");
+      // Navigate to suppliers page if transaction was added from camera
+      if (shouldNavigate) {
+        const transactionId = result?.data?.id;
+        const supplierId = result?.data?.supplierId || data.supplierId;
+        setNavigateAfterSubmit(null);
+        // Small delay to ensure toast is shown and form is closed
+        setTimeout(() => {
+          router.push(`/suppliers?scrollToSupplier=${supplierId}${transactionId ? `&highlight=${transactionId}` : ""}`);
+        }, 300);
+      }
+    } else {
+      toast.error(result?.error || "Failed to add transaction");
+    }
   };
 
   const handleAddUdhar = async data => {
-    await addUdhar(data);
+    const shouldNavigate = navigateAfterSubmit === "customers";
+    
+    const result = await addUdhar(data);
     setUdharInitialData(null);
+    
+    if (result?.success) {
+      toast.success("Udhar added successfully!");
+      // Navigate to customers page if udhar was added from camera
+      if (shouldNavigate) {
+        const udharId = result?.data?.id;
+        const customerId = result?.data?.customerId || data.customerId;
+        setNavigateAfterSubmit(null);
+        // Small delay to ensure toast is shown and form is closed
+        setTimeout(() => {
+          router.push(`/customers?scrollToCustomer=${customerId}${udharId ? `&highlight=${udharId}` : ""}`);
+        }, 300);
+      }
+    } else {
+      toast.error(result?.error || "Failed to add udhar");
+    }
   };
 
   const handleAddIncome = async () => {
@@ -332,6 +370,8 @@ export default function DashboardPage() {
     setCustomerDropdownOpen(true);
     setUdharFormOpen(true);
     setCapturedImage(null);
+    // Set flag to navigate to customers page after successful submission
+    setNavigateAfterSubmit("customers");
   };
 
   const handleAttachToVyapari = () => {
@@ -358,6 +398,8 @@ export default function DashboardPage() {
     setSupplierDropdownOpen(true);
     setTransactionFormOpen(true);
     setCapturedImage(null);
+    // Set flag to navigate to suppliers page after successful submission
+    setNavigateAfterSubmit("suppliers");
   };
 
   // Check if we have customers/suppliers
@@ -425,10 +467,6 @@ export default function DashboardPage() {
                 <IndianRupee className="h-4 w-4 text-emerald-600" />
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-end text-xs text-emerald-600">
-              <span>View details</span>
-              <ChevronRight className="h-3 w-3" />
-            </div>
           </CardContent>
         </Card>
 
@@ -456,16 +494,12 @@ export default function DashboardPage() {
                       {stats.incomeTrend.toFixed(0)}%
                     </span>
                   )}
-                  <span className="text-muted-foreground">vs last month</span>
+                  <span className="text-muted-foreground text-[10px]">vs last month</span>
                 </div>
               </div>
               <div className="rounded-lg bg-blue-500/20 p-2">
                 <Calendar className="h-4 w-4 text-blue-600" />
               </div>
-            </div>
-            <div className="mt-2 flex items-center justify-end text-xs text-blue-600">
-              <span>View breakdown</span>
-              <ChevronRight className="h-3 w-3" />
             </div>
           </CardContent>
         </Card>
@@ -490,10 +524,6 @@ export default function DashboardPage() {
                 <Wallet className="h-4 w-4 text-orange-600" />
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-end text-xs text-orange-600">
-              <span>View pending</span>
-              <ChevronRight className="h-3 w-3" />
-            </div>
           </CardContent>
         </Card>
 
@@ -516,10 +546,6 @@ export default function DashboardPage() {
               <div className="rounded-lg bg-purple-500/20 p-2">
                 <Receipt className="h-4 w-4 text-purple-600" />
               </div>
-            </div>
-            <div className="mt-2 flex items-center justify-end text-xs text-purple-600">
-              <span>View pending</span>
-              <ChevronRight className="h-3 w-3" />
             </div>
           </CardContent>
         </Card>
@@ -563,20 +589,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Recent Activity Placeholder */}
-      <div className="flex-1">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Quick Actions</h2>
-        <Card className="border-0 bg-muted/30">
-          <CardContent className="flex min-h-[200px] flex-col items-center justify-center p-6 text-center">
-            <div className="rounded-full bg-muted p-4">
-              <Plus className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Use the + button to add transactions, udhar, or income
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+
 
       {/* Hidden Camera Input */}
       <input
@@ -590,7 +603,7 @@ export default function DashboardPage() {
       />
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-24 right-4 z-50 lg:bottom-8">
+      <div className="fixed bottom-24 right-14 z-50 lg:bottom-8">
         {/* FAB Menu Items */}
         <div
           className={cn(
@@ -794,6 +807,10 @@ export default function DashboardPage() {
           if (!open) {
             setTransactionInitialImages([]);
             setSupplierDropdownOpen(false);
+            // Reset navigation flag if form is closed without submitting
+            if (navigateAfterSubmit === "suppliers") {
+              setNavigateAfterSubmit(null);
+            }
           }
         }}
         onSubmit={handleAddTransaction}
@@ -809,6 +826,10 @@ export default function DashboardPage() {
           if (!open) {
             setUdharInitialData(null);
             setCustomerDropdownOpen(false);
+            // Reset navigation flag if form is closed without submitting
+            if (navigateAfterSubmit === "customers") {
+              setNavigateAfterSubmit(null);
+            }
           }
         }}
         onSubmit={handleAddUdhar}
