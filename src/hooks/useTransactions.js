@@ -5,6 +5,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const TRANSACTIONS_KEY = ["transactions"];
+const STATS_KEY = ["stats"];
 
 export function useTransactions(supplierId = null) {
   const queryClient = useQueryClient();
@@ -75,6 +76,7 @@ export function useTransactions(supplierId = null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -94,6 +96,7 @@ export function useTransactions(supplierId = null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -111,6 +114,7 @@ export function useTransactions(supplierId = null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -152,7 +156,7 @@ export function useTransactions(supplierId = null) {
 
   // Record a partial payment for a transaction
   const recordPayment = useCallback(
-    async (id, amount, receiptUrl = null, paymentDate = null) => {
+    async (id, amount, receiptUrls = null, paymentDate = null) => {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return { success: false, error: "Transaction not found" };
 
@@ -160,11 +164,17 @@ export function useTransactions(supplierId = null) {
       const currentPaid = transaction.paidAmount || 0;
       const newPaidAmount = currentPaid + amount;
 
+      // Support both single URL (string) and array of URLs
+      const receipts = receiptUrls 
+        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+        : [];
+
       const newPayment = {
         id: crypto.randomUUID(),
         amount: amount,
         date: paymentDate || new Date().toISOString(),
-        receiptUrl: receiptUrl,
+        receiptUrl: receipts[0] || null, // Keep for backward compatibility
+        receiptUrls: receipts, // New field for multiple receipts
       };
 
       const updates = {
@@ -180,13 +190,18 @@ export function useTransactions(supplierId = null) {
 
   // Mark transaction as fully paid
   const markFullPaid = useCallback(
-    async (id, receiptUrl = null, paymentDate = null) => {
+    async (id, receiptUrls = null, paymentDate = null) => {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return { success: false, error: "Transaction not found" };
 
       const totalAmount = transaction.amount || 0;
       const currentPaid = transaction.paidAmount || 0;
       const remainingAmount = totalAmount - currentPaid;
+
+      // Support both single URL (string) and array of URLs
+      const receipts = receiptUrls 
+        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+        : [];
 
       const payments = [...(transaction.payments || [])];
       const dateToUse = paymentDate || new Date().toISOString();
@@ -195,7 +210,8 @@ export function useTransactions(supplierId = null) {
           id: crypto.randomUUID(),
           amount: remainingAmount,
           date: dateToUse,
-          receiptUrl: receiptUrl,
+          receiptUrl: receipts[0] || null, // Keep for backward compatibility
+          receiptUrls: receipts, // New field for multiple receipts
           isFinalPayment: true,
         });
       }

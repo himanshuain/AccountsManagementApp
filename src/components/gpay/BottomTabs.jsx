@@ -55,13 +55,13 @@ export function BottomTabs() {
               {/* Active indicator - theme aware */}
               {active && (
                 <div className={cn(
-                  "absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full",
+                  "absolute -top-0.5 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full",
                   "bg-primary dark:bg-accent dark:animate-arc-pulse"
                 )} />
               )}
               
               <Icon className={cn(
-                "h-5 w-5 transition-all duration-200",
+                "h-6 w-6 transition-all duration-200",
                 active && "scale-110"
               )} strokeWidth={active ? 2.5 : 2} />
               

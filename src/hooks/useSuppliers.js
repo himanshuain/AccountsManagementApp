@@ -6,6 +6,7 @@ import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const SUPPLIERS_KEY = ["suppliers"];
 const TRANSACTIONS_KEY = ["transactions"];
+const STATS_KEY = ["stats"];
 
 export function useSuppliers() {
   const queryClient = useQueryClient();
@@ -70,6 +71,7 @@ export function useSuppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -89,6 +91,7 @@ export function useSuppliers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -108,6 +111,8 @@ export function useSuppliers() {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
       // Also invalidate transactions since supplier deletion removes related transactions
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      // Invalidate stats to refresh totals
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 

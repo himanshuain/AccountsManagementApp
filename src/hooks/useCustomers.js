@@ -5,6 +5,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const CUSTOMERS_KEY = ["customers"];
+const STATS_KEY = ["stats"];
 
 export function useCustomers() {
   const queryClient = useQueryClient();
@@ -69,6 +70,7 @@ export function useCustomers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -88,6 +90,7 @@ export function useCustomers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -105,6 +108,7 @@ export function useCustomers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 

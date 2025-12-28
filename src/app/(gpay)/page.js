@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Search, Plus, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  SlidersHorizontal, ArrowDownAZ, Clock, IndianRupee, X, Users, Store, ChevronDown
+  SlidersHorizontal, ArrowDownAZ, Clock, IndianRupee, X, Users, Store, ChevronDown, PiggyBank
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { useSuppliers } from "@/hooks/useSuppliers";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
+import { useIncome } from "@/hooks/useIncome";
 
 import { PersonAvatar, PersonAvatarWithName } from "@/components/gpay/PersonAvatar";
 import { SupplierForm } from "@/components/SupplierForm";
@@ -91,15 +92,17 @@ export default function GPayHomePage() {
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [incomeModalOpen, setIncomeModalOpen] = useState(false);
 
   // Prevent body scroll when modal is open
-  usePreventBodyScroll(addMenuOpen);
+  usePreventBodyScroll(addMenuOpen || incomeModalOpen);
 
   // Data hooks
   const { suppliers, addSupplier, loading: suppliersLoading, loadAll: loadAllSuppliers, hasNextPage: hasMoreSuppliers } = useSuppliers();
   const { customers, addCustomer, loading: customersLoading, loadAll: loadAllCustomers, hasNextPage: hasMoreCustomers } = useCustomers();
   const { transactions, addTransaction, loading: transactionsLoading } = useTransactions();
   const { udharList, addUdhar, loading: udharLoading } = useUdhar();
+  const { addIncome } = useIncome();
 
   // Fetch aggregated stats from API (totals without loading all data)
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -593,14 +596,8 @@ export default function GPayHomePage() {
             {groupedTransactions.map((group) => (
               <div key={group.key} className="mb-2">
                 {/* Month Header */}
-                <div className="sticky top-[72px] z-10 bg-background px-4 py-3 flex items-center justify-between border-y border-border">
+                <div className="sticky top-[72px] z-10 bg-background px-4 py-3 flex items-center justify-between border-y-2 border-border">
                   <span className="font-heading text-lg tracking-wide">{group.label}</span>
-                  <span className={cn(
-                    "font-mono font-bold",
-                    group.totalIn > group.totalOut ? "amount-positive" : "amount-negative"
-                  )}>
-                    {group.totalIn > group.totalOut ? "+" : "-"}₹{Math.abs(group.totalIn - group.totalOut).toLocaleString("en-IN")}
-                  </span>
                 </div>
 
                 {/* Transaction Rows */}
@@ -608,8 +605,8 @@ export default function GPayHomePage() {
                   {group.transactions.map((txn) => (
                     <div
                       key={`${txn.type}-${txn.id}`}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer active:scale-[0.99]"
-                      onClick={() => router.push(`/person/${txn.type}/${txn.personId}`)}
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-accent/50 transition-colors"
+                      onClick={() => router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`)}
                     >
                       <PersonAvatar
                         name={txn.personName}
@@ -748,6 +745,15 @@ export default function GPayHomePage() {
                 <p className="font-medium">Udhar</p>
                 <p className="text-xs text-muted-foreground">Record credit</p>
               </button>
+
+              <button
+                onClick={() => { setAddMenuOpen(false); setIncomeModalOpen(true); }}
+                className="theme-card p-4 text-left hover:border-primary transition-colors col-span-2"
+              >
+                <PiggyBank className="h-8 w-8 amount-positive mb-2" />
+                <p className="font-medium">Income</p>
+                <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
+              </button>
             </div>
           </div>
         </div>
@@ -782,6 +788,130 @@ export default function GPayHomePage() {
         onAddCustomer={addCustomer}
         customers={customers}
       />
+
+      {/* Quick Income Modal */}
+      <IncomeQuickModal
+        open={incomeModalOpen}
+        onClose={() => setIncomeModalOpen(false)}
+        onSubmit={addIncome}
+      />
+    </div>
+  );
+}
+
+// Quick Income Modal Component
+function IncomeQuickModal({ open, onClose, onSubmit }) {
+  const today = new Date().toISOString().split("T")[0];
+  const [cashAmount, setCashAmount] = useState("");
+  const [onlineAmount, setOnlineAmount] = useState("");
+  const [date, setDate] = useState(today);
+  const [submitting, setSubmitting] = useState(false);
+
+  usePreventBodyScroll(open);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const cash = Number(cashAmount) || 0;
+    const online = Number(onlineAmount) || 0;
+    const total = cash + online;
+    
+    if (total <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await onSubmit({
+      amount: total,
+      cashAmount: cash,
+      onlineAmount: online,
+      date: date,
+      type: "daily",
+    });
+    
+    if (result.success) {
+      toast.success("Income added");
+      setCashAmount("");
+      setOnlineAmount("");
+      setDate(today);
+      onClose();
+    } else {
+      toast.error(result.error || "Failed to add");
+    }
+    setSubmitting(false);
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
+      <div 
+        className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl pb-nav animate-slide-up overscroll-contain"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center py-3">
+          <div className="sheet-handle" />
+        </div>
+
+        <div className="px-4 pb-6">
+          <h2 className="text-xl font-heading tracking-wide mb-4">Add Income</h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Cash</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={cashAmount}
+                  onChange={(e) => setCashAmount(e.target.value)}
+                  className="input-hero [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Online</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={onlineAmount}
+                  onChange={(e) => setOnlineAmount(e.target.value)}
+                  className="input-hero [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                max={today}
+                className="input-hero"
+              />
+            </div>
+
+            {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
+              <div className="p-3 bg-emerald-500/10 rounded-xl text-center">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold font-mono amount-positive">
+                  ₹{((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString("en-IN")}
+                </p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full btn-hero disabled:opacity-50"
+            >
+              {submitting ? "Adding..." : "Add Income"}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

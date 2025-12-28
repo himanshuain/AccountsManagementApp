@@ -6,6 +6,7 @@ import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const UDHAR_KEY = ["udhar"];
 const CUSTOMERS_KEY = ["customers"];
+const STATS_KEY = ["stats"];
 
 export function useUdhar() {
   const queryClient = useQueryClient();
@@ -71,6 +72,7 @@ export function useUdhar() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -91,6 +93,7 @@ export function useUdhar() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -109,6 +112,7 @@ export function useUdhar() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
@@ -149,7 +153,7 @@ export function useUdhar() {
   );
 
   const recordDeposit = useCallback(
-    async (id, amount, receiptUrl = null, notes = null, paymentDate = null) => {
+    async (id, amount, receiptUrls = null, notes = null, paymentDate = null) => {
       const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
@@ -157,11 +161,17 @@ export function useUdhar() {
       const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
       const newPaidAmount = currentPaid + amount;
 
+      // Support both single URL (string) and array of URLs
+      const receipts = receiptUrls 
+        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+        : [];
+
       const newPayment = {
         id: crypto.randomUUID(),
         amount: amount,
         date: paymentDate || new Date().toISOString(),
-        receiptUrl: receiptUrl,
+        receiptUrl: receipts[0] || null, // Keep for backward compatibility
+        receiptUrls: receipts, // New field for multiple receipts
         notes: notes,
       };
 
@@ -178,13 +188,18 @@ export function useUdhar() {
   );
 
   const markFullPaid = useCallback(
-    async (id, receiptUrl = null, paymentDate = null) => {
+    async (id, receiptUrls = null, paymentDate = null) => {
       const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
       const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
       const remainingAmount = totalAmount - currentPaid;
+
+      // Support both single URL (string) and array of URLs
+      const receipts = receiptUrls 
+        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+        : [];
 
       const payments = [...(udhar.payments || [])];
       const dateToUse = paymentDate || new Date().toISOString();
@@ -193,7 +208,8 @@ export function useUdhar() {
           id: crypto.randomUUID(),
           amount: remainingAmount,
           date: dateToUse,
-          receiptUrl: receiptUrl,
+          receiptUrl: receipts[0] || null, // Keep for backward compatibility
+          receiptUrls: receipts, // New field for multiple receipts
           isFinalPayment: true,
         });
       }

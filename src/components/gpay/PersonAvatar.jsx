@@ -141,16 +141,16 @@ export function PersonAvatarWithName({
   subtitle,
   amount,
   amountColor,
-  size = "md",
+  size = "lg",
   onClick,
   className
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-1.5 p-2",
+        "flex flex-col items-center gap-1.5 p-2 px-8",
         "active:scale-95 transition-transform cursor-pointer",
-        "rounded-xl hover:bg-accent/50",
+        "rounded-2xl hover:bg-accent/20",
         className
       )}
       onClick={onClick}

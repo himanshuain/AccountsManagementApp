@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, Phone, MoreVertical, Send, Plus, 
   Copy, ExternalLink, Check, Pencil, Trash2, X,
   Receipt, Image as ImageIcon, Calendar, FileText, CreditCard,
-  Clock, ChevronDown, ChevronUp, IndianRupee, Images, FileDown
+  Clock, ChevronDown, ChevronUp, IndianRupee, Images, FileDown, Camera, ImagePlus, Expand
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -22,11 +22,13 @@ import { UdharForm } from "@/components/UdharForm";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { ImageGalleryViewer } from "@/components/ImageViewer";
+import { ImageGalleryViewer, ImageViewer } from "@/components/ImageViewer";
 import { ProgressBar } from "@/components/gpay/PaymentProgress";
-import { resolveImageUrl } from "@/lib/image-url";
+import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
+import { compressImage } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 // Hook to prevent body scroll when modal is open
 function usePreventBodyScroll(isOpen) {
@@ -45,7 +47,7 @@ function usePreventBodyScroll(isOpen) {
   }, [isOpen]);
 }
 
-// Payment Form Modal Component
+// Payment Form Modal Component with image upload
 function PaymentFormModal({ 
   txn, 
   onClose, 
@@ -55,7 +57,75 @@ function PaymentFormModal({
   const today = new Date().toISOString().split("T")[0];
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today);
+  const [receiptImages, setReceiptImages] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
   const remainingAmount = (Number(txn.amount) || 0) - (Number(txn.paidAmount) || 0);
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = 5 - receiptImages.length;
+    const filesToUpload = files.slice(0, remainingSlots);
+    
+    setIsUploading(true);
+    const newImages = [];
+
+    for (const file of filesToUpload) {
+      try {
+        const compressedFile = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.8,
+          maxSizeKB: 500,
+        });
+
+        const formData = new FormData();
+        formData.append("file", compressedFile);
+        formData.append("folder", "payments");
+
+        try {
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            newImages.push(result.storageKey || result.url);
+          } else {
+            // Fallback to local preview
+            const localUrl = await new Promise(resolve => {
+              const reader = new FileReader();
+              reader.onload = e => resolve(e.target.result);
+              reader.readAsDataURL(compressedFile);
+            });
+            newImages.push(localUrl);
+          }
+        } catch {
+          const localUrl = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(compressedFile);
+          });
+          newImages.push(localUrl);
+        }
+      } catch (error) {
+        console.error("File processing failed:", error);
+      }
+    }
+
+    setReceiptImages([...receiptImages, ...newImages]);
+    setIsUploading(false);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  const handleRemoveImage = (index) => {
+    setReceiptImages(receiptImages.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -68,11 +138,11 @@ function PaymentFormModal({
       toast.error(`Max amount is ₹${remainingAmount.toLocaleString("en-IN")}`);
       return;
     }
-    onSubmit(paymentAmount, date);
+    onSubmit(paymentAmount, date, false, receiptImages);
   };
 
   const handleFullPayment = () => {
-    onSubmit(remainingAmount, date, true);
+    onSubmit(remainingAmount, date, true, receiptImages);
   };
 
   return (
@@ -81,14 +151,14 @@ function PaymentFormModal({
       onClick={onClose}
     >
       <div 
-        className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-2xl animate-slide-up"
+        className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-2xl animate-slide-up max-h-[90vh] overflow-y-auto overscroll-contain"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-center py-3 sm:hidden">
+        <div className="flex justify-center py-3 sm:hidden sticky top-0 bg-card">
           <div className="sheet-handle" />
         </div>
 
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-12">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-heading tracking-wide">Record Payment</h3>
             <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -109,7 +179,7 @@ function PaymentFormModal({
             <div>
               <label className="text-sm text-muted-foreground block mb-2">Payment Amount</label>
               <div className="relative">
-                <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <IndianRupee className="absolute right-8 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <input
                   type="number"
                   value={amount}
@@ -147,11 +217,86 @@ function PaymentFormModal({
               ))}
             </div>
 
+            {/* Receipt Images Upload */}
+            <div>
+              <label className="text-sm text-muted-foreground block mb-2">Payment Receipts (optional)</label>
+              
+              {/* Hidden inputs */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading || receiptImages.length >= 5}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading || receiptImages.length >= 5}
+              />
+
+              {/* Image Grid */}
+              <div className="flex gap-2 flex-wrap">
+                {receiptImages.map((img, idx) => {
+                  const urls = getImageUrls(img);
+                  const displayUrl = isDataUrl(img) ? img : (urls.thumbnail || urls.src);
+                  return (
+                    <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted group">
+                      <img src={displayUrl} alt={`Receipt ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-0.5 right-0.5 p-0.5 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                
+                {receiptImages.length < 5 && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-0.5 hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {isUploading ? (
+                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Camera className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground">Camera</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => galleryInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-0.5 hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-[9px] text-muted-foreground">Gallery</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">{receiptImages.length}/5 images</p>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4 pb-safe">
               <button
                 type="submit"
-                disabled={isSubmitting || !amount}
+                disabled={isSubmitting || !amount || isUploading}
                 className="flex-1 btn-hero disabled:opacity-50"
               >
                 {isSubmitting ? "Saving..." : "Record Payment"}
@@ -159,7 +304,7 @@ function PaymentFormModal({
               <button
                 type="button"
                 onClick={handleFullPayment}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploading}
                 className="px-4 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 Pay Full
@@ -517,13 +662,14 @@ function TransactionDetailModal({
 }
 
 // Transaction Bubble Component with Pay Button
-function TransactionBubble({ 
+const TransactionBubble = React.forwardRef(function TransactionBubble({ 
   txn, 
   isSupplier, 
   onTap,
   onPay,
-  isPaid 
-}) {
+  isPaid,
+  isHighlighted
+}, ref) {
   const hasImages = txn.billImages?.length > 0;
   const totalAmount = Number(txn.amount) || 0;
   const paidAmount = Number(txn.paidAmount) || (txn.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -531,16 +677,17 @@ function TransactionBubble({
   const hasPartialPayment = paidAmount > 0 && !isPaid;
 
   return (
-    <div className="flex justify-end">
-      <div className="min-w-[350px] max-w-[85%] mb-2">
+    <div ref={ref} className={cn(
+      "flex justify-end transition-all duration-500",
+      isHighlighted && "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background rounded-2xl"
+    )}>
+      <div className="min-w-[250px] max-w-[85%] mb-8">
         <div
           onClick={() => onTap(txn)}
           className={cn(
             "rounded-2xl p-3 cursor-pointer transition-all duration-200",
             "active:scale-[0.98] bubble-hero",
-            isSupplier 
-              ? "bubble-outgoing rounded-br-sm" 
-              : "bubble-incoming rounded-bl-sm"
+             "bubble-incoming rounded-bl-sm border-l-4 border-l-emerald-500", isPaid ? "border-l-4 border-l-emerald-500" : "border-l-4 border-l-amber-500",
           )}
         >
           {/* Amount with receipt icon */}
@@ -573,22 +720,23 @@ function TransactionBubble({
           {hasPartialPayment && (
             <div className="mt-2">
               <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-              <p className="text-[10px] text-muted mt-1">
+              <p className="text-[10px] mt-1">
                 ₹{paidAmount.toLocaleString("en-IN")} paid • ₹{remainingAmount.toLocaleString("en-IN")} left
               </p>
             </div>
           )}
           
-          {/* Footer */}
+          {/* Footer with date and time */}
           <div className="flex items-center justify-between gap-2 mt-2">
             <span className={cn(
               "text-xs px-2 py-0.5 rounded-full font-medium",
               isPaid ? "badge-paid" : "badge-pending"
             )}>
-              {isPaid ? "Paid" : "Pending"}
+              {isPaid ? isSupplier ? "Paid" : "Received" : "Pending"}
             </span>
             <span className="text-[10px] text-muted-foreground">
-              {format(parseISO(txn.date), "h:mm a")}
+              {format(parseISO(txn.date), "dd MMM")}
+              {txn.createdAt && `, ${format(parseISO(txn.createdAt), "h:mm a")}`}
             </span>
           </div>
         </div>
@@ -611,14 +759,17 @@ function TransactionBubble({
       </div>
     </div>
   );
-}
+});
 
 export default function PersonChatPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { type, id } = params;
+  const highlightTxnId = searchParams.get("txnId");
   
   const scrollRef = useRef(null);
+  const txnRefs = useRef({});
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [editFormOpen, setEditFormOpen] = useState(false);
@@ -637,9 +788,11 @@ export default function PersonChatPage() {
   const [paymentTransaction, setPaymentTransaction] = useState(null);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [billsGalleryOpen, setBillsGalleryOpen] = useState(false);
+  const [highlightedTxn, setHighlightedTxn] = useState(null);
+  const [profileImageViewerOpen, setProfileImageViewerOpen] = useState(false);
 
   // Prevent body scroll when modals/sheets are open
-  usePreventBodyScroll(showProfile || showMenu || selectedTransaction || paymentFormOpen || billsGalleryOpen);
+  usePreventBodyScroll(showProfile || showMenu || selectedTransaction || paymentFormOpen || billsGalleryOpen || profileImageViewerOpen);
 
   // Data hooks
   const { suppliers, updateSupplier, deleteSupplier } = useSuppliers();
@@ -727,12 +880,21 @@ export default function PersonChatPage() {
     return groups;
   }, [personTransactions]);
 
-  // Scroll to bottom on load
+  // Scroll to highlighted transaction or bottom on load
   useEffect(() => {
-    if (scrollRef.current) {
+    if (highlightTxnId && txnRefs.current[highlightTxnId]) {
+      // Scroll to the highlighted transaction
+      setTimeout(() => {
+        txnRefs.current[highlightTxnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedTxn(highlightTxnId);
+        // Clear highlight after animation
+        setTimeout(() => setHighlightedTxn(null), 3000);
+      }, 300);
+    } else if (scrollRef.current && !highlightTxnId) {
+      // Scroll to bottom if no highlight
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [personTransactions.length]);
+  }, [personTransactions.length, highlightTxnId]);
 
   // Handle phone call
   const handleCall = useCallback(() => {
@@ -750,14 +912,32 @@ export default function PersonChatPage() {
     }
   }, [person, totals.pending]);
 
-  // Handle GPay chat
+  // Handle GPay - Try multiple deep link schemes for better compatibility
   const handleGPayChat = useCallback(() => {
     if (person?.phone) {
       const phone = person.phone.replace(/\D/g, "");
       const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
-      window.location.href = `tez://upi/chat?phoneNumber=${formattedPhone}`;
+      
+      // Try Google Pay deep link schemes
+      // First try the newer tez:// scheme, fallback to gpay://
+      const gpayUrl = `gpay://upi/transaction?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
+      const tezUrl = `tez://upi/pay?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
+      
+      // For opening GPay to a contact, we use the intent URL format
+      // Try multiple schemes for cross-device compatibility
+      const intentUrl = `intent://pay#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+      
+      // On Android, try the gpay deep link first
+      window.location.href = tezUrl;
+      
+      // Fallback after a short delay if the first one doesn't work
+      setTimeout(() => {
+        // If we're still here, try opening GPay with phone number for chat
+        const phonePayUrl = `upi://pay?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
+        window.location.href = phonePayUrl;
+      }, 1000);
     }
-  }, [person?.phone]);
+  }, [person]);
 
   // Copy UPI ID
   const handleCopyUpi = useCallback(async () => {
@@ -855,23 +1035,26 @@ export default function PersonChatPage() {
   }, []);
 
   // Handle recording a payment
-  const handleRecordPayment = useCallback(async (amount, date, isFullPayment = false) => {
+  const handleRecordPayment = useCallback(async (amount, date, isFullPayment = false, receiptImages = []) => {
     if (!paymentTransaction) return;
     
     setIsSubmittingPayment(true);
     try {
       let result;
+      // Pass receipt images as receiptUrls array
+      const receiptUrl = receiptImages.length > 0 ? receiptImages : null;
+      
       if (isSupplier) {
         if (isFullPayment) {
-          result = await markTransactionFullPaid(paymentTransaction.id, null, date);
+          result = await markTransactionFullPaid(paymentTransaction.id, receiptUrl, date);
         } else {
-          result = await recordTransactionPayment(paymentTransaction.id, amount, null, date);
+          result = await recordTransactionPayment(paymentTransaction.id, amount, receiptUrl, date);
         }
       } else {
         if (isFullPayment) {
-          result = await markUdharFullPaid(paymentTransaction.id, null, date);
+          result = await markUdharFullPaid(paymentTransaction.id, receiptUrl, date);
         } else {
-          result = await recordUdharPayment(paymentTransaction.id, amount, null, null, date);
+          result = await recordUdharPayment(paymentTransaction.id, amount, receiptUrl, null, date);
         }
       }
 
@@ -1055,9 +1238,11 @@ export default function PersonChatPage() {
                   return (
                     <TransactionBubble
                       key={txn.id}
+                      ref={el => { txnRefs.current[txn.id] = el; }}
                       txn={txn}
                       isSupplier={isSupplier}
                       isPaid={isPaid}
+                      isHighlighted={highlightedTxn === txn.id}
                       onTap={setSelectedTransaction}
                       onPay={handleOpenPaymentForm}
                     />
@@ -1186,12 +1371,29 @@ export default function PersonChatPage() {
 
             {/* Avatar & Name */}
             <div className="flex flex-col items-center py-6">
-              <PersonAvatar
-                name={person.companyName || person.name}
-                image={person.profilePicture}
-                size="xl"
-                className="avatar-hero"
-              />
+              <div 
+                className={cn(
+                  "relative group cursor-pointer",
+                  person.profilePicture && "hover:opacity-90 transition-opacity"
+                )}
+                onClick={() => {
+                  if (person.profilePicture) {
+                    setProfileImageViewerOpen(true);
+                  }
+                }}
+              >
+                <PersonAvatar
+                  name={person.companyName || person.name}
+                  image={person.profilePicture}
+                  size="xl"
+                  className="avatar-hero"
+                />
+                {person.profilePicture && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 rounded-full transition-colors">
+                    <Expand className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+              </div>
               <h2 className="mt-4 text-2xl font-heading tracking-wide">
                 {person.companyName || person.name}
               </h2>
@@ -1355,6 +1557,16 @@ export default function PersonChatPage() {
         images={viewerImages}
         initialIndex={viewerIndex}
       />
+
+      {/* Profile Image Viewer */}
+      {person?.profilePicture && (
+        <ImageViewer
+          src={resolveImageUrl(person.profilePicture)}
+          alt={person.companyName || person.name}
+          open={profileImageViewerOpen}
+          onOpenChange={setProfileImageViewerOpen}
+        />
+      )}
     </div>
   );
 }

@@ -106,8 +106,7 @@ function IncomeItem({ item, onEdit, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onClick={() => !isDragging.current && swipeOffset === 0 && onEdit(item)}
-        className="flex items-center justify-between p-4 bg-muted rounded-xl cursor-pointer transition-transform"
+        className="flex items-center justify-between p-4 bg-muted rounded-xl transition-transform"
         style={{ 
           transform: `translateX(${swipeOffset}px)`,
           transition: isDragging.current ? "none" : "transform 0.2s ease-out"
@@ -144,37 +143,136 @@ function IncomeItem({ item, onEdit, onDelete }) {
   );
 }
 
-// Simple Bar Chart Component
-function IncomeChart({ data }) {
-  if (!data || data.length === 0) return null;
+// Chart Duration Options
+const CHART_DURATION_OPTIONS = [
+  { value: "3months", label: "3M", months: 3 },
+  { value: "6months", label: "6M", months: 6 },
+  { value: "12months", label: "1Y", months: 12 },
+];
 
-  const maxValue = Math.max(...data.map(d => d.value), 1);
+// Simple Bar Chart Component with dynamic height based on 10k base
+function IncomeChart({ data, duration, onDurationChange }) {
+  // Base value for height calculation (10k = 1 unit height)
+  const BASE_VALUE = 10000;
+  const CHART_HEIGHT = 140; // pixels
+  
+  if (!data || data.length === 0) {
+    // Show empty placeholder chart
+    return (
+      <div className="theme-card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Revenue Trend
+          </h3>
+          <div className="flex gap-1">
+            {CHART_DURATION_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onDurationChange?.(opt.value)}
+                className={cn(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                  duration === opt.value 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
+          {[...Array(6)].map((_, idx) => (
+            <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+              <div className="w-full h-1 bg-muted rounded-t-sm" />
+              <span className="text-[9px] text-muted-foreground truncate w-full text-center">-</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-center text-xs text-muted-foreground mt-4">No income data yet</p>
+      </div>
+    );
+  }
+
+  // Calculate max units based on 10k base for better UX
+  const maxValue = Math.max(...data.map(d => d.value), BASE_VALUE);
+  const maxUnits = Math.ceil(maxValue / BASE_VALUE);
+  const totalRevenue = data.reduce((sum, d) => sum + d.value, 0);
+  
+  // Calculate height for each bar based on 10k units
+  const getBarHeight = (value) => {
+    if (value <= 0) return 4;
+    const units = value / BASE_VALUE;
+    // Scale to chart height with min height of 8px
+    const percentage = Math.min((units / maxUnits) * 100, 100);
+    return Math.max(percentage, 5);
+  };
+  
+  // Format value for display
+  const formatValue = (value) => {
+    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+    if (value >= 1000) return `₹${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`;
+    return `₹${value}`;
+  };
+
+  const durationLabel = CHART_DURATION_OPTIONS.find(o => o.value === duration)?.months || 6;
 
   return (
     <div className="theme-card p-4">
-      <h3 className="font-medium mb-4 flex items-center gap-2">
-        <TrendingUp className="h-4 w-4 text-primary" />
-        Revenue Trend
-      </h3>
-      <div className="flex items-end justify-between gap-1 h-32">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-medium flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          Revenue Trend
+        </h3>
+        <div className="flex gap-1">
+          {CHART_DURATION_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => onDurationChange?.(opt.value)}
+              className={cn(
+                "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                duration === opt.value 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-muted text-muted-foreground hover:bg-accent"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Y-axis scale indicator */}
+      <div className="flex items-center justify-end gap-2 mb-2 text-[10px] text-muted-foreground">
+        <span>Max: {formatValue(maxUnits * BASE_VALUE)}</span>
+      </div>
+      
+      <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
         {data.map((item, idx) => (
-          <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+          <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+            <div className="text-[12px] text-center font-mono text-muted-foreground mb-1">
+              {item.value > 0 ? formatValue(item.value) : ""}
+            </div>
             <div 
               className={cn(
-                "w-full rounded-t-sm transition-all",
-                item.value > 0 ? "bg-emerald-500" : "bg-muted"
+                "w-full rounded-t-sm transition-all duration-300",
+                item.value > 0 ? "bg-gradient-to-t from-emerald-600 to-emerald-400" : "bg-muted"
               )}
-              style={{ height: `${Math.max((item.value / maxValue) * 100, 4)}%` }}
+              style={{ 
+                height: `${getBarHeight(item.value)}%`,
+                minHeight: item.value > 0 ? "8px" : "4px"
+              }}
             />
-            <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+            <span className="text-[9px] text-muted-foreground truncate w-full text-center font-medium">
               {item.label}
             </span>
           </div>
         ))}
       </div>
-      <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-        <span>₹0</span>
-        <span>₹{maxValue.toLocaleString("en-IN")}</span>
+      <div className="flex justify-between mt-3 text-xs">
+        <span className="text-muted-foreground">{durationLabel} Month Total:</span>
+        <span className="font-mono font-semibold amount-positive">{formatValue(totalRevenue)}</span>
       </div>
     </div>
   );
@@ -203,6 +301,7 @@ function IncomeModal({ open, onClose }) {
   const [deleteItem, setDeleteItem] = useState(null);
   const [filter, setFilter] = useState("all");
   const [showGraph, setShowGraph] = useState(true);
+  const [chartDuration, setChartDuration] = useState("6months");
   
   const monthOptions = useMemo(() => getMonthOptions(), []);
 
@@ -238,12 +337,16 @@ function IncomeModal({ open, onClose }) {
     });
   }, [incomeList, filter]);
 
-  // Chart data - last 6 months
+  // Chart data - dynamic based on selected duration
   const chartData = useMemo(() => {
     const now = new Date();
     const data = [];
     
-    for (let i = 5; i >= 0; i--) {
+    // Get number of months based on duration
+    const durationOption = CHART_DURATION_OPTIONS.find(o => o.value === chartDuration);
+    const numMonths = durationOption?.months || 6;
+    
+    for (let i = numMonths - 1; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
@@ -260,13 +363,14 @@ function IncomeModal({ open, onClose }) {
       }, 0);
       
       data.push({
-        label: format(monthDate, "MMM"),
+        label: format(monthDate, numMonths > 6 ? "MMM" : "MMM"),
+        fullLabel: format(monthDate, "MMM yy"),
         value: total,
       });
     }
     
     return data;
-  }, [incomeList]);
+  }, [incomeList, chartDuration]);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -389,20 +493,26 @@ function IncomeModal({ open, onClose }) {
             </div>
             <div className="theme-card p-3 text-center">
               <p className="text-xs text-muted-foreground">This Month</p>
-              <p className="text-lg font-bold font-mono text-primary">
+              <p className="text-md font-bold font-mono text-primary">
                 ₹{totals.thisMonth.toLocaleString("en-IN")}
               </p>
             </div>
             <div className="theme-card p-3 text-center">
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-lg font-bold font-mono">
+              <p className="text-md font-bold font-mono">
                 ₹{totals.total.toLocaleString("en-IN")}
               </p>
             </div>
           </div>
 
           {/* Revenue Chart */}
-          {showGraph && <IncomeChart data={chartData} />}
+          {showGraph && (
+            <IncomeChart 
+              data={chartData} 
+              duration={chartDuration} 
+              onDurationChange={setChartDuration} 
+            />
+          )}
 
           {/* Add/Edit Income Form */}
           <div className="theme-card p-4 mb-6 mt-4">
@@ -634,7 +744,7 @@ function ReportsModal({ open, onClose }) {
         <div className="px-4 pb-6">
           <h2 className="text-2xl font-heading tracking-wide mb-6">Reports</h2>
 
-          <div className={cn("p-4 rounded-xl mb-6", stats.netPosition >= 0 ? "bg-emerald-500/20" : "bg-red-500/20")}>
+          {/* <div className={cn("p-4 rounded-xl mb-6", stats.netPosition >= 0 ? "bg-emerald-500/20" : "bg-red-500/20")}>
             <p className="text-sm text-muted-foreground">Net Position</p>
             <p className={cn("text-3xl font-bold font-mono", stats.netPosition >= 0 ? "amount-positive" : "amount-negative")}>
               {stats.netPosition >= 0 ? "+" : ""}₹{Math.abs(stats.netPosition).toLocaleString("en-IN")}
@@ -642,7 +752,7 @@ function ReportsModal({ open, onClose }) {
             <p className="text-xs text-muted-foreground mt-1">
               {stats.netPosition >= 0 ? "Customers owe you more than you owe suppliers" : "You owe suppliers more than customers owe you"}
             </p>
-          </div>
+          </div> */}
 
           <div className="theme-card p-4 mb-4">
             <div className="flex items-center gap-2 mb-4">
@@ -1037,7 +1147,7 @@ export default function SettingsPage() {
               {section.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <button key={item.label} onClick={item.onClick} className="w-full text-left hover:bg-accent transition-colors">
+                  <button key={item.label} onClick={item.onClick} className="w-full text-left hover:bg-accent/20 transition-colors">
                     <div className="flex items-center gap-3 p-4">
                       <div className={`h-10 w-10 rounded-full ${item.bgColor} flex items-center justify-center`}>
                         <Icon className={`h-5 w-5 ${item.color}`} />
