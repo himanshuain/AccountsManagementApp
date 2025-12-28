@@ -62,13 +62,16 @@ export const config = {
   matcher: [
     // Match all API routes except static files
     "/api/:path*",
-    // Match all dashboard routes
-    "/(dashboard)/:path*",
+    // Match GPay routes
+    "/history/:path*",
+    "/settings/:path*",
+    "/person/:path*",
+    // Match legacy dashboard routes (will redirect)
     "/suppliers/:path*",
     "/customers/:path*",
     "/transactions/:path*",
     "/reports/:path*",
-    // Match root dashboard
+    // Match root
     "/",
   ],
 };

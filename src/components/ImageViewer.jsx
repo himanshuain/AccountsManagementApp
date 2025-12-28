@@ -2,42 +2,42 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
+import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getImageUrls, resolveImageUrl, isDataUrl } from "@/lib/image-url";
+import { resolveImageUrl } from "@/lib/image-url";
 
 /**
- * Simple and reliable Image Viewer with touch gestures
- * - Pinch to zoom from focal point
- * - Double tap to zoom at tap location
+ * Simplified Image Viewer with reliable touch gestures
+ * - Double tap to zoom
+ * - Pinch to zoom
  * - Pan when zoomed
  * - Swipe down to close
- *
- * Accepts both storage keys (new format) and full URLs (legacy)
+ * - Properly handles R2 storage URLs
  */
 export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const containerRef = useRef(null);
-  const imageRef = useRef(null);
 
-  // Get optimized image URLs (works with both storage keys and legacy URLs)
-  const optimizedUrls = useMemo(() => {
-    if (!src) return { src: "", lqip: "", medium: "", original: "" };
-    return getImageUrls(src);
+  // Resolve the image URL - handles R2 storage keys and legacy URLs
+  const imageUrl = useMemo(() => {
+    if (!src) return "";
+    try {
+      return resolveImageUrl(src);
+    } catch (e) {
+      console.error("Failed to resolve image URL:", e);
+      return src; // Fallback to original
+    }
   }, [src]);
 
-  // Check if it's an ImageKit URL (for LQIP display)
-  const isImageKit = useMemo(() => {
-    return optimizedUrls.original?.includes("ik.imagekit.io");
-  }, [optimizedUrls.original]);
-
-  // Touch gesture state
+  // Touch state
   const touchState = useRef({
     startX: 0,
     startY: 0,
@@ -46,262 +46,120 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
     isPinching: false,
     isDragging: false,
     lastTap: 0,
-    lastTapX: 0,
-    lastTapY: 0,
     startPosition: { x: 0, y: 0 },
-    pinchCenterX: 0,
-    pinchCenterY: 0,
   });
 
-  // State for portal mounting
-  const [mounted, setMounted] = useState(false);
-  const portalContainerRef = useRef(null);
-
-  // Create dedicated portal container on client side
+  // Mount portal on client
   useEffect(() => {
-    // Create a dedicated container for the image viewer portal
-    const container = document.createElement("div");
-    container.id = "image-viewer-portal-root";
-    container.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 2147483647;
-      pointer-events: none;
-      isolation: isolate;
-    `;
-    document.body.appendChild(container);
-    portalContainerRef.current = container;
     setMounted(true);
-
-    return () => {
-      if (container && document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-    };
+    return () => setMounted(false);
   }, []);
 
-  // Reset state when opening/closing
+  // Reset state when opening
   useEffect(() => {
     if (open) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
       setRotation(0);
       setIsLoading(true);
-
-      // Fallback for cached images where onLoad might not fire
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
-
-      return () => clearTimeout(timer);
+      setHasError(false);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
-  // Calculate distance between two touch points
-  const getDistance = (touch1, touch2) => {
-    const dx = touch1.clientX - touch2.clientX;
-    const dy = touch1.clientY - touch2.clientY;
+  // Get distance between two touch points
+  const getDistance = (t1, t2) => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  // Get center point between two touches
-  const getCenter = (touch1, touch2) => {
-    return {
-      x: (touch1.clientX + touch2.clientX) / 2,
-      y: (touch1.clientY + touch2.clientY) / 2,
-    };
-  };
-
-  // Handle touch start
-  const handleTouchStart = useCallback(
-    e => {
-      const touches = e.touches;
-
-      if (touches.length === 2) {
-        // Pinch start
+  // Touch handlers
+  const handleTouchStart = useCallback((e) => {
+    const touches = e.touches;
+    
+    if (touches.length === 2) {
+      e.preventDefault();
+      touchState.current.isPinching = true;
+      touchState.current.startDistance = getDistance(touches[0], touches[1]);
+      touchState.current.startScale = scale;
+      touchState.current.startPosition = { ...position };
+    } else if (touches.length === 1) {
+      const now = Date.now();
+      const touch = touches[0];
+      
+      // Double tap detection
+      if (now - touchState.current.lastTap < 300) {
         e.preventDefault();
-        touchState.current.isPinching = true;
-        touchState.current.startDistance = getDistance(touches[0], touches[1]);
-        touchState.current.startScale = scale;
-        touchState.current.startPosition = { ...position };
-
-        // Store pinch center relative to container
-        const center = getCenter(touches[0], touches[1]);
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          touchState.current.pinchCenterX = center.x - rect.left - rect.width / 2;
-          touchState.current.pinchCenterY = center.y - rect.top - rect.height / 2;
-        }
-      } else if (touches.length === 1) {
-        // Single touch - check for double tap
-        const now = Date.now();
-        const timeDiff = now - touchState.current.lastTap;
-        const touch = touches[0];
-
-        if (timeDiff < 300 && timeDiff > 0) {
-          // Double tap - zoom at tap location
-          e.preventDefault();
-
-          const rect = containerRef.current?.getBoundingClientRect();
-          if (rect) {
-            const tapX = touch.clientX - rect.left - rect.width / 2;
-            const tapY = touch.clientY - rect.top - rect.height / 2;
-
-            if (scale > 1) {
-              // Zoom out to 1x
-              setScale(1);
-              setPosition({ x: 0, y: 0 });
-            } else {
-              // Zoom in at tap location
-              const newScale = 2.5;
-              const scaleDiff = newScale - scale;
-              setScale(newScale);
-              setPosition({
-                x: position.x - (tapX * scaleDiff) / newScale,
-                y: position.y - (tapY * scaleDiff) / newScale,
-              });
-            }
-          }
-          touchState.current.lastTap = 0;
-        } else {
-          touchState.current.lastTap = now;
-          touchState.current.lastTapX = touch.clientX;
-          touchState.current.lastTapY = touch.clientY;
-          touchState.current.startX = touch.clientX;
-          touchState.current.startY = touch.clientY;
-          touchState.current.startPosition = { ...position };
-          touchState.current.isDragging = true;
-        }
-      }
-    },
-    [scale, position]
-  );
-
-  // Handle touch move
-  const handleTouchMove = useCallback(
-    e => {
-      const touches = e.touches;
-
-      if (touchState.current.isPinching && touches.length === 2) {
-        // Pinch zoom from focal point
-        e.preventDefault();
-        const currentDistance = getDistance(touches[0], touches[1]);
-        const scaleFactor = currentDistance / touchState.current.startDistance;
-        const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
-
-        // Calculate new position to zoom from pinch center
-        const scaleDiff = newScale - touchState.current.startScale;
-        const focalX = touchState.current.pinchCenterX;
-        const focalY = touchState.current.pinchCenterY;
-
-        const newX = touchState.current.startPosition.x - (focalX * scaleDiff) / newScale;
-        const newY = touchState.current.startPosition.y - (focalY * scaleDiff) / newScale;
-
-        setScale(newScale);
-        setPosition({ x: newX, y: newY });
-      } else if (touchState.current.isDragging && touches.length === 1) {
-        const deltaX = touches[0].clientX - touchState.current.startX;
-        const deltaY = touches[0].clientY - touchState.current.startY;
-
         if (scale > 1) {
-          // Pan when zoomed
-          e.preventDefault();
-          setPosition({
-            x: touchState.current.startPosition.x + deltaX / scale,
-            y: touchState.current.startPosition.y + deltaY / scale,
-          });
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
         } else {
-          // Swipe down to close when not zoomed
-          if (deltaY > 100 && Math.abs(deltaX) < 50) {
-            onOpenChange(false);
-          }
+          setScale(2.5);
         }
+        touchState.current.lastTap = 0;
+      } else {
+        touchState.current.lastTap = now;
+        touchState.current.startX = touch.clientX;
+        touchState.current.startY = touch.clientY;
+        touchState.current.startPosition = { ...position };
+        touchState.current.isDragging = true;
       }
-    },
-    [scale, onOpenChange]
-  );
+    }
+  }, [scale, position]);
 
-  // Handle touch end
+  const handleTouchMove = useCallback((e) => {
+    const touches = e.touches;
+    
+    if (touchState.current.isPinching && touches.length === 2) {
+      e.preventDefault();
+      const currentDistance = getDistance(touches[0], touches[1]);
+      const scaleFactor = currentDistance / touchState.current.startDistance;
+      const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
+      setScale(newScale);
+    } else if (touchState.current.isDragging && touches.length === 1) {
+      const deltaX = touches[0].clientX - touchState.current.startX;
+      const deltaY = touches[0].clientY - touchState.current.startY;
+      
+      if (scale > 1) {
+        e.preventDefault();
+        setPosition({
+          x: touchState.current.startPosition.x + deltaX / scale,
+          y: touchState.current.startPosition.y + deltaY / scale,
+        });
+      } else if (deltaY > 100 && Math.abs(deltaX) < 50) {
+        // Swipe down to close
+        onOpenChange(false);
+      }
+    }
+  }, [scale, onOpenChange]);
+
   const handleTouchEnd = useCallback(() => {
     touchState.current.isPinching = false;
     touchState.current.isDragging = false;
-
-    // Snap back if scale is too small
     if (scale < 1) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
     }
   }, [scale]);
 
-  // Handle mouse wheel zoom at cursor position
-  const handleWheel = useCallback(
-    e => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.3 : 0.3;
-      const newScale = Math.min(Math.max(scale + delta, 0.5), 5);
+  // Mouse wheel zoom
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.3 : 0.3;
+    const newScale = Math.min(Math.max(scale + delta, 1), 5);
+    setScale(newScale);
+    if (newScale === 1) setPosition({ x: 0, y: 0 });
+  }, [scale]);
 
-      // Get cursor position relative to container center
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        const cursorX = e.clientX - rect.left - rect.width / 2;
-        const cursorY = e.clientY - rect.top - rect.height / 2;
-
-        // Adjust position to zoom at cursor
-        const scaleDiff = newScale - scale;
-        const newX = position.x - (cursorX * scaleDiff) / newScale;
-        const newY = position.y - (cursorY * scaleDiff) / newScale;
-
-        setScale(newScale);
-        setPosition({ x: newX, y: newY });
-      } else {
-        setScale(newScale);
-      }
-    },
-    [scale, position]
-  );
-
-  // Handle share
-  const handleShare = async () => {
-    const imageUrl = optimizedUrls.original;
-    if (!imageUrl) return;
-
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "image.jpg", { type: blob.type });
-
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: "Shared Image",
-        });
-        toast.success("Shared successfully");
-      } else if (navigator.share) {
-        await navigator.share({
-          title: "Shared Image",
-          url: imageUrl,
-        });
-        toast.success("Shared successfully");
-      } else {
-        await navigator.clipboard.writeText(imageUrl);
-        toast.success("Link copied to clipboard");
-      }
-    } catch (error) {
-      if (error.name !== "AbortError") {
-        console.error("Share failed:", error);
-        toast.error("Failed to share");
-      }
-    }
-  };
-
-  // Handle download
+  // Actions
   const handleDownload = async () => {
-    const imageUrl = optimizedUrls.original;
     if (!imageUrl) return;
-
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -309,69 +167,45 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       const link = document.createElement("a");
       link.href = url;
       link.download = `image-${Date.now()}.jpg`;
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success("Image downloaded");
-    } catch (error) {
-      console.error("Download failed:", error);
-      toast.error("Failed to download image");
+    } catch {
+      toast.error("Failed to download");
     }
   };
 
-  // Handle zoom buttons
-  const handleZoomIn = () => {
-    setScale(prev => Math.min(prev + 0.5, 5));
-  };
-
-  const handleZoomOut = () => {
-    setScale(prev => {
-      const newScale = Math.max(prev - 0.5, 1);
-      if (newScale === 1) {
-        setPosition({ x: 0, y: 0 });
+  const handleShare = async () => {
+    if (!imageUrl) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url: imageUrl, title: "Shared Image" });
+      } else {
+        await navigator.clipboard.writeText(imageUrl);
+        toast.success("Link copied");
       }
-      return newScale;
-    });
-  };
-
-  // Handle rotation
-  const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
-  };
-
-  // Handle close
-  const handleClose = () => {
-    onOpenChange(false);
-  };
-
-  // Handle backdrop click
-  const handleBackdropClick = e => {
-    if (e.target === containerRef.current && scale === 1) {
-      handleClose();
+    } catch (e) {
+      if (e.name !== "AbortError") toast.error("Failed to share");
     }
   };
+
+  const handleClose = () => onOpenChange(false);
 
   if (!open || !mounted) return null;
 
   const content = (
     <div
-      className="fixed inset-0 flex flex-col bg-black/95"
-      style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+      className="fixed inset-0 z-[99999] flex flex-col bg-black"
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
-      <div
-        className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-3"
-        style={{ zIndex: 2147483647, pointerEvents: "auto" }}
-      >
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
         <Button
           variant="ghost"
           size="icon"
           className="h-10 w-10 text-white hover:bg-white/20"
           onClick={handleClose}
-          style={{ pointerEvents: "auto" }}
         >
           <X className="h-6 w-6" />
         </Button>
@@ -381,22 +215,20 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
-            onClick={handleZoomOut}
+            onClick={() => setScale(s => Math.max(s - 0.5, 1))}
             disabled={scale <= 1}
-            style={{ pointerEvents: "auto" }}
           >
             <ZoomOut className="h-5 w-5" />
           </Button>
-          <span className="min-w-[50px] text-center text-sm text-white">
+          <span className="min-w-[50px] text-center text-sm text-white font-mono">
             {Math.round(scale * 100)}%
           </span>
           <Button
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
-            onClick={handleZoomIn}
+            onClick={() => setScale(s => Math.min(s + 0.5, 5))}
             disabled={scale >= 5}
-            style={{ pointerEvents: "auto" }}
           >
             <ZoomIn className="h-5 w-5" />
           </Button>
@@ -404,8 +236,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
-            onClick={handleRotate}
-            style={{ pointerEvents: "auto" }}
+            onClick={() => setRotation(r => (r + 90) % 360)}
           >
             <RotateCw className="h-5 w-5" />
           </Button>
@@ -414,7 +245,6 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleDownload}
-            style={{ pointerEvents: "auto" }}
           >
             <Download className="h-5 w-5" />
           </Button>
@@ -423,7 +253,6 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleShare}
-            style={{ pointerEvents: "auto" }}
           >
             <Share2 className="h-5 w-5" />
           </Button>
@@ -433,131 +262,103 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex flex-1 items-center justify-center overflow-hidden"
-        style={{ touchAction: "none", pointerEvents: "auto" }}
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        style={{ touchAction: "none" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
-        onClick={handleBackdropClick}
+        onClick={(e) => e.target === containerRef.current && scale === 1 && handleClose()}
       >
-        {/* LQIP blurred background for slow connections */}
-        {isLoading && optimizedUrls.lqip && isImageKit && (
-          <img
-            src={optimizedUrls.lqip}
-            alt=""
-            aria-hidden="true"
-            className="max-h-full max-w-full scale-105 object-contain opacity-70 blur-2xl"
-            style={{
-              transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-            }}
-          />
-        )}
-
         {isLoading && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
           </div>
         )}
 
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          ref={imageRef}
-          src={optimizedUrls.original}
-          alt={alt}
-          className={cn(
-            "max-h-full max-w-full select-none object-contain transition-opacity duration-500",
-            isLoading ? "opacity-0" : "opacity-100"
-          )}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-            transition:
-              touchState.current.isPinching || touchState.current.isDragging
+        {hasError ? (
+          <div className="flex flex-col items-center gap-4 text-white/70">
+            <AlertCircle className="h-16 w-16" />
+            <p>Failed to load image</p>
+            <Button variant="outline" onClick={() => { setHasError(false); setIsLoading(true); }}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={imageUrl}
+            alt={alt}
+            className={cn(
+              "max-h-full max-w-full select-none object-contain transition-opacity duration-300",
+              isLoading ? "opacity-0" : "opacity-100"
+            )}
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+              transition: touchState.current.isPinching || touchState.current.isDragging
                 ? "none"
                 : "transform 0.2s ease-out",
-          }}
-          onLoad={() => setIsLoading(false)}
-          onError={() => setIsLoading(false)}
-          draggable={false}
-        />
+            }}
+            onLoad={() => setIsLoading(false)}
+            onError={() => { setIsLoading(false); setHasError(true); }}
+            draggable={false}
+          />
+        )}
       </div>
 
-      {/* Hint text */}
-      {scale === 1 && (
-        <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm text-white/50">
+      {/* Hint */}
+      {scale === 1 && !hasError && (
+        <div className="absolute bottom-6 left-0 right-0 text-center text-sm text-white/50">
           Double tap to zoom • Swipe down to close
         </div>
       )}
     </div>
   );
 
-  if (!portalContainerRef.current) return null;
-  return createPortal(content, portalContainerRef.current);
+  return createPortal(content, document.body);
 }
 
 /**
  * Gallery Viewer for multiple images
- * Supports both string URLs and objects with { url, amount, date, customerName, type }
- *
- * Accepts both storage keys (new format) and full URLs (legacy)
  */
-export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
+export function ImageGalleryViewer({ 
+  images = [], 
+  initialIndex = 0, 
+  open, 
+  onOpenChange 
+}) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [showInfo, setShowInfo] = useState(true);
 
   const containerRef = useRef(null);
-  const portalContainerRef = useRef(null);
 
-  // Normalize images - support both string[] and object[]
+  // Normalize images to array of objects
   const normalizedImages = useMemo(() => {
     return images.map(img => {
-      if (typeof img === "string") {
-        return { url: img };
-      }
+      if (typeof img === "string") return { url: img };
       return img;
     });
   }, [images]);
 
-  // Get current image data
   const currentImage = normalizedImages[currentIndex] || {};
-  const currentSrc = currentImage.url;
-
-  // Get optimized URLs for current image (works with storage keys and URLs)
-  const optimizedUrls = useMemo(() => {
-    if (!currentSrc) return { src: "", lqip: "", thumbnail: "", original: "" };
-    return getImageUrls(currentSrc);
-  }, [currentSrc]);
-
-  // Check if it's an ImageKit URL (for LQIP display)
-  const isImageKit = useMemo(() => {
-    return optimizedUrls.original?.includes("ik.imagekit.io");
-  }, [optimizedUrls.original]);
-
-  // Reset currentIndex when opening with a new initialIndex
-  useEffect(() => {
-    if (open) {
-      setCurrentIndex(initialIndex);
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
-      setRotation(0);
-      setIsLoading(true);
-      setShowInfo(true);
-
-      // For cached images, onLoad might not fire, so check after a short delay
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
-
-      return () => clearTimeout(timer);
+  
+  // Resolve URL with fallback
+  const imageUrl = useMemo(() => {
+    const src = currentImage.url;
+    if (!src) return "";
+    try {
+      return resolveImageUrl(src);
+    } catch {
+      return src;
     }
-  }, [open, initialIndex]);
+  }, [currentImage.url]);
 
-  // Touch gesture state
+  // Touch state
   const touchState = useRef({
     startX: 0,
     startY: 0,
@@ -567,36 +368,12 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     isDragging: false,
     lastTap: 0,
     startPosition: { x: 0, y: 0 },
-    pinchCenterX: 0,
-    pinchCenterY: 0,
   });
 
-  // Create dedicated portal container on client side
   useEffect(() => {
-    const container = document.createElement("div");
-    container.id = "image-gallery-viewer-portal-root";
-    container.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 2147483647;
-      pointer-events: none;
-      isolation: isolate;
-    `;
-    document.body.appendChild(container);
-    portalContainerRef.current = container;
     setMounted(true);
-
-    return () => {
-      if (container && document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-    };
   }, []);
 
-  // Reset when opening
   useEffect(() => {
     if (open) {
       setCurrentIndex(initialIndex);
@@ -604,204 +381,115 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       setPosition({ x: 0, y: 0 });
       setRotation(0);
       setIsLoading(true);
+      setHasError(false);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
+    return () => { document.body.style.overflow = ""; };
   }, [open, initialIndex]);
 
-  // Reset zoom when changing images
+  // Reset when changing images
   useEffect(() => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setRotation(0);
     setIsLoading(true);
-
-    // Fallback for cached images where onLoad might not fire
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
+    setHasError(false);
   }, [currentIndex]);
 
-  const getDistance = (touch1, touch2) => {
-    const dx = touch1.clientX - touch2.clientX;
-    const dy = touch1.clientY - touch2.clientY;
+  const getDistance = (t1, t2) => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const getCenter = (touch1, touch2) => {
-    return {
-      x: (touch1.clientX + touch2.clientX) / 2,
-      y: (touch1.clientY + touch2.clientY) / 2,
-    };
-  };
-
-  const handleTouchStart = useCallback(
-    e => {
-      const touches = e.touches;
-
-      if (touches.length === 2) {
+  const handleTouchStart = useCallback((e) => {
+    const touches = e.touches;
+    
+    if (touches.length === 2) {
+      e.preventDefault();
+      touchState.current.isPinching = true;
+      touchState.current.startDistance = getDistance(touches[0], touches[1]);
+      touchState.current.startScale = scale;
+      touchState.current.startPosition = { ...position };
+    } else if (touches.length === 1) {
+      const now = Date.now();
+      const touch = touches[0];
+      
+      if (now - touchState.current.lastTap < 300) {
         e.preventDefault();
-        touchState.current.isPinching = true;
-        touchState.current.startDistance = getDistance(touches[0], touches[1]);
-        touchState.current.startScale = scale;
-        touchState.current.startPosition = { ...position };
-
-        const center = getCenter(touches[0], touches[1]);
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          touchState.current.pinchCenterX = center.x - rect.left - rect.width / 2;
-          touchState.current.pinchCenterY = center.y - rect.top - rect.height / 2;
-        }
-      } else if (touches.length === 1) {
-        const now = Date.now();
-        const timeDiff = now - touchState.current.lastTap;
-        const touch = touches[0];
-
-        if (timeDiff < 300 && timeDiff > 0) {
-          e.preventDefault();
-          const rect = containerRef.current?.getBoundingClientRect();
-          if (rect) {
-            const tapX = touch.clientX - rect.left - rect.width / 2;
-            const tapY = touch.clientY - rect.top - rect.height / 2;
-
-            if (scale > 1) {
-              setScale(1);
-              setPosition({ x: 0, y: 0 });
-            } else {
-              const newScale = 2.5;
-              const scaleDiff = newScale - scale;
-              setScale(newScale);
-              setPosition({
-                x: position.x - (tapX * scaleDiff) / newScale,
-                y: position.y - (tapY * scaleDiff) / newScale,
-              });
-            }
-          }
-          touchState.current.lastTap = 0;
-        } else {
-          touchState.current.lastTap = now;
-          touchState.current.startX = touch.clientX;
-          touchState.current.startY = touch.clientY;
-          touchState.current.startPosition = { ...position };
-          touchState.current.isDragging = true;
-        }
-      }
-    },
-    [scale, position]
-  );
-
-  const handleTouchMove = useCallback(
-    e => {
-      const touches = e.touches;
-
-      if (touchState.current.isPinching && touches.length === 2) {
-        e.preventDefault();
-        const currentDistance = getDistance(touches[0], touches[1]);
-        const scaleFactor = currentDistance / touchState.current.startDistance;
-        const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
-
-        const scaleDiff = newScale - touchState.current.startScale;
-        const focalX = touchState.current.pinchCenterX;
-        const focalY = touchState.current.pinchCenterY;
-
-        const newX = touchState.current.startPosition.x - (focalX * scaleDiff) / newScale;
-        const newY = touchState.current.startPosition.y - (focalY * scaleDiff) / newScale;
-
-        setScale(newScale);
-        setPosition({ x: newX, y: newY });
-      } else if (touchState.current.isDragging && touches.length === 1) {
-        const deltaX = touches[0].clientX - touchState.current.startX;
-        const deltaY = touches[0].clientY - touchState.current.startY;
-
         if (scale > 1) {
-          e.preventDefault();
-          setPosition({
-            x: touchState.current.startPosition.x + deltaX / scale,
-            y: touchState.current.startPosition.y + deltaY / scale,
-          });
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
         } else {
-          // Swipe to navigate or close
-          if (deltaY > 100 && Math.abs(deltaX) < 50) {
-            onOpenChange(false);
-          } else if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 50) {
-            if (deltaX > 0 && currentIndex > 0) {
-              setCurrentIndex(prev => prev - 1);
-              touchState.current.isDragging = false;
-            } else if (deltaX < 0 && currentIndex < images.length - 1) {
-              setCurrentIndex(prev => prev + 1);
-              touchState.current.isDragging = false;
-            }
+          setScale(2.5);
+        }
+        touchState.current.lastTap = 0;
+      } else {
+        touchState.current.lastTap = now;
+        touchState.current.startX = touch.clientX;
+        touchState.current.startY = touch.clientY;
+        touchState.current.startPosition = { ...position };
+        touchState.current.isDragging = true;
+      }
+    }
+  }, [scale, position]);
+
+  const handleTouchMove = useCallback((e) => {
+    const touches = e.touches;
+    
+    if (touchState.current.isPinching && touches.length === 2) {
+      e.preventDefault();
+      const dist = getDistance(touches[0], touches[1]);
+      const factor = dist / touchState.current.startDistance;
+      setScale(Math.min(Math.max(touchState.current.startScale * factor, 0.5), 5));
+    } else if (touchState.current.isDragging && touches.length === 1) {
+      const deltaX = touches[0].clientX - touchState.current.startX;
+      const deltaY = touches[0].clientY - touchState.current.startY;
+      
+      if (scale > 1) {
+        e.preventDefault();
+        setPosition({
+          x: touchState.current.startPosition.x + deltaX / scale,
+          y: touchState.current.startPosition.y + deltaY / scale,
+        });
+      } else {
+        // Swipe gestures when not zoomed
+        if (deltaY > 100 && Math.abs(deltaX) < 50) {
+          onOpenChange(false);
+        } else if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 50) {
+          if (deltaX > 0 && currentIndex > 0) {
+            setCurrentIndex(i => i - 1);
+            touchState.current.isDragging = false;
+          } else if (deltaX < 0 && currentIndex < normalizedImages.length - 1) {
+            setCurrentIndex(i => i + 1);
+            touchState.current.isDragging = false;
           }
         }
       }
-    },
-    [scale, onOpenChange, currentIndex, images.length]
-  );
+    }
+  }, [scale, onOpenChange, currentIndex, normalizedImages.length]);
 
   const handleTouchEnd = useCallback(() => {
     touchState.current.isPinching = false;
     touchState.current.isDragging = false;
-
     if (scale < 1) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
     }
   }, [scale]);
 
-  const handleWheel = useCallback(
-    e => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.3 : 0.3;
-      const newScale = Math.min(Math.max(scale + delta, 0.5), 5);
-
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        const cursorX = e.clientX - rect.left - rect.width / 2;
-        const cursorY = e.clientY - rect.top - rect.height / 2;
-
-        const scaleDiff = newScale - scale;
-        const newX = position.x - (cursorX * scaleDiff) / newScale;
-        const newY = position.y - (cursorY * scaleDiff) / newScale;
-
-        setScale(newScale);
-        setPosition({ x: newX, y: newY });
-      } else {
-        setScale(newScale);
-      }
-    },
-    [scale, position]
-  );
-
-  const handleShare = async () => {
-    const imageUrl = optimizedUrls.original;
-    if (!imageUrl) return;
-
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "image.jpg", { type: blob.type });
-
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Shared Image" });
-        toast.success("Shared successfully");
-      } else if (navigator.share) {
-        await navigator.share({ title: "Shared Image", url: imageUrl });
-        toast.success("Shared successfully");
-      } else {
-        await navigator.clipboard.writeText(imageUrl);
-        toast.success("Link copied to clipboard");
-      }
-    } catch (error) {
-      if (error.name !== "AbortError") {
-        toast.error("Failed to share");
-      }
-    }
-  };
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.3 : 0.3;
+    const newScale = Math.min(Math.max(scale + delta, 1), 5);
+    setScale(newScale);
+    if (newScale === 1) setPosition({ x: 0, y: 0 });
+  }, [scale]);
 
   const handleDownload = async () => {
-    const imageUrl = optimizedUrls.original;
     if (!imageUrl) return;
-
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -809,73 +497,63 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       const link = document.createElement("a");
       link.href = url;
       link.download = `image-${Date.now()}.jpg`;
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success("Image downloaded");
-    } catch (error) {
-      toast.error("Failed to download image");
+      toast.success("Downloaded");
+    } catch {
+      toast.error("Failed to download");
     }
   };
 
-  const handleClose = () => {
-    onOpenChange(false);
-  };
-
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-      setShowInfo(true);
+  const handleShare = async () => {
+    if (!imageUrl) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url: imageUrl });
+      } else {
+        await navigator.clipboard.writeText(imageUrl);
+        toast.success("Link copied");
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") toast.error("Failed to share");
     }
   };
 
-  const handleNext = () => {
-    if (currentIndex < normalizedImages.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setShowInfo(true);
-    }
-  };
+  const handleClose = () => onOpenChange(false);
+  const handlePrev = () => currentIndex > 0 && setCurrentIndex(i => i - 1);
+  const handleNext = () => currentIndex < normalizedImages.length - 1 && setCurrentIndex(i => i + 1);
 
-  if (!open || normalizedImages.length === 0 || !mounted) return null;
+  if (!open || !mounted || normalizedImages.length === 0) return null;
 
   const content = (
     <div
-      className="fixed inset-0 flex flex-col bg-black/95"
-      style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+      className="fixed inset-0 z-[99999] flex flex-col bg-black"
       role="dialog"
       aria-modal="true"
     >
       {/* Header */}
-      <div
-        className="absolute left-0 right-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-3"
-        style={{ zIndex: 2147483647, pointerEvents: "auto" }}
-      >
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
         <Button
           variant="ghost"
           size="icon"
           className="h-10 w-10 text-white hover:bg-white/20"
           onClick={handleClose}
-          style={{ pointerEvents: "auto" }}
         >
           <X className="h-6 w-6" />
         </Button>
 
-        <div className="flex items-center gap-2">
-          {normalizedImages.length > 1 && (
-            <span className="text-sm text-white">
-              {currentIndex + 1} / {normalizedImages.length}
-            </span>
-          )}
-        </div>
+        {normalizedImages.length > 1 && (
+          <span className="text-white font-mono text-sm">
+            {currentIndex + 1} / {normalizedImages.length}
+          </span>
+        )}
 
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
-            onClick={() => setRotation(prev => (prev + 90) % 360)}
-            style={{ pointerEvents: "auto" }}
+            onClick={() => setRotation(r => (r + 90) % 360)}
           >
             <RotateCw className="h-5 w-5" />
           </Button>
@@ -884,7 +562,6 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleDownload}
-            style={{ pointerEvents: "auto" }}
           >
             <Download className="h-5 w-5" />
           </Button>
@@ -893,7 +570,6 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             size="icon"
             className="h-10 w-10 text-white hover:bg-white/20"
             onClick={handleShare}
-            style={{ pointerEvents: "auto" }}
           >
             <Share2 className="h-5 w-5" />
           </Button>
@@ -903,166 +579,109 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex flex-1 items-center justify-center overflow-hidden"
-        style={{ touchAction: "none", pointerEvents: "auto" }}
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        style={{ touchAction: "none" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
       >
-        {/* LQIP blurred background for slow connections */}
-        {isLoading && optimizedUrls.lqip && isImageKit && (
-          <img
-            src={optimizedUrls.lqip}
-            alt=""
-            aria-hidden="true"
-            className="max-h-full max-w-full scale-105 object-contain opacity-70 blur-2xl"
-            style={{
-              transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-            }}
-          />
-        )}
-
         {isLoading && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
           </div>
         )}
 
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={optimizedUrls.original}
-          alt={`Image ${currentIndex + 1}`}
-          className={cn(
-            "max-h-full max-w-full select-none object-contain transition-opacity duration-500",
-            isLoading ? "opacity-0" : "opacity-100"
-          )}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-            transition:
-              touchState.current.isPinching || touchState.current.isDragging
+        {hasError ? (
+          <div className="flex flex-col items-center gap-4 text-white/70">
+            <AlertCircle className="h-16 w-16" />
+            <p>Failed to load image</p>
+          </div>
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={imageUrl}
+            alt={`Image ${currentIndex + 1}`}
+            className={cn(
+              "max-h-full max-w-full select-none object-contain transition-opacity duration-300",
+              isLoading ? "opacity-0" : "opacity-100"
+            )}
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+              transition: touchState.current.isPinching || touchState.current.isDragging
                 ? "none"
                 : "transform 0.2s ease-out",
-          }}
-          onLoad={() => setIsLoading(false)}
-          onError={() => setIsLoading(false)}
-          draggable={false}
-        />
+            }}
+            onLoad={() => setIsLoading(false)}
+            onError={() => { setIsLoading(false); setHasError(true); }}
+            draggable={false}
+          />
+        )}
       </div>
 
-      {/* Navigation arrows for desktop */}
+      {/* Navigation Arrows */}
       {normalizedImages.length > 1 && (
         <>
           {currentIndex > 0 && (
             <button
-              className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-              style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
               onClick={handlePrev}
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
+              <ChevronLeft className="h-6 w-6" />
             </button>
           )}
           {currentIndex < normalizedImages.length - 1 && (
             <button
-              className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-              style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
               onClick={handleNext}
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
+              <ChevronRight className="h-6 w-6" />
             </button>
           )}
         </>
       )}
 
-      {/* Info overlay - shows transaction info when available */}
-      {showInfo && currentImage.amount !== undefined && (
-        <div
-          className="absolute bottom-24 left-4 right-4 rounded-xl bg-black/70 p-3 text-white backdrop-blur-sm"
-          style={{ zIndex: 2147483647, pointerEvents: "auto" }}
-          onClick={() => setShowInfo(false)}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xl font-bold">₹{currentImage.amount?.toLocaleString()}</p>
-              {currentImage.customerName && (
-                <p className="text-sm text-white/80">{currentImage.customerName}</p>
-              )}
-              {currentImage.date && (
-                <p className="text-xs text-white/60">
-                  {new Date(currentImage.date).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </p>
-              )}
-            </div>
-            {currentImage.type && (
-              <span
-                className={cn(
-                  "rounded-full px-2 py-1 text-xs",
-                  currentImage.type === "receipt"
-                    ? "bg-green-500/30 text-green-300"
-                    : "bg-amber-500/30 text-amber-300"
-                )}
-              >
-                {currentImage.type === "receipt" ? "Receipt" : "Khata"}
-              </span>
-            )}
-          </div>
-          <p className="my-1 text-center text-[10px] text-white/40">Tap to hide info</p>
+      {/* Transaction Info */}
+      {currentImage.amount !== undefined && (
+        <div className="absolute bottom-20 left-4 right-4 rounded-xl bg-black/70 backdrop-blur-sm p-4 text-white">
+          <p className="text-2xl font-bold font-mono">
+            ₹{Number(currentImage.amount).toLocaleString("en-IN")}
+          </p>
+          {currentImage.customerName && (
+            <p className="text-sm text-white/80">{currentImage.customerName}</p>
+          )}
+          {currentImage.date && (
+            <p className="text-xs text-white/60">
+              {new Date(currentImage.date).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          )}
         </div>
       )}
 
-      {/* Hint text */}
-      {scale === 1 && !currentImage.amount && (
-        <div className="pointer-events-none absolute bottom-6 left-0 right-0 text-center text-sm text-white/50">
-          Double tap to zoom • Swipe to navigate • Swipe down to close
-        </div>
-      )}
-
-      {/* Thumbnail strip for multiple images */}
+      {/* Thumbnails */}
       {normalizedImages.length > 1 && (
-        <div
-          className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4"
-          style={{ zIndex: 2147483647, pointerEvents: "auto" }}
-        >
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto">
           {normalizedImages.slice(0, 8).map((img, idx) => {
-            const imgUrl = img.url || img;
-            const thumbUrls = getImageUrls(imgUrl);
+            const thumbUrl = resolveImageUrl(img.url || img);
             return (
               <button
                 key={idx}
                 className={cn(
                   "h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                   idx === currentIndex
-                    ? "h-16 w-16 border-white"
+                    ? "border-white scale-110"
                     : "border-transparent opacity-60 hover:opacity-100"
                 )}
-                style={{ pointerEvents: "auto" }}
-                onClick={() => {
-                  setCurrentIndex(idx);
-                  setShowInfo(true);
-                }}
+                onClick={() => setCurrentIndex(idx)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={thumbUrls.thumbnail || thumbUrls.original || imgUrl}
-                  alt={`Thumbnail ${idx + 1}`}
+                  src={thumbUrl}
+                  alt=""
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
@@ -1070,17 +689,23 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
             );
           })}
           {normalizedImages.length > 8 && (
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-black/50 text-xs text-white">
+            <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-lg bg-black/50 text-white text-xs">
               +{normalizedImages.length - 8}
             </div>
           )}
         </div>
       )}
+
+      {/* Hint */}
+      {scale === 1 && !currentImage.amount && (
+        <div className="absolute bottom-20 left-0 right-0 text-center text-sm text-white/50">
+          Double tap to zoom • Swipe to navigate
+        </div>
+      )}
     </div>
   );
 
-  if (!portalContainerRef.current) return null;
-  return createPortal(content, portalContainerRef.current);
+  return createPortal(content, document.body);
 }
 
 export default ImageViewer;

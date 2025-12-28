@@ -540,7 +540,7 @@ export function TransactionForm({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+              <div className={`flex items-center justify-between rounded-lg bg-muted/50 p-3 $`}>
                 <div className="space-y-0.5">
                   <Label className="text-base">Payment Status</Label>
                   <p className="text-xs text-muted-foreground">

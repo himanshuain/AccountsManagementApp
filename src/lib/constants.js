@@ -14,10 +14,10 @@
  * - Higher values = Fewer requests, more data per request
  */
 export const PAGE_SIZE = {
-  SUPPLIERS: 5, // Vyapari records per page
-  CUSTOMERS: 5, // Customer records per page
-  TRANSACTIONS: 5, // Transaction records per page
-  UDHAR: 5, // Udhar records per page
+  SUPPLIERS: 20, // Vyapari records per page
+  CUSTOMERS: 20, // Customer records per page
+  TRANSACTIONS: 20, // Transaction records per page
+  UDHAR: 20, // Udhar records per page
 };
 
 // ======================
