@@ -307,7 +307,7 @@ function PaymentFormModal({
                 disabled={isSubmitting || isUploading}
                 className="px-4 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
-                Pay Full
+                Record Full Payment
               </button>
             </div>
           </form>
@@ -322,8 +322,9 @@ function BillsGalleryModal({ transactions, onClose, onViewImages }) {
   const allBills = useMemo(() => {
     const bills = [];
     transactions.forEach(txn => {
-      if (txn.billImages?.length > 0) {
-        txn.billImages.forEach((img, idx) => {
+      const images = txn.billImages || txn.khataPhotos;
+      if (images?.length > 0) {
+        images.forEach((img, idx) => {
           bills.push({
             url: img,
             txnId: txn.id,
@@ -340,7 +341,7 @@ function BillsGalleryModal({ transactions, onClose, onViewImages }) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-14"
       onClick={onClose}
     >
       <div 
@@ -378,19 +379,27 @@ function BillsGalleryModal({ transactions, onClose, onViewImages }) {
                       onViewImages(txn.billImages, bill.index);
                     }
                   }}
-                  className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity group"
+                  className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer active:scale-95 transition-transform"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={resolveImageUrl(bill.url)}
                     alt={`Bill ${idx + 1}`}
                     className="h-full w-full object-cover"
-                    loading="lazy"
                   />
-                  {/* Overlay with info */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
-                    <p className="text-white text-xs font-mono">₹{Number(bill.txnAmount).toLocaleString("en-IN")}</p>
-                    <p className="text-white/70 text-[10px]">{format(parseISO(bill.txnDate), "dd MMM yyyy")}</p>
+                  {/* Always visible overlay with amount and date */}
+                  <div className="absolute inset-x-0 bottom-0 bg-green-700 pt-4 pb-2 px-2">
+                    <p className="text-white text-sm font-mono font-semibold">
+                      ₹{Number(bill.txnAmount).toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-white/80 text-[11px]">
+                      {format(parseISO(bill.txnDate), "dd MMM yyyy")}
+                    </p>
+                    {bill.txnDescription && (
+                      <p className="text-white/60 text-[10px] truncate mt-0.5">
+                        {bill.txnDescription}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -921,14 +930,13 @@ export default function PersonChatPage() {
       // Try Google Pay deep link schemes
       // First try the newer tez:// scheme, fallback to gpay://
       const gpayUrl = `gpay://upi/transaction?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
-      const tezUrl = `tez://upi/pay?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
       
       // For opening GPay to a contact, we use the intent URL format
       // Try multiple schemes for cross-device compatibility
       const intentUrl = `intent://pay#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
       
       // On Android, try the gpay deep link first
-      window.location.href = tezUrl;
+      window.location.href = gpayUrl;
       
       // Fallback after a short delay if the first one doesn't work
       setTimeout(() => {
@@ -1128,6 +1136,7 @@ export default function PersonChatPage() {
                   <p className="text-xs text-muted-foreground">{person.phone}</p>
                 )}
               </div>
+              <div className="flex items-center gap-2 text-[8px] text-muted-foreground bg-muted px-2 py-1 rounded-full">{isSupplier ? "Supplier" : "Customer"}</div>
             </div>
           </div>
           
@@ -1280,15 +1289,14 @@ export default function PersonChatPage() {
           )}
 
           {/* Bills Gallery Button */}
-          {personTransactions.length > 0 && (
+          
             <button
               onClick={() => setBillsGalleryOpen(true)}
               className="px-3 py-2 bg-muted rounded-xl font-medium text-sm flex items-center gap-2 hover:bg-accent transition-colors"
             >
               <Images className="h-3 w-3" />
-              Bills ({personTransactions.length > 0 ? personTransactions.length-1 : 0})
+              Bills
             </button>
-          )}
 
           {/* PDF Export Button - Only for suppliers */}
           {isSupplier && personTransactions.length > 0 && (

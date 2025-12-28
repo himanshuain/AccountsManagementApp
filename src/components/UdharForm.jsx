@@ -208,7 +208,7 @@ export function UdharForm({
                 Cancel
               </Button>
               <SheetTitle className="flex-1 text-center text-base font-semibold">
-                {title}
+                {initialData ? "Edit Udhar" : title}
               </SheetTitle>
               <Button
                 size="sm"

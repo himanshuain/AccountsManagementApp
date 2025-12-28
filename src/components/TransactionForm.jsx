@@ -84,13 +84,32 @@ export function TransactionForm({
     reset,
     formState: { errors, isDirty },
   } = useForm({
-    defaultValues: initialData || {
+    defaultValues: {
       date: new Date().toISOString().split("T")[0],
       amount: "",
       itemName: "Clothes",
       notes: "",
     },
   });
+
+  // Reset form values when initialData changes (for editing)
+  useEffect(() => {
+    if (open && initialData) {
+      reset({
+        date: initialData.date || new Date().toISOString().split("T")[0],
+        amount: initialData.amount || "",
+        itemName: initialData.itemName || "Clothes",
+        notes: initialData.notes || "",
+      });
+    } else if (open && !initialData) {
+      reset({
+        date: new Date().toISOString().split("T")[0],
+        amount: "",
+        itemName: "Clothes",
+        notes: "",
+      });
+    }
+  }, [open, initialData, reset]);
 
   // Helper function to convert base64 data URL to File
   const base64ToFile = (dataUrl, filename) => {
@@ -275,7 +294,9 @@ export function TransactionForm({
               <X className="mr-1 h-4 w-4" />
               Cancel
             </Button>
-            <SheetTitle className="flex-1 text-center text-base font-semibold">{title}</SheetTitle>
+            <SheetTitle className="flex-1 text-center text-base font-semibold">
+              {initialData ? "Edit Transaction" : title}
+            </SheetTitle>
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
