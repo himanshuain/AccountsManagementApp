@@ -33,7 +33,7 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState("all");
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
 
   // Data hooks
   const { suppliers } = useSuppliers();
@@ -285,9 +285,6 @@ export default function HistoryPage() {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-muted-foreground">{stats.count} transactions</span>
-              {stats.pending > 0 && (
-                <span className="status-pending font-mono font-medium">₹{stats.pending.toLocaleString("en-IN")} pending</span>
-              )}
             </div>
           </div>
         </div>
@@ -316,13 +313,7 @@ export default function HistoryPage() {
             <div key={group.key}>
               {/* Month Header */}
               <div className="sticky top-0 z-10 bg-background px-4 py-4 flex items-center justify-between border-b border-border">
-                <span className="font-heading text-lg tracking-wide">{group.label}</span>
-                <span className={cn(
-                  "font-mono font-bold",
-                  group.totalIn > group.totalOut ? "amount-positive" : "amount-negative"
-                )}>
-                  {group.totalIn > group.totalOut ? "Need to Receive " : "Need to Pay "}{group.totalIn > group.totalOut ? "+" : "-"}₹{Math.abs(group.totalIn - group.totalOut).toLocaleString("en-IN")}
-                </span>
+                <span className="font-heading text-lg tracking-wide">{group.label}</span>         
               </div>
 
               {/* Transactions */}

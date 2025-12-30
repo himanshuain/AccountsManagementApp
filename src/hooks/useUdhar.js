@@ -42,6 +42,8 @@ export function useUdhar() {
     initialPageParam: 1,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Flatten all pages into a single array for backward compatibility
@@ -70,7 +72,8 @@ export function useUdhar() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
+      // Refetch all udhar queries immediately
+      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: 'all' });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
@@ -91,13 +94,14 @@ export function useUdhar() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
+      // Refetch all udhar queries immediately
+      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: 'all' });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
-  // Delete udhar mutation - directly to cloud
+  // Delete udhar mutation with optimistic update
   const deleteMutation = useMutation({
     mutationFn: async id => {
       const response = await fetch(`/api/udhar/${id}`, {
@@ -109,8 +113,31 @@ export function useUdhar() {
       }
       return id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: UDHAR_KEY });
+    onMutate: async id => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: UDHAR_KEY });
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(UDHAR_KEY);
+      // Optimistically remove the item
+      queryClient.setQueryData(UDHAR_KEY, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            data: page.data.filter(u => u.id !== id),
+          })),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, id, context) => {
+      // Roll back on error
+      queryClient.setQueryData(UDHAR_KEY, context?.previousData);
+    },
+    onSettled: () => {
+      // Refetch all udhar queries immediately
+      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: 'all' });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },

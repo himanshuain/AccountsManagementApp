@@ -158,7 +158,7 @@ function PaymentFormModal({
           <div className="sheet-handle" />
         </div>
 
-        <div className="px-4 pb-12">
+        <div className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-heading tracking-wide">Record Payment</h3>
             <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -297,7 +297,7 @@ function PaymentFormModal({
               <button
                 type="submit"
                 disabled={isSubmitting || !amount || isUploading}
-                className="flex-1 btn-hero disabled:opacity-50"
+                className="w-[70%] btn-hero disabled:opacity-50"
               >
                 {isSubmitting ? "Saving..." : "Record Payment"}
               </button>
@@ -305,9 +305,9 @@ function PaymentFormModal({
                 type="button"
                 onClick={handleFullPayment}
                 disabled={isSubmitting || isUploading}
-                className="px-4 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="w-[30%] py-3 bg-emerald-600 text-white rounded-xl font-medium text-xs hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
-                Record Full Payment
+                Record Full Paid
               </button>
             </div>
           </form>
@@ -428,7 +428,9 @@ function TransactionDetailModal({
   if (!txn) return null;
   
   const isPaid = txn.paymentStatus === "paid" || txn.status === "paid";
-  const hasImages = txn.billImages?.length > 0;
+  // Support both supplier (billImages) and customer (khataPhotos) images
+  const images = txn.billImages || txn.khataPhotos || [];
+  const hasImages = images.length > 0;
   const payments = txn.payments || [];
   const totalAmount = Number(txn.amount) || 0;
   const paidAmount = Number(txn.paidAmount) || payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -455,7 +457,7 @@ function TransactionDetailModal({
         </div>
 
         {/* Header */}
-        <div className="px-4 pb-4 border-b border-border">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-heading tracking-wide">Transaction Details</h3>
             <button
@@ -497,19 +499,32 @@ function TransactionDetailModal({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Date</p>
-              <p className="font-medium">{format(parseISO(txn.date), "dd MMMM yyyy, h:mm a")}</p>
+              <p className="font-medium">{format(parseISO(txn.date), "dd MMMM yyyy")}</p>
             </div>
           </div>
 
-          {/* Description */}
-          {(txn.description || txn.itemName) && (
+          {/* Description / Item */}
+          {(txn.description || txn.itemName || txn.itemDescription) && (
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                 <FileText className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Description</p>
-                <p className="font-medium">{txn.description || txn.itemName}</p>
+                <p className="text-xs text-muted-foreground">{isSupplier ? "Item" : "Description"}</p>
+                <p className="font-medium">{txn.description || txn.itemName || txn.itemDescription}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {txn.notes && (
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Notes</p>
+                <p className="font-medium text-sm">{txn.notes}</p>
               </div>
             </div>
           )}
@@ -533,20 +548,20 @@ function TransactionDetailModal({
               <div className="flex items-center gap-2 mb-3">
                 <Receipt className="h-4 w-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  {txn.billImages.length} Bill{txn.billImages.length > 1 ? "s" : ""} / Receipt{txn.billImages.length > 1 ? "s" : ""} attached
+                  {images.length} {isSupplier ? "Bill" : "Photo"}{images.length > 1 ? "s" : ""} attached
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {txn.billImages.map((img, imgIndex) => (
+                {images.map((img, imgIndex) => (
                   <div
                     key={imgIndex}
-                    onClick={() => onViewImages(txn.billImages, imgIndex)}
+                    onClick={() => onViewImages(images, imgIndex)}
                     className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolveImageUrl(img)}
-                      alt={`Bill ${imgIndex + 1}`}
+                      alt={`${isSupplier ? "Bill" : "Photo"} ${imgIndex + 1}`}
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -634,10 +649,7 @@ function TransactionDetailModal({
           {/* Record Payment Button - Show only if not fully paid */}
           {!isPaid && (
             <button
-              onClick={() => {
-                onClose();
-                onRecordPayment(txn);
-              }}
+              onClick={() => onRecordPayment(txn)}
               className="w-full px-4 py-3 bg-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
             >
               <CreditCard className="h-5 w-5" />
@@ -679,7 +691,9 @@ const TransactionBubble = React.forwardRef(function TransactionBubble({
   isPaid,
   isHighlighted
 }, ref) {
-  const hasImages = txn.billImages?.length > 0;
+  // Support both supplier (billImages) and customer (khataPhotos) images
+  const images = isSupplier ? txn.billImages : txn.khataPhotos;
+  const hasImages = images?.length > 0;
   const totalAmount = Number(txn.amount) || 0;
   const paidAmount = Number(txn.paidAmount) || (txn.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const remainingAmount = Math.max(0, totalAmount - paidAmount);
@@ -707,21 +721,22 @@ const TransactionBubble = React.forwardRef(function TransactionBubble({
             )}>
               ₹{totalAmount.toLocaleString("en-IN")}
             </p>
-           
+            {hasImages && (
+              <Receipt className="h-4 w-4 text-primary opacity-80" />
+            )}
           </div>
           
           {/* Description */}
-          {(txn.description || txn.itemName) && (
+          {(txn.description || txn.itemName || txn.itemDescription) && (
             <p className="text-sm mt-1 line-clamp-2">
-              {txn.description || txn.itemName}
+              {txn.description || txn.itemName || txn.itemDescription}
             </p>
           )}
 
-          {/* Preview image if available */}
+          {/* Preview image count if available */}
           {hasImages && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-muted">
-              <Receipt className="h-4 w-4 text-primary opacity-90" />
-              <span>{txn.billImages.length} image{txn.billImages.length > 1 ? "s" : ""}</span>
+            <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+              <span>{images.length} {isSupplier ? "bill" : "photo"}{images.length > 1 ? "s" : ""} attached</span>
             </div>
           )}
 
@@ -729,8 +744,8 @@ const TransactionBubble = React.forwardRef(function TransactionBubble({
           {hasPartialPayment && (
             <div className="mt-2">
               <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-              <p className="text-[10px] mt-1">
-                ₹{paidAmount.toLocaleString("en-IN")} paid • ₹{remainingAmount.toLocaleString("en-IN")} left
+              <p className="text-[10px] mt-1 text-muted-foreground">
+                ₹{paidAmount.toLocaleString("en-IN")} {isSupplier ? "paid" : "received"} • ₹{remainingAmount.toLocaleString("en-IN")} left
               </p>
             </div>
           )}
@@ -761,7 +776,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble({
               className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-full flex items-center gap-1.5 hover:bg-emerald-700 transition-colors active:scale-95"
             >
               <CreditCard className="h-3 w-3" />
-              Pay ₹{remainingAmount.toLocaleString("en-IN")}
+              {isSupplier ? "Pay" : "Receive"} ₹{remainingAmount.toLocaleString("en-IN")}
             </button>
           </div>
         )}
@@ -904,6 +919,25 @@ export default function PersonChatPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [personTransactions.length, highlightTxnId]);
+
+  // Keep selectedTransaction in sync with updated data from personTransactions
+  useEffect(() => {
+    if (selectedTransaction) {
+      const updatedTxn = personTransactions.find(t => t.id === selectedTransaction.id);
+      if (updatedTxn) {
+        // Check if payment-related fields changed
+        const paymentChanged = 
+          updatedTxn.paidAmount !== selectedTransaction.paidAmount ||
+          updatedTxn.paymentStatus !== selectedTransaction.paymentStatus ||
+          updatedTxn.status !== selectedTransaction.status ||
+          (updatedTxn.payments?.length || 0) !== (selectedTransaction.payments?.length || 0);
+        
+        if (paymentChanged) {
+          setSelectedTransaction(updatedTxn);
+        }
+      }
+    }
+  }, [personTransactions, selectedTransaction]);
 
   // Handle phone call
   const handleCall = useCallback(() => {
@@ -1066,6 +1100,7 @@ export default function PersonChatPage() {
         toast.success(isFullPayment ? "Marked as fully paid" : "Payment recorded");
         setPaymentFormOpen(false);
         setPaymentTransaction(null);
+        // Keep the detail dialog open - data will refresh from React Query
       } else {
         toast.error(result.error || "Failed to record payment");
       }
@@ -1219,7 +1254,14 @@ export default function PersonChatPage() {
           <div className="flex flex-col items-center justify-center h-full py-20">
             <p className="text-muted-foreground mb-4">No transactions yet</p>
             <button
-              onClick={() => isSupplier ? setTransactionFormOpen(true) : setUdharFormOpen(true)}
+              onClick={() => {
+                setEditingTransaction(null); // Clear any editing state
+                if (isSupplier) {
+                  setTransactionFormOpen(true);
+                } else {
+                  setUdharFormOpen(true);
+                }
+              }}
               className="btn-hero"
             >
               + Add {isSupplier ? "Transaction" : "Udhar"}
@@ -1314,7 +1356,14 @@ export default function PersonChatPage() {
           
           {/* Add Transaction/Udhar */}
           <button
-            onClick={() => isSupplier ? setTransactionFormOpen(true) : setUdharFormOpen(true)}
+            onClick={() => {
+              setEditingTransaction(null); // Clear any editing state
+              if (isSupplier) {
+                setTransactionFormOpen(true);
+              } else {
+                setUdharFormOpen(true);
+              }
+            }}
             className="ml-auto p-3 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
           >
             <Plus className="h-5 w-5" />
@@ -1484,7 +1533,6 @@ export default function PersonChatPage() {
             title="Edit Supplier"
           />
           <TransactionForm
-
             open={transactionFormOpen}
             onOpenChange={(open) => {
               setTransactionFormOpen(open);
@@ -1502,7 +1550,9 @@ export default function PersonChatPage() {
               : handleAddTransaction
             }
             suppliers={suppliers}
-            initialData={editingTransaction ? { ...editingTransaction, supplierId: id } : { supplierId: id }}
+            defaultSupplierId={id}
+            initialData={editingTransaction || null}
+            title="Add Transaction"
           />
         </>
       ) : (
@@ -1532,7 +1582,9 @@ export default function PersonChatPage() {
               : handleAddUdhar
             }
             customers={customers}
-            initialData={editingTransaction ? { ...editingTransaction, customerId: id } : { customerId: id }}
+            defaultCustomerId={id}
+            initialData={editingTransaction || null}
+            title="Add Udhar"
           />
         </>
       )}

@@ -47,6 +47,8 @@ export function useTransactions(supplierId = null) {
     initialPageParam: 1,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Flatten all pages into a single array for backward compatibility
@@ -101,7 +103,8 @@ export function useTransactions(supplierId = null) {
       queryClient.setQueryData(queryKey, context?.previousData);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      // Refetch all transaction queries immediately
+      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: 'all' });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
@@ -141,7 +144,8 @@ export function useTransactions(supplierId = null) {
       queryClient.setQueryData(queryKey, context?.previousData);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      // Refetch all transaction queries immediately
+      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: 'all' });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
@@ -159,9 +163,15 @@ export function useTransactions(supplierId = null) {
       return id;
     },
     onMutate: async id => {
+      // Cancel all transaction queries to avoid overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: TRANSACTIONS_KEY });
-      const previousData = queryClient.getQueryData(queryKey);
-      queryClient.setQueryData(queryKey, old => {
+      
+      // Snapshot the previous values for both base and specific queries
+      const previousBaseData = queryClient.getQueryData(TRANSACTIONS_KEY);
+      const previousSpecificData = supplierId ? queryClient.getQueryData(queryKey) : null;
+      
+      // Helper function to remove item from pages
+      const removeFromPages = old => {
         if (!old?.pages) return old;
         return {
           ...old,
@@ -170,14 +180,28 @@ export function useTransactions(supplierId = null) {
             data: page.data.filter(t => t.id !== id),
           })),
         };
-      });
-      return { previousData };
+      };
+      
+      // Update the base query (used by history page)
+      queryClient.setQueryData(TRANSACTIONS_KEY, removeFromPages);
+      
+      // Also update the supplier-specific query if applicable
+      if (supplierId) {
+        queryClient.setQueryData(queryKey, removeFromPages);
+      }
+      
+      return { previousBaseData, previousSpecificData };
     },
     onError: (err, id, context) => {
-      queryClient.setQueryData(queryKey, context?.previousData);
+      // Roll back both queries on error
+      queryClient.setQueryData(TRANSACTIONS_KEY, context?.previousBaseData);
+      if (supplierId && context?.previousSpecificData) {
+        queryClient.setQueryData(queryKey, context?.previousSpecificData);
+      }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+      // Refetch all transaction queries immediately
+      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: 'all' });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });

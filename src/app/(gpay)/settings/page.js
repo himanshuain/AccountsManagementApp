@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
@@ -54,13 +54,61 @@ function getMonthOptions() {
   return options;
 }
 
-// Collapsible Income Item Component with Motion animations
-function IncomeItem({ item, onEdit, onDelete }) {
+// Collapsible Income Item Component with inline edit form
+function IncomeItem({ item, onUpdate, onDelete }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editCash, setEditCash] = useState("");
+  const [editOnline, setEditOnline] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editIsMonthly, setEditIsMonthly] = useState(false);
 
   const cashAmount = Number(item.cashAmount) || 0;
   const onlineAmount = Number(item.onlineAmount) || 0;
   const totalAmount = Number(item.amount) || (cashAmount + onlineAmount);
+
+  const startEditing = () => {
+    setEditCash(String(item.cashAmount || ""));
+    setEditOnline(String(item.onlineAmount || ""));
+    setEditDate(item.date);
+    setEditIsMonthly(item.type === "monthly");
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setIsExpanded(false);
+  };
+
+  const handleSave = async () => {
+    const cash = Number(editCash) || 0;
+    const online = Number(editOnline) || 0;
+    const total = cash + online;
+    
+    if (total <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await onUpdate(item.id, {
+      cashAmount: cash,
+      onlineAmount: online,
+      amount: total,
+      date: editIsMonthly ? `${editDate.substring(0, 7)}-01` : editDate,
+      type: editIsMonthly ? "monthly" : "daily",
+    });
+    
+    if (result.success) {
+      toast.success("Income updated");
+      setIsEditing(false);
+      setIsExpanded(false);
+    } else {
+      toast.error(result.error || "Failed to update");
+    }
+    setIsSubmitting(false);
+  };
 
   return (
     <motion.div 
@@ -73,9 +121,12 @@ function IncomeItem({ item, onEdit, onDelete }) {
     >
       {/* Main Item Row - Tap to expand/collapse */}
       <motion.div
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between p-4 cursor-pointer active:bg-accent/50 transition-colors"
-        whileTap={{ scale: 0.98 }}
+        onClick={() => !isEditing && setIsExpanded(!isExpanded)}
+        className={cn(
+          "flex items-center justify-between p-4 transition-colors",
+          !isEditing && "cursor-pointer active:bg-accent/50"
+        )}
+        whileTap={isEditing ? undefined : { scale: 0.98 }}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -105,7 +156,7 @@ function IncomeItem({ item, onEdit, onDelete }) {
         </p>
       </motion.div>
 
-      {/* Expandable Action Buttons with Motion */}
+      {/* Expandable Section */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -114,33 +165,120 @@ function IncomeItem({ item, onEdit, onDelete }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
-            <div className="flex border-t border-border/50">
-              <motion.button
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setIsExpanded(false);
-                  onEdit(item); 
-                }}
-                className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-                whileTap={{ scale: 0.95 }}
-              >
-                <Pencil className="h-4 w-4" />
-                Edit
-              </motion.button>
-              <div className="w-px bg-border/50" />
-              <motion.button
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setIsExpanded(false);
-                  onDelete(item); 
-                }}
-                className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-                whileTap={{ scale: 0.95 }}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </motion.button>
-            </div>
+            {isEditing ? (
+              /* Inline Edit Form */
+              <div className="p-4 border-t border-border/50 space-y-4">
+                {/* Type Toggle */}
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditIsMonthly(false)}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                      !editIsMonthly ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                    )}
+                  >
+                    Daily
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditIsMonthly(true)}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                      editIsMonthly ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                    )}
+                  >
+                    Monthly
+                  </button>
+                </div>
+
+                {/* Amount Inputs */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Cash ₹</label>
+                    <input
+                      type="number"
+                      value={editCash}
+                      onChange={(e) => setEditCash(e.target.value)}
+                      placeholder="0"
+                      className="input-hero text-center"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Online ₹</label>
+                    <input
+                      type="number"
+                      value={editOnline}
+                      onChange={(e) => setEditOnline(e.target.value)}
+                      placeholder="0"
+                      className="input-hero text-center"
+                    />
+                  </div>
+                </div>
+
+                {/* Date Input */}
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Date</label>
+                  <input
+                    type={editIsMonthly ? "month" : "date"}
+                    value={editIsMonthly ? editDate.substring(0, 7) : editDate}
+                    onChange={(e) => setEditDate(editIsMonthly ? `${e.target.value}-01` : e.target.value)}
+                    className="input-hero"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={cancelEditing}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2 bg-background rounded-lg text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Action Buttons */
+              <div className="flex border-t border-border/50">
+                <motion.button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    startEditing();
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </motion.button>
+                <div className="w-px bg-border/50" />
+                <motion.button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setIsExpanded(false);
+                    onDelete(item); 
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </motion.button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -302,12 +440,10 @@ function IncomeModal({ open, onClose }) {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
   const [isMonthly, setIsMonthly] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [filter, setFilter] = useState("all");
   const [showGraph, setShowGraph] = useState(true);
   const [chartDuration, setChartDuration] = useState("6months");
-  const formRef = useRef(null);
   
   const monthOptions = useMemo(() => getMonthOptions(), []);
 
@@ -408,7 +544,6 @@ function IncomeModal({ open, onClose }) {
     setDate(today);
     setSelectedMonth(format(new Date(), "yyyy-MM"));
     setIsMonthly(false);
-    setEditingItem(null);
   };
 
   const handleSubmit = async () => {
@@ -434,37 +569,14 @@ function IncomeModal({ open, onClose }) {
       type: isMonthly ? "monthly" : "daily",
     };
     
-    if (editingItem) {
-      const result = await updateIncome(editingItem.id, incomeData);
-      if (result.success) {
-        toast.success("Income updated");
-        resetForm();
-      } else {
-        toast.error(result.error || "Failed to update");
-      }
+    const result = await addIncome(incomeData);
+    if (result.success) {
+      toast.success("Income added");
+      resetForm();
     } else {
-      const result = await addIncome(incomeData);
-      if (result.success) {
-        toast.success("Income added");
-        resetForm();
-      } else {
-        toast.error(result.error || "Failed to add");
-      }
+      toast.error(result.error || "Failed to add");
     }
     setSubmitting(false);
-  };
-
-  const handleEdit = (item) => {
-    setEditingItem(item);
-    setCashAmount(String(item.cashAmount || ""));
-    setOnlineAmount(String(item.onlineAmount || ""));
-    setDate(item.date);
-    setSelectedMonth(item.date.substring(0, 7));
-    setIsMonthly(item.type === "monthly");
-    // Scroll to form after a brief delay to allow state update
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
   };
 
   const handleDelete = async () => {
@@ -531,17 +643,10 @@ function IncomeModal({ open, onClose }) {
             />
           )}
 
-          {/* Add/Edit Income Form */}
-          <div ref={formRef} className="theme-card p-4 mb-6 mt-4">
+          {/* Add Income Form */}
+          <div className="theme-card p-4 mb-6 mt-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium">
-                {editingItem ? "Edit Income" : "Add Income"}
-              </h3>
-              {editingItem && (
-                <button onClick={resetForm} className="text-muted-foreground hover:text-foreground">
-                  <X className="h-5 w-5" />
-                </button>
-              )}
+              <h3 className="font-medium">Add Income</h3>
             </div>
             
             <div className="space-y-3">
@@ -632,18 +737,10 @@ function IncomeModal({ open, onClose }) {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className={cn(
-                  "w-full h-12 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2",
-                  editingItem ? "btn-hero" : "bg-emerald-600 text-white hover:bg-emerald-700"
-                )}
+                className="w-full h-12 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
               >
                 {submitting ? (
                   <RefreshCw className="h-5 w-5 animate-spin" />
-                ) : editingItem ? (
-                  <>
-                    <Check className="h-5 w-5" />
-                    Update
-                  </>
                 ) : (
                   <>
                     <Plus className="h-5 w-5" />
@@ -685,7 +782,7 @@ function IncomeModal({ open, onClose }) {
             <p className="text-xs text-muted-foreground mb-3">Tap to expand and edit or delete</p>
             <div className="space-y-2">
               {filteredIncomeList.slice(0, 20).map(item => (
-                <IncomeItem key={item.id} item={item} onEdit={handleEdit} onDelete={setDeleteItem} />
+                <IncomeItem key={item.id} item={item} onUpdate={updateIncome} onDelete={setDeleteItem} />
               ))}
               {filteredIncomeList.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">No income recorded</p>
@@ -1094,10 +1191,16 @@ function StorageInfo() {
 export default function SettingsPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
+
+  // Prevent hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -1113,18 +1216,21 @@ export default function SettingsPage() {
     toast.success(theme === "dark" ? "Spider-Man Theme Activated! 🕷️" : "Iron Man Theme Activated! 🦾");
   };
 
+  // Use stable defaults for SSR, then update on client
+  const isDark = mounted ? theme === "dark" : false;
+
   const menuItems = [
     {
       section: "Appearance",
       items: [
         {
-          icon: theme === "dark" ? Moon : Sun,
+          icon: isDark ? Moon : Sun,
           label: "Theme",
-          sublabel: theme === "dark" ? "Iron Man (Dark)" : "Spider-Man (Light)",
-          color: theme === "dark" ? "text-amber-400" : "text-red-500",
-          bgColor: theme === "dark" ? "bg-amber-500/20" : "bg-red-500/20",
+          sublabel: isDark ? "Iron Man (Dark)" : "Spider-Man (Light)",
+          color: isDark ? "text-amber-400" : "text-red-500",
+          bgColor: isDark ? "bg-amber-500/20" : "bg-red-500/20",
           onClick: toggleTheme,
-          rightContent: <span className="text-xs text-muted-foreground">{theme === "dark" ? "🦾" : "🕷️"}</span>,
+          rightContent: <span className="text-xs text-muted-foreground">{isDark ? "🦾" : "🕷️"}</span>,
         },
       ],
     },
