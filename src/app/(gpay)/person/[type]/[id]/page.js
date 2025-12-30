@@ -828,13 +828,14 @@ export default function PersonChatPage() {
   const [billsGalleryOpen, setBillsGalleryOpen] = useState(false);
   const [highlightedTxn, setHighlightedTxn] = useState(null);
   const [profileImageViewerOpen, setProfileImageViewerOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Prevent body scroll when modals/sheets are open
   usePreventBodyScroll(showProfile || showMenu || selectedTransaction || paymentFormOpen || billsGalleryOpen || profileImageViewerOpen);
 
   // Data hooks
-  const { suppliers, updateSupplier, deleteSupplier } = useSuppliers();
-  const { customers, updateCustomer, deleteCustomer } = useCustomers();
+  const { suppliers, loading: suppliersLoading, updateSupplier, deleteSupplier } = useSuppliers();
+  const { customers, loading: customersLoading, updateCustomer, deleteCustomer } = useCustomers();
   const { 
     transactions, 
     addTransaction, 
@@ -1037,12 +1038,14 @@ export default function PersonChatPage() {
 
   // Handle delete person
   const handleDeletePerson = async () => {
+    setIsDeleting(true); // Set before delete to prevent "not found" flash
     const deleteFn = isSupplier ? deleteSupplier : deleteCustomer;
     const result = await deleteFn(id);
     if (result.success) {
       toast.success("Deleted successfully");
       router.push("/");
     } else {
+      setIsDeleting(false);
       toast.error(result.error || "Failed to delete");
     }
   };
@@ -1141,10 +1144,88 @@ export default function PersonChatPage() {
     }
   }, [isSupplier, deleteTransactionPayment, deleteUdharPayment]);
 
+  // Check loading and not found states
+  const isLoading = isSupplier ? suppliersLoading : customersLoading;
+  
+  // Show loading skeleton while data is being fetched or during deletion
+  if (isLoading || isDeleting) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Header Skeleton */}
+        <header className="sticky top-0 z-30 bg-background border-b border-border">
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
+                <div>
+                  <div className="h-4 w-28 bg-muted rounded animate-pulse mb-1" />
+                  <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+              <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+            </div>
+          </div>
+
+          {/* Progress Bar Skeleton */}
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+              <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full w-1/2 bg-muted/50 animate-pulse" />
+            </div>
+          </div>
+        </header>
+
+        {/* Chat Messages Skeleton */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+          {/* Date Separator */}
+          <div className="flex items-center justify-center">
+            <div className="h-6 w-24 bg-muted rounded-full animate-pulse" />
+          </div>
+
+          {/* Message Bubbles */}
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <div className="w-48 h-24 bg-muted rounded-2xl rounded-br-sm animate-pulse" />
+            </div>
+            <div className="flex justify-end">
+              <div className="w-56 h-20 bg-muted rounded-2xl rounded-br-sm animate-pulse" />
+            </div>
+            <div className="flex justify-end">
+              <div className="w-40 h-16 bg-muted rounded-2xl rounded-br-sm animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Action Bar Skeleton */}
+        <div className="sticky bottom-14 bg-background border-t border-border p-3">
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-16 bg-muted rounded-xl animate-pulse" />
+            <div className="h-10 w-24 bg-muted rounded-xl animate-pulse" />
+            <div className="ml-auto h-12 w-12 bg-muted rounded-full animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show "not found" when data has loaded and person doesn't exist
   if (!person) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Person not found</p>
+        <button
+          onClick={() => router.push("/")}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
+        >
+          Go to Home
+        </button>
       </div>
     );
   }
