@@ -375,8 +375,9 @@ function BillsGalleryModal({ transactions, onClose, onViewImages }) {
                   key={`${bill.txnId}-${bill.index}`}
                   onClick={() => {
                     const txn = transactions.find(t => t.id === bill.txnId);
-                    if (txn?.billImages) {
-                      onViewImages(txn.billImages, bill.index);
+                    const images = txn?.billImages || txn?.khataPhotos;
+                    if (images?.length > 0) {
+                      onViewImages(images, bill.index);
                     }
                   }}
                   className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer active:scale-95 transition-transform"
@@ -386,6 +387,10 @@ function BillsGalleryModal({ transactions, onClose, onViewImages }) {
                     src={resolveImageUrl(bill.url)}
                     alt={`Bill ${idx + 1}`}
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.style.opacity = '0';
+                    }}
                   />
                   {/* Always visible overlay with amount and date */}
                   <div className="absolute inset-x-0 bottom-0 bg-green-700 pt-4 pb-2 px-2">
@@ -552,20 +557,29 @@ function TransactionDetailModal({
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {images.map((img, imgIndex) => (
-                  <div
-                    key={imgIndex}
-                    onClick={() => onViewImages(images, imgIndex)}
-                    className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={resolveImageUrl(img)}
-                      alt={`${isSupplier ? "Bill" : "Photo"} ${imgIndex + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ))}
+                {images.map((img, imgIndex) => {
+                  const imgUrl = resolveImageUrl(img);
+                  return (
+                    <div
+                      key={imgIndex}
+                      onClick={() => onViewImages(images, imgIndex)}
+                      className="relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgUrl}
+                        alt={`${isSupplier ? "Bill" : "Photo"} ${imgIndex + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                          e.target.parentElement.innerHTML = '<span class="text-xs text-muted-foreground">Failed to load</span>';
+                        }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

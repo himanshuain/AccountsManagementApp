@@ -15,6 +15,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.blob.vercel-storage.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+      },
     ],
   },
 };
