@@ -158,7 +158,7 @@ function PaymentFormModal({
           <div className="sheet-handle" />
         </div>
 
-        <div className="p-4">
+        <div className="p-4 pb-16">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-heading tracking-wide">Record Payment</h3>
             <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -1150,9 +1150,9 @@ export default function PersonChatPage() {
   // Show loading skeleton while data is being fetched or during deletion
   if (isLoading || isDeleting) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen flex flex-col">
         {/* Header Skeleton */}
-        <header className="sticky top-0 z-30 bg-background border-b border-border">
+        <header className="sticky top-0 z-30 header-glass border-b border-border">
           <div className="flex items-center justify-between px-4 py-4">
             <div className="flex items-center gap-2">
               <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
@@ -1204,7 +1204,7 @@ export default function PersonChatPage() {
         </div>
 
         {/* Bottom Action Bar Skeleton */}
-        <div className="sticky bottom-14 bg-background border-t border-border p-3">
+        <div className="sticky bottom-14 header-glass border-t border-border p-3">
           <div className="flex items-center gap-2">
             <div className="h-10 w-16 bg-muted rounded-xl animate-pulse" />
             <div className="h-10 w-24 bg-muted rounded-xl animate-pulse" />
@@ -1218,7 +1218,7 @@ export default function PersonChatPage() {
   // Only show "not found" when data has loaded and person doesn't exist
   if (!person) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Person not found</p>
         <button
           onClick={() => router.push("/")}
@@ -1231,9 +1231,9 @@ export default function PersonChatPage() {
   }
 
   return (
-    <div className="min-h-full bg-background flex flex-col">
+    <div className="min-h-full flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-background border-b border-border">
+      <header className="sticky top-0 z-30 header-glass border-b border-border">
         {/* Top row */}
         <div className="flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
@@ -1397,7 +1397,7 @@ export default function PersonChatPage() {
       </div>
 
       {/* Bottom Action Bar - Fixed above nav */}
-      <div className="fixed bottom-14 left-0 right-0 bg-background border-t border-border px-3 py-2 z-20">
+      <div className="fixed bottom-14 left-0 right-0 header-glass border-t border-border px-3 py-2 z-20">
         <div className="flex items-center gap-2">
           {/* UPI Pay Button */}
           {person.upiId && (

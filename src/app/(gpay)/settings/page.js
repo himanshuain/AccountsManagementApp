@@ -1252,8 +1252,8 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-20 bg-background px-4 py-4 border-b border-border">
+    <div className="min-h-screen">
+      <div className="sticky top-0 z-20 header-glass px-4 py-4 border-b border-border">
         <h1 className="text-2xl font-heading tracking-wide">Settings</h1>
       </div>
 

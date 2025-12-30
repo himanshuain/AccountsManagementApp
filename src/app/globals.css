@@ -62,43 +62,43 @@
 
   /* ========== IRON MAN MARK III THEME (Dark) ========== */
   .dark {
-    /* Core Colors - Metallic/Industrial */
-    --background: 0 60% 4%; /* #1A0A0A - Deep dark red-black */
-    --foreground: 39 77% 83%; /* #F5DEB3 - Warm gold-white */
-    --card: 15 50% 12%; /* #2D1810 - Metallic dark */
-    --card-foreground: 39 77% 83%;
-    --popover: 15 50% 12%;
-    --popover-foreground: 39 77% 83%;
+    /* Core Colors - Metallic/Industrial with Red-Gold base */
+    --background: 8 45% 6%; /* #1A0D0A - Deep crimson black */
+    --foreground: 42 60% 88%; /* #F0E4C8 - Warm gold-white */
+    --card: 12 40% 11%; /* #2A1712 - Armor panel dark */
+    --card-foreground: 42 60% 88%;
+    --popover: 12 40% 11%;
+    --popover-foreground: 42 60% 88%;
     
-    /* Primary - Gold */
-    --primary: 43 87% 38%; /* #B8860B */
+    /* Primary - Iron Man Gold */
+    --primary: 43 90% 42%; /* #CC9A0B - Brighter gold */
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary - Dark Red */
-    --secondary: 0 100% 27%; /* #8B0000 */
-    --secondary-foreground: 39 77% 83%;
+    /* Secondary - Armor Red */
+    --secondary: 0 85% 30%; /* #8E1414 - Armor red */
+    --secondary-foreground: 42 60% 88%;
     
     /* Accent - Arc Reactor Cyan */
     --accent: 191 100% 50%; /* #00D4FF */
-    --accent-foreground: 0 60% 4%;
+    --accent-foreground: 8 45% 6%;
     
-    /* Muted */
-    --muted: 15 30% 18%;
-    --muted-foreground: 20 20% 53%; /* #A0826D */
+    /* Muted - Gunmetal */
+    --muted: 12 25% 16%;
+    --muted-foreground: 30 20% 55%; /* #A08060 - Bronze tint */
     
     /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     
-    /* Border & Input */
-    --border: 15 30% 25%;
-    --input: 15 30% 18%;
-    --ring: 43 87% 38%;
+    /* Border & Input - Gold tinted */
+    --border: 35 30% 22%;
+    --input: 12 25% 16%;
+    --ring: 43 90% 42%;
     
     /* Charts */
-    --chart-1: 43 87% 38%;
+    --chart-1: 43 90% 42%;
     --chart-2: 191 100% 50%;
-    --chart-3: 0 100% 27%;
+    --chart-3: 0 85% 30%;
     --chart-4: 142 76% 42%;
     --chart-5: 38 92% 50%;
     
@@ -108,7 +108,7 @@
     
     /* Theme-specific */
     --theme-glow: 191 100% 50%;
-    --theme-surface: 15 40% 15%;
+    --theme-surface: 12 35% 14%;
   }
 }
 
@@ -121,11 +121,17 @@
     @apply border-border;
   }
   
+  html {
+    @apply bg-background;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: transparent;
+    min-height: 100vh;
   }
 
   html {
@@ -196,6 +202,11 @@
   background-color: hsl(var(--background));
   background-image: url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z' fill='%23B8860B' fill-opacity='0.08' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
+
+/* ============================================
+   ANIMATED CHARACTER BACKGROUNDS
+   Note: Main character animations are in HeroBackground.jsx component
+   ============================================ */
 
 /* Arc Reactor Glow Effect */
 .arc-glow {
@@ -290,11 +301,15 @@
    COMPONENT STYLES
    ============================================ */
 
-/* Cards with Theme */
+/* Cards with Theme - Translucent to show hero background */
 .theme-card {
-  @apply rounded-xl transition-all duration-300;
-  background: hsl(var(--card));
+  @apply rounded-xl transition-all duration-300 backdrop-blur-md;
+  background: hsl(var(--card) / 0.9);
   border: 1px solid hsl(var(--border));
+}
+
+.dark .theme-card {
+  background: hsl(var(--card) / 0.85);
 }
 
 .theme-card:hover {
@@ -336,6 +351,16 @@
 
 .btn-hero:active {
   transform: scale(0.98);
+}
+
+/* Translucent Header */
+.header-glass {
+  @apply backdrop-blur-xl;
+  background: hsl(var(--background) / 0.85);
+}
+
+.dark .header-glass {
+  background: hsl(var(--background) / 0.8);
 }
 
 /* Floating Action Button */
@@ -387,9 +412,13 @@
 
 /* Input Fields */
 .input-hero {
-  @apply w-full h-12 px-4 rounded-xl border-0 outline-none transition-all duration-200;
-  background: hsl(var(--muted));
+  @apply w-full h-12 px-4 rounded-xl border-0 outline-none transition-all duration-200 backdrop-blur-md;
+  background: hsl(var(--muted) / 0.9);
   color: hsl(var(--foreground));
+}
+
+.dark .input-hero {
+  background: hsl(var(--muted) / 0.85);
 }
 
 .input-hero:focus {
@@ -495,9 +524,14 @@ input[type="datetime-local"] {
 
 /* Incoming bubble */
 .bubble-incoming {
-  background: hsl(var(--muted));
+  background: hsl(var(--muted) / 0.9);
   color: hsl(var(--foreground));
   border-bottom-left-radius: 4px;
+  backdrop-filter: blur(8px);
+}
+
+.dark .bubble-incoming {
+  background: hsl(var(--muted) / 0.85);
 }
 
 /* ============================================
@@ -505,10 +539,14 @@ input[type="datetime-local"] {
    ============================================ */
 
 .bottom-nav {
-  @apply fixed bottom-0 left-0 right-0 z-50 border-t;
-  background: hsl(var(--background));
+  @apply fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-xl;
+  background: hsl(var(--background) / 0.85);
   border-color: hsl(var(--border));
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+.dark .bottom-nav {
+  background: hsl(var(--background) / 0.8);
 }
 
 .bottom-nav-item {

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { MuiProvider } from "@/providers/MuiThemeProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { HeroBackground } from "@/components/HeroBackground";
 
 // Superhero Typography System
 const bebasNeue = Bebas_Neue({
@@ -79,6 +80,7 @@ export default function RootLayout({ children }) {
           >
             <MuiProvider>
               <ServiceWorkerRegistration />
+              <HeroBackground />
               {children}
               <Toaster position="bottom-center" />
             </MuiProvider>

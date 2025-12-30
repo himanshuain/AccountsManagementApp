@@ -180,9 +180,9 @@ export default function HistoryPage() {
   const hasActiveFilters = activeFilter !== "all" || timeFilter !== "all" || searchQuery.trim();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background">
+      <div className="sticky top-0 z-20 header-glass">
         {/* Search */}
         <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export default function HistoryPage() {
 
         {/* Filter Chips */}
         {showFilters && (
-          <div className="px-4 py-3 space-y-3 animate-slide-up border-b border-border bg-background">
+          <div className="px-4 py-3 space-y-3 animate-slide-up border-b border-border">
             {/* Type filters */}
             <div>
               <p className="text-xs text-muted-foreground mb-2">Type</p>
@@ -281,7 +281,7 @@ export default function HistoryPage() {
         )}
 
         {/* Summary Stats */}
-        <div className="px-4 py-3 border-b border-border bg-background">
+        <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-muted-foreground">{stats.count} transactions</span>
@@ -312,7 +312,7 @@ export default function HistoryPage() {
           groupedTransactions.map(group => (
             <div key={group.key}>
               {/* Month Header */}
-              <div className="sticky top-0 z-10 bg-background px-4 py-4 flex items-center justify-between border-b border-border">
+              <div className="sticky top-0 z-10 header-glass px-4 py-4 flex items-center justify-between border-b border-border">
                 <span className="font-heading text-lg tracking-wide">{group.label}</span>         
               </div>
 

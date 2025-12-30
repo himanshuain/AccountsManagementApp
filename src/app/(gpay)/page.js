@@ -285,9 +285,9 @@ export default function GPayHomePage() {
   const isStatsLoading = statsLoading && !statsData;
 
   return (
-    <div className="min-h-screen bg-background lg:max-w-6xl lg:mx-auto xl:max-w-7xl">
+    <div className="min-h-screen lg:max-w-6xl lg:mx-auto xl:max-w-7xl">
       {/* Search Bar */}
-      <div className="sticky top-0 z-20 bg-background px-4 py-3 border-b border-border">
+      <div className="sticky top-0 z-20 header-glass px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <input
