@@ -64,10 +64,21 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import useIncome from "@/hooks/useIncome";
 import useUdhar from "@/hooks/useUdhar";
+import { useTransactions } from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BiometricLock } from "@/components/BiometricLock";
+
+// Get today's date in local timezone (YYYY-MM-DD format)
+function getLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899"];
 
@@ -116,6 +127,7 @@ export default function ReportsPage() {
     getTotalIncome,
   } = useIncome();
   const { udharList } = useUdhar();
+  const { transactions } = useTransactions();
   const [timeRange, setTimeRange] = useState("6months");
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState(null);
@@ -192,7 +204,7 @@ export default function ReportsPage() {
     type: "daily",
     cashAmount: "",
     onlineAmount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDate(),
     description: "",
   });
 
@@ -275,7 +287,14 @@ export default function ReportsPage() {
 
       // Helper functions for udhar amounts
       const getTotal = u => u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
-      const getPaid = u => u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+      const getPaid = u => {
+        // First check payments array (new format)
+        if (u.payments && u.payments.length > 0) {
+          return u.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        }
+        // Fall back to legacy fields
+        return u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+      };
 
       const udharCollected = monthUdhar.reduce((sum, u) => sum + getPaid(u), 0);
 
@@ -329,9 +348,26 @@ export default function ReportsPage() {
       .filter(i => i.type === "monthly")
       .reduce((sum, i) => sum + getIncomeTotal(i), 0);
 
+    // Supplier transaction stats (amounts paid to suppliers)
+    const totalSupplierTransactions = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const paidToSuppliers = transactions.reduce((sum, t) => sum + (Number(t.paidAmount) || 0), 0);
+    const pendingToSuppliers = transactions.reduce((sum, t) => {
+      const amount = Number(t.amount) || 0;
+      const paid = Number(t.paidAmount) || 0;
+      return sum + Math.max(0, amount - paid);
+    }, 0);
+
     // Udhar stats - support both old (cashAmount + onlineAmount) and new (amount) format
     const getUdharTotal = u => u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
-    const getUdharPaid = u => u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+    // Calculate paid from payments array (accurate), fall back to legacy fields
+    const getUdharPaid = u => {
+      // First check payments array (new format)
+      if (u.payments && u.payments.length > 0) {
+        return u.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      }
+      // Fall back to legacy fields
+      return u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+    };
 
     const totalUdhar = udharList.reduce((sum, u) => sum + getUdharTotal(u), 0);
     const collectedUdhar = udharList.reduce((sum, u) => sum + getUdharPaid(u), 0);
@@ -362,13 +398,18 @@ export default function ReportsPage() {
       totalOnline,
       dailyIncome,
       monthlyIncome,
+      // Supplier payment stats
+      totalSupplierTransactions,
+      paidToSuppliers,
+      pendingToSuppliers,
+      // Customer udhar stats
       totalUdhar,
       collectedUdhar,
       pendingUdhar,
       incomeCount: filteredIncome.length,
       changePercent: Number(changePercent),
     };
-  }, [filteredIncome, incomeList, udharList, dateRange, timeRange]);
+  }, [filteredIncome, incomeList, udharList, transactions, dateRange, timeRange]);
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -412,7 +453,7 @@ export default function ReportsPage() {
       type: "daily",
       cashAmount: "",
       onlineAmount: "",
-      date: new Date().toISOString().split("T")[0],
+      date: getLocalDate(),
       description: "",
     });
   };
@@ -423,7 +464,7 @@ export default function ReportsPage() {
       type: income.type || "daily",
       cashAmount: income.cashAmount?.toString() || "",
       onlineAmount: income.onlineAmount?.toString() || "",
-      date: income.date || new Date().toISOString().split("T")[0],
+      date: income.date || getLocalDate(),
       description: income.description || "",
     });
     setIncomeFormOpen(true);
@@ -452,7 +493,7 @@ export default function ReportsPage() {
       type: "daily",
       cashAmount: "",
       onlineAmount: "",
-      date: new Date().toISOString().split("T")[0],
+      date: getLocalDate(),
       description: "",
     });
     setIncomeFormOpen(true);
@@ -467,6 +508,7 @@ export default function ReportsPage() {
   // Loading state
   if (incomeLoading) {
     return (
+      <BiometricLock section="reports" title="Revenue Reports">
       <div className="space-y-6 p-4 lg:p-6">
         {/* Header skeleton */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -521,10 +563,12 @@ export default function ReportsPage() {
           ))}
         </div>
       </div>
+      </BiometricLock>
     );
   }
 
   return (
+    <BiometricLock section="reports" title="Revenue Reports">
     <div className="space-y-6 p-4 lg:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -612,6 +656,91 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
+        {/* Paid to Suppliers Card */}
+        <Card
+          className="card-lift cursor-pointer border-red-500/20 bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent transition-transform hover:scale-[1.01]"
+          onClick={() => router.push("/suppliers")}
+        >
+          <CardContent className="p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 text-sm text-muted-foreground">Paid to Suppliers</p>
+                <p
+                  className={cn(
+                    "font-bold text-red-600",
+                    getAmountTextSize(stats.paidToSuppliers, "3xl")
+                  )}
+                >
+                  ₹{stats.paidToSuppliers.toLocaleString()}
+                </p>
+              </div>
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-red-500/10">
+                <ArrowUpRight className="h-7 w-7 text-red-500" />
+              </div>
+            </div>
+
+            {/* Supplier Payment Stats */}
+            <div className="grid grid-cols-2 gap-3 border-t border-red-500/10 pt-3">
+              <div className="rounded-lg bg-muted/50 p-2">
+                <p className="text-xs text-muted-foreground">Total Bills</p>
+                <p className="truncate font-semibold">₹{stats.totalSupplierTransactions.toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/5 p-2">
+                <p className="text-xs text-amber-600">Pending</p>
+                <p className="truncate font-semibold text-amber-600">
+                  ₹{stats.pendingToSuppliers.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-3 text-center text-xs text-muted-foreground">Tap to view suppliers</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Second Row - Received & Pending */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Received from Customers Card */}
+        <Card
+          className="card-lift cursor-pointer border-green-500/20 bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent transition-transform hover:scale-[1.01]"
+          onClick={() => router.push("/customers")}
+        >
+          <CardContent className="p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 text-sm text-muted-foreground">Received from Customers</p>
+                <p
+                  className={cn(
+                    "font-bold text-green-600",
+                    getAmountTextSize(stats.collectedUdhar, "3xl")
+                  )}
+                >
+                  ₹{stats.collectedUdhar.toLocaleString()}
+                </p>
+              </div>
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-green-500/10">
+                <ArrowDownRight className="h-7 w-7 text-green-500" />
+              </div>
+            </div>
+
+            {/* Customer Stats */}
+            <div className="grid grid-cols-2 gap-3 border-t border-green-500/10 pt-3">
+              <div className="rounded-lg bg-muted/50 p-2">
+                <p className="text-xs text-muted-foreground">Total Given</p>
+                <p className="truncate font-semibold">₹{stats.totalUdhar.toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/5 p-2">
+                <p className="text-xs text-amber-600">Pending</p>
+                <p className="truncate font-semibold text-amber-600">
+                  ₹{stats.pendingUdhar.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-3 text-center text-xs text-muted-foreground">Tap to view customers</p>
+          </CardContent>
+        </Card>
+
         {/* Udhar Pending Card */}
         <Card
           className="card-lift cursor-pointer border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent transition-transform hover:scale-[1.01]"
@@ -620,14 +749,14 @@ export default function ReportsPage() {
           <CardContent className="p-5">
             <div className="mb-4 flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="mb-1 text-sm text-muted-foreground">Udhar Pending</p>
+                <p className="mb-1 text-sm text-muted-foreground">Total Pending</p>
                 <p
                   className={cn(
                     "font-bold text-amber-600",
-                    getAmountTextSize(stats.pendingUdhar, "3xl")
+                    getAmountTextSize(stats.pendingUdhar + stats.pendingToSuppliers, "3xl")
                   )}
                 >
-                  ₹{stats.pendingUdhar.toLocaleString()}
+                  ₹{(stats.pendingUdhar + stats.pendingToSuppliers).toLocaleString()}
                 </p>
               </div>
               <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/10">
@@ -635,21 +764,23 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Udhar Stats */}
+            {/* Pending Breakdown */}
             <div className="grid grid-cols-2 gap-3 border-t border-amber-500/10 pt-3">
-              <div className="rounded-lg bg-muted/50 p-2">
-                <p className="text-xs text-muted-foreground">Total Udhar</p>
-                <p className="truncate font-semibold">₹{stats.totalUdhar.toLocaleString()}</p>
+              <div className="rounded-lg bg-red-500/5 p-2">
+                <p className="text-xs text-red-600">Owe to Suppliers</p>
+                <p className="truncate font-semibold text-red-600">
+                  ₹{stats.pendingToSuppliers.toLocaleString()}
+                </p>
               </div>
-              <div className="rounded-lg bg-green-500/5 p-2">
-                <p className="text-xs text-green-600">Collected</p>
-                <p className="truncate font-semibold text-green-600">
-                  ₹{stats.collectedUdhar.toLocaleString()}
+              <div className="rounded-lg bg-amber-500/5 p-2">
+                <p className="text-xs text-amber-600">Customer Udhar</p>
+                <p className="truncate font-semibold text-amber-600">
+                  ₹{stats.pendingUdhar.toLocaleString()}
                 </p>
               </div>
             </div>
 
-            <p className="mt-3 text-center text-xs text-muted-foreground">Tap to view customers</p>
+            <p className="mt-3 text-center text-xs text-muted-foreground">Payments overview</p>
           </CardContent>
         </Card>
       </div>
@@ -1033,7 +1164,7 @@ export default function ReportsPage() {
                 type="date"
                 value={formData.date}
                 onChange={e => setFormData({ ...formData, date: e.target.value })}
-                max={new Date().toISOString().split("T")[0]}
+                max={getLocalDate()}
               />
             </div>
 
@@ -1081,5 +1212,6 @@ export default function ReportsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </BiometricLock>
   );
 }

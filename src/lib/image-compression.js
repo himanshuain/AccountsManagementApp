@@ -35,11 +35,11 @@ const supportsWebP = () => {
  */
 export async function compressImage(file, options = {}) {
   const { 
-    maxWidth = 1200,  // Reduced for mobile-first
-    maxHeight = 1200, 
-    quality = 0.75,   // Slightly lower default for better compression
-    maxSizeKB = 200,  // Target 200KB for R2 efficiency
-    useWebP = true 
+    maxWidth = 1600,  // Higher resolution for better quality
+    maxHeight = 1600, 
+    quality = 0.85,   // Better quality default
+    maxSizeKB = 500,  // Increased target for better quality
+    useWebP = false   // JPEG for better compatibility
   } = options;
 
   // Skip compression for very small files (under 50KB)
@@ -121,9 +121,10 @@ export async function compressImage(file, options = {}) {
               const currentSizeKB = blob.size / 1024;
               
               // If still too large and quality can be reduced, try again
-              if (currentSizeKB > maxSizeKB && currentQuality > 0.3) {
-                // More aggressive quality reduction for large files
-                const reduction = currentSizeKB > maxSizeKB * 2 ? 0.15 : 0.08;
+              // Minimum quality of 0.5 to maintain decent image quality
+              if (currentSizeKB > maxSizeKB && currentQuality > 0.5) {
+                // More conservative quality reduction
+                const reduction = currentSizeKB > maxSizeKB * 2 ? 0.1 : 0.05;
                 compressWithQuality(currentQuality - reduction);
                 return;
               }
@@ -228,11 +229,11 @@ export async function compressForThumbnail(file) {
  */
 export async function compressForBill(file) {
   return compressImage(file, {
-    maxWidth: 1000,
-    maxHeight: 1400, // Taller for receipts
-    quality: 0.7,
-    maxSizeKB: 150,
-    useWebP: true
+    maxWidth: 1400,
+    maxHeight: 1800, // Taller for receipts
+    quality: 0.85,
+    maxSizeKB: 400,
+    useWebP: false // JPEG for better compatibility
   });
 }
 

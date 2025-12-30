@@ -57,12 +57,13 @@ export function ImageUpload({
     setUploadingState(true);
 
     try {
-      // Compress image before upload
+      // Compress image before upload with higher quality
       const compressedFile = await compressImage(file, {
-        maxWidth: 1920,
-        maxHeight: 1920,
-        quality: 0.8,
-        maxSizeKB: 500,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        quality: 0.9,
+        maxSizeKB: 800,
+        useWebP: false, // Keep JPEG for better compatibility
       });
 
       // Create local preview from compressed file
@@ -199,7 +200,7 @@ export function ImageUpload({
                 !isImageLoaded && !isBase64 ? "opacity-0" : "opacity-100"
               )}
               onLoad={() => setIsImageLoaded(true)}
-              loading="lazy"
+              loading="eager"
             />
             {/* Hover overlay with view hint */}
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
@@ -558,7 +559,7 @@ function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
         )}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
-        loading="lazy"
+        loading="eager"
       />
     </>
   );

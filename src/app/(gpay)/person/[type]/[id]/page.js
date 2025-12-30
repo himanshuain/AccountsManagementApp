@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
@@ -6,7 +7,7 @@ import {
   ArrowLeft, Phone, MoreVertical, Send, Plus, 
   Copy, ExternalLink, Check, Pencil, Trash2, X,
   Receipt, Image as ImageIcon, Calendar, FileText, CreditCard,
-  Clock, ChevronDown, ChevronUp, IndianRupee, Images, FileDown, Camera, ImagePlus, Expand
+  Clock, ChevronDown, ChevronUp, IndianRupee, Images, FileDown, Camera, ImagePlus, Expand, Search
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -29,6 +30,15 @@ import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { compressImage } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+
+// Get today's date in local timezone (YYYY-MM-DD format)
+function getLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 // Hook to prevent body scroll when modal is open
 function usePreventBodyScroll(isOpen) {
@@ -54,7 +64,7 @@ function PaymentFormModal({
   onSubmit,
   isSubmitting 
 }) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDate();
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today);
   const [receiptImages, setReceiptImages] = useState([]);
@@ -76,10 +86,11 @@ function PaymentFormModal({
     for (const file of filesToUpload) {
       try {
         const compressedFile = await compressImage(file, {
-          maxWidth: 1920,
-          maxHeight: 1920,
-          quality: 0.8,
-          maxSizeKB: 500,
+          maxWidth: 2048,
+          maxHeight: 2048,
+          quality: 0.9,
+          maxSizeKB: 800,
+          useWebP: false, // Keep JPEG for better compatibility
         });
 
         const formData = new FormData();
@@ -317,6 +328,284 @@ function PaymentFormModal({
   );
 }
 
+// Edit Payment Modal Component
+function EditPaymentModal({ 
+  payment, 
+  txn,
+  onClose, 
+  onSave,
+  isSubmitting 
+}) {
+  const [amount, setAmount] = useState(String(payment?.amount || ""));
+  const [date, setDate] = useState(payment?.date ? payment.date.split("T")[0] : getLocalDate());
+  const [notes, setNotes] = useState(payment?.notes || "");
+  const [receiptImages, setReceiptImages] = useState(() => {
+    // Support both old (receiptUrl) and new (receiptUrls) format
+    if (payment?.receiptUrls && payment.receiptUrls.length > 0) {
+      return payment.receiptUrls;
+    }
+    if (payment?.receiptUrl) {
+      return [payment.receiptUrl];
+    }
+    return [];
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+
+  const totalAmount = Number(txn?.amount) || 0;
+  const otherPaidAmount = ((txn?.payments || [])
+    .filter(p => p.id !== payment?.id)
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
+  const maxAmount = totalAmount - otherPaidAmount;
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = 5 - receiptImages.length;
+    const filesToUpload = files.slice(0, remainingSlots);
+    
+    setIsUploading(true);
+    const newImages = [];
+
+    for (const file of filesToUpload) {
+      try {
+        const compressedFile = await compressImage(file, {
+          maxWidth: 2048,
+          maxHeight: 2048,
+          quality: 0.9,
+          maxSizeKB: 800,
+          useWebP: false, // Keep JPEG for better compatibility
+        });
+
+        const formData = new FormData();
+        formData.append("file", compressedFile);
+        formData.append("folder", "payments");
+
+        try {
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            newImages.push(result.storageKey || result.url);
+          } else {
+            const localUrl = await new Promise(resolve => {
+              const reader = new FileReader();
+              reader.onload = e => resolve(e.target.result);
+              reader.readAsDataURL(compressedFile);
+            });
+            newImages.push(localUrl);
+          }
+        } catch {
+          const localUrl = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(compressedFile);
+          });
+          newImages.push(localUrl);
+        }
+      } catch (error) {
+        console.error("File processing failed:", error);
+      }
+    }
+
+    setReceiptImages([...receiptImages, ...newImages]);
+    setIsUploading(false);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  const handleRemoveImage = (index) => {
+    setReceiptImages(receiptImages.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const paymentAmount = Number(amount);
+    if (paymentAmount <= 0) {
+      toast.error("Enter valid amount");
+      return;
+    }
+    if (paymentAmount > maxAmount) {
+      toast.error(`Max amount is ₹${maxAmount.toLocaleString("en-IN")}`);
+      return;
+    }
+    onSave({
+      amount: paymentAmount,
+      date: date + "T00:00:00.000Z",
+      notes: notes,
+      receiptUrl: receiptImages[0] || null,
+      receiptUrls: receiptImages,
+    });
+  };
+
+  if (!payment) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-2xl animate-slide-up max-h-[90vh] overflow-y-auto overscroll-contain"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center py-3 sm:hidden sticky top-0 bg-card">
+          <div className="sheet-handle" />
+        </div>
+
+        <div className="p-4 pb-16">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-heading tracking-wide">Edit Payment</h3>
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Amount Input */}
+            <div>
+              <label className="text-sm text-muted-foreground block mb-2">Payment Amount</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                  className="input-hero pl-12 text-lg font-mono"
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Max: ₹{maxAmount.toLocaleString("en-IN")}</p>
+            </div>
+
+            {/* Date Input */}
+            <div>
+              <label className="text-sm text-muted-foreground block mb-2">Payment Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                max={getLocalDate()}
+                className="input-hero"
+              />
+            </div>
+
+            {/* Notes Input */}
+            <div>
+              <label className="text-sm text-muted-foreground block mb-2">Notes (optional)</label>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Payment notes..."
+                className="input-hero"
+              />
+            </div>
+
+            {/* Receipt Images */}
+            <div>
+              <label className="text-sm text-muted-foreground block mb-2">Payment Receipts</label>
+              
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading || receiptImages.length >= 5}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading || receiptImages.length >= 5}
+              />
+
+              <div className="flex gap-2 flex-wrap">
+                {receiptImages.map((img, idx) => {
+                  const urls = getImageUrls(img);
+                  const displayUrl = isDataUrl(img) ? img : (urls.thumbnail || urls.src);
+                  return (
+                    <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={displayUrl} alt={`Receipt ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-0.5 right-0.5 p-0.5 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                
+                {receiptImages.length < 5 && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-0.5 hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {isUploading ? (
+                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Camera className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-[9px] text-muted-foreground">Camera</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => galleryInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-0.5 hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-[9px] text-muted-foreground">Gallery</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">{receiptImages.length}/5 images</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 pb-safe">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 bg-muted rounded-xl font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || !amount || isUploading}
+                className="flex-1 btn-hero disabled:opacity-50"
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Bills Gallery Modal
 function BillsGalleryModal({ transactions, onClose, onViewImages }) {
   const allBills = useMemo(() => {
@@ -387,7 +676,7 @@ function BillsGalleryModal({ transactions, onClose, onViewImages }) {
                     src={resolveImageUrl(bill.url)}
                     alt={`Bill ${idx + 1}`}
                     className="h-full w-full object-cover"
-                    loading="lazy"
+                    loading="eager"
                     onError={(e) => {
                       e.target.style.opacity = '0';
                     }}
@@ -425,10 +714,13 @@ function TransactionDetailModal({
   onDelete,
   onViewImages,
   onRecordPayment,
-  onDeletePayment 
+  onDeletePayment,
+  onEditPayment
 }) {
   const [showPayments, setShowPayments] = useState(true);
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
+  const [editingPayment, setEditingPayment] = useState(null);
 
   if (!txn) return null;
   
@@ -445,6 +737,18 @@ function TransactionDetailModal({
     setDeletingPaymentId(paymentId);
     await onDeletePayment(txn.id, paymentId);
     setDeletingPaymentId(null);
+    setPaymentToDelete(null);
+  };
+
+  // Get all receipt images for a payment (supports both old and new format)
+  const getPaymentReceipts = (payment) => {
+    if (payment.receiptUrls && payment.receiptUrls.length > 0) {
+      return payment.receiptUrls;
+    }
+    if (payment.receiptUrl) {
+      return [payment.receiptUrl];
+    }
+    return [];
   };
 
   return (
@@ -570,7 +874,7 @@ function TransactionDetailModal({
                         src={imgUrl}
                         alt={`${isSupplier ? "Bill" : "Photo"} ${imgIndex + 1}`}
                         className="h-full w-full object-cover"
-                        loading="lazy"
+                        loading="eager"
                         onError={(e) => {
                           e.target.style.display = 'none';
                           e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
@@ -602,59 +906,115 @@ function TransactionDetailModal({
                 {payments.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">No payments recorded yet</p>
                 ) : (
-                  [...payments].sort((a, b) => new Date(b.date) - new Date(a.date)).map((payment, idx) => (
-                    <div 
-                      key={payment.id || idx}
-                      className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl group"
-                    >
-                      {/* Payment indicator line */}
-                      <div className="flex flex-col items-center">
-                        <div className="h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
-                        {idx < payments.length - 1 && (
-                          <div className="w-0.5 h-8 bg-emerald-500/30 mt-1" />
-                        )}
-                      </div>
-
-                      {/* Payment details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                            +₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(parseISO(payment.date), "dd MMM yyyy")}
-                          </p>
-                        </div>
-                        {payment.notes && (
-                          <p className="text-xs text-muted-foreground truncate">{payment.notes}</p>
-                        )}
-                        
-                        {/* Payment actions */}
-                        <div className="flex items-center gap-2 mt-2">
-                          {payment.receiptUrl && (
-                            <button
-                              onClick={() => onViewImages([payment.receiptUrl], 0)}
-                              className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full flex items-center gap-1"
-                            >
-                              <Receipt className="h-3 w-3" />
-                              View Receipt
-                            </button>
+                  [...payments].sort((a, b) => new Date(b.date) - new Date(a.date)).map((payment, idx) => {
+                    const receipts = getPaymentReceipts(payment);
+                    const hasReceipts = receipts.length > 0;
+                    
+                    return (
+                      <div 
+                        key={payment.id || idx}
+                        className="flex items-start gap-3 p-3 bg-muted/50 rounded-xl group"
+                      >
+                        {/* Payment indicator line */}
+                        <div className="flex flex-col items-center pt-1">
+                          <div className="h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
+                          {idx < payments.length - 1 && (
+                            <div className="w-0.5 flex-1 min-h-[40px] bg-emerald-500/30 mt-1" />
                           )}
-                          <button
-                            onClick={() => handleDeletePayment(payment.id)}
-                            disabled={deletingPaymentId === payment.id}
-                            className="text-xs px-2 py-1 bg-destructive/10 text-destructive rounded-full flex items-center gap-1 hover:bg-destructive/20 transition-colors disabled:opacity-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            {deletingPaymentId === payment.id ? "..." : "Delete"}
-                          </button>
                         </div>
+
+                        {/* Payment details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                              +₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(parseISO(payment.date), "dd MMM yyyy")}
+                            </p>
+                          </div>
+                          {payment.notes && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{payment.notes}</p>
+                          )}
+                          
+                          {/* Receipt thumbnails */}
+                          {hasReceipts && (
+                            <div className="flex gap-1.5 mt-2 flex-wrap">
+                              {receipts.map((receipt, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  onClick={() => onViewImages(receipts, rIdx)}
+                                  className="w-12 h-12 rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-80 transition-opacity"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={resolveImageUrl(receipt)}
+                                    alt={`Receipt ${rIdx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    loading="eager"
+                                  />
+                                </div>
+                              ))}
+                              <div className="text-[10px] text-muted-foreground self-center ml-1">
+                                {receipts.length} receipt{receipts.length > 1 ? 's' : ''}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Payment actions */}
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() => onEditPayment?.(payment)}
+                              className="text-xs px-2 py-1 bg-muted rounded-full flex items-center gap-1 hover:bg-accent transition-colors"
+                            >
+                              <Pencil className="h-3 w-3" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => setPaymentToDelete(payment)}
+                              className="text-xs px-2 py-1 bg-destructive/10 text-destructive rounded-full flex items-center gap-1 hover:bg-destructive/20 transition-colors"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </button>
+                          </div>
+                          
+                          {/* Delete Payment Confirmation - Only show for this specific payment */}
+                          {paymentToDelete?.id === payment.id && (
+                            <div className="mt-3 p-3 bg-destructive/10 rounded-xl border border-destructive/20 animate-slide-up">
+                              <p className="text-sm font-medium text-destructive mb-2">
+                                Delete payment of ₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}?
+                              </p>
+                              <p className="text-xs text-muted-foreground mb-3">
+                                This action cannot be undone.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setPaymentToDelete(null)}
+                                  className="flex-1 px-3 py-2 bg-muted rounded-lg text-sm font-medium"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePayment(payment.id)}
+                                  disabled={deletingPaymentId === payment.id}
+                                  className="flex-1 px-3 py-2 bg-destructive text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                                >
+                                  {deletingPaymentId === payment.id ? "Deleting..." : "Delete"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
+
+         
           </div>
         </div>
 
@@ -829,6 +1189,11 @@ export default function PersonChatPage() {
   const [highlightedTxn, setHighlightedTxn] = useState(null);
   const [profileImageViewerOpen, setProfileImageViewerOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [editingPaymentTxn, setEditingPaymentTxn] = useState(null);
+  const [isSubmittingPaymentEdit, setIsSubmittingPaymentEdit] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   // Prevent body scroll when modals/sheets are open
   usePreventBodyScroll(showProfile || showMenu || selectedTransaction || paymentFormOpen || billsGalleryOpen || profileImageViewerOpen);
@@ -843,6 +1208,7 @@ export default function PersonChatPage() {
     deleteTransaction,
     recordPayment: recordTransactionPayment,
     markFullPaid: markTransactionFullPaid,
+    updatePayment: updateTransactionPayment,
     deletePayment: deleteTransactionPayment
   } = useTransactions();
   const { 
@@ -852,6 +1218,7 @@ export default function PersonChatPage() {
     deleteUdhar,
     recordDeposit: recordUdharPayment,
     markFullPaid: markUdharFullPaid,
+    updatePayment: updateUdharPayment,
     deletePayment: deleteUdharPayment
   } = useUdhar();
 
@@ -865,7 +1232,7 @@ export default function PersonChatPage() {
     return customers.find(c => c.id === id);
   }, [isSupplier, suppliers, customers, id]);
 
-  // Get transactions for this person
+  // Get transactions for this person (sorted oldest first for chat view)
   const personTransactions = useMemo(() => {
     if (isSupplier) {
       return transactions
@@ -876,6 +1243,32 @@ export default function PersonChatPage() {
       .filter(u => u.customerId === id)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [isSupplier, transactions, udharList, id]);
+  
+  // Filter transactions based on search query
+  const filteredTransactions = useMemo(() => {
+    if (!searchQuery.trim()) return personTransactions;
+    
+    const query = searchQuery.toLowerCase();
+    return personTransactions.filter(txn => {
+      // Search in amount
+      const amount = txn.amount?.toString() || "";
+      if (amount.includes(query)) return true;
+      
+      // Search in description/notes
+      const notes = (txn.notes || txn.itemDescription || "").toLowerCase();
+      if (notes.includes(query)) return true;
+      
+      // Search in date
+      const dateStr = format(parseISO(txn.date), "dd MMM yyyy").toLowerCase();
+      if (dateStr.includes(query)) return true;
+      
+      // Search in payment status
+      const status = (txn.paymentStatus || "").toLowerCase();
+      if (status.includes(query)) return true;
+      
+      return false;
+    });
+  }, [personTransactions, searchQuery]);
 
   // Calculate totals - including partial payments
   const totals = useMemo(() => {
@@ -897,12 +1290,12 @@ export default function PersonChatPage() {
     return { total, paid, pending, progress };
   }, [personTransactions]);
 
-  // Group transactions by date for chat view
+  // Group transactions by date for chat view (oldest first, newest at bottom)
   const groupedByDate = useMemo(() => {
     const groups = [];
     let currentDate = null;
     
-    personTransactions.forEach(txn => {
+    filteredTransactions.forEach(txn => {
       const txnDate = parseISO(txn.date);
       
       if (!currentDate || !isSameDay(currentDate, txnDate)) {
@@ -917,7 +1310,7 @@ export default function PersonChatPage() {
     });
     
     return groups;
-  }, [personTransactions]);
+  }, [filteredTransactions]);
 
   // Scroll to highlighted transaction or bottom on load
   useEffect(() => {
@@ -929,9 +1322,13 @@ export default function PersonChatPage() {
         // Clear highlight after animation
         setTimeout(() => setHighlightedTxn(null), 3000);
       }, 300);
-    } else if (scrollRef.current && !highlightTxnId) {
-      // Scroll to bottom if no highlight
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    } else if (scrollRef.current && !highlightTxnId && personTransactions.length > 0) {
+      // Scroll to bottom if no highlight (newest transactions are at bottom)
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
     }
   }, [personTransactions.length, highlightTxnId]);
 
@@ -940,15 +1337,25 @@ export default function PersonChatPage() {
     if (selectedTransaction) {
       const updatedTxn = personTransactions.find(t => t.id === selectedTransaction.id);
       if (updatedTxn) {
-        // Check if payment-related fields changed
+        // Create a simple hash of receipts to compare
+        const getReceiptsHash = (txn) => {
+          const payments = txn.payments || [];
+          return payments.map(p => {
+            const receipts = p.receiptUrls || (p.receiptUrl ? [p.receiptUrl] : []);
+            return `${p.id}:${receipts.length}:${receipts.join(',')}`;
+          }).join('|');
+        };
+        
+        // Check if payment-related fields changed (including receipts)
         const paymentChanged = 
           updatedTxn.paidAmount !== selectedTransaction.paidAmount ||
           updatedTxn.paymentStatus !== selectedTransaction.paymentStatus ||
           updatedTxn.status !== selectedTransaction.status ||
-          (updatedTxn.payments?.length || 0) !== (selectedTransaction.payments?.length || 0);
+          (updatedTxn.payments?.length || 0) !== (selectedTransaction.payments?.length || 0) ||
+          getReceiptsHash(updatedTxn) !== getReceiptsHash(selectedTransaction);
         
         if (paymentChanged) {
-          setSelectedTransaction(updatedTxn);
+          setSelectedTransaction({ ...updatedTxn });
         }
       }
     }
@@ -1144,6 +1551,46 @@ export default function PersonChatPage() {
     }
   }, [isSupplier, deleteTransactionPayment, deleteUdharPayment]);
 
+  // Handle opening payment edit modal
+  const handleOpenEditPayment = useCallback((payment, txn) => {
+    setEditingPayment(payment);
+    setEditingPaymentTxn(txn);
+  }, []);
+
+  // Handle saving edited payment
+  const handleSavePaymentEdit = useCallback(async (paymentUpdates) => {
+    if (!editingPayment || !editingPaymentTxn) return;
+    
+    const txnId = editingPaymentTxn.id;
+    setIsSubmittingPaymentEdit(true);
+    try {
+      const updateFn = isSupplier ? updateTransactionPayment : updateUdharPayment;
+      const result = await updateFn(txnId, editingPayment.id, paymentUpdates);
+      
+      if (result.success) {
+        toast.success("Payment updated");
+        setEditingPayment(null);
+        setEditingPaymentTxn(null);
+        
+        // Wait a bit for the data to refresh, then update selectedTransaction
+        setTimeout(() => {
+          // Find the updated transaction from the refreshed list
+          const freshTransactions = isSupplier ? transactions : udharList;
+          const updatedTxn = freshTransactions.find(t => t.id === txnId);
+          if (updatedTxn && selectedTransaction?.id === txnId) {
+            setSelectedTransaction({ ...updatedTxn });
+          }
+        }, 500);
+      } else {
+        toast.error(result.error || "Failed to update payment");
+      }
+    } catch (err) {
+      toast.error("Failed to update payment");
+    } finally {
+      setIsSubmittingPaymentEdit(false);
+    }
+  }, [editingPayment, editingPaymentTxn, isSupplier, updateTransactionPayment, updateUdharPayment, selectedTransaction, transactions, udharList]);
+
   // Check loading and not found states
   const isLoading = isSupplier ? suppliersLoading : customersLoading;
   
@@ -1267,6 +1714,17 @@ export default function PersonChatPage() {
           </div>
           
           <div className="flex items-center gap-1">
+            {/* Search Toggle Button */}
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              className={cn(
+                "p-2 rounded-full transition-colors",
+                showSearch ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+              )}
+            >
+              <Search className="h-5 w-5" />
+            </button>
+            
             {person.phone && (
               <button
                 onClick={handleCall}
@@ -1317,6 +1775,36 @@ export default function PersonChatPage() {
             </div>
           </div>
         </div>
+        
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="px-4 py-2 border-t border-border animate-slide-up">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 pl-9 pr-8 rounded-xl bg-muted border-0 outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                autoFocus
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded-full transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {filteredTransactions.length} of {personTransactions.length} transactions
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="px-4 pb-3">
@@ -1347,20 +1835,38 @@ export default function PersonChatPage() {
       >
         {groupedByDate.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-20">
-            <p className="text-muted-foreground mb-4">No transactions yet</p>
-            <button
-              onClick={() => {
-                setEditingTransaction(null); // Clear any editing state
-                if (isSupplier) {
-                  setTransactionFormOpen(true);
-                } else {
-                  setUdharFormOpen(true);
-                }
-              }}
-              className="btn-hero"
-            >
-              + Add {isSupplier ? "Transaction" : "Udhar"}
-            </button>
+            {searchQuery ? (
+              <>
+                <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground mb-2">No transactions found</p>
+                <p className="text-sm text-muted-foreground/70 mb-4">
+                  Try a different search term
+                </p>
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="text-primary font-medium text-sm"
+                >
+                  Clear search
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground mb-4">No transactions yet</p>
+                <button
+                  onClick={() => {
+                    setEditingTransaction(null); // Clear any editing state
+                    if (isSupplier) {
+                      setTransactionFormOpen(true);
+                    } else {
+                      setUdharFormOpen(true);
+                    }
+                  }}
+                  className="btn-hero"
+                >
+                  + Add {isSupplier ? "Transaction" : "Udhar"}
+                </button>
+              </>
+            )}
           </div>
         ) : (
           groupedByDate.map((group, groupIndex) => (
@@ -1479,6 +1985,7 @@ export default function PersonChatPage() {
           }}
           onViewImages={handleViewImages}
           onRecordPayment={handleOpenPaymentForm}
+          onEditPayment={(payment) => handleOpenEditPayment(payment, selectedTransaction)}
           onDeletePayment={handleDeletePayment}
         />
       )}
@@ -1493,6 +2000,20 @@ export default function PersonChatPage() {
           }}
           onSubmit={handleRecordPayment}
           isSubmitting={isSubmittingPayment}
+        />
+      )}
+
+      {/* Edit Payment Modal */}
+      {editingPayment && editingPaymentTxn && (
+        <EditPaymentModal
+          payment={editingPayment}
+          txn={editingPaymentTxn}
+          onClose={() => {
+            setEditingPayment(null);
+            setEditingPaymentTxn(null);
+          }}
+          onSave={handleSavePaymentEdit}
+          isSubmitting={isSubmittingPaymentEdit}
         />
       )}
 

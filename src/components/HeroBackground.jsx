@@ -264,14 +264,6 @@ export function HeroBackground() {
             </g>
           </svg>
           
-          {/* HUD Scan Line */}
-          <div 
-            className="fixed top-0 left-0 right-0 h-[3px] pointer-events-none"
-            style={{
-              background: "linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent)",
-              animation: "hudScan 5s linear infinite",
-            }}
-          />
         </div>
       )}
 

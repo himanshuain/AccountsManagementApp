@@ -78,6 +78,15 @@ export function TransactionForm({
     }
   }, [open, initialData, defaultSupplierId, stableInitialBillImages]);
 
+  // Get today's date in local timezone (YYYY-MM-DD format)
+  const getLocalDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const {
     register,
     handleSubmit,
@@ -85,7 +94,7 @@ export function TransactionForm({
     formState: { errors, isDirty },
   } = useForm({
     defaultValues: {
-      date: new Date().toISOString().split("T")[0],
+      date: getLocalDate(),
       amount: "",
       itemName: "Clothes",
       notes: "",
@@ -96,14 +105,14 @@ export function TransactionForm({
   useEffect(() => {
     if (open && initialData) {
       reset({
-        date: initialData.date || new Date().toISOString().split("T")[0],
+        date: initialData.date || getLocalDate(),
         amount: initialData.amount || "",
         itemName: initialData.itemName || "Clothes",
         notes: initialData.notes || "",
       });
     } else if (open && !initialData) {
       reset({
-        date: new Date().toISOString().split("T")[0],
+        date: getLocalDate(),
         amount: "",
         itemName: "Clothes",
         notes: "",

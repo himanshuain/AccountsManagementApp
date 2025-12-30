@@ -34,8 +34,17 @@ export function UdharForm({
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [isUploadingKhata, setIsUploadingKhata] = useState(false);
 
+  // Get today's date in local timezone (YYYY-MM-DD format)
+  const getLocalDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const defaultFormValues = {
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDate(),
     amount: "",
     notes: "",
     itemDescription: "",
@@ -64,7 +73,7 @@ export function UdharForm({
       const totalAmount =
         initialData.amount || (initialData.cashAmount || 0) + (initialData.onlineAmount || 0);
       reset({
-        date: initialData.date || new Date().toISOString().split("T")[0],
+        date: initialData.date || getLocalDate(),
         amount: totalAmount || "",
         notes: initialData.notes || "",
         itemDescription: initialData.itemDescription || "",

@@ -396,7 +396,7 @@ function OptimizedBillThumbnail({ url, alt, onError }) {
         )}
         onLoad={() => setIsLoaded(true)}
         onError={onError}
-        loading="lazy"
+        loading="eager"
       />
     </>
   );
@@ -450,7 +450,7 @@ function LazyThumbnailButton({ bill, isSelected, onClick }) {
             isLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={() => setIsLoaded(true)}
-          loading="lazy"
+          loading="eager"
         />
       ) : (
         <div className="h-full w-full animate-pulse bg-muted" />

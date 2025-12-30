@@ -397,6 +397,31 @@ export function ImageGalleryViewer({
     setIsLoading(true);
     setHasError(false);
   }, [currentIndex]);
+  
+  // Preload adjacent images for smooth navigation
+  useEffect(() => {
+    if (!open || normalizedImages.length === 0) return;
+    
+    const preloadImage = (index) => {
+      if (index >= 0 && index < normalizedImages.length) {
+        const img = normalizedImages[index];
+        const src = img?.url;
+        if (src) {
+          const preloadImg = new Image();
+          try {
+            preloadImg.src = resolveImageUrl(src);
+          } catch {
+            preloadImg.src = src;
+          }
+        }
+      }
+    };
+    
+    // Preload current, next, and previous images
+    preloadImage(currentIndex);
+    preloadImage(currentIndex + 1);
+    preloadImage(currentIndex - 1);
+  }, [open, currentIndex, normalizedImages]);
 
   const getDistance = (t1, t2) => {
     const dx = t1.clientX - t2.clientX;
@@ -683,7 +708,7 @@ export function ImageGalleryViewer({
                   src={thumbUrl}
                   alt=""
                   className="h-full w-full object-cover"
-                  loading="lazy"
+                  loading="eager"
                 />
               </button>
             );

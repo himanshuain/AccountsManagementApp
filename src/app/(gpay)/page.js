@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Plus, SlidersHorizontal, ArrowDownAZ, Clock, IndianRupee, X, Users, Store, ChevronDown, PiggyBank,
-  ArrowUpRight, ArrowDownLeft
+  ArrowUpRight, ArrowDownLeft, ChevronRight, History
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,6 +85,11 @@ export default function GPayHomePage() {
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
+  
+  // Section collapse states
+  const [suppliersExpanded, setSuppliersExpanded] = useState(true);
+  const [customersExpanded, setCustomersExpanded] = useState(true);
+  const [recentExpanded, setRecentExpanded] = useState(true);
 
   // Prevent body scroll when modal is open
   usePreventBodyScroll(addMenuOpen || incomeModalOpen);
@@ -105,7 +110,9 @@ export default function GPayHomePage() {
       const result = await response.json();
       return result.data;
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 30, // 30 seconds - refresh more often
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Combine suppliers and customers for "People" grid
@@ -155,7 +162,76 @@ export default function GPayHomePage() {
     return people;
   }, [suppliers, customers, transactions, udharList]);
 
-  // Apply filters and sorting
+  // Separate suppliers and customers lists
+  const suppliersList = useMemo(() => {
+    let result = allPeople.filter(p => p.type === "supplier");
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
+      );
+    }
+    
+    // Apply sorting
+    switch (sortBy) {
+      case "amount":
+        result.sort((a, b) => b.pendingAmount - a.pendingAmount);
+        break;
+      case "name":
+        result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        break;
+      case "recent":
+        result.sort((a, b) => 
+          new Date(b.lastActivity || b.createdAt || 0) - 
+          new Date(a.lastActivity || a.createdAt || 0)
+        );
+        break;
+    }
+    
+    return result;
+  }, [allPeople, searchQuery, sortBy]);
+  
+  const customersList = useMemo(() => {
+    let result = allPeople.filter(p => p.type === "customer");
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
+      );
+    }
+    
+    // Apply sorting
+    switch (sortBy) {
+      case "amount":
+        result.sort((a, b) => b.pendingAmount - a.pendingAmount);
+        break;
+      case "name":
+        result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        break;
+      case "recent":
+        result.sort((a, b) => 
+          new Date(b.lastActivity || b.createdAt || 0) - 
+          new Date(a.lastActivity || a.createdAt || 0)
+        );
+        break;
+    }
+    
+    return result;
+  }, [allPeople, searchQuery, sortBy]);
+  
+  // Recently accessed people (based on last activity, limited to 6)
+  const recentPeople = useMemo(() => {
+    return [...allPeople]
+      .filter(p => p.lastActivity)
+      .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
+      .slice(0, 6);
+  }, [allPeople]);
+
+  // Apply filters and sorting (kept for backward compatibility)
   const filteredAndSortedPeople = useMemo(() => {
     let result = [...allPeople];
     
@@ -201,9 +277,9 @@ export default function GPayHomePage() {
     
     return result;
   }, [allPeople, filterBy, searchQuery, sortBy]);
-
-  // People to display (limited to 8 or show all)
-  const displayPeople = showAllPeople ? filteredAndSortedPeople : filteredAndSortedPeople.slice(0, 7);
+  
+  // Check if any filter is active
+  const hasActiveFilters = filterBy !== "all" || sortBy !== "amount";
 
   // Load all data when "View all" is clicked
   useEffect(() => {
@@ -301,11 +377,15 @@ export default function GPayHomePage() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
-              "p-3 rounded-xl transition-colors flex-shrink-0",
+              "p-3 rounded-xl transition-colors flex-shrink-0 relative",
               showFilters ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
             )}
           >
             <SlidersHorizontal className="h-5 w-5" />
+            {/* Badge when filters active */}
+            {hasActiveFilters && !showFilters && (
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
+            )}
           </button>
         </div>
 
@@ -398,113 +478,235 @@ export default function GPayHomePage() {
         </div>
       </div>
 
-      {/* People Section */}
-      <section className="px-4 py-2">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-heading tracking-wide">People</h2>
-          {(filteredAndSortedPeople.length > 7 || hasMoreSuppliers || hasMoreCustomers) && (
-            <button 
-              onClick={() => setShowAllPeople(!showAllPeople)}
-              className="flex items-center gap-1 text-sm text-primary font-medium"
-            >
-              {showAllPeople ? (
-                hasMoreSuppliers || hasMoreCustomers ? (
-                  <>
-                    Loading...
-                    <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  </>
-                ) : (
-                  "Show less"
-                )
-              ) : (
-                `View all (${statsData?.supplierCount + statsData?.customerCount || filteredAndSortedPeople.length})`
-              )}
-              <ChevronDown className={cn("h-4 w-4 transition-transform", showAllPeople && !hasMoreSuppliers && !hasMoreCustomers && "rotate-180")} />
-            </button>
-          )}
-        </div>
-
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 justify-items-center">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-2 p-2">
-                <div className="h-14 w-14 rounded-full skeleton-hero" />
-                <div className="h-3 w-12 rounded skeleton-hero" />
-              </div>
-            ))}
-          </div>
-        ) : filteredAndSortedPeople.length === 0 ? (
-          <div className="text-center py-8 theme-card">
-            <p className="text-muted-foreground mb-4">
-              {searchQuery ? "No people found" : "No people yet"}
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setSupplierFormOpen(true)}
-                className="px-4 py-2 bg-muted rounded-full text-sm font-medium hover:bg-accent transition-colors"
-              >
-                + Add Supplier
-              </button>
-              <button
-                onClick={() => setCustomerFormOpen(true)}
-                className="px-4 py-2 bg-muted rounded-full text-sm font-medium hover:bg-accent transition-colors"
-              >
-                + Add Customer
-              </button>
-            </div>
-          </div>
-        ) : (
-          <motion.div 
-            className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 justify-items-center"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.05 }
-              }
-            }}
+      {/* Recently Accessed Section */}
+      {recentPeople.length > 0 && (
+        <section className="px-4 py-2">
+          <button 
+            onClick={() => setRecentExpanded(!recentExpanded)}
+            className="w-full flex items-center justify-between mb-3"
           >
-            {displayPeople.map((person, index) => (
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-heading tracking-wide">Recent</h2>
+            </div>
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", recentExpanded && "rotate-180")} />
+          </button>
+          
+          <AnimatePresence>
+            {recentExpanded && (
               <motion.div
-                key={`${person.type}-${person.id}`}
-                variants={{
-                  hidden: { opacity: 0, y: 20, scale: 0.9 },
-                  visible: { opacity: 1, y: 0, scale: 1 }
-                }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
               >
-                <PersonAvatarWithName
-                  name={person.name}
-                  image={person.image}
-                  amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                  // Pending amounts shown in amber/orange (not green - these are pending)
-                  amountColor="text-amber-600 dark:text-amber-400"
-                  href={`/person/${person.type}/${person.id}`}
-                />
-              </motion.div>
-            ))}
-            
-            {/* Add button - only show if not in "show all" mode or there's room */}
-            {!showAllPeople && (
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 20, scale: 0.9 },
-                  visible: { opacity: 1, y: 0, scale: 1 }
-                }}
-                className="flex flex-col items-center gap-1.5 p-2 cursor-pointer active:scale-95 transition-transform"
-                onClick={() => setAddMenuOpen(true)}
-                whileTap={{ scale: 0.9 }}
-              >
-                <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center hover:bg-accent transition-colors">
-                  <Plus className="h-6 w-6 text-primary" />
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {recentPeople.map((person) => (
+                    <div key={`recent-${person.type}-${person.id}`} className="flex-shrink-0">
+                      <PersonAvatarWithName
+                        name={person.name}
+                        image={person.image}
+                        amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
+                        amountColor={person.type === "supplier" ? "amount-negative" : "text-amber-600 dark:text-amber-400"}
+                        href={`/person/${person.type}/${person.id}`}
+                        size="sm"
+                      />
+                    </div>
+                  ))}
                 </div>
-                <span className="text-xs text-muted-foreground">Add</span>
               </motion.div>
             )}
-          </motion.div>
-        )}
+          </AnimatePresence>
+        </section>
+      )}
+
+      {/* Suppliers Section */}
+      <section className="px-4 py-6 mt-6">
+        <button 
+          onClick={() => setSuppliersExpanded(!suppliersExpanded)}
+          className="w-full flex items-center justify-between mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <Store className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-heading tracking-wide text-green-500">Suppliers</h2>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {statsData?.supplierCount || suppliersList.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+      
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", suppliersExpanded && "rotate-180")} />
+          </div>
+        </button>
+        
+        <AnimatePresence>
+          {suppliersExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {isLoading ? (
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex flex-col items-center gap-2 p-2">
+                      <div className="h-12 w-12 rounded-full skeleton-hero" />
+                      <div className="h-3 w-10 rounded skeleton-hero" />
+                    </div>
+                  ))}
+                </div>
+              ) : suppliersList.length === 0 ? (
+                <div className="text-center py-6 theme-card">
+                  <Store className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">No suppliers yet</p>
+                  <button
+                    onClick={() => setSupplierFormOpen(true)}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                  >
+                    + Add Supplier
+                  </button>
+                </div>
+              ) : (
+                <motion.div 
+                  className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } }
+                  }}
+                >
+                  {suppliersList.slice(0, showAllPeople ? undefined : 8).map((person) => (
+                    <motion.div
+                      key={`supplier-${person.id}`}
+                      variants={{
+                        hidden: { opacity: 0, scale: 0.9 },
+                        visible: { opacity: 1, scale: 1 }
+                      }}
+                    >
+                      <PersonAvatarWithName
+                        name={person.name}
+                        image={person.image}
+                        amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
+                        amountColor="amount-negative"
+                        href={`/person/supplier/${person.id}`}
+                        size="sm"
+                      />
+                    </motion.div>
+                  ))}
+                  {!showAllPeople && suppliersList.length > 8 && (
+                    <button
+                      onClick={() => setShowAllPeople(true)}
+                      className="flex flex-col items-center gap-1 p-2"
+                    >
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">+{suppliersList.length - 8}</span>
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      {/* Customers Section */}
+      <section className="px-4 py-2 mt-3">  
+        <button 
+          onClick={() => setCustomersExpanded(!customersExpanded)}
+          className="w-full flex items-center justify-between mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-amber-500" />
+            <h2 className="text-lg font-heading tracking-wide text-orange-500">Customers</h2>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {statsData?.customerCount || customersList.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+      
+            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", customersExpanded && "rotate-180")} />
+          </div>
+        </button>
+        
+        <AnimatePresence>
+          {customersExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {isLoading ? (
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex flex-col items-center gap-2 p-2">
+                      <div className="h-12 w-12 rounded-full skeleton-hero" />
+                      <div className="h-3 w-10 rounded skeleton-hero" />
+                    </div>
+                  ))}
+                </div>
+              ) : customersList.length === 0 ? (
+                <div className="text-center py-6 theme-card">
+                  <Users className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">No customers yet</p>
+                  <button
+                    onClick={() => setCustomerFormOpen(true)}
+                    className="px-4 py-2 bg-amber-500 text-white rounded-full text-sm font-medium"
+                  >
+                    + Add Customer
+                  </button>
+                </div>
+              ) : (
+                <motion.div 
+                  className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } }
+                  }}
+                >
+                  {customersList.slice(0, showAllPeople ? undefined : 8).map((person) => (
+                    <motion.div
+                      key={`customer-${person.id}`}
+                      variants={{
+                        hidden: { opacity: 0, scale: 0.9 },
+                        visible: { opacity: 1, scale: 1 }
+                      }}
+                    >
+                      <PersonAvatarWithName
+                        name={person.name}
+                        image={person.image}
+                        amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
+                        amountColor="text-amber-600 dark:text-amber-400"
+                        href={`/person/customer/${person.id}`}
+                        size="sm"
+                      />
+                    </motion.div>
+                  ))}
+                  {!showAllPeople && customersList.length > 8 && (
+                    <button
+                      onClick={() => setShowAllPeople(true)}
+                      className="flex flex-col items-center gap-1 p-2"
+                    >
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">+{customersList.length - 8}</span>
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* Quick Action FAB */}
@@ -640,9 +842,18 @@ export default function GPayHomePage() {
   );
 }
 
+// Get today's date in local timezone (YYYY-MM-DD format)
+function getLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Quick Income Modal Component
 function IncomeQuickModal({ open, onClose, onSubmit }) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDate();
   const [cashAmount, setCashAmount] = useState("");
   const [onlineAmount, setOnlineAmount] = useState("");
   const [date, setDate] = useState(today);

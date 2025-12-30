@@ -9,7 +9,7 @@ import {
   LogOut, Database, Wallet, TrendingUp, PiggyBank, 
   RefreshCw, Cloud, HardDrive, Lock, Pencil, Trash2, X, Check, Plus,
   Sun, Moon, FileDown, CalendarDays, Banknote, Smartphone, Eye, EyeOff,
-  TrendingDown, ImageIcon
+  TrendingDown, ImageIcon, Fingerprint, Shield
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears } from "date-fns";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useStorage } from "@/hooks/useStorage";
+import { useBiometricLock } from "@/hooks/useBiometricLock";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -430,10 +431,19 @@ const FILTER_OPTIONS = [
   { value: "lastYear", label: "Last Year" },
 ];
 
+// Get today's date in local timezone (YYYY-MM-DD format)
+function getLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Income Modal Component
 function IncomeModal({ open, onClose }) {
   const { incomeList = [], addIncome, updateIncome, deleteIncome } = useIncome();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDate();
   const [cashAmount, setCashAmount] = useState("");
   const [onlineAmount, setOnlineAmount] = useState("");
   const [date, setDate] = useState(today);
@@ -825,6 +835,7 @@ function ReportsModal({ open, onClose }) {
     const totalUdhar = udhars.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
     const paidUdhar = udhars.filter(u => u.status === "paid").reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
     const pendingUdhar = totalUdhar - paidUdhar;
+    const collectedUdhar = udhars.reduce((sum, u) => sum + (Number(u.paidAmount) || 0), 0);;
 
     const calcIncomeTotal = (list) => list.reduce((sum, i) => {
       const cash = Number(i.cashAmount) || 0;
@@ -839,6 +850,7 @@ function ReportsModal({ open, onClose }) {
       totalPurchases, paidPurchases, pendingPurchases,
       totalUdhar, paidUdhar, pendingUdhar,
       totalIncome, monthlyIncome,
+      collectedUdhar,
       netPosition: pendingUdhar - pendingPurchases,
     };
   }, [transactions, udharList, incomeList]);
@@ -887,7 +899,7 @@ function ReportsModal({ open, onClose }) {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold font-mono">₹{stats.totalUdhar.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Received</p><p className="text-lg font-bold font-mono amount-positive">₹{stats.paidUdhar.toLocaleString("en-IN")}</p></div>
+              <div><p className="text-xs text-muted-foreground">Received</p><p className="text-lg font-bold font-mono amount-positive">₹{stats.collectedUdhar.toLocaleString("en-IN")}</p></div>
               <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-bold font-mono amount-pending">₹{stats.pendingUdhar.toLocaleString("en-IN")}</p></div>
             </div>
           </div>
@@ -1187,6 +1199,154 @@ function StorageInfo() {
   );
 }
 
+// Biometric Settings Modal
+function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAvailable }) {
+  usePreventBodyScroll(open);
+
+  if (!open) return null;
+
+  const handleToggle = (key) => {
+    if (key === 'enabled' && !settings.enabled) {
+      // When enabling, also enable protection for both sections by default
+      updateSettings({ enabled: true, protectIncome: true, protectReports: true });
+    } else if (key === 'enabled' && settings.enabled) {
+      // When disabling, disable all protections
+      updateSettings({ enabled: false, protectIncome: false, protectReports: false });
+    } else {
+      updateSettings({ [key]: !settings[key] });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div 
+        className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-2xl animate-slide-up max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center py-3 sm:hidden">
+          <div className="sheet-handle" />
+        </div>
+        
+        <div className="p-4 pb-safe mb-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-heading tracking-wide">Biometric Lock</h2>
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {!isAvailable && (
+            <div className="mb-4 p-4 bg-amber-500/10 text-amber-600 rounded-xl text-sm">
+              <p className="font-medium mb-1">Biometrics Not Available</p>
+              <p className="text-xs">Your device doesn&apos;t support biometric authentication or it&apos;s not set up.</p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Main Enable Toggle */}
+            <div 
+              className={cn(
+                "flex items-center justify-between p-4 rounded-xl transition-colors",
+                settings.enabled ? "bg-emerald-500/10" : "bg-muted"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center",
+                  settings.enabled ? "bg-emerald-500/20" : "bg-muted-foreground/10"
+                )}>
+                  <Fingerprint className={cn("h-5 w-5", settings.enabled ? "text-emerald-500" : "text-muted-foreground")} />
+                </div>
+                <div>
+                  <p className="font-medium">Enable Biometric Lock</p>
+                  <p className="text-xs text-muted-foreground">Use fingerprint or Face ID</p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleToggle('enabled')}
+                disabled={!isAvailable}
+                className={cn(
+                  "w-12 h-7 rounded-full transition-colors relative",
+                  settings.enabled ? "bg-emerald-500" : "bg-muted-foreground/30",
+                  !isAvailable && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
+                  settings.enabled ? "translate-x-6" : "translate-x-1"
+                )} />
+              </button>
+            </div>
+
+            {/* Protected Sections */}
+            {settings.enabled && (
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-3"
+                >
+                  <p className="text-sm text-muted-foreground px-1">Protected Sections</p>
+                  
+                  {/* Income Tracker */}
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <IndianRupee className="h-5 w-5 text-emerald-500" />
+                      <span className="font-medium">Income Tracker</span>
+                    </div>
+                    <button
+                      onClick={() => handleToggle('protectIncome')}
+                      className={cn(
+                        "w-10 h-6 rounded-full transition-colors relative",
+                        settings.protectIncome ? "bg-emerald-500" : "bg-muted-foreground/30"
+                      )}
+                    >
+                      <div className={cn(
+                        "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                        settings.protectIncome ? "translate-x-5" : "translate-x-1"
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Reports */}
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      <span className="font-medium">Reports</span>
+                    </div>
+                    <button
+                      onClick={() => handleToggle('protectReports')}
+                      className={cn(
+                        "w-10 h-6 rounded-full transition-colors relative",
+                        settings.protectReports ? "bg-emerald-500" : "bg-muted-foreground/30"
+                      )}
+                    >
+                      <div className={cn(
+                        "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                        settings.protectReports ? "translate-x-5" : "translate-x-1"
+                      )} />
+                    </button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+
+            {/* Info */}
+            <div className="mt-4 p-3 bg-primary/5 rounded-xl">
+              <p className="text-xs text-muted-foreground">
+                <Shield className="h-3 w-3 inline mr-1" />
+                When enabled, you&apos;ll need to authenticate with your device&apos;s biometrics to access protected sections.
+                The lock resets when you close the app.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Main Settings Page
 export default function SettingsPage() {
   const router = useRouter();
@@ -1196,6 +1356,10 @@ export default function SettingsPage() {
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
+  const [biometricModalOpen, setBiometricModalOpen] = useState(false);
+  
+  // Biometric lock settings
+  const { settings: biometricSettings, updateSettings: updateBiometricSettings, isBiometricAvailable } = useBiometricLock();
 
   // Prevent hydration mismatch for theme
   useEffect(() => {
@@ -1243,9 +1407,23 @@ export default function SettingsPage() {
       ],
     },
     {
+      section: "Security",
+      items: [
+        { 
+          icon: Fingerprint, 
+          label: "Biometric Lock", 
+          sublabel: biometricSettings.enabled ? "Enabled" : "Protect sensitive data", 
+          color: biometricSettings.enabled ? "text-emerald-500" : "text-muted-foreground", 
+          bgColor: biometricSettings.enabled ? "bg-emerald-500/20" : "bg-muted", 
+          onClick: () => setBiometricModalOpen(true),
+          rightContent: biometricSettings.enabled ? <Shield className="h-4 w-4 text-emerald-500" /> : null,
+        },
+        { icon: Lock, label: "Change PIN", sublabel: "Update your security PIN", color: "text-muted-foreground", bgColor: "bg-muted", onClick: () => setChangePinModalOpen(true) },
+      ],
+    },
+    {
       section: "Account",
       items: [
-        { icon: Lock, label: "Change PIN", sublabel: "Update your security PIN", color: "text-muted-foreground", bgColor: "bg-muted", onClick: () => setChangePinModalOpen(true) },
         { icon: LogOut, label: "Logout", sublabel: "Sign out of your account", color: "text-destructive", bgColor: "bg-destructive/20", onClick: handleLogout },
       ],
     },
@@ -1293,6 +1471,13 @@ export default function SettingsPage() {
       <ReportsModal open={reportsModalOpen} onClose={() => setReportsModalOpen(false)} />
       <BackupModal open={backupModalOpen} onClose={() => setBackupModalOpen(false)} />
       <ChangePinModal open={changePinModalOpen} onClose={() => setChangePinModalOpen(false)} />
+      <BiometricSettingsModal 
+        open={biometricModalOpen} 
+        onClose={() => setBiometricModalOpen(false)}
+        settings={biometricSettings}
+        updateSettings={updateBiometricSettings}
+        isAvailable={isBiometricAvailable}
+      />
     </div>
   );
 }

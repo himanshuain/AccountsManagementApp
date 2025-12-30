@@ -314,6 +314,54 @@ export function useTransactions(supplierId = null) {
     [transactions, updateTransaction]
   );
 
+  // Update a specific payment in a transaction
+  const updatePayment = useCallback(
+    async (transactionId, paymentId, paymentUpdates) => {
+      const transaction = transactions.find(t => t.id === transactionId);
+      if (!transaction) return { success: false, error: "Transaction not found" };
+
+      const payments = [...(transaction.payments || [])];
+      const paymentIndex = payments.findIndex(p => p.id === paymentId);
+
+      if (paymentIndex === -1) {
+        return { success: false, error: "Payment not found" };
+      }
+
+      // Get the old payment amount to calculate the difference
+      const oldPayment = payments[paymentIndex];
+      const oldAmount = Number(oldPayment.amount) || 0;
+      const newAmount = Number(paymentUpdates.amount) || oldAmount;
+      const amountDiff = newAmount - oldAmount;
+
+      // Update the payment
+      payments[paymentIndex] = {
+        ...oldPayment,
+        ...paymentUpdates,
+        amount: newAmount,
+      };
+
+      // Recalculate paid amount
+      const newPaidAmount = (transaction.paidAmount || 0) + amountDiff;
+      const totalAmount = transaction.amount || 0;
+
+      // Determine new payment status
+      let paymentStatus = "pending";
+      if (newPaidAmount >= totalAmount) {
+        paymentStatus = "paid";
+      } else if (newPaidAmount > 0) {
+        paymentStatus = "partial";
+      }
+
+      return await updateTransaction(transactionId, {
+        payments: payments,
+        paidAmount: newPaidAmount,
+        paymentStatus: paymentStatus,
+        paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
+      });
+    },
+    [transactions, updateTransaction]
+  );
+
   // Delete a specific payment from a transaction
   const deletePayment = useCallback(
     async (transactionId, paymentId) => {
@@ -385,6 +433,7 @@ export function useTransactions(supplierId = null) {
     deleteTransaction,
     recordPayment,
     markFullPaid,
+    updatePayment,
     deletePayment,
     getPendingPayments,
     getRecentTransactions,

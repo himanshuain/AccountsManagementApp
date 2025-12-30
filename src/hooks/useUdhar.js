@@ -252,6 +252,56 @@ export function useUdhar() {
     [udharList, updateUdhar]
   );
 
+  // Update a specific payment in an udhar record
+  const updatePayment = useCallback(
+    async (udharId, paymentId, paymentUpdates) => {
+      const udhar = udharList.find(u => u.id === udharId);
+      if (!udhar) return { success: false, error: "Record not found" };
+
+      const payments = [...(udhar.payments || [])];
+      const paymentIndex = payments.findIndex(p => p.id === paymentId);
+
+      if (paymentIndex === -1) {
+        return { success: false, error: "Payment not found" };
+      }
+
+      // Get the old payment amount to calculate the difference
+      const oldPayment = payments[paymentIndex];
+      const oldAmount = Number(oldPayment.amount) || 0;
+      const newAmount = Number(paymentUpdates.amount) || oldAmount;
+      const amountDiff = newAmount - oldAmount;
+
+      // Update the payment
+      payments[paymentIndex] = {
+        ...oldPayment,
+        ...paymentUpdates,
+        amount: newAmount,
+      };
+
+      // Recalculate paid amount
+      const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
+      const newPaidAmount = currentPaid + amountDiff;
+      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+
+      // Determine new payment status
+      let paymentStatus = "pending";
+      if (newPaidAmount >= totalAmount) {
+        paymentStatus = "paid";
+      } else if (newPaidAmount > 0) {
+        paymentStatus = "partial";
+      }
+
+      return await updateUdhar(udharId, {
+        payments: payments,
+        paidAmount: newPaidAmount,
+        paidCash: newPaidAmount,
+        paymentStatus: paymentStatus,
+        paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
+      });
+    },
+    [udharList, updateUdhar]
+  );
+
   // Delete a specific payment from an udhar record
   const deletePayment = useCallback(
     async (udharId, paymentId) => {
@@ -266,7 +316,7 @@ export function useUdhar() {
       }
 
       // Remove the payment
-      const removedPayment = payments.splice(paymentIndex, 1)[0];
+      payments.splice(paymentIndex, 1);
 
       // Recalculate paid amount
       const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -356,6 +406,7 @@ export function useUdhar() {
     deleteUdhar,
     recordDeposit,
     markFullPaid,
+    updatePayment,
     deletePayment,
     getByCustomer,
     getPending,

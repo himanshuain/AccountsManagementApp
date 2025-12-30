@@ -107,7 +107,7 @@ export function PersonAvatar({
             src={imageUrl}
             alt={name || "Avatar"}
             className="h-full w-full object-cover"
-            loading="lazy"
+            loading="eager"
             decoding="async"
           />
         ) : (

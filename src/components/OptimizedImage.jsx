@@ -129,7 +129,7 @@ export function OptimizedImage({
           }
           onLoad={handleLoad}
           onClick={onClick}
-          loading={priority ? "eager" : "lazy"}
+          loading="eager"
           decoding="async"
           {...props}
         />
@@ -186,7 +186,7 @@ export function ThumbnailImage({ src, alt = "", className, size = 150, ...props 
             isLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={() => setIsLoaded(true)}
-          loading="lazy"
+          loading="eager"
           decoding="async"
           {...props}
         />
