@@ -60,7 +60,7 @@ export function useTransactions(supplierId = null) {
     return data?.pages?.[0]?.pagination?.total ?? transactions.length;
   }, [data, transactions.length]);
 
-  // Add transaction mutation - directly to cloud
+  // Add transaction mutation with optimistic update
   const addMutation = useMutation({
     mutationFn: async transactionData => {
       const response = await fetch("/api/transactions", {
@@ -74,13 +74,39 @@ export function useTransactions(supplierId = null) {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async newTransaction => {
+      await queryClient.cancelQueries({ queryKey: TRANSACTIONS_KEY });
+      const previousData = queryClient.getQueryData(queryKey);
+      const optimisticTransaction = {
+        ...newTransaction,
+        id: `temp-${Date.now()}`,
+        paymentStatus: newTransaction.paymentStatus || "pending",
+        paidAmount: 0,
+        payments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      queryClient.setQueryData(queryKey, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page, idx) =>
+            idx === 0 ? { ...page, data: [optimisticTransaction, ...page.data] } : page
+          ),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, newTransaction, context) => {
+      queryClient.setQueryData(queryKey, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
-  // Update transaction mutation - directly to cloud
+  // Update transaction mutation with optimistic update
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
       const response = await fetch(`/api/transactions/${id}`, {
@@ -94,13 +120,33 @@ export function useTransactions(supplierId = null) {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: TRANSACTIONS_KEY });
+      const previousData = queryClient.getQueryData(queryKey);
+      queryClient.setQueryData(queryKey, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            data: page.data.map(t =>
+              t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+            ),
+          })),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(queryKey, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
-  // Delete transaction mutation - directly to cloud
+  // Delete transaction mutation with optimistic update
   const deleteMutation = useMutation({
     mutationFn: async id => {
       const response = await fetch(`/api/transactions/${id}`, {
@@ -112,7 +158,25 @@ export function useTransactions(supplierId = null) {
       }
       return id;
     },
-    onSuccess: () => {
+    onMutate: async id => {
+      await queryClient.cancelQueries({ queryKey: TRANSACTIONS_KEY });
+      const previousData = queryClient.getQueryData(queryKey);
+      queryClient.setQueryData(queryKey, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            data: page.data.filter(t => t.id !== id),
+          })),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, id, context) => {
+      queryClient.setQueryData(queryKey, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },

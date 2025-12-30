@@ -400,6 +400,36 @@
   box-shadow: 0 0 0 2px #B8860B, 0 0 15px rgba(0, 212, 255, 0.2);
 }
 
+/* Date Input Fixes - prevent overflow */
+input[type="date"].input-hero,
+input[type="datetime-local"].input-hero {
+  @apply appearance-none;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  @apply cursor-pointer opacity-60;
+  filter: var(--calendar-icon-filter, none);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Ensure date inputs don't overflow container */
+input[type="date"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Amount Display */
 .amount-display {
   @apply font-mono font-semibold;

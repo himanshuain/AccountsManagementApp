@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "motion/react";
 import { 
-  Search, Plus, ChevronRight, ArrowUpRight, ArrowDownLeft,
-  SlidersHorizontal, ArrowDownAZ, Clock, IndianRupee, X, Users, Store, ChevronDown, PiggyBank
+  Plus, SlidersHorizontal, ArrowDownAZ, Clock, IndianRupee, X, Users, Store, ChevronDown, PiggyBank,
+  ArrowUpRight, ArrowDownLeft
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 
 import { useSuppliers } from "@/hooks/useSuppliers";
@@ -16,7 +15,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { useIncome } from "@/hooks/useIncome";
 
-import { PersonAvatar, PersonAvatarWithName } from "@/components/gpay/PersonAvatar";
+import { PersonAvatarWithName } from "@/components/gpay/PersonAvatar";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
 import { TransactionForm } from "@/components/TransactionForm";
@@ -72,19 +71,12 @@ const FILTER_OPTIONS = [
   { id: "customer", label: "Customers", icon: Users },
 ];
 
-// Initial transactions to show
-const INITIAL_TRANSACTIONS = 10;
-const LOAD_MORE_COUNT = 10;
-
 export default function GPayHomePage() {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAllPeople, setShowAllPeople] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("amount");
   const [filterBy, setFilterBy] = useState("all");
-  const [visibleTransactions, setVisibleTransactions] = useState(INITIAL_TRANSACTIONS);
-  const loadMoreRef = useRef(null);
   
   // Form states
   const [supplierFormOpen, setSupplierFormOpen] = useState(false);
@@ -248,102 +240,7 @@ export default function GPayHomePage() {
     };
   }, [statsData, allPeople, suppliers.length, customers.length]);
 
-  // Combine all transactions (sorted by date, newest first)
-  const allTransactionsList = useMemo(() => {
-    const allTxns = [];
-    
-    transactions.forEach(t => {
-      const supplier = suppliers.find(s => s.id === t.supplierId);
-      allTxns.push({
-        id: t.id,
-        type: "supplier",
-        personId: t.supplierId,
-        personName: supplier?.companyName || supplier?.name || "Unknown",
-        personImage: supplier?.profilePicture,
-        amount: Number(t.amount) || 0,
-        date: t.date,
-        description: t.description || t.itemName,
-        status: t.paymentStatus,
-        isOutgoing: true,
-      });
-    });
-    
-    udharList.forEach(u => {
-      const customer = customers.find(c => c.id === u.customerId);
-      allTxns.push({
-        id: u.id,
-        type: "customer",
-        personId: u.customerId,
-        personName: customer?.name || "Unknown",
-        personImage: customer?.profilePicture,
-        amount: Number(u.amount) || 0,
-        date: u.date,
-        description: u.description,
-        status: u.status,
-        isOutgoing: false,
-      });
-    });
-    
-    return allTxns.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [transactions, udharList, suppliers, customers]);
-
-  // Group visible transactions by month
-  const groupedTransactions = useMemo(() => {
-    const visibleTxns = allTransactionsList.slice(0, visibleTransactions);
-    const groups = {};
-    
-    visibleTxns.forEach(txn => {
-      const monthKey = format(parseISO(txn.date), "yyyy-MM");
-      const monthLabel = format(parseISO(txn.date), "MMMM yyyy");
-      
-      if (!groups[monthKey]) {
-        groups[monthKey] = {
-          key: monthKey,
-          label: monthLabel,
-          transactions: [],
-          totalIn: 0,
-          totalOut: 0,
-        };
-      }
-      
-      groups[monthKey].transactions.push(txn);
-      
-      if (txn.isOutgoing) {
-        groups[monthKey].totalOut += txn.amount;
-      } else {
-        groups[monthKey].totalIn += txn.amount;
-      }
-    });
-    
-    return Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
-  }, [allTransactionsList, visibleTransactions]);
-
-  // Check if more transactions available
-  const hasMoreTransactions = visibleTransactions < allTransactionsList.length;
-
-  // Load more transactions on scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMoreTransactions) {
-          setVisibleTransactions(prev => Math.min(prev + LOAD_MORE_COUNT, allTransactionsList.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMoreTransactions, allTransactionsList.length]);
-
   // Handlers
-  const handlePersonClick = useCallback((person) => {
-    router.push(`/person/${person.type}/${person.id}`);
-  }, [router]);
-
   const handleAddSupplier = async (data) => {
     const result = await addSupplier(data);
     if (result.success) {
@@ -455,29 +352,49 @@ export default function GPayHomePage() {
       {/* Stats Summary - Pending amounts only */}
       <div className="px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
-          <div className="theme-card p-3">
+          <motion.div 
+            className="theme-card p-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0 }}
+          >
             <p className="text-xs text-muted-foreground">You Owe (Suppliers)</p>
             {isStatsLoading ? (
               <div className="h-7 w-24 skeleton-hero rounded my-0.5" />
             ) : (
-              <p className="text-lg font-bold font-mono amount-negative">
+              <motion.p 
+                className="text-lg font-bold font-mono amount-negative"
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
                 ₹{stats.totalSupplierPending.toLocaleString("en-IN")}
-              </p>
+              </motion.p>
             )}
             <p className="text-xs text-muted-foreground">{stats.supplierCount} suppliers</p>
-          </div>
-          <div className="theme-card p-3">
+          </motion.div>
+          <motion.div 
+            className="theme-card p-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
             <p className="text-xs text-muted-foreground">Pending with Customers</p>
             {isStatsLoading ? (
               <div className="h-7 w-24 skeleton-hero rounded my-0.5" />
             ) : (
               // Customer pending shown in amber/orange (NOT green - pending money)
-              <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400">
+              <motion.p 
+                className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400"
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
                 ₹{stats.totalCustomerPending.toLocaleString("en-IN")}
-              </p>
+              </motion.p>
             )}
             <p className="text-xs text-muted-foreground">{stats.customerCount} customers</p>
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -537,176 +454,99 @@ export default function GPayHomePage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 justify-items-center">
-            {displayPeople.map((person) => (
-              <PersonAvatarWithName
+          <motion.div 
+            className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 justify-items-center"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.05 }
+              }
+            }}
+          >
+            {displayPeople.map((person, index) => (
+              <motion.div
                 key={`${person.type}-${person.id}`}
-                name={person.name}
-                image={person.image}
-                amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                // Pending amounts shown in amber/orange (not green - these are pending)
-                amountColor="text-amber-600 dark:text-amber-400"
-                onClick={() => handlePersonClick(person)}
-                className="animate-web-swing"
-              />
+                variants={{
+                  hidden: { opacity: 0, y: 20, scale: 0.9 },
+                  visible: { opacity: 1, y: 0, scale: 1 }
+                }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                <PersonAvatarWithName
+                  name={person.name}
+                  image={person.image}
+                  amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
+                  // Pending amounts shown in amber/orange (not green - these are pending)
+                  amountColor="text-amber-600 dark:text-amber-400"
+                  href={`/person/${person.type}/${person.id}`}
+                />
+              </motion.div>
             ))}
             
             {/* Add button - only show if not in "show all" mode or there's room */}
             {!showAllPeople && (
-              <div
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 20, scale: 0.9 },
+                  visible: { opacity: 1, y: 0, scale: 1 }
+                }}
                 className="flex flex-col items-center gap-1.5 p-2 cursor-pointer active:scale-95 transition-transform"
                 onClick={() => setAddMenuOpen(true)}
+                whileTap={{ scale: 0.9 }}
               >
                 <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center hover:bg-accent transition-colors">
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
                 <span className="text-xs text-muted-foreground">Add</span>
-              </div>
+              </motion.div>
             )}
-          </div>
-        )}
-      </section>
-
-      {/* Activity Section - Progressive Loading */}
-      <section className="mt-4">
-        <div className="px-4 mb-2">
-          <h2 className="text-xl font-heading tracking-wide">Activity</h2>
-        </div>
-        
-        {groupedTransactions.length === 0 ? (
-          <div className="text-center py-12 mx-4 theme-card">
-            <p className="text-muted-foreground mb-4">No transactions yet</p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setTransactionFormOpen(true)}
-                className="btn-hero"
-              >
-                + Add Bill
-              </button>
-              <button
-                onClick={() => setUdharFormOpen(true)}
-                className="px-4 py-2 bg-muted rounded-xl font-medium hover:bg-accent transition-colors"
-              >
-                + Add Udhar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {groupedTransactions.map((group) => (
-              <div key={group.key} className="mb-2">
-                {/* Month Header */}
-                <div className="sticky top-[72px] z-10 bg-background px-4 py-3 flex items-center justify-between border-y-2 border-border">
-                  <span className="font-heading text-lg tracking-wide">{group.label}</span>
-                </div>
-
-                {/* Transaction Rows */}
-                <div className="divide-y divide-border">
-                  {group.transactions.map((txn) => (
-                    <div
-                      key={`${txn.type}-${txn.id}`}
-                      className="flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-accent/50 transition-colors"
-                      onClick={() => router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`)}
-                    >
-                      <PersonAvatar
-                        name={txn.personName}
-                        image={txn.personImage}
-                        size="md"
-                        className="avatar-hero"
-                      />
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">{txn.personName}</p>
-                          {/* Type badge */}
-                          <span className={cn(
-                            "px-1.5 py-0.5 rounded text-[10px] font-medium",
-                            txn.type === "supplier" ? "badge-supplier" : "badge-customer"
-                          )}>
-                            {txn.type === "supplier" ? "Supplier" : "Customer"}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {format(parseISO(txn.date), "dd MMM")}
-                          {txn.description && ` • ${txn.description}`}
-                        </p>
-                      </div>
-                      
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-1 font-mono font-semibold">
-                          {txn.isOutgoing ? (
-                            <ArrowUpRight className="h-4 w-4 amount-negative" />
-                          ) : (
-                            <ArrowDownLeft className="h-4 w-4 status-pending" />
-                          )}
-                          {/* Supplier transactions: red (you owe), Customer transactions: orange if pending, green if paid */}
-                          <span className={txn.isOutgoing ? "amount-negative" : (txn.status === "paid" ? "status-paid" : "status-pending")}>
-                            ₹{txn.amount.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                        {/* Status - Paid (green) or Pending (orange) */}
-                        <span className={cn(
-                          "text-[10px] font-medium",
-                          txn.status === "paid" ? "status-paid" : "status-pending"
-                        )}>
-                          {txn.status === "paid" ? "Paid" : "Pending"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {/* Load More Trigger */}
-            {hasMoreTransactions && (
-              <div 
-                ref={loadMoreRef}
-                className="flex items-center justify-center py-4"
-              >
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm">Loading more...</span>
-                </div>
-              </div>
-            )}
-
-            {/* End of list */}
-            {!hasMoreTransactions && allTransactionsList.length > INITIAL_TRANSACTIONS && (
-              <div className="text-center py-4 text-sm text-muted-foreground">
-                All {allTransactionsList.length} transactions loaded
-              </div>
-            )}
-          </>
+          </motion.div>
         )}
       </section>
 
       {/* Quick Action FAB */}
-      <button
+      <motion.button
         onClick={() => setAddMenuOpen(true)}
         className="fab-hero"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 20 }}
       >
         <Plus className="h-6 w-6" />
-      </button>
+      </motion.button>
 
       {/* Add Menu Modal - Fixed with proper bottom padding */}
-      {addMenuOpen && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
-          onClick={() => setAddMenuOpen(false)}
-        >
-          <div 
-            className="w-full max-w-md bg-card rounded-t-3xl p-6 pb-nav animate-slide-up"
-            onClick={e => e.stopPropagation()}
+      <AnimatePresence>
+        {addMenuOpen && (
+          <motion.div 
+            className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
+            onClick={() => setAddMenuOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-heading tracking-wide">Add New</h3>
-              <button
-                onClick={() => setAddMenuOpen(false)}
-                className="p-2 hover:bg-muted rounded-full transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            <motion.div 
+              className="w-full max-w-md bg-card rounded-t-3xl p-6 pb-nav"
+              onClick={e => e.stopPropagation()}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-heading tracking-wide">Add New</h3>
+                <button
+                  onClick={() => setAddMenuOpen(false)}
+                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -755,9 +595,10 @@ export default function GPayHomePage() {
                 <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Forms */}
       <SupplierForm

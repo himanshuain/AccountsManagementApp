@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "motion/react";
 import { Home, History, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,18 +53,29 @@ export function BottomTabs() {
                 active && "active"
               )}
             >
-              {/* Active indicator - theme aware */}
-              {active && (
-                <div className={cn(
-                  "absolute -top-0.5 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full",
-                  "bg-primary dark:bg-accent dark:animate-arc-pulse"
-                )} />
-              )}
+              {/* Active indicator with layout animation */}
+              <AnimatePresence>
+                {active && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className={cn(
+                      "absolute -top-0.5 -translate-x-1/2 w-12 h-1 rounded-full",
+                      "bg-primary dark:bg-accent/60 dark:animate-arc-pulse"
+                    )}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1,animationIterationCount: "2" }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </AnimatePresence>
               
-              <Icon className={cn(
-                "h-6 w-6 transition-all duration-200",
-                active && "scale-110"
-              )} strokeWidth={active ? 2.5 : 2} />
+              <motion.div
+                animate={{ scale: active ? 1.1 : 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              >
+                <Icon className="h-6 w-6" strokeWidth={active ? 2.5 : 2} />
+              </motion.div>
               
               <span className={cn(
                 "text-[10px] font-medium",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
 
@@ -134,6 +135,7 @@ export function PersonAvatar({
 
 /**
  * Avatar with name below (for grid layout)
+ * Supports both onClick and href (Link) for navigation
  */
 export function PersonAvatarWithName({
   name,
@@ -143,18 +145,11 @@ export function PersonAvatarWithName({
   amountColor,
   size = "lg",
   onClick,
+  href,
   className
 }) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col items-center gap-1.5 p-2 px-8",
-        "active:scale-95 transition-transform cursor-pointer",
-        "rounded-2xl hover:bg-accent/20",
-        className
-      )}
-      onClick={onClick}
-    >
+  const content = (
+    <>
       <PersonAvatar name={name} image={image} size={size} />
       
       <div className="text-center w-full">
@@ -177,6 +172,29 @@ export function PersonAvatarWithName({
           </p>
         )}
       </div>
+    </>
+  );
+
+  const sharedClasses = cn(
+    "flex flex-col items-center gap-1.5 p-2 px-8",
+    "active:scale-95 transition-transform cursor-pointer",
+    "rounded-2xl hover:bg-accent/20",
+    className
+  );
+
+  // Use Link for navigation with prefetch
+  if (href) {
+    return (
+      <Link href={href} className={sharedClasses} prefetch={true}>
+        {content}
+      </Link>
+    );
+  }
+
+  // Fallback to div with onClick
+  return (
+    <div className={sharedClasses} onClick={onClick}>
+      {content}
     </div>
   );
 }

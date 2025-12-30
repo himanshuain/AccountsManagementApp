@@ -28,7 +28,7 @@ export function useIncome() {
     retry: 2,
   });
 
-  // Add income mutation - directly to cloud
+  // Add income mutation with optimistic update
   const addMutation = useMutation({
     mutationFn: async incomeData => {
       const response = await fetch("/api/income", {
@@ -42,12 +42,31 @@ export function useIncome() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async newIncome => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: INCOME_KEY });
+      // Snapshot previous value
+      const previousIncome = queryClient.getQueryData(INCOME_KEY);
+      // Optimistically add new income
+      const optimisticIncome = {
+        ...newIncome,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      queryClient.setQueryData(INCOME_KEY, old => [optimisticIncome, ...(old || [])]);
+      return { previousIncome };
+    },
+    onError: (err, newIncome, context) => {
+      // Rollback on error
+      queryClient.setQueryData(INCOME_KEY, context?.previousIncome);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: INCOME_KEY });
     },
   });
 
-  // Update income mutation - directly to cloud
+  // Update income mutation with optimistic update
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
       const response = await fetch(`/api/income/${id}`, {
@@ -61,12 +80,25 @@ export function useIncome() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: INCOME_KEY });
+      const previousIncome = queryClient.getQueryData(INCOME_KEY);
+      queryClient.setQueryData(INCOME_KEY, old =>
+        (old || []).map(item =>
+          item.id === id ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item
+        )
+      );
+      return { previousIncome };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(INCOME_KEY, context?.previousIncome);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: INCOME_KEY });
     },
   });
 
-  // Delete income mutation - directly to cloud
+  // Delete income mutation with optimistic update
   const deleteMutation = useMutation({
     mutationFn: async id => {
       const response = await fetch(`/api/income/${id}`, {
@@ -78,7 +110,16 @@ export function useIncome() {
       }
       return id;
     },
-    onSuccess: () => {
+    onMutate: async id => {
+      await queryClient.cancelQueries({ queryKey: INCOME_KEY });
+      const previousIncome = queryClient.getQueryData(INCOME_KEY);
+      queryClient.setQueryData(INCOME_KEY, old => (old || []).filter(item => item.id !== id));
+      return { previousIncome };
+    },
+    onError: (err, id, context) => {
+      queryClient.setQueryData(INCOME_KEY, context?.previousIncome);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: INCOME_KEY });
     },
   });

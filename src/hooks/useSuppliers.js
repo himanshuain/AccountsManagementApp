@@ -55,7 +55,7 @@ export function useSuppliers() {
     return data?.pages?.[0]?.pagination?.total ?? suppliers.length;
   }, [data, suppliers.length]);
 
-  // Add supplier mutation - directly to cloud
+  // Add supplier mutation with optimistic update
   const addMutation = useMutation({
     mutationFn: async supplierData => {
       const response = await fetch("/api/suppliers", {
@@ -69,13 +69,36 @@ export function useSuppliers() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async newSupplier => {
+      await queryClient.cancelQueries({ queryKey: SUPPLIERS_KEY });
+      const previousData = queryClient.getQueryData(SUPPLIERS_KEY);
+      const optimisticSupplier = {
+        ...newSupplier,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      queryClient.setQueryData(SUPPLIERS_KEY, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page, idx) =>
+            idx === 0 ? { ...page, data: [optimisticSupplier, ...page.data] } : page
+          ),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, newSupplier, context) => {
+      queryClient.setQueryData(SUPPLIERS_KEY, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
-  // Update supplier mutation - directly to cloud
+  // Update supplier mutation with optimistic update
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
       const response = await fetch(`/api/suppliers/${id}`, {
@@ -89,13 +112,33 @@ export function useSuppliers() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: SUPPLIERS_KEY });
+      const previousData = queryClient.getQueryData(SUPPLIERS_KEY);
+      queryClient.setQueryData(SUPPLIERS_KEY, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            data: page.data.map(s =>
+              s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
+            ),
+          })),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(SUPPLIERS_KEY, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
-  // Delete supplier mutation - directly to cloud
+  // Delete supplier mutation with optimistic update
   const deleteMutation = useMutation({
     mutationFn: async id => {
       const response = await fetch(`/api/suppliers/${id}`, {
@@ -107,11 +150,27 @@ export function useSuppliers() {
       }
       return id;
     },
-    onSuccess: () => {
+    onMutate: async id => {
+      await queryClient.cancelQueries({ queryKey: SUPPLIERS_KEY });
+      const previousData = queryClient.getQueryData(SUPPLIERS_KEY);
+      queryClient.setQueryData(SUPPLIERS_KEY, old => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            data: page.data.filter(s => s.id !== id),
+          })),
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, id, context) => {
+      queryClient.setQueryData(SUPPLIERS_KEY, context?.previousData);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
-      // Also invalidate transactions since supplier deletion removes related transactions
       queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
-      // Invalidate stats to refresh totals
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });

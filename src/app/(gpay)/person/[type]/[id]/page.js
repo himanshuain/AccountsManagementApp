@@ -573,7 +573,7 @@ function TransactionDetailModal({
                 {payments.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">No payments recorded yet</p>
                 ) : (
-                  payments.map((payment, idx) => (
+                  [...payments].sort((a, b) => new Date(b.date) - new Date(a.date)).map((payment, idx) => (
                     <div 
                       key={payment.id || idx}
                       className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl group"
@@ -925,15 +925,11 @@ export default function PersonChatPage() {
   const handleGPayChat = useCallback(() => {
     if (person?.phone) {
       const phone = person.phone.replace(/\D/g, "");
-      const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
+      // const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
       
       // Try Google Pay deep link schemes
       // First try the newer tez:// scheme, fallback to gpay://
-      const gpayUrl = `gpay://upi/transaction?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
-      
-      // For opening GPay to a contact, we use the intent URL format
-      // Try multiple schemes for cross-device compatibility
-      const intentUrl = `intent://pay#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+      const gpayUrl = `upi://pay?pa=${person.upiId}&am=${person.pendingAmount}&cu=INR`;
       
       // On Android, try the gpay deep link first
       window.location.href = gpayUrl;
@@ -941,7 +937,7 @@ export default function PersonChatPage() {
       // Fallback after a short delay if the first one doesn't work
       setTimeout(() => {
         // If we're still here, try opening GPay with phone number for chat
-        const phonePayUrl = `upi://pay?pa=&pn=${encodeURIComponent(person.companyName || person.name)}&mc=0000&mode=02&purpose=00`;
+        const phonePayUrl = `upi://pay?pa=${person.upiId}`;
         window.location.href = phonePayUrl;
       }, 1000);
     }
@@ -1488,6 +1484,7 @@ export default function PersonChatPage() {
             title="Edit Supplier"
           />
           <TransactionForm
+
             open={transactionFormOpen}
             onOpenChange={(open) => {
               setTransactionFormOpen(open);

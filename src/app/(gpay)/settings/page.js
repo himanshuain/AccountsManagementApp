@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   ChevronRight, IndianRupee, BarChart3, Download, Upload, 
   LogOut, Database, Wallet, TrendingUp, PiggyBank, 
@@ -53,66 +54,30 @@ function getMonthOptions() {
   return options;
 }
 
-// Swipeable Income Item Component
+// Collapsible Income Item Component with Motion animations
 function IncomeItem({ item, onEdit, onDelete }) {
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const touchStartX = useRef(0);
-  const isDragging = useRef(false);
-
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-    isDragging.current = false;
-  };
-
-  const handleTouchMove = (e) => {
-    const deltaX = e.touches[0].clientX - touchStartX.current;
-    if (deltaX < 0) {
-      isDragging.current = true;
-      setSwipeOffset(Math.max(deltaX, -100));
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (swipeOffset < -60) {
-      setSwipeOffset(-100);
-    } else {
-      setSwipeOffset(0);
-    }
-    isDragging.current = false;
-  };
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const cashAmount = Number(item.cashAmount) || 0;
   const onlineAmount = Number(item.onlineAmount) || 0;
   const totalAmount = Number(item.amount) || (cashAmount + onlineAmount);
 
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      <div className="absolute right-0 top-0 bottom-0 flex items-center">
-        <button
-          onClick={() => { setSwipeOffset(0); onEdit(item); }}
-          className="h-full w-12 bg-primary flex items-center justify-center text-white"
-        >
-          <Pencil className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => { setSwipeOffset(0); onDelete(item); }}
-          className="h-full w-12 bg-destructive flex items-center justify-center text-white"
-        >
-          <Trash2 className="h-5 w-5" />
-        </button>
-      </div>
-      
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className="flex items-center justify-between p-4 bg-muted rounded-xl transition-transform"
-        style={{ 
-          transform: `translateX(${swipeOffset}px)`,
-          transition: isDragging.current ? "none" : "transform 0.2s ease-out"
-        }}
+    <motion.div 
+      layout
+      className="rounded-xl overflow-hidden bg-muted"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.2 }}
+    >
+      {/* Main Item Row - Tap to expand/collapse */}
+      <motion.div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between p-4 cursor-pointer active:bg-accent/50 transition-colors"
+        whileTap={{ scale: 0.98 }}
       >
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={cn(
               "px-2 py-0.5 rounded text-[10px] font-medium",
@@ -138,8 +103,48 @@ function IncomeItem({ item, onEdit, onDelete }) {
         <p className="amount-positive font-bold font-mono">
           +₹{totalAmount.toLocaleString("en-IN")}
         </p>
-      </div>
-    </div>
+      </motion.div>
+
+      {/* Expandable Action Buttons with Motion */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <div className="flex border-t border-border/50">
+              <motion.button
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setIsExpanded(false);
+                  onEdit(item); 
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                whileTap={{ scale: 0.95 }}
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </motion.button>
+              <div className="w-px bg-border/50" />
+              <motion.button
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setIsExpanded(false);
+                  onDelete(item); 
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                whileTap={{ scale: 0.95 }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -302,6 +307,7 @@ function IncomeModal({ open, onClose }) {
   const [filter, setFilter] = useState("all");
   const [showGraph, setShowGraph] = useState(true);
   const [chartDuration, setChartDuration] = useState("6months");
+  const formRef = useRef(null);
   
   const monthOptions = useMemo(() => getMonthOptions(), []);
 
@@ -455,6 +461,10 @@ function IncomeModal({ open, onClose }) {
     setDate(item.date);
     setSelectedMonth(item.date.substring(0, 7));
     setIsMonthly(item.type === "monthly");
+    // Scroll to form after a brief delay to allow state update
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const handleDelete = async () => {
@@ -470,8 +480,15 @@ function IncomeModal({ open, onClose }) {
 
   if (!open) return null;
 
+  // Prevent modal from closing when delete dialog is open
+  const handleBackdropClick = () => {
+    if (!deleteItem) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/60" onClick={handleBackdropClick}>
       <div 
         className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[90vh] overflow-y-auto pb-nav animate-slide-up overscroll-contain"
         onClick={e => e.stopPropagation()}
@@ -515,7 +532,7 @@ function IncomeModal({ open, onClose }) {
           )}
 
           {/* Add/Edit Income Form */}
-          <div className="theme-card p-4 mb-6 mt-4">
+          <div ref={formRef} className="theme-card p-4 mb-6 mt-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">
                 {editingItem ? "Edit Income" : "Add Income"}
@@ -665,7 +682,7 @@ function IncomeModal({ open, onClose }) {
           {/* Recent Income */}
           <div>
             <h3 className="font-medium mb-2">Recent Income</h3>
-            <p className="text-xs text-muted-foreground mb-3">Swipe left to edit or delete</p>
+            <p className="text-xs text-muted-foreground mb-3">Tap to expand and edit or delete</p>
             <div className="space-y-2">
               {filteredIncomeList.slice(0, 20).map(item => (
                 <IncomeItem key={item.id} item={item} onEdit={handleEdit} onDelete={setDeleteItem} />

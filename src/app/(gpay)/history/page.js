@@ -331,7 +331,7 @@ export default function HistoryPage() {
                   <div
                     key={`${txn.type}-${txn.id}`}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer active:scale-[0.99]"
-                    onClick={() => router.push(`/person/${txn.type}/${txn.personId}`)}
+                    onClick={() => router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`)}
                   >
                     <PersonAvatar
                       name={txn.personName}
