@@ -310,7 +310,7 @@ export default function HistoryPage() {
           </div>
         ) : (
           groupedTransactions.map(group => (
-            <div key={group.key}>
+            <div key={group.key} className="bg-card/30 backdrop-blur-sm">
               {/* Month Header */}
               <div className="sticky top-0 z-10 header-glass px-4 py-4 flex items-center justify-between border-b border-border">
                 <span className="font-heading text-lg tracking-wide">{group.label}</span>         
