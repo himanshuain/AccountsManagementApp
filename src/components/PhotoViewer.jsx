@@ -239,23 +239,42 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
   const handleShare = async () => {
     if (!imageUrl) return;
     try {
-      // For data URLs, share as file if possible
-      if (navigator.share) {
-        if (isDataUrl(imageUrl)) {
-          // Convert data URL to blob for sharing
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-          const file = new File([blob], `image-${Date.now()}.jpg`, { type: blob.type });
-          await navigator.share({ files: [file], title: alt });
+      // Always share the actual image file, not just a link
+      if (navigator.share && navigator.canShare) {
+        // Fetch the image and convert to blob
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const extension = blob.type.split('/')[1] || 'jpg';
+        const file = new File([blob], `image-${Date.now()}.${extension}`, { type: blob.type });
+        
+        // Check if the browser supports sharing files
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ 
+            files: [file], 
+            title: alt || "Shared Image"
+          });
         } else {
-          await navigator.share({ url: imageUrl, title: alt });
+          // Fallback to sharing URL if file sharing not supported
+          await navigator.share({ url: imageUrl, title: alt || "Shared Image" });
         }
+      } else if (navigator.share) {
+        // Browser supports share but not canShare - try sharing URL
+        await navigator.share({ url: imageUrl, title: alt || "Shared Image" });
       } else {
+        // No share API - copy to clipboard
         await navigator.clipboard.writeText(imageUrl);
-        toast.success("Link copied");
+        toast.success("Link copied to clipboard");
       }
     } catch (e) {
-      if (e.name !== "AbortError") toast.error("Failed to share");
+      if (e.name !== "AbortError") {
+        // If sharing failed, try copying to clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(imageUrl);
+          toast.success("Link copied to clipboard");
+        } catch {
+          toast.error("Failed to share");
+        }
+      }
     }
   };
 
@@ -365,22 +384,42 @@ export function PhotoGalleryViewer({
     const url = normalizedImages[currentIndex]?.src;
     if (!url) return;
     try {
-      if (navigator.share) {
-        if (isDataUrl(url)) {
-          // Convert data URL to blob for sharing
-          const response = await fetch(url);
-          const blob = await response.blob();
-          const file = new File([blob], `image-${Date.now()}.jpg`, { type: blob.type });
-          await navigator.share({ files: [file], title: "Shared Image" });
+      // Always share the actual image file, not just a link
+      if (navigator.share && navigator.canShare) {
+        // Fetch the image and convert to blob
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const extension = blob.type.split('/')[1] || 'jpg';
+        const file = new File([blob], `image-${Date.now()}.${extension}`, { type: blob.type });
+        
+        // Check if the browser supports sharing files
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ 
+            files: [file], 
+            title: "Shared Image"
+          });
         } else {
+          // Fallback to sharing URL if file sharing not supported
           await navigator.share({ url, title: "Shared Image" });
         }
+      } else if (navigator.share) {
+        // Browser supports share but not canShare - try sharing URL
+        await navigator.share({ url, title: "Shared Image" });
       } else {
+        // No share API - copy to clipboard
         await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
+        toast.success("Link copied to clipboard");
       }
     } catch (e) {
-      if (e.name !== "AbortError") toast.error("Failed to share");
+      if (e.name !== "AbortError") {
+        // If sharing failed, try copying to clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success("Link copied to clipboard");
+        } catch {
+          toast.error("Failed to share");
+        }
+      }
     }
   }, [normalizedImages, currentIndex]);
 
