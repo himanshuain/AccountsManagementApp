@@ -103,12 +103,26 @@ export function collectTransactionImages(transaction) {
   // Add receipt URLs from payments
   if (transaction.payments && Array.isArray(transaction.payments)) {
     transaction.payments.forEach(payment => {
+      // Single receipt URL (legacy)
       if (payment.receiptUrl) {
         images.push(payment.receiptUrl);
+      }
+      if (payment.receipt_url) {
+        images.push(payment.receipt_url);
       }
       // Handle storage key format
       if (payment.receiptKey) {
         images.push(payment.receiptKey);
+      }
+      if (payment.receipt_key) {
+        images.push(payment.receipt_key);
+      }
+      // Multiple receipt URLs (new format)
+      if (payment.receiptUrls && Array.isArray(payment.receiptUrls)) {
+        images.push(...payment.receiptUrls);
+      }
+      if (payment.receipt_urls && Array.isArray(payment.receipt_urls)) {
+        images.push(...payment.receipt_urls);
       }
     });
   }
@@ -146,11 +160,26 @@ export function collectUdharImages(udhar) {
   // Add receipt URLs from payments
   if (udhar.payments && Array.isArray(udhar.payments)) {
     udhar.payments.forEach(payment => {
+      // Single receipt URL (legacy)
       if (payment.receiptUrl) {
         images.push(payment.receiptUrl);
       }
+      if (payment.receipt_url) {
+        images.push(payment.receipt_url);
+      }
+      // Handle storage key format
       if (payment.receiptKey) {
         images.push(payment.receiptKey);
+      }
+      if (payment.receipt_key) {
+        images.push(payment.receipt_key);
+      }
+      // Multiple receipt URLs (new format)
+      if (payment.receiptUrls && Array.isArray(payment.receiptUrls)) {
+        images.push(...payment.receiptUrls);
+      }
+      if (payment.receipt_urls && Array.isArray(payment.receipt_urls)) {
+        images.push(...payment.receipt_urls);
       }
     });
   }

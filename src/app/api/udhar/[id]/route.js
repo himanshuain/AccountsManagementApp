@@ -139,13 +139,31 @@ export async function PUT(request, { params }) {
       // Check for removed payment receipts
       const oldPayments = currentUdhar.payments || [];
       const newPayments = record.payments || [];
-      const newReceiptUrls = newPayments.map(p => p.receiptUrl || p.receipt_url).filter(Boolean);
       
+      // Collect all receipt URLs from new payments (single and array)
+      const newReceiptUrls = new Set();
+      newPayments.forEach(p => {
+        if (p.receiptUrl || p.receipt_url) {
+          newReceiptUrls.add(p.receiptUrl || p.receipt_url);
+        }
+        const receipts = p.receiptUrls || p.receipt_urls || [];
+        receipts.forEach(url => newReceiptUrls.add(url));
+      });
+      
+      // Find removed receipts from old payments
       oldPayments.forEach(payment => {
+        // Check single receipt URL
         const receiptUrl = payment.receiptUrl || payment.receipt_url;
-        if (receiptUrl && !newReceiptUrls.includes(receiptUrl)) {
+        if (receiptUrl && !newReceiptUrls.has(receiptUrl)) {
           imagesToDelete.push(receiptUrl);
         }
+        // Check receipt URLs array
+        const oldReceipts = payment.receiptUrls || payment.receipt_urls || [];
+        oldReceipts.forEach(url => {
+          if (url && !newReceiptUrls.has(url)) {
+            imagesToDelete.push(url);
+          }
+        });
       });
       
       if (imagesToDelete.length > 0) {
