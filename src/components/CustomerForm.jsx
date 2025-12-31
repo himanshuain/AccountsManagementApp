@@ -281,7 +281,7 @@ export function CustomerForm({
 
             <Separator />
 
-            {/* Khata Photos */}
+            {/* Khata Photos
             <div className="space-y-2">
               <Label>Khata Photos (Ledger/Account Photos)</Label>
               <MultiImageUpload
@@ -292,7 +292,7 @@ export function CustomerForm({
                 onUploadingChange={setUploadingKhata}
                 folder="khata"
               />
-            </div>
+            </div> */}
 
             {/* Bottom padding for safe area */}
             <div className="h-8" />
