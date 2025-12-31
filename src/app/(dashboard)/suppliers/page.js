@@ -63,7 +63,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "@/components/PhotoViewer";
 import { ImageUpload } from "@/components/ImageUpload";
 import { Label } from "@/components/ui/label";
 import { BillGallery } from "@/components/BillGallery";

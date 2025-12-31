@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { compressImage } from "@/lib/image-compression";
-import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 
 export function UdharList({
   udharList,

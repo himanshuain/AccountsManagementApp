@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const BIOMETRIC_SETTINGS_KEY = "biometric_lock_settings";
 const SESSION_UNLOCKED_KEY = "biometric_session_unlocked";
+const UNLOCK_TIMESTAMP_KEY = "biometric_unlock_timestamp";
+const RELOCK_TIMEOUT_MS = 20000; // 20 seconds
 
 /**
  * Hook for managing biometric lock functionality
  * Uses localStorage for settings and session storage for unlock state
+ * Auto-locks after 20 seconds of inactivity (modal close)
  */
 export function useBiometricLock() {
   const [settings, setSettings] = useState({
@@ -18,6 +21,7 @@ export function useBiometricLock() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const relockTimerRef = useRef(null);
 
   // Check if biometrics is available
   useEffect(() => {
@@ -41,7 +45,7 @@ export function useBiometricLock() {
     checkBiometricAvailability();
   }, []);
 
-  // Load settings from localStorage
+  // Load settings from localStorage and check unlock expiry
   useEffect(() => {
     try {
       const stored = localStorage.getItem(BIOMETRIC_SETTINGS_KEY);
@@ -49,14 +53,38 @@ export function useBiometricLock() {
         setSettings(JSON.parse(stored));
       }
       
-      // Check if session is already unlocked
+      // Check if session is already unlocked and not expired
       const sessionUnlocked = sessionStorage.getItem(SESSION_UNLOCKED_KEY);
-      if (sessionUnlocked === "true") {
+      const unlockTimestamp = sessionStorage.getItem(UNLOCK_TIMESTAMP_KEY);
+      
+      if (sessionUnlocked === "true" && unlockTimestamp) {
+        const elapsed = Date.now() - parseInt(unlockTimestamp, 10);
+        if (elapsed < RELOCK_TIMEOUT_MS) {
+          // Still within timeout, keep unlocked
+          setIsUnlocked(true);
+        } else {
+          // Expired, lock it
+          sessionStorage.removeItem(SESSION_UNLOCKED_KEY);
+          sessionStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
+          setIsUnlocked(false);
+        }
+      } else if (sessionUnlocked === "true") {
+        // Legacy: no timestamp, set one now
+        sessionStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
         setIsUnlocked(true);
       }
     } catch (error) {
       console.error("Error loading biometric settings:", error);
     }
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (relockTimerRef.current) {
+        clearTimeout(relockTimerRef.current);
+      }
+    };
   }, []);
 
   // Save settings to localStorage
@@ -71,10 +99,28 @@ export function useBiometricLock() {
   }, [settings]);
 
   // Request biometric authentication
-  const requestUnlock = useCallback(async () => {
-    if (!settings.enabled || !isBiometricAvailable) {
+  // forceCheck = true means always prompt for biometric (used for settings protection)
+  const requestUnlock = useCallback(async (forceCheck = false) => {
+    // Check latest settings from localStorage in case state isn't updated yet
+    let currentSettings = settings;
+    try {
+      const stored = localStorage.getItem(BIOMETRIC_SETTINGS_KEY);
+      if (stored) {
+        currentSettings = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Error reading settings:", e);
+    }
+
+    // If not forcing check and biometric is not enabled, just unlock
+    if (!forceCheck && (!currentSettings.enabled || !isBiometricAvailable)) {
       setIsUnlocked(true);
       return { success: true };
+    }
+
+    // If biometric is not available, can't do anything
+    if (!isBiometricAvailable) {
+      return { success: false, error: "Biometric not available" };
     }
 
     try {
@@ -102,6 +148,7 @@ export function useBiometricLock() {
         if (credential) {
           setIsUnlocked(true);
           sessionStorage.setItem(SESSION_UNLOCKED_KEY, "true");
+          sessionStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
           return { success: true };
         }
       } catch (credError) {
@@ -140,6 +187,7 @@ export function useBiometricLock() {
       if (newCredential) {
         setIsUnlocked(true);
         sessionStorage.setItem(SESSION_UNLOCKED_KEY, "true");
+        sessionStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
         return { success: true };
       }
 
@@ -158,19 +206,66 @@ export function useBiometricLock() {
 
   // Lock the session
   const lock = useCallback(() => {
+    if (relockTimerRef.current) {
+      clearTimeout(relockTimerRef.current);
+      relockTimerRef.current = null;
+    }
     setIsUnlocked(false);
     sessionStorage.removeItem(SESSION_UNLOCKED_KEY);
+    sessionStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
+  }, []);
+
+  // Start the relock timer (call this when modal closes)
+  const startRelockTimer = useCallback(() => {
+    // Clear any existing timer
+    if (relockTimerRef.current) {
+      clearTimeout(relockTimerRef.current);
+    }
+    
+    // Update the timestamp when timer starts
+    sessionStorage.setItem(UNLOCK_TIMESTAMP_KEY, Date.now().toString());
+    
+    // Set timer to auto-lock after timeout
+    relockTimerRef.current = setTimeout(() => {
+      setIsUnlocked(false);
+      sessionStorage.removeItem(SESSION_UNLOCKED_KEY);
+      sessionStorage.removeItem(UNLOCK_TIMESTAMP_KEY);
+      relockTimerRef.current = null;
+    }, RELOCK_TIMEOUT_MS);
+  }, []);
+
+  // Cancel the relock timer (call this when modal opens again)
+  const cancelRelockTimer = useCallback(() => {
+    if (relockTimerRef.current) {
+      clearTimeout(relockTimerRef.current);
+      relockTimerRef.current = null;
+    }
   }, []);
 
   // Check if a specific section is protected
+  // Also checks localStorage to ensure we have the latest settings
   const isProtected = useCallback((section) => {
-    if (!settings.enabled) return false;
+    // Get fresh settings from localStorage
+    let currentSettings = settings;
+    try {
+      const stored = localStorage.getItem(BIOMETRIC_SETTINGS_KEY);
+      if (stored) {
+        currentSettings = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Error reading settings:", e);
+    }
+
+    if (!currentSettings.enabled) return false;
     
     switch (section) {
       case "income":
-        return settings.protectIncome;
+        return currentSettings.protectIncome;
       case "reports":
-        return settings.protectReports;
+        return currentSettings.protectReports;
+      case "biometric-settings":
+        // Biometric settings are always protected if biometric is enabled
+        return true;
       default:
         return false;
     }
@@ -178,7 +273,22 @@ export function useBiometricLock() {
 
   // Check if access is allowed to a section
   const canAccess = useCallback((section) => {
+    // First check if section is even protected
     if (!isProtected(section)) return true;
+    
+    // Check if session is unlocked and not expired
+    const sessionUnlocked = sessionStorage.getItem(SESSION_UNLOCKED_KEY);
+    const unlockTimestamp = sessionStorage.getItem(UNLOCK_TIMESTAMP_KEY);
+    
+    if (sessionUnlocked === "true" && unlockTimestamp) {
+      const elapsed = Date.now() - parseInt(unlockTimestamp, 10);
+      if (elapsed < RELOCK_TIMEOUT_MS) {
+        return true;
+      }
+      // Expired
+      return false;
+    }
+    
     return isUnlocked;
   }, [isProtected, isUnlocked]);
 
@@ -192,6 +302,8 @@ export function useBiometricLock() {
     lock,
     isProtected,
     canAccess,
+    startRelockTimer,
+    cancelRelockTimer,
   };
 }
 

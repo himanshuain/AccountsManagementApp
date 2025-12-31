@@ -1359,7 +1359,45 @@ export default function SettingsPage() {
   const [biometricModalOpen, setBiometricModalOpen] = useState(false);
   
   // Biometric lock settings
-  const { settings: biometricSettings, updateSettings: updateBiometricSettings, isBiometricAvailable } = useBiometricLock();
+  const { 
+    settings: biometricSettings, 
+    updateSettings: updateBiometricSettings, 
+    isBiometricAvailable,
+    isProtected,
+    canAccess,
+    requestUnlock,
+    startRelockTimer,
+    cancelRelockTimer
+  } = useBiometricLock();
+
+  // Handle opening protected modals with biometric check
+  const handleOpenProtectedModal = async (section, openFn) => {
+    // Cancel any pending relock timer when opening
+    cancelRelockTimer();
+    
+    // If the section is protected and user doesn't have access
+    if (isProtected(section) && !canAccess(section)) {
+      // Request biometric unlock
+      const result = await requestUnlock();
+      if (result.success) {
+        openFn(true);
+      } else if (result.error && result.error !== "Authentication cancelled") {
+        toast.error(result.error);
+      }
+    } else {
+      // Not protected or already unlocked
+      openFn(true);
+    }
+  };
+
+  // Handle closing protected modals - start relock timer
+  const handleCloseProtectedModal = (section, closeFn) => {
+    closeFn(false);
+    // Start relock timer if the section is protected
+    if (isProtected(section)) {
+      startRelockTimer();
+    }
+  };
 
   // Prevent hydration mismatch for theme
   useEffect(() => {
@@ -1401,8 +1439,24 @@ export default function SettingsPage() {
     {
       section: "Business",
       items: [
-        { icon: IndianRupee, label: "Income Tracker", sublabel: "Track daily & monthly income", color: "amount-positive", bgColor: "bg-emerald-500/20", onClick: () => setIncomeModalOpen(true) },
-        { icon: BarChart3, label: "Reports", sublabel: "View analytics & insights", color: "text-primary", bgColor: "bg-primary/20", onClick: () => setReportsModalOpen(true) },
+        { 
+          icon: IndianRupee, 
+          label: "Income Tracker", 
+          sublabel: isProtected("income") ? "🔒 Protected" : "Track daily & monthly income", 
+          color: "amount-positive", 
+          bgColor: "bg-emerald-500/20", 
+          onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
+          rightContent: isProtected("income") ? <Lock className="h-4 w-4 text-emerald-500" /> : null,
+        },
+        { 
+          icon: BarChart3, 
+          label: "Reports", 
+          sublabel: isProtected("reports") ? "🔒 Protected" : "View analytics & insights", 
+          color: "text-primary", 
+          bgColor: "bg-primary/20", 
+          onClick: () => handleOpenProtectedModal("reports", setReportsModalOpen),
+          rightContent: isProtected("reports") ? <Lock className="h-4 w-4 text-primary" /> : null,
+        },
         { icon: Database, label: "Backup & Export", sublabel: "Manage your data & PDFs", color: "status-pending", bgColor: "bg-amber-500/20", onClick: () => setBackupModalOpen(true) },
       ],
     },
@@ -1412,10 +1466,10 @@ export default function SettingsPage() {
         { 
           icon: Fingerprint, 
           label: "Biometric Lock", 
-          sublabel: biometricSettings.enabled ? "Enabled" : "Protect sensitive data", 
+          sublabel: biometricSettings.enabled ? "🔒 Enabled" : "Protect sensitive data", 
           color: biometricSettings.enabled ? "text-emerald-500" : "text-muted-foreground", 
           bgColor: biometricSettings.enabled ? "bg-emerald-500/20" : "bg-muted", 
-          onClick: () => setBiometricModalOpen(true),
+          onClick: () => handleOpenProtectedModal("biometric-settings", setBiometricModalOpen),
           rightContent: biometricSettings.enabled ? <Shield className="h-4 w-4 text-emerald-500" /> : null,
         },
         { icon: Lock, label: "Change PIN", sublabel: "Update your security PIN", color: "text-muted-foreground", bgColor: "bg-muted", onClick: () => setChangePinModalOpen(true) },
@@ -1467,13 +1521,13 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      <IncomeModal open={incomeModalOpen} onClose={() => setIncomeModalOpen(false)} />
-      <ReportsModal open={reportsModalOpen} onClose={() => setReportsModalOpen(false)} />
+      <IncomeModal open={incomeModalOpen} onClose={() => handleCloseProtectedModal("income", setIncomeModalOpen)} />
+      <ReportsModal open={reportsModalOpen} onClose={() => handleCloseProtectedModal("reports", setReportsModalOpen)} />
       <BackupModal open={backupModalOpen} onClose={() => setBackupModalOpen(false)} />
       <ChangePinModal open={changePinModalOpen} onClose={() => setChangePinModalOpen(false)} />
       <BiometricSettingsModal 
         open={biometricModalOpen} 
-        onClose={() => setBiometricModalOpen(false)}
+        onClose={() => handleCloseProtectedModal("biometric-settings", setBiometricModalOpen)}
         settings={biometricSettings}
         updateSettings={updateBiometricSettings}
         isAvailable={isBiometricAvailable}

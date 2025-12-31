@@ -87,7 +87,7 @@ import { UdharList } from "@/components/UdharList";
 import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageViewer, ImageGalleryViewer } from "@/components/ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "@/components/PhotoViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { haptics } from "@/hooks/useHaptics";
 import { resolveImageUrl } from "@/lib/image-url";

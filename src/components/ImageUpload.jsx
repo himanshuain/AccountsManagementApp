@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Upload, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ImageViewer, ImageGalleryViewer } from "./ImageViewer";
+import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 import { compressImage } from "@/lib/image-compression";
 import { getImageUrls, isDataUrl, isCdnConfigured } from "@/lib/image-url";
 
@@ -293,6 +293,7 @@ export function MultiImageUpload({
   disabled = false,
   onUploadingChange,
   folder = "general",
+  onImageTap, // Optional callback when image is tapped (index) => void
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -386,6 +387,9 @@ export function MultiImageUpload({
   };
 
   const handleViewImage = index => {
+    // Call external callback if provided
+    onImageTap?.(index);
+    // Open internal viewer
     setViewerIndex(index);
     setViewerOpen(true);
   };

@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { ImageGalleryViewer } from "./ImageViewer";
+import { ImageGalleryViewer } from "./PhotoViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { resolveImageUrl } from "@/lib/image-url";
 

@@ -23,7 +23,7 @@ import { UdharForm } from "@/components/UdharForm";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { ImageGalleryViewer, ImageViewer } from "@/components/ImageViewer";
+import { PhotoGalleryViewer as ImageGalleryViewer, PhotoViewer as ImageViewer } from "@/components/PhotoViewer";
 import { ProgressBar } from "@/components/gpay/PaymentProgress";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
@@ -69,9 +69,17 @@ function PaymentFormModal({
   const [date, setDate] = useState(today);
   const [receiptImages, setReceiptImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const remainingAmount = (Number(txn.amount) || 0) - (Number(txn.paidAmount) || 0);
+
+  // Handle image tap to view
+  const handleImageTap = (index) => {
+    setViewerIndex(index);
+    setImageViewerOpen(true);
+  };
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -259,14 +267,23 @@ function PaymentFormModal({
                   const displayUrl = isDataUrl(img) ? img : (urls.thumbnail || urls.src);
                   return (
                     <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted group">
-                      <img src={displayUrl} alt={`Receipt ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img 
+                        src={displayUrl} 
+                        alt={`Receipt ${idx + 1}`} 
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => handleImageTap(idx)}
+                      />
                       <button
                         type="button"
-                        onClick={() => handleRemoveImage(idx)}
+                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(idx); }}
                         className="absolute top-0.5 right-0.5 p-0.5 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
                       </button>
+                      {/* Tap to expand hint */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
+                        <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
+                      </div>
                     </div>
                   );
                 })}
@@ -300,7 +317,7 @@ function PaymentFormModal({
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">{receiptImages.length}/5 images</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{receiptImages.length}/5 images • Tap to expand</p>
             </div>
 
             {/* Action Buttons */}
@@ -323,6 +340,14 @@ function PaymentFormModal({
             </div>
           </form>
         </div>
+
+        {/* Image Viewer for receipts */}
+        <ImageGalleryViewer
+          images={receiptImages}
+          initialIndex={viewerIndex}
+          open={imageViewerOpen}
+          onOpenChange={setImageViewerOpen}
+        />
       </div>
     </div>
   );
@@ -349,6 +374,14 @@ function EditPaymentModal({
     }
     return [];
   });
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  // Handle image tap to view
+  const handleImageTap = (index) => {
+    setViewerIndex(index);
+    setImageViewerOpen(true);
+  };
   const [isUploading, setIsUploading] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
@@ -538,14 +571,23 @@ function EditPaymentModal({
                   return (
                     <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={displayUrl} alt={`Receipt ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img 
+                        src={displayUrl} 
+                        alt={`Receipt ${idx + 1}`} 
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => handleImageTap(idx)}
+                      />
                       <button
                         type="button"
-                        onClick={() => handleRemoveImage(idx)}
+                        onClick={(e) => { e.stopPropagation(); handleRemoveImage(idx); }}
                         className="absolute top-0.5 right-0.5 p-0.5 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
                       </button>
+                      {/* Tap to expand hint */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
+                        <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
+                      </div>
                     </div>
                   );
                 })}
@@ -579,7 +621,7 @@ function EditPaymentModal({
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">{receiptImages.length}/5 images</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{receiptImages.length}/5 images • Tap to expand</p>
             </div>
 
             {/* Action Buttons */}
@@ -601,6 +643,14 @@ function EditPaymentModal({
             </div>
           </form>
         </div>
+
+        {/* Image Viewer for receipts */}
+        <ImageGalleryViewer
+          images={receiptImages}
+          initialIndex={viewerIndex}
+          open={imageViewerOpen}
+          onOpenChange={setImageViewerOpen}
+        />
       </div>
     </div>
   );
@@ -1233,15 +1283,30 @@ export default function PersonChatPage() {
   }, [isSupplier, suppliers, customers, id]);
 
   // Get transactions for this person (sorted oldest first for chat view)
+  // For same-date transactions, sort by createdAt timestamp (newest at bottom)
   const personTransactions = useMemo(() => {
+    const sortByDateAndTime = (a, b) => {
+      // First sort by date
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      const dateDiff = dateA - dateB;
+      
+      if (dateDiff !== 0) return dateDiff;
+      
+      // For same date, sort by createdAt timestamp (oldest first, newest at bottom)
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    };
+
     if (isSupplier) {
       return transactions
         .filter(t => t.supplierId === id)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        .sort(sortByDateAndTime);
     }
     return udharList
       .filter(u => u.customerId === id)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort(sortByDateAndTime);
   }, [isSupplier, transactions, udharList, id]);
   
   // Filter transactions based on search query
@@ -1312,13 +1377,25 @@ export default function PersonChatPage() {
     return groups;
   }, [filteredTransactions]);
 
+  // Track if we've already processed the highlight to prevent re-triggering on refresh
+  const highlightProcessedRef = useRef(false);
+
   // Scroll to highlighted transaction or bottom on load
   useEffect(() => {
-    if (highlightTxnId && txnRefs.current[highlightTxnId]) {
+    if (highlightTxnId && txnRefs.current[highlightTxnId] && !highlightProcessedRef.current) {
+      // Mark as processed to prevent re-triggering
+      highlightProcessedRef.current = true;
+      
       // Scroll to the highlighted transaction
       setTimeout(() => {
         txnRefs.current[highlightTxnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
         setHighlightedTxn(highlightTxnId);
+        
+        // Clear the URL param to prevent re-triggering on refresh
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("txnId");
+        window.history.replaceState({}, "", newUrl.pathname);
+        
         // Clear highlight after animation
         setTimeout(() => setHighlightedTxn(null), 3000);
       }, 300);
@@ -1409,12 +1486,53 @@ export default function PersonChatPage() {
     }
   }, [person?.upiId]);
 
+  // Track if we just added a transaction
+  const justAddedRef = useRef(false);
+
+  // Scroll to bottom helper - more reliable version
+  const scrollToBottom = useCallback(() => {
+    justAddedRef.current = true;
+    // Use multiple attempts to ensure scroll happens after DOM update
+    const doScroll = () => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: "smooth"
+        });
+      }
+    };
+    // First attempt after short delay
+    setTimeout(doScroll, 100);
+    // Second attempt after longer delay (after data updates)
+    setTimeout(doScroll, 500);
+    // Third attempt using requestAnimationFrame for next paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(doScroll);
+    });
+  }, []);
+
+  // Scroll to bottom when new transactions are added
+  useEffect(() => {
+    if (justAddedRef.current && personTransactions.length > 0) {
+      justAddedRef.current = false;
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTo({
+            top: scrollRef.current.scrollHeight,
+            behavior: "smooth"
+          });
+        }
+      }, 300);
+    }
+  }, [personTransactions.length]);
+
   // Handle add transaction
   const handleAddTransaction = async (data) => {
     const result = await addTransaction({ ...data, supplierId: id });
     if (result.success) {
       toast.success("Transaction added");
       setTransactionFormOpen(false);
+      scrollToBottom(); // Scroll to show new transaction
     } else {
       toast.error(result.error || "Failed to add");
     }
@@ -1426,6 +1544,7 @@ export default function PersonChatPage() {
     if (result.success) {
       toast.success("Udhar added");
       setUdharFormOpen(false);
+      scrollToBottom(); // Scroll to show new udhar
     } else {
       toast.error(result.error || "Failed to add");
     }

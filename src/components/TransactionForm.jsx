@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X, Check } from "lucide-react";
+import { Loader2, X, Check, Expand } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Switch } from "@/components/ui/switch";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
+import { PhotoGalleryViewer } from "./PhotoViewer";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
 
@@ -44,6 +45,15 @@ export function TransactionForm({
   const [isPaid, setIsPaid] = useState(initialData?.paymentStatus === "paid" || false);
   const [isCash, setIsCash] = useState(initialData?.paymentMode === "cash" || false);
   const [isUploadingBills, setIsUploadingBills] = useState(false);
+  // Image viewer state for captured images (pendingFiles mode)
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  // Handle image tap to view (for captured images)
+  const handleImageTap = (index) => {
+    setViewerIndex(index);
+    setImageViewerOpen(true);
+  };
   
   // Handle quickCaptureData (legacy support)
   useEffect(() => {
@@ -468,19 +478,31 @@ export function TransactionForm({
                     {billImages.map((url, index) => (
                       <div
                         key={index}
-                        className="relative aspect-square overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50"
+                        className="relative aspect-square overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50 cursor-pointer group"
+                        onClick={() => handleImageTap(index)}
                       >
                         <img
                           src={resolveImageUrl(url)}
                           alt={`Captured bill ${index + 1}`}
                           className="h-full w-full object-cover"
                         />
+                        {/* Tap to expand hint */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-70" />
+                        </div>
                       </div>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {pendingFiles.length} bill(s) will be uploaded when you save
+                    {pendingFiles.length} bill(s) will be uploaded when you save • Tap image to expand
                   </p>
+                  {/* Image Viewer for captured images */}
+                  <PhotoGalleryViewer
+                    images={billImages}
+                    initialIndex={viewerIndex}
+                    open={imageViewerOpen}
+                    onOpenChange={setImageViewerOpen}
+                  />
                 </div>
               ) : (
                 <MultiImageUpload

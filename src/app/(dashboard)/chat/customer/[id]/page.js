@@ -8,7 +8,7 @@ import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { UdharForm } from "@/components/UdharForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { ImageGalleryViewer } from "@/components/ImageViewer";
+import { ImageGalleryViewer } from "@/components/PhotoViewer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -8,7 +8,7 @@ import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { TransactionForm } from "@/components/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { ImageGalleryViewer } from "@/components/ImageViewer";
+import { ImageGalleryViewer } from "@/components/PhotoViewer";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/hooks/useHaptics";

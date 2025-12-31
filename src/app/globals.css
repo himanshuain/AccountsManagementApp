@@ -1,3 +1,5 @@
+@import "react-photo-view/dist/react-photo-view.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -835,3 +837,83 @@ button:active:not(:disabled),
 .text-gpay-blue { color: hsl(var(--accent)); }
 .text-gpay-red { @apply text-red-500 dark:text-red-400; }
 .text-gpay-yellow { @apply text-amber-500 dark:text-amber-400; }
+
+/* ============================================
+   REACT-PHOTO-VIEW CUSTOMIZATIONS
+   ============================================ */
+
+.PhotoView-Portal {
+  z-index: 2147483647 !important; /* Maximum z-index */
+  position: fixed !important;
+  inset: 0 !important;
+}
+
+/* Ensure slider is above everything */
+.PhotoView-Slider {
+  z-index: 2147483647 !important;
+  touch-action: none !important; /* Prevent parent scroll interference */
+}
+
+.PhotoView-Slider__BannerWrap {
+  display: none !important; /* We use custom toolbar */
+}
+
+.PhotoView-Slider__Backdrop {
+  background: rgba(0, 0, 0, 0.98) !important;
+}
+
+.PhotoView-Slider__ArrowLeft,
+.PhotoView-Slider__ArrowRight {
+  @apply bg-black/50 hover:bg-black/70 transition-colors !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.PhotoView-Slider__ArrowLeft svg,
+.PhotoView-Slider__ArrowRight svg {
+  width: 24px !important;
+  height: 24px !important;
+  opacity: 0.9 !important;
+}
+
+.PhotoView__Photo {
+  background: transparent !important;
+}
+
+.PhotoView__PhotoLoading {
+  background: transparent !important;
+}
+
+/* Custom animation for photo entrance */
+.PhotoView-Slider__Content {
+  animation: photoViewFadeIn 0.3s ease-out;
+}
+
+/* Swipe indicator hint at the top */
+.PhotoView-Slider::before {
+  content: '';
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  z-index: 10;
+}
+
+@keyframes photoViewFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
