@@ -2862,7 +2862,16 @@ export default function CustomersPage() {
                 <Input
                   type="date"
                   value={paymentDate}
-                  onChange={e => setPaymentDate(e.target.value)}
+                  onChange={e => {
+                    const selectedDate = e.target.value;
+                    const today = new Date().toISOString().split("T")[0];
+                    // Prevent future dates (iOS Safari ignores max attribute)
+                    if (selectedDate > today) {
+                      setPaymentDate(today);
+                    } else {
+                      setPaymentDate(selectedDate);
+                    }
+                  }}
                   max={new Date().toISOString().split("T")[0]}
                   className="h-12 text-base"
                 />

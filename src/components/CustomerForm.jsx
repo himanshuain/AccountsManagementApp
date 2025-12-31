@@ -279,7 +279,7 @@ export function CustomerForm({
               />
             </div>
 
-            <Separator />
+            {/* <Separator /> */}
 
             {/* Khata Photos
             <div className="space-y-2">

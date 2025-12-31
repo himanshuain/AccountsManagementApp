@@ -216,7 +216,15 @@ function PaymentFormModal({
               <input
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => {
+                  const selectedDate = e.target.value;
+                  // Prevent future dates (iOS Safari ignores max attribute)
+                  if (selectedDate > today) {
+                    setDate(today);
+                  } else {
+                    setDate(selectedDate);
+                  }
+                }}
                 max={today}
                 className="input-hero"
               />
@@ -523,7 +531,16 @@ function EditPaymentModal({
               <input
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => {
+                  const selectedDate = e.target.value;
+                  const todayDate = getLocalDate();
+                  // Prevent future dates (iOS Safari ignores max attribute)
+                  if (selectedDate > todayDate) {
+                    setDate(todayDate);
+                  } else {
+                    setDate(selectedDate);
+                  }
+                }}
                 max={getLocalDate()}
                 className="input-hero"
               />

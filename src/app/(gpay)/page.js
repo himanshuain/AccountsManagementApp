@@ -939,7 +939,15 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
               <input
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={(e) => {
+                  const selectedDate = e.target.value;
+                  // Prevent future dates (iOS Safari ignores max attribute)
+                  if (selectedDate > today) {
+                    setDate(today);
+                  } else {
+                    setDate(selectedDate);
+                  }
+                }}
                 max={today}
                 className="input-hero"
               />

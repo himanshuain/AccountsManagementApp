@@ -567,7 +567,21 @@ export function TransactionForm({
                 <Input
                   id="date"
                   type="date"
-                  {...register("date", { required: "Date is required" })}
+                  {...register("date", { 
+                    required: "Date is required",
+                    validate: (value) => {
+                      const today = getLocalDate();
+                      if (value > today) return "Future dates are not allowed";
+                      return true;
+                    }
+                  })}
+                  onChange={(e) => {
+                    // Prevent future dates (iOS Safari ignores max attribute)
+                    const today = getLocalDate();
+                    if (e.target.value > today) {
+                      e.target.value = today;
+                    }
+                  }}
                   max={new Date().toISOString().split("T")[0]}
                   className="h-12"
                 />

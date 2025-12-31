@@ -1163,7 +1163,16 @@ export default function ReportsPage() {
               <Input
                 type="date"
                 value={formData.date}
-                onChange={e => setFormData({ ...formData, date: e.target.value })}
+                onChange={e => {
+                  const selectedDate = e.target.value;
+                  const today = getLocalDate();
+                  // Prevent future dates (iOS Safari ignores max attribute)
+                  if (selectedDate > today) {
+                    setFormData({ ...formData, date: today });
+                  } else {
+                    setFormData({ ...formData, date: selectedDate });
+                  }
+                }}
                 max={getLocalDate()}
               />
             </div>
