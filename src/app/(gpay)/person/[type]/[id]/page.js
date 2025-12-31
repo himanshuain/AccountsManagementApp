@@ -1472,26 +1472,26 @@ export default function PersonChatPage() {
   }, [person, totals.pending]);
 
   // Handle GPay - Try multiple deep link schemes for better compatibility
-  const handleGPayChat = useCallback(() => {
-    if (person?.phone) {
-      const phone = person.phone.replace(/\D/g, "");
-      // const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
+  // const handleGPayChat = useCallback(() => {
+  //   if (person?.phone) {
+  //     const phone = person.phone.replace(/\D/g, "");
+  //     // const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
       
-      // Try Google Pay deep link schemes
-      // First try the newer tez:// scheme, fallback to gpay://
-      const gpayUrl = `upi://pay?pa=${person.upiId}&am=${person.pendingAmount}&cu=INR`;
+  //     // Try Google Pay deep link schemes
+  //     // First try the newer tez:// scheme, fallback to gpay://
+  //     const gpayUrl = `upi://pay?pa=${person.upiId}&am=${person.pendingAmount}&cu=INR`;
       
-      // On Android, try the gpay deep link first
-      window.location.href = gpayUrl;
+  //     // On Android, try the gpay deep link first
+  //     window.location.href = gpayUrl;
       
-      // Fallback after a short delay if the first one doesn't work
-      setTimeout(() => {
-        // If we're still here, try opening GPay with phone number for chat
-        const phonePayUrl = `upi://pay?pa=${person.upiId}`;
-        window.location.href = phonePayUrl;
-      }, 1000);
-    }
-  }, [person]);
+  //     // Fallback after a short delay if the first one doesn't work
+  //     setTimeout(() => {
+  //       // If we're still here, try opening GPay with phone number for chat
+  //       const phonePayUrl = `upi://pay?pa=${person.upiId}`;
+  //       window.location.href = phonePayUrl;
+  //     }, 1000);
+  //   }
+  // }, [person]);
 
   // Copy UPI ID
   const handleCopyUpi = useCallback(async () => {
@@ -2053,7 +2053,7 @@ export default function PersonChatPage() {
           )}
           
           {/* GPay Chat Button */}
-          {person.phone && (
+          {/* {person.phone && (
             <button
               onClick={handleGPayChat}
               className="px-3 py-2 bg-muted rounded-xl font-medium text-sm flex items-center gap-2 hover:bg-accent transition-colors"
@@ -2061,7 +2061,7 @@ export default function PersonChatPage() {
               <Send className="h-3 w-3" />
               Check GPay
             </button>
-          )}
+          )} */}
 
           {/* Bills Gallery Button */}
           
@@ -2259,7 +2259,7 @@ export default function PersonChatPage() {
                     Pay via UPI
                   </button>
                 )}
-                {person.phone && (
+                {/* {person.phone && (
                   <button
                     onClick={handleGPayChat}
                     className="p-4 bg-muted rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent transition-colors"
@@ -2267,7 +2267,7 @@ export default function PersonChatPage() {
                     <Send className="h-5 w-5" />
                     Open GPay
                   </button>
-                )}
+                )} */}
               </div>
             </div>
           </div>
