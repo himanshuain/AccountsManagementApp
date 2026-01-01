@@ -33,7 +33,7 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState("all");
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Data hooks
   const { suppliers } = useSuppliers();

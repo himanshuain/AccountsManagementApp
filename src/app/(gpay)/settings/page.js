@@ -355,7 +355,7 @@ function IncomeChart({ data, duration, onDurationChange }) {
   
   // Format value for display
   const formatValue = (value) => {
-    if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+    if (value >= 100000) return `₹${(value / 100000).toFixed(2)}L`;
     if (value >= 1000) return `₹${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`;
     return `₹${value}`;
   };
@@ -389,7 +389,7 @@ function IncomeChart({ data, duration, onDurationChange }) {
       
       {/* Y-axis scale indicator */}
       <div className="flex items-center justify-end gap-2 mb-2 text-[10px] text-muted-foreground">
-        <span>Max: {formatValue(maxUnits * BASE_VALUE)}</span>
+        <span>Max: {formatValue(maxValue)}</span>
       </div>
       
       <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
@@ -837,13 +837,12 @@ function ReportsModal({ open, onClose }) {
     const income = incomeList || [];
     
     const totalPurchases = txns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const paidPurchases = txns.filter(t => t.paymentStatus === "paid").reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const paidPurchases = txns.filter(t => t.paymentStatus === "paid" || t.paymentStatus === "partial" ).reduce((sum, t) => sum + (Number(t.paidAmount) || 0), 0);
     const pendingPurchases = totalPurchases - paidPurchases;
 
     const totalUdhar = udhars.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
-    const paidUdhar = udhars.filter(u => u.status === "paid").reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+    const paidUdhar = udhars.filter(u => u.paymentStatus === "paid" || u.paymentStatus === "partial").reduce((sum, u) => sum + (Number(u.paidAmount) || 0), 0);
     const pendingUdhar = totalUdhar - paidUdhar;
-    const collectedUdhar = udhars.reduce((sum, u) => sum + (Number(u.paidAmount) || 0), 0);;
 
     const calcIncomeTotal = (list) => list.reduce((sum, i) => {
       const cash = Number(i.cashAmount) || 0;
@@ -858,7 +857,6 @@ function ReportsModal({ open, onClose }) {
       totalPurchases, paidPurchases, pendingPurchases,
       totalUdhar, paidUdhar, pendingUdhar,
       totalIncome, monthlyIncome,
-      collectedUdhar,
       netPosition: pendingUdhar - pendingPurchases,
     };
   }, [transactions, udharList, incomeList]);
@@ -907,7 +905,7 @@ function ReportsModal({ open, onClose }) {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold font-mono">₹{stats.totalUdhar.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Received</p><p className="text-lg font-bold font-mono amount-positive">₹{stats.collectedUdhar.toLocaleString("en-IN")}</p></div>
+              <div><p className="text-xs text-muted-foreground">Received</p><p className="text-lg font-bold font-mono amount-positive">₹{stats.paidUdhar.toLocaleString("en-IN")}</p></div>
               <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-bold font-mono amount-pending">₹{stats.pendingUdhar.toLocaleString("en-IN")}</p></div>
             </div>
           </div>
