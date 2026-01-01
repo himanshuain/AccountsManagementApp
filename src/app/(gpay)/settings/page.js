@@ -64,6 +64,10 @@ function IncomeItem({ item, onUpdate, onDelete }) {
   const [editOnline, setEditOnline] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editIsMonthly, setEditIsMonthly] = useState(false);
+  
+  // Get today's date for max validation
+  const today = getLocalDate();
+  const currentMonth = today.substring(0, 7);
 
   const cashAmount = Number(item.cashAmount) || 0;
   const onlineAmount = Number(item.onlineAmount) || 0;
@@ -223,7 +227,25 @@ function IncomeItem({ item, onUpdate, onDelete }) {
                   <input
                     type={editIsMonthly ? "month" : "date"}
                     value={editIsMonthly ? editDate.substring(0, 7) : editDate}
-                    onChange={(e) => setEditDate(editIsMonthly ? `${e.target.value}-01` : e.target.value)}
+                    onChange={(e) => {
+                      const selectedValue = e.target.value;
+                      if (editIsMonthly) {
+                        // Prevent future months
+                        if (selectedValue > currentMonth) {
+                          setEditDate(`${currentMonth}-01`);
+                        } else {
+                          setEditDate(`${selectedValue}-01`);
+                        }
+                      } else {
+                        // Prevent future dates
+                        if (selectedValue > today) {
+                          setEditDate(today);
+                        } else {
+                          setEditDate(selectedValue);
+                        }
+                      }
+                    }}
+                    max={editIsMonthly ? currentMonth : today}
                     className="input-hero"
                   />
                 </div>
@@ -425,11 +447,29 @@ function IncomeChart({ data, duration, onDurationChange }) {
 // Filter Chips
 const FILTER_OPTIONS = [
   { value: "all", label: "All Time" },
+  { value: "monthly", label: "Month" },
   { value: "3months", label: "3 Months" },
   { value: "6months", label: "6 Months" },
   { value: "thisYear", label: "This Year" },
   { value: "lastYear", label: "Last Year" },
 ];
+
+// Generate available months from income data for filtering
+function getAvailableMonths(incomeList) {
+  const monthsSet = new Set();
+  incomeList.forEach(item => {
+    const date = new Date(item.date);
+    monthsSet.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  });
+  
+  // Convert to array and sort by year desc, then month desc
+  return Array.from(monthsSet)
+    .sort((a, b) => b.localeCompare(a))
+    .map(monthKey => ({
+      value: monthKey,
+      label: format(new Date(monthKey + '-01'), 'MMMM yyyy'),
+    }));
+}
 
 // Get today's date in local timezone (YYYY-MM-DD format)
 function getLocalDate() {
@@ -452,10 +492,13 @@ function IncomeModal({ open, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [deleteItem, setDeleteItem] = useState(null);
   const [filter, setFilter] = useState("all");
+  const [selectedFilterMonth, setSelectedFilterMonth] = useState("");
+  const [showOnlyMonthlyEntries, setShowOnlyMonthlyEntries] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
   const [chartDuration, setChartDuration] = useState("6months");
   
   const monthOptions = useMemo(() => getMonthOptions(), []);
+  const availableFilterMonths = useMemo(() => getAvailableMonths(incomeList), [incomeList]);
 
   usePreventBodyScroll(open);
 
@@ -464,8 +507,31 @@ function IncomeModal({ open, onClose }) {
     const now = new Date();
     let startDate;
     let endDate = now;
+    let filtered;
     
     switch (filter) {
+      case "monthly":
+        if (!selectedFilterMonth) {
+          // If no month selected, show current month
+          const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          filtered = incomeList.filter(i => {
+            const d = new Date(i.date);
+            const itemMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            return itemMonth === currentMonthKey;
+          });
+        } else {
+          filtered = incomeList.filter(i => {
+            const d = new Date(i.date);
+            const itemMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            return itemMonth === selectedFilterMonth;
+          });
+        }
+        // Apply "monthly only" filter if toggle is on
+        if (showOnlyMonthlyEntries) {
+          filtered = filtered.filter(i => i.type === "monthly");
+        }
+        // Sort by date within the month (newest first)
+        return [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
       case "3months":
         startDate = subMonths(now, 3);
         break;
@@ -480,14 +546,17 @@ function IncomeModal({ open, onClose }) {
         endDate = new Date(now.getFullYear() - 1, 11, 31);
         break;
       default:
-        return incomeList;
+        return [...incomeList].sort((a, b) => new Date(b.date) - new Date(a.date));
     }
     
-    return incomeList.filter(i => {
+    filtered = incomeList.filter(i => {
       const d = new Date(i.date);
       return d >= startDate && d <= endDate;
     });
-  }, [incomeList, filter]);
+    
+    // Sort by date (newest first)
+    return [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [incomeList, filter, selectedFilterMonth, showOnlyMonthlyEntries]);
 
   // Chart data - dynamic based on selected duration
   const chartData = useMemo(() => {
@@ -775,7 +844,13 @@ function IncomeModal({ open, onClose }) {
               {FILTER_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setFilter(opt.value)}
+                  onClick={() => {
+                    setFilter(opt.value);
+                    // Reset selected month when switching to monthly filter
+                    if (opt.value === "monthly" && availableFilterMonths.length > 0) {
+                      setSelectedFilterMonth(availableFilterMonths[0].value);
+                    }
+                  }}
                   className={cn(
                     "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
                     filter === opt.value
@@ -787,9 +862,46 @@ function IncomeModal({ open, onClose }) {
                 </button>
               ))}
             </div>
+            
+            {/* Month Selector when Monthly filter is active */}
+            {filter === "monthly" && availableFilterMonths.length > 0 && (
+              <div className="mt-3 space-y-3">
+                <select
+                  value={selectedFilterMonth}
+                  onChange={(e) => setSelectedFilterMonth(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-muted border-0 text-sm font-medium focus:ring-2 focus:ring-primary"
+                >
+                  {availableFilterMonths.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                
+                {/* Toggle for Monthly entries only */}
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                  <span className="text-sm font-medium">Monthly entries only</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowOnlyMonthlyEntries(!showOnlyMonthlyEntries)}
+                    className={cn(
+                      "relative w-11 h-6 rounded-full transition-colors",
+                      showOnlyMonthlyEntries ? "bg-primary" : "bg-muted-foreground/30"
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
+                      showOnlyMonthlyEntries ? "translate-x-6" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {filter !== "all" && (
               <p className="text-sm text-muted-foreground mt-2">
                 Filtered total: <span className="font-mono font-semibold">₹{totals.filtered.toLocaleString("en-IN")}</span>
+                {filter === "monthly" && filteredIncomeList.length > 0 && (
+                  <span className="ml-2">({filteredIncomeList.length} entries)</span>
+                )}
               </p>
             )}
           </div>
