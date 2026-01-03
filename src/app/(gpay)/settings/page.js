@@ -1422,7 +1422,7 @@ function BackupModal({ open, onClose }) {
               </div>
               <div>
                 <h3 className="font-medium">Cloud Backup</h3>
-                <p className="text-xs text-muted-foreground">Backup to email (automatic daily)</p>
+                <p className="text-xs text-muted-foreground">Backup to email</p>
               </div>
             </div>
             <button

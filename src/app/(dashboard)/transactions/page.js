@@ -58,13 +58,16 @@ export default function TransactionsPage() {
     isFetchingNextPage: isFetchingMoreUdhar,
   } = useUdhar();
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("transactionsTab") || "suppliers";
+  // Tab state - initialize with default, sync from localStorage in useEffect
+  const [activeTab, setActiveTab] = useState("suppliers");
+  
+  // Sync tab state from localStorage on mount (client-side only)
+  useEffect(() => {
+    const savedTab = localStorage.getItem("transactionsTab");
+    if (savedTab && (savedTab === "suppliers" || savedTab === "customers")) {
+      setActiveTab(savedTab);
     }
-    return "suppliers";
-  });
+  }, []);
 
   // Search and filters
   const [searchQuery, setSearchQuery] = useState("");

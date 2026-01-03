@@ -599,7 +599,7 @@ export default function GPayHomePage() {
                   ))}
                 </div>
               ) : suppliersList.length === 0 ? (
-                <div className="theme-card py-6 text-center">
+                <div className="theme-card py-6 mt-1 text-center">
                   <Store className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
                   <p className="mb-3 text-sm text-muted-foreground">No suppliers yet</p>
                   <button
@@ -699,7 +699,7 @@ export default function GPayHomePage() {
                   ))}
                 </div>
               ) : customersList.length === 0 ? (
-                <div className="theme-card py-6 text-center">
+                <div className="theme-card py-6 mt-1 text-center">
                   <Users className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
                   <p className="mb-3 text-sm text-muted-foreground">No customers yet</p>
                   <button

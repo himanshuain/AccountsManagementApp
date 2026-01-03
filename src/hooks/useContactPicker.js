@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 /**
@@ -8,10 +8,15 @@ import { toast } from "sonner";
  * Falls back gracefully on unsupported devices
  */
 export function useContactPicker() {
-  const [isSupported, setIsSupported] = useState(
-    typeof window !== "undefined" && "contacts" in navigator && "ContactsManager" in window
-  );
+  // Initialize as false to avoid hydration mismatch, check on mount
+  const [isSupported, setIsSupported] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
+
+  // Check support on mount (client-side only)
+  useEffect(() => {
+    const supported = "contacts" in navigator && "ContactsManager" in window;
+    setIsSupported(supported);
+  }, []);
 
   const pickContact = useCallback(async () => {
     if (!isSupported) {
