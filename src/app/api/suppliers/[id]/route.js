@@ -202,10 +202,12 @@ export async function DELETE(request, { params }) {
       });
     }
 
-    // Delete images from R2 storage (best-effort, non-blocking for response)
-    deleteImagesFromStorage(imagesToDelete).catch(err => {
-      console.error("[Supplier Delete] Storage cleanup error:", err);
-    });
+    // Delete images from R2 storage (best-effort)
+    if (imagesToDelete.length > 0) {
+      deleteImagesFromStorage(imagesToDelete).catch(err => {
+        console.error("[Supplier Delete] Storage cleanup error:", err);
+      });
+    }
 
     // Delete related transactions first
     await supabase.from("transactions").delete().eq("supplier_id", id);

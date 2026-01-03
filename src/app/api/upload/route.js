@@ -21,6 +21,7 @@ const ALLOWED_FOLDERS = [
   "customers",
   "bills",
   "receipts",
+  "payments",
   "khata",
   "qr-codes",
 ];

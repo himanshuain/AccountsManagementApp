@@ -178,10 +178,12 @@ export async function DELETE(request, { params }) {
       });
     }
 
-    // Delete images from R2 storage (best-effort, non-blocking for response)
-    deleteImagesFromStorage(imagesToDelete).catch(err => {
-      console.error("[Customer Delete] Storage cleanup error:", err);
-    });
+    // Delete images from R2 storage (best-effort)
+    if (imagesToDelete.length > 0) {
+      deleteImagesFromStorage(imagesToDelete).catch(err => {
+        console.error("[Customer Delete] Storage cleanup error:", err);
+      });
+    }
 
     // Delete related udhar records first
     await supabase.from("udhar").delete().eq("customer_id", id);

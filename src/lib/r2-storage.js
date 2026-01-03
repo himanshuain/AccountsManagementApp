@@ -140,7 +140,6 @@ export async function deleteMultipleFromR2(storageKeys) {
   const result = { deleted: 0, failed: 0 };
 
   if (!isR2Configured()) {
-    console.log("[R2] Not configured, skipping deletion");
     return result;
   }
 
@@ -152,8 +151,6 @@ export async function deleteMultipleFromR2(storageKeys) {
     return result;
   }
 
-  console.log(`[R2] Attempting to delete ${validKeys.length} files`);
-
   for (const key of validKeys) {
     const deleted = await deleteFromR2(key);
     if (deleted) {
@@ -163,7 +160,6 @@ export async function deleteMultipleFromR2(storageKeys) {
     }
   }
 
-  console.log(`[R2] Deletion complete: ${result.deleted} deleted, ${result.failed} failed`);
   return result;
 }
 

@@ -208,9 +208,11 @@ export async function DELETE(request, { params }) {
     // Collect and delete images from R2 storage (best-effort)
     if (udhar) {
       const imagesToDelete = collectUdharImages(udhar);
-      deleteImagesFromStorage(imagesToDelete).catch(err => {
-        console.error("[Udhar Delete] Storage cleanup error:", err);
-      });
+      if (imagesToDelete.length > 0) {
+        deleteImagesFromStorage(imagesToDelete).catch(err => {
+          console.error("[Udhar Delete] Storage cleanup error:", err);
+        });
+      }
     }
 
     const { error } = await supabase.from("udhar").delete().eq("id", id);

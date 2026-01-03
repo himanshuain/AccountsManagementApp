@@ -1301,6 +1301,8 @@ function ReportsModal({ open, onClose }) {
 // Backup Modal Component
 function BackupModal({ open, onClose }) {
   const [loading, setLoading] = useState(false);
+  const [cleanupAnalysis, setCleanupAnalysis] = useState(null);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
   const { suppliers = [] } = useSuppliers();
   const { transactions = [] } = useTransactions();
 
@@ -1352,6 +1354,51 @@ function BackupModal({ open, onClose }) {
     });
     if (exported > 0) toast.success(`Exported ${exported} PDF reports`);
     else toast.error("No suppliers with transactions to export");
+  };
+
+  const handleAnalyzeStorage = async () => {
+    setCleanupLoading(true);
+    try {
+      const response = await fetch("/api/storage/cleanup");
+      const result = await response.json();
+      if (result.success) {
+        setCleanupAnalysis(result);
+        if (result.analysis.orphanedCount === 0) {
+          toast.success("Storage is clean! No unused files found.");
+        }
+      } else {
+        toast.error(result.error || "Analysis failed");
+      }
+    } catch {
+      toast.error("Failed to analyze storage");
+    }
+    setCleanupLoading(false);
+  };
+
+  const handleCleanupStorage = async () => {
+    if (!cleanupAnalysis || cleanupAnalysis.analysis.orphanedCount === 0) {
+      toast.error("No unused files to delete");
+      return;
+    }
+    
+    setCleanupLoading(true);
+    try {
+      const response = await fetch("/api/storage/cleanup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Deleted ${result.deleted} unused files`);
+        setCleanupAnalysis(null);
+      } else {
+        toast.error(result.error || "Cleanup failed");
+      }
+    } catch {
+      toast.error("Failed to cleanup storage");
+    }
+    setCleanupLoading(false);
   };
 
   if (!open) return null;
@@ -1411,7 +1458,7 @@ function BackupModal({ open, onClose }) {
             </button>
           </div>
 
-          <div className="theme-card p-4">
+          <div className="theme-card mb-4 p-4">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/20">
                 <FileDown className="h-6 w-6 text-red-500" />
@@ -1430,6 +1477,63 @@ function BackupModal({ open, onClose }) {
             >
               <FileDown className="h-5 w-5" /> Export All PDFs
             </button>
+          </div>
+
+          {/* Storage Cleanup */}
+          <div className="theme-card p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/20">
+                <Trash2 className="h-6 w-6 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Storage Cleanup</h3>
+                <p className="text-xs text-muted-foreground">
+                  Remove unused images from storage
+                </p>
+              </div>
+            </div>
+            
+            {cleanupAnalysis && cleanupAnalysis.analysis.orphanedCount > 0 && (
+              <div className="mb-3 rounded-xl bg-amber-500/10 p-3">
+                <p className="text-sm font-medium text-amber-600">
+                  Found {cleanupAnalysis.analysis.orphanedCount} unused files
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {Object.entries(cleanupAnalysis.analysis.orphanedByFolder || {})
+                    .map(([folder, count]) => `${folder}: ${count}`)
+                    .join(", ")}
+                </p>
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <button
+                onClick={handleAnalyzeStorage}
+                disabled={cleanupLoading}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
+              >
+                {cleanupLoading ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Database className="h-5 w-5" />
+                )}
+                Analyze
+              </button>
+              {cleanupAnalysis && cleanupAnalysis.analysis.orphanedCount > 0 && (
+                <button
+                  onClick={handleCleanupStorage}
+                  disabled={cleanupLoading}
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-destructive font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
+                >
+                  {cleanupLoading ? (
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-5 w-5" />
+                  )}
+                  Delete {cleanupAnalysis.analysis.orphanedCount}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -51,7 +51,6 @@ export async function deleteImagesFromStorage(imageValues) {
   const result = { deleted: 0, failed: 0 };
 
   if (!isR2Configured()) {
-    console.log("[Storage] Not configured, skipping image deletion");
     return result;
   }
 
@@ -62,7 +61,7 @@ export async function deleteImagesFromStorage(imageValues) {
     return result;
   }
 
-  console.log(`[Storage] Deleting ${storageKeys.length} images from R2`);
+  console.log(`[Storage] Deleting ${storageKeys.length} images from R2:`, storageKeys);
   return deleteMultipleFromR2(storageKeys);
 }
 
