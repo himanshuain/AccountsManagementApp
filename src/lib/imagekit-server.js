@@ -56,9 +56,7 @@ export async function deleteImagesFromStorage(imageValues) {
   }
 
   // Convert to storage keys
-  const storageKeys = (imageValues || [])
-    .map(toStorageKey)
-    .filter(key => key !== null);
+  const storageKeys = (imageValues || []).map(toStorageKey).filter(key => key !== null);
 
   if (storageKeys.length === 0) {
     return result;

@@ -19,44 +19,44 @@
     --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 10%;
-    
+
     /* Primary - Spider-Man Red */
     --primary: 358 82% 53%; /* #E62429 */
     --primary-foreground: 0 0% 100%;
-    
+
     /* Secondary - Deep Purple Black */
     --secondary: 240 30% 14%; /* #1A1A2E */
     --secondary-foreground: 0 0% 100%;
-    
+
     /* Accent - Neon Pink/Red */
     --accent: 349 100% 65%; /* #FF4D6D */
     --accent-foreground: 0 0% 100%;
-    
+
     /* Muted */
     --muted: 240 10% 90%;
     --muted-foreground: 240 5% 40%; /* #666666 */
-    
+
     /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     /* Border & Input */
     --border: 240 10% 85%;
     --input: 240 10% 90%;
     --ring: 358 82% 53%;
-    
+
     /* Charts */
     --chart-1: 358 82% 53%;
     --chart-2: 349 100% 65%;
     --chart-3: 240 30% 14%;
     --chart-4: 142 76% 36%;
     --chart-5: 38 92% 50%;
-    
+
     /* Utilities */
     --radius: 0.75rem;
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
-    
+
     /* Theme-specific */
     --theme-glow: 358 82% 53%;
     --theme-surface: 240 20% 95%;
@@ -71,43 +71,43 @@
     --card-foreground: 42 60% 88%;
     --popover: 12 40% 11%;
     --popover-foreground: 42 60% 88%;
-    
+
     /* Primary - Iron Man Gold */
     --primary: 43 90% 42%; /* #CC9A0B - Brighter gold */
     --primary-foreground: 0 0% 100%;
-    
+
     /* Secondary - Armor Red */
     --secondary: 0 85% 30%; /* #8E1414 - Armor red */
     --secondary-foreground: 42 60% 88%;
-    
+
     /* Accent - Arc Reactor Cyan */
     --accent: 191 100% 50%; /* #00D4FF */
     --accent-foreground: 8 45% 6%;
-    
+
     /* Muted - Gunmetal */
     --muted: 12 25% 16%;
     --muted-foreground: 30 20% 55%; /* #A08060 - Bronze tint */
-    
+
     /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    
+
     /* Border & Input - Gold tinted */
     --border: 35 30% 22%;
     --input: 12 25% 16%;
     --ring: 43 90% 42%;
-    
+
     /* Charts */
     --chart-1: 43 90% 42%;
     --chart-2: 191 100% 50%;
     --chart-3: 0 85% 30%;
     --chart-4: 142 76% 42%;
     --chart-5: 38 92% 50%;
-    
+
     /* Utilities */
     --success: 142 76% 42%;
     --warning: 38 92% 50%;
-    
+
     /* Theme-specific */
     --theme-glow: 191 100% 50%;
     --theme-surface: 12 35% 14%;
@@ -122,11 +122,11 @@
   * {
     @apply border-border;
   }
-  
+
   html {
     @apply bg-background;
   }
-  
+
   body {
     @apply text-foreground;
     font-family: var(--font-dm-sans), system-ui, sans-serif;
@@ -142,15 +142,25 @@
   }
 
   /* Headings - Superhero Style */
-  h1, h2, h3, h4, h5, h6, .font-heading {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-heading {
     font-family: var(--font-bebas), var(--font-dm-sans), system-ui, sans-serif;
     letter-spacing: 0.025em;
   }
 
   /* Money/Numbers - Tech Style */
-  .font-mono, .amount, [data-amount] {
+  .font-mono,
+  .amount,
+  [data-amount] {
     font-family: var(--font-jetbrains), monospace;
-    font-feature-settings: "tnum" on, "lnum" on;
+    font-feature-settings:
+      "tnum" on,
+      "lnum" on;
   }
 
   /* Accent Text - Graffiti Style (Light mode only) */
@@ -164,29 +174,67 @@
    ============================================ */
 
 /* Miles Morales Theme Colors */
-.text-spider-red { color: #E62429; }
-.text-spider-black { color: #1A1A2E; }
-.text-spider-pink { color: #FF4D6D; }
-.bg-spider-red { background-color: #E62429; }
-.bg-spider-black { background-color: #1A1A2E; }
-.bg-spider-pink { background-color: #FF4D6D; }
-.border-spider-red { border-color: #E62429; }
+.text-spider-red {
+  color: #e62429;
+}
+.text-spider-black {
+  color: #1a1a2e;
+}
+.text-spider-pink {
+  color: #ff4d6d;
+}
+.bg-spider-red {
+  background-color: #e62429;
+}
+.bg-spider-black {
+  background-color: #1a1a2e;
+}
+.bg-spider-pink {
+  background-color: #ff4d6d;
+}
+.border-spider-red {
+  border-color: #e62429;
+}
 
 /* Iron Man Theme Colors */
-.text-iron-gold { color: #B8860B; }
-.text-iron-red { color: #8B0000; }
-.text-iron-cyan { color: #00D4FF; }
-.bg-iron-gold { background-color: #B8860B; }
-.bg-iron-red { background-color: #8B0000; }
-.bg-iron-cyan { background-color: #00D4FF; }
-.bg-iron-metal { background-color: #2D1810; }
-.border-iron-gold { border-color: #B8860B; }
-.border-iron-cyan { border-color: #00D4FF; }
+.text-iron-gold {
+  color: #b8860b;
+}
+.text-iron-red {
+  color: #8b0000;
+}
+.text-iron-cyan {
+  color: #00d4ff;
+}
+.bg-iron-gold {
+  background-color: #b8860b;
+}
+.bg-iron-red {
+  background-color: #8b0000;
+}
+.bg-iron-cyan {
+  background-color: #00d4ff;
+}
+.bg-iron-metal {
+  background-color: #2d1810;
+}
+.border-iron-gold {
+  border-color: #b8860b;
+}
+.border-iron-cyan {
+  border-color: #00d4ff;
+}
 
 /* Semantic Colors */
-.text-money-positive { @apply text-emerald-500 dark:text-emerald-400; }
-.text-money-negative { @apply text-red-500 dark:text-red-400; }
-.text-money-pending { @apply text-amber-500 dark:text-amber-400; }
+.text-money-positive {
+  @apply text-emerald-500 dark:text-emerald-400;
+}
+.text-money-negative {
+  @apply text-red-500 dark:text-red-400;
+}
+.text-money-pending {
+  @apply text-amber-500 dark:text-amber-400;
+}
 
 /* ============================================
    THEME BACKGROUNDS & PATTERNS
@@ -212,18 +260,24 @@
 
 /* Arc Reactor Glow Effect */
 .arc-glow {
-  box-shadow: 0 0 10px #00D4FF, 0 0 20px rgba(0, 212, 255, 0.5), 0 0 30px rgba(0, 212, 255, 0.3);
+  box-shadow:
+    0 0 10px #00d4ff,
+    0 0 20px rgba(0, 212, 255, 0.5),
+    0 0 30px rgba(0, 212, 255, 0.3);
 }
 
 .arc-glow-sm {
-  box-shadow: 0 0 5px #00D4FF, 0 0 10px rgba(0, 212, 255, 0.3);
+  box-shadow:
+    0 0 5px #00d4ff,
+    0 0 10px rgba(0, 212, 255, 0.3);
 }
 
 /* Metallic Gradient */
 .metallic-surface {
-  background: linear-gradient(135deg, 
-    hsl(var(--card)) 0%, 
-    hsl(15 40% 18%) 50%, 
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card)) 0%,
+    hsl(15 40% 18%) 50%,
     hsl(var(--card)) 100%
   );
 }
@@ -234,11 +288,22 @@
 
 /* Glitch Effect - Miles Morales */
 @keyframes glitch {
-  0%, 100% { transform: translate(0); }
-  20% { transform: translate(-2px, 2px); }
-  40% { transform: translate(-2px, -2px); }
-  60% { transform: translate(2px, 2px); }
-  80% { transform: translate(2px, -2px); }
+  0%,
+  100% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
 }
 
 .animate-glitch:hover {
@@ -247,12 +312,18 @@
 
 /* Arc Reactor Pulse - Iron Man */
 @keyframes arcPulse {
-  0%, 100% { 
-    box-shadow: 0 0 5px #00D4FF, 0 0 10px #00D4FF; 
+  0%,
+  100% {
+    box-shadow:
+      0 0 5px #00d4ff,
+      0 0 10px #00d4ff;
     opacity: 1;
   }
-  50% { 
-    box-shadow: 0 0 15px #00D4FF, 0 0 30px #00D4FF, 0 0 45px rgba(0, 212, 255, 0.5); 
+  50% {
+    box-shadow:
+      0 0 15px #00d4ff,
+      0 0 30px #00d4ff,
+      0 0 45px rgba(0, 212, 255, 0.5);
     opacity: 0.9;
   }
 }
@@ -263,9 +334,17 @@
 
 /* Web Swing - Entry Animation */
 @keyframes webSwing {
-  0% { transform: translateY(-30px) rotate(-10deg); opacity: 0; }
-  60% { transform: translateY(5px) rotate(2deg); }
-  100% { transform: translateY(0) rotate(0); opacity: 1; }
+  0% {
+    transform: translateY(-30px) rotate(-10deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(5px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
 }
 
 .animate-web-swing {
@@ -274,8 +353,14 @@
 
 /* Slide Up Animation */
 @keyframes slideUp {
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-slide-up {
@@ -284,17 +369,16 @@
 
 /* Metal Shine - Iron Man */
 @keyframes metalShine {
-  0% { background-position: 200% center; }
-  100% { background-position: -200% center; }
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
 }
 
 .dark .metallic-shine {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(184, 134, 11, 0.3) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, rgba(184, 134, 11, 0.3) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: metalShine 3s ease-in-out infinite;
 }
@@ -305,7 +389,7 @@
 
 /* Cards with Theme - Translucent to show hero background */
 .theme-card {
-  @apply rounded-xl transition-all duration-300 backdrop-blur-md;
+  @apply rounded-xl backdrop-blur-md transition-all duration-300;
   background: hsl(var(--card) / 0.9);
   border: 1px solid hsl(var(--border));
 }
@@ -320,19 +404,21 @@
 
 /* Light mode - Red accent on hover */
 .theme-card:hover {
-  border-color: #E62429;
+  border-color: #e62429;
   box-shadow: 0 4px 20px rgba(230, 36, 41, 0.15);
 }
 
 /* Dark mode - Gold/Cyan accent on hover */
 .dark .theme-card:hover {
-  border-color: #B8860B;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2), 0 4px 20px rgba(184, 134, 11, 0.15);
+  border-color: #b8860b;
+  box-shadow:
+    0 0 20px rgba(0, 212, 255, 0.2),
+    0 4px 20px rgba(184, 134, 11, 0.15);
 }
 
 /* Primary Button - Theme Aware */
 .btn-hero {
-  @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200;
+  @apply rounded-xl px-6 py-3 font-semibold transition-all duration-200;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
@@ -348,7 +434,9 @@
 
 /* Dark mode - Arc reactor effect */
 .dark .btn-hero:hover {
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 4px 20px rgba(184, 134, 11, 0.3);
+  box-shadow:
+    0 0 20px rgba(0, 212, 255, 0.5),
+    0 4px 20px rgba(184, 134, 11, 0.3);
 }
 
 .btn-hero:active {
@@ -367,7 +455,7 @@
 
 /* Floating Action Button */
 .fab-hero {
-  @apply fixed bottom-20 right-4 h-14 w-14 rounded-full flex items-center justify-center shadow-lg z-40;
+  @apply fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   transition: all 0.2s ease;
@@ -383,22 +471,29 @@
 
 /* Dark mode FAB glow */
 .dark .fab-hero {
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4), 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 15px rgba(0, 212, 255, 0.4),
+    0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* Avatar with Theme Ring */
 .avatar-hero {
-  @apply rounded-full overflow-hidden;
-  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary));
+  @apply overflow-hidden rounded-full;
+  box-shadow:
+    0 0 0 2px hsl(var(--background)),
+    0 0 0 4px hsl(var(--primary));
 }
 
 .dark .avatar-hero {
-  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px #B8860B, 0 0 10px rgba(0, 212, 255, 0.3);
+  box-shadow:
+    0 0 0 2px hsl(var(--background)),
+    0 0 0 4px #b8860b,
+    0 0 10px rgba(0, 212, 255, 0.3);
 }
 
 /* Progress Bar */
 .progress-hero {
-  @apply h-2 rounded-full overflow-hidden;
+  @apply h-2 overflow-hidden rounded-full;
   background: hsl(var(--muted));
 }
 
@@ -408,13 +503,13 @@
 }
 
 .dark .progress-hero-fill {
-  background: linear-gradient(90deg, #B8860B, #00D4FF);
+  background: linear-gradient(90deg, #b8860b, #00d4ff);
   box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
 
 /* Input Fields */
 .input-hero {
-  @apply w-full h-12 px-4 rounded-xl border-0 outline-none transition-all duration-200 backdrop-blur-md;
+  @apply h-12 w-full rounded-xl border-0 px-4 outline-none backdrop-blur-md transition-all duration-200;
   background: hsl(var(--muted) / 0.9);
   color: hsl(var(--foreground));
 }
@@ -428,7 +523,9 @@
 }
 
 .dark .input-hero:focus {
-  box-shadow: 0 0 0 2px #B8860B, 0 0 15px rgba(0, 212, 255, 0.2);
+  box-shadow:
+    0 0 0 2px #b8860b,
+    0 0 15px rgba(0, 212, 255, 0.2);
 }
 
 /* Date Input Fixes - prevent overflow */
@@ -464,7 +561,9 @@ input[type="datetime-local"] {
 /* Amount Display */
 .amount-display {
   @apply font-mono font-semibold;
-  font-feature-settings: "tnum" on, "lnum" on;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
 }
 
 /* Paid status - always green */
@@ -510,7 +609,7 @@ input[type="datetime-local"] {
 
 /* Chat Bubbles */
 .bubble-hero {
-  @apply rounded-2xl p-3 max-w-[80%] transition-transform duration-150;
+  @apply max-w-[80%] rounded-2xl p-3 transition-transform duration-150;
 }
 
 .bubble-hero:active {
@@ -552,7 +651,7 @@ input[type="datetime-local"] {
 }
 
 .bottom-nav-item {
-  @apply flex flex-col items-center justify-center flex-1 h-14 gap-0.5 transition-colors;
+  @apply flex h-14 flex-1 flex-col items-center justify-center gap-0.5 transition-colors;
   color: hsl(var(--muted-foreground));
 }
 
@@ -561,7 +660,7 @@ input[type="datetime-local"] {
 }
 
 .dark .bottom-nav-item.active {
-  color: #00D4FF;
+  color: #00d4ff;
 }
 
 /* ============================================
@@ -577,7 +676,7 @@ input[type="datetime-local"] {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
@@ -634,23 +733,23 @@ input[type="datetime-local"] {
     scrollbar-width: thin;
     -ms-overflow-style: auto;
   }
-  
+
   .show-scrollbar-desktop::-webkit-scrollbar {
     display: block;
     width: 6px;
     height: 6px;
   }
-  
+
   .show-scrollbar-desktop::-webkit-scrollbar-track {
     background: hsl(var(--muted));
     border-radius: 3px;
   }
-  
+
   .show-scrollbar-desktop::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 3px;
   }
-  
+
   .show-scrollbar-desktop::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
@@ -722,8 +821,12 @@ textarea,
 }
 
 @keyframes skeletonWave {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Dark mode skeleton with gold tint */
@@ -765,13 +868,17 @@ button:active:not(:disabled),
   background: radial-gradient(circle, hsl(var(--primary) / 0.2) 10%, transparent 70%);
   transform: scale(0);
   opacity: 0;
-  transition: transform 0.4s, opacity 0.4s;
+  transition:
+    transform 0.4s,
+    opacity 0.4s;
 }
 
 .ripple:active::after {
   transform: scale(2);
   opacity: 1;
-  transition: transform 0s, opacity 0s;
+  transition:
+    transform 0s,
+    opacity 0s;
 }
 
 /* ============================================
@@ -779,8 +886,12 @@ button:active:not(:disabled),
    ============================================ */
 
 @keyframes slideUpSheet {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 [data-state="open"][data-side="bottom"] {
@@ -788,8 +899,12 @@ button:active:not(:disabled),
 }
 
 @keyframes slideInRightSheet {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 [data-state="open"][data-side="right"] {
@@ -826,17 +941,39 @@ button:active:not(:disabled),
    ============================================ */
 
 /* These classes ensure backward compatibility with existing components */
-.bg-gpay-black { background-color: hsl(var(--background)); }
-.bg-gpay-surface { background-color: hsl(var(--card)); }
-.bg-gpay-surface-elevated { background-color: hsl(var(--muted)); }
-.bg-gpay-border { background-color: hsl(var(--border)); }
-.border-gpay-border { border-color: hsl(var(--border)); }
-.text-gpay-text { color: hsl(var(--foreground)); }
-.text-gpay-text-secondary { color: hsl(var(--muted-foreground)); }
-.text-gpay-green { @apply text-emerald-500 dark:text-emerald-400; }
-.text-gpay-blue { color: hsl(var(--accent)); }
-.text-gpay-red { @apply text-red-500 dark:text-red-400; }
-.text-gpay-yellow { @apply text-amber-500 dark:text-amber-400; }
+.bg-gpay-black {
+  background-color: hsl(var(--background));
+}
+.bg-gpay-surface {
+  background-color: hsl(var(--card));
+}
+.bg-gpay-surface-elevated {
+  background-color: hsl(var(--muted));
+}
+.bg-gpay-border {
+  background-color: hsl(var(--border));
+}
+.border-gpay-border {
+  border-color: hsl(var(--border));
+}
+.text-gpay-text {
+  color: hsl(var(--foreground));
+}
+.text-gpay-text-secondary {
+  color: hsl(var(--muted-foreground));
+}
+.text-gpay-green {
+  @apply text-emerald-500 dark:text-emerald-400;
+}
+.text-gpay-blue {
+  color: hsl(var(--accent));
+}
+.text-gpay-red {
+  @apply text-red-500 dark:text-red-400;
+}
+.text-gpay-yellow {
+  @apply text-amber-500 dark:text-amber-400;
+}
 
 /* ============================================
    REACT-PHOTO-VIEW CUSTOMIZATIONS
@@ -864,7 +1001,7 @@ button:active:not(:disabled),
 
 .PhotoView-Slider__ArrowLeft,
 .PhotoView-Slider__ArrowRight {
-  @apply bg-black/50 hover:bg-black/70 transition-colors !important;
+  @apply bg-black/50 transition-colors hover:bg-black/70 !important;
   width: 48px !important;
   height: 48px !important;
   border-radius: 9999px !important;
@@ -895,7 +1032,7 @@ button:active:not(:disabled),
 
 /* Swipe indicator hint at the top */
 .PhotoView-Slider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 80px;
   left: 50%;

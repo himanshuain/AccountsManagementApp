@@ -128,7 +128,7 @@ export function CustomerForm({
   };
 
   // Handler for Sheet's onOpenChange - only close, don't interfere with opening
-  const handleSheetOpenChange = (isOpen) => {
+  const handleSheetOpenChange = isOpen => {
     if (!isOpen) {
       handleClose();
     }

@@ -104,7 +104,7 @@ export function useTransactions(supplierId = null) {
     },
     onSettled: () => {
       // Refetch all transaction queries immediately
-      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: 'all' });
+      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
@@ -145,7 +145,7 @@ export function useTransactions(supplierId = null) {
     },
     onSettled: () => {
       // Refetch all transaction queries immediately
-      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: 'all' });
+      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
@@ -165,11 +165,11 @@ export function useTransactions(supplierId = null) {
     onMutate: async id => {
       // Cancel all transaction queries to avoid overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: TRANSACTIONS_KEY });
-      
+
       // Snapshot the previous values for both base and specific queries
       const previousBaseData = queryClient.getQueryData(TRANSACTIONS_KEY);
       const previousSpecificData = supplierId ? queryClient.getQueryData(queryKey) : null;
-      
+
       // Helper function to remove item from pages
       const removeFromPages = old => {
         if (!old?.pages) return old;
@@ -181,15 +181,15 @@ export function useTransactions(supplierId = null) {
           })),
         };
       };
-      
+
       // Update the base query (used by history page)
       queryClient.setQueryData(TRANSACTIONS_KEY, removeFromPages);
-      
+
       // Also update the supplier-specific query if applicable
       if (supplierId) {
         queryClient.setQueryData(queryKey, removeFromPages);
       }
-      
+
       return { previousBaseData, previousSpecificData };
     },
     onError: (err, id, context) => {
@@ -201,7 +201,7 @@ export function useTransactions(supplierId = null) {
     },
     onSettled: () => {
       // Refetch all transaction queries immediately
-      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: 'all' });
+      queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
@@ -253,8 +253,10 @@ export function useTransactions(supplierId = null) {
       const newPaidAmount = currentPaid + amount;
 
       // Support both single URL (string) and array of URLs
-      const receipts = receiptUrls 
-        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+      const receipts = receiptUrls
+        ? Array.isArray(receiptUrls)
+          ? receiptUrls
+          : [receiptUrls]
         : [];
 
       const newPayment = {
@@ -287,8 +289,10 @@ export function useTransactions(supplierId = null) {
       const remainingAmount = totalAmount - currentPaid;
 
       // Support both single URL (string) and array of URLs
-      const receipts = receiptUrls 
-        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+      const receipts = receiptUrls
+        ? Array.isArray(receiptUrls)
+          ? receiptUrls
+          : [receiptUrls]
         : [];
 
       const payments = [...(transaction.payments || [])];

@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "motion/react";
 export function GlobalLoadingBar() {
   const isFetching = useIsFetching();
   const isMutating = useIsMutating();
-  
+
   const isLoading = isFetching > 0 || isMutating > 0;
 
   return (
@@ -20,8 +20,8 @@ export function GlobalLoadingBar() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-[100] h-1 overflow-hidden"
-          style={{ background: 'hsl(var(--muted) / 0.3)' }}
+          className="fixed left-0 right-0 top-0 z-[100] h-1 overflow-hidden"
+          style={{ background: "hsl(var(--muted) / 0.3)" }}
         >
           <motion.div
             className="h-full bg-primary"

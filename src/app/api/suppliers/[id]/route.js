@@ -125,19 +125,20 @@ export async function PUT(request, { params }) {
     // Clean up old images that were replaced (best-effort, non-blocking)
     if (existingSupplier) {
       const imagesToDelete = [];
-      
+
       // Check if profile picture was replaced
-      if (existingSupplier.profile_picture && 
-          existingSupplier.profile_picture !== record.profile_picture) {
+      if (
+        existingSupplier.profile_picture &&
+        existingSupplier.profile_picture !== record.profile_picture
+      ) {
         imagesToDelete.push(existingSupplier.profile_picture);
       }
-      
+
       // Check if UPI QR code was replaced
-      if (existingSupplier.upi_qr_code && 
-          existingSupplier.upi_qr_code !== record.upi_qr_code) {
+      if (existingSupplier.upi_qr_code && existingSupplier.upi_qr_code !== record.upi_qr_code) {
         imagesToDelete.push(existingSupplier.upi_qr_code);
       }
-      
+
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {
           console.error("[Supplier Update] Image cleanup error:", err);

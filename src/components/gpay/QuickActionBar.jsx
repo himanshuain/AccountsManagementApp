@@ -23,16 +23,18 @@ export function QuickActionBar({
   onInputChange,
   onInputSubmit,
   disabled = false,
-  className
+  className,
 }) {
   return (
-    <div className={cn(
-      "fixed bottom-0 left-0 right-0 z-30",
-      "bg-background/95 backdrop-blur-sm border-t border-border",
-      "safe-area-bottom pb-4 lg:pb-0",
-      "lg:static lg:border-t-0",
-      className
-    )}>
+    <div
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-30",
+        "border-t border-border bg-background/95 backdrop-blur-sm",
+        "safe-area-bottom pb-4 lg:pb-0",
+        "lg:static lg:border-t-0",
+        className
+      )}
+    >
       <div className="flex items-center gap-2 p-3 pt-2">
         {/* Primary Action Button */}
         <Button
@@ -42,26 +44,26 @@ export function QuickActionBar({
           }}
           disabled={disabled}
           className={cn(
-            "h-10 px-4 rounded-full",
+            "h-10 rounded-full px-4",
             "bg-primary text-primary-foreground",
-            "hover:bg-primary/90 active:scale-95 transition-transform"
+            "transition-transform hover:bg-primary/90 active:scale-95"
           )}
         >
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="mr-1 h-4 w-4" />
           {primaryAction}
         </Button>
 
         {/* Input Field */}
         {showInput ? (
-          <div className="flex-1 relative">
+          <div className="relative flex-1">
             <Input
               value={inputValue}
-              onChange={(e) => onInputChange?.(e.target.value)}
+              onChange={e => onInputChange?.(e.target.value)}
               placeholder={placeholder}
               disabled={disabled}
-              className="h-10 pr-10 rounded-full bg-muted border-0"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && inputValue.trim()) {
+              className="h-10 rounded-full border-0 bg-muted pr-10"
+              onKeyDown={e => {
+                if (e.key === "Enter" && inputValue.trim()) {
                   onInputSubmit?.(inputValue);
                 }
               }}
@@ -69,7 +71,7 @@ export function QuickActionBar({
             <Button
               size="icon"
               variant="ghost"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
+              className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full"
               onClick={() => {
                 if (inputValue.trim()) {
                   haptics.light();
@@ -91,7 +93,7 @@ export function QuickActionBar({
                 onSecondaryAction?.();
               }}
               disabled={disabled}
-              className="h-10 px-4 rounded-full flex-1"
+              className="h-10 flex-1 rounded-full px-4"
             >
               {secondaryAction}
             </Button>
@@ -111,7 +113,7 @@ export function FloatingActionButton({
   onClick,
   variant = "primary", // "primary" | "secondary"
   position = "bottom-right", // "bottom-right" | "bottom-center"
-  className
+  className,
 }) {
   const positionClasses = {
     "bottom-right": "bottom-20 right-4 lg:bottom-6",
@@ -127,18 +129,18 @@ export function FloatingActionButton({
       className={cn(
         "fixed z-40 flex items-center gap-2",
         "rounded-full shadow-lg",
-        "active:scale-95 transition-all",
+        "transition-all active:scale-95",
         "hw-accelerate",
-        variant === "primary" 
-          ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-          : "bg-card text-foreground border hover:bg-muted",
+        variant === "primary"
+          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          : "border bg-card text-foreground hover:bg-muted",
         label ? "px-5 py-3" : "p-4",
         positionClasses[position],
         className
       )}
     >
       <Icon className="h-5 w-5" />
-      {label && <span className="font-medium text-sm">{label}</span>}
+      {label && <span className="text-sm font-medium">{label}</span>}
     </button>
   );
 }
@@ -151,7 +153,7 @@ export function FABMenu({
   open = false,
   onOpenChange,
   mainIcon: MainIcon = Plus,
-  className
+  className,
 }) {
   return (
     <>
@@ -168,7 +170,7 @@ export function FABMenu({
         className={cn(
           "fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2",
           "transition-all duration-200",
-          open ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none",
+          open ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
           className
         )}
       >
@@ -181,18 +183,20 @@ export function FABMenu({
               onOpenChange?.(false);
             }}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-full",
-              "bg-card border shadow-lg",
-              "active:scale-95 transition-transform",
-              "animate-slide-in-right",
+              "flex items-center gap-2 rounded-full px-4 py-2.5",
+              "border bg-card shadow-lg",
+              "transition-transform active:scale-95",
+              "animate-slide-in-right"
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >
             <span className="text-sm font-medium">{item.label}</span>
-            <div className={cn(
-              "h-10 w-10 rounded-full flex items-center justify-center",
-              item.color || "bg-primary text-primary-foreground"
-            )}>
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-full",
+                item.color || "bg-primary text-primary-foreground"
+              )}
+            >
               {item.icon && <item.icon className="h-5 w-5" />}
             </div>
           </button>
@@ -209,10 +213,10 @@ export function FABMenu({
           "fixed bottom-20 right-4 z-50 h-14 w-14",
           "rounded-full shadow-lg",
           "flex items-center justify-center",
-          "active:scale-95 transition-all duration-200",
+          "transition-all duration-200 active:scale-95",
           "lg:bottom-6",
-          open 
-            ? "bg-destructive text-destructive-foreground rotate-45" 
+          open
+            ? "rotate-45 bg-destructive text-destructive-foreground"
             : "bg-primary text-primary-foreground"
         )}
       >
@@ -225,20 +229,12 @@ export function FABMenu({
 /**
  * Quick capture bar with camera and gallery
  */
-export function QuickCaptureBar({
-  onCapture,
-  onGallery,
-  disabled = false,
-  className
-}) {
+export function QuickCaptureBar({ onCapture, onGallery, disabled = false, className }) {
   return (
-    <div className={cn(
-      "flex items-center gap-3 p-3",
-      className
-    )}>
+    <div className={cn("flex items-center gap-3 p-3", className)}>
       <Button
         variant="outline"
-        className="flex-1 h-12 gap-2"
+        className="h-12 flex-1 gap-2"
         onClick={() => {
           haptics.light();
           onCapture?.();
@@ -248,10 +244,10 @@ export function QuickCaptureBar({
         <Camera className="h-5 w-5" />
         Camera
       </Button>
-      
+
       <Button
         variant="outline"
-        className="flex-1 h-12 gap-2"
+        className="h-12 flex-1 gap-2"
         onClick={() => {
           haptics.light();
           onGallery?.();
@@ -266,4 +262,3 @@ export function QuickCaptureBar({
 }
 
 export default QuickActionBar;
-

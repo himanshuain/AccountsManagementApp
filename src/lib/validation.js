@@ -61,7 +61,8 @@ export const imageUrlSchema = z
       if (!val) return true; // Allow empty
       // Allow: storage keys, http URLs, https URLs, and data URLs
       // Storage keys: don't start with http/data, contain only safe path characters
-      const isStorageKey = /^[a-zA-Z0-9_\-\/\.]+$/.test(val) && !val.startsWith("http") && !val.startsWith("data:");
+      const isStorageKey =
+        /^[a-zA-Z0-9_\-\/\.]+$/.test(val) && !val.startsWith("http") && !val.startsWith("data:");
       const isUrl = val.startsWith("http://") || val.startsWith("https://");
       const isDataUrl = val.startsWith("data:");
       return isStorageKey || isUrl || isDataUrl;

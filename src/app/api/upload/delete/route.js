@@ -13,7 +13,10 @@ export async function POST(request) {
     const { storageKey } = body;
 
     if (!storageKey) {
-      return NextResponse.json({ success: false, error: "No storage key provided" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "No storage key provided" },
+        { status: 400 }
+      );
     }
 
     // Don't try to delete base64 data URLs
@@ -45,14 +48,10 @@ export async function POST(request) {
     if (deleted) {
       return NextResponse.json({ success: true });
     } else {
-      return NextResponse.json(
-        { success: false, error: "Failed to delete file" },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: "Failed to delete file" }, { status: 500 });
     }
   } catch (error) {
     console.error("[Delete] Failed:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

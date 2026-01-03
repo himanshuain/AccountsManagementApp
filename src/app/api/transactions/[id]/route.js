@@ -105,7 +105,7 @@ export async function PUT(request, { params }) {
     // Clean up old images that were removed (best-effort, non-blocking)
     if (existingTransaction) {
       const imagesToDelete = [];
-      
+
       // Check for removed bill images
       const oldBillImages = existingTransaction.bill_images || [];
       const newBillImages = record.bill_images || [];
@@ -114,11 +114,11 @@ export async function PUT(request, { params }) {
           imagesToDelete.push(img);
         }
       });
-      
+
       // Check for removed payment receipts
       const oldPayments = existingTransaction.payments || [];
       const newPayments = record.payments || [];
-      
+
       // Collect all receipt URLs from new payments (single and array)
       const newReceiptUrls = new Set();
       newPayments.forEach(p => {
@@ -128,7 +128,7 @@ export async function PUT(request, { params }) {
         const receipts = p.receiptUrls || p.receipt_urls || [];
         receipts.forEach(url => newReceiptUrls.add(url));
       });
-      
+
       // Find removed receipts from old payments
       oldPayments.forEach(payment => {
         // Check single receipt URL
@@ -144,7 +144,7 @@ export async function PUT(request, { params }) {
           }
         });
       });
-      
+
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {
           console.error("[Transaction Update] Image cleanup error:", err);

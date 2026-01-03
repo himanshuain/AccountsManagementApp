@@ -3,9 +3,21 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  Plus, SlidersHorizontal, ArrowDownAZ, Clock, IndianRupee, X, Users, Store, ChevronDown, PiggyBank,
-  ArrowUpRight, ArrowDownLeft, ChevronRight, History
+import {
+  Plus,
+  SlidersHorizontal,
+  ArrowDownAZ,
+  Clock,
+  IndianRupee,
+  X,
+  Users,
+  Store,
+  ChevronDown,
+  PiggyBank,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ChevronRight,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,15 +38,15 @@ import { cn } from "@/lib/utils";
 function usePreventBodyScroll(isOpen) {
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
     } else {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     }
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, [isOpen]);
 }
@@ -45,9 +57,9 @@ function FilterChip({ active, onClick, children, icon: Icon }) {
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
-        active 
-          ? "bg-primary text-primary-foreground" 
+        "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-all",
+        active
+          ? "bg-primary text-primary-foreground"
           : "bg-muted text-muted-foreground hover:bg-accent"
       )}
     >
@@ -77,7 +89,7 @@ export default function GPayHomePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("amount");
   const [filterBy, setFilterBy] = useState("all");
-  
+
   // Form states
   const [supplierFormOpen, setSupplierFormOpen] = useState(false);
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
@@ -85,7 +97,7 @@ export default function GPayHomePage() {
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
-  
+
   // Section collapse states
   const [suppliersExpanded, setSuppliersExpanded] = useState(true);
   const [customersExpanded, setCustomersExpanded] = useState(true);
@@ -95,8 +107,20 @@ export default function GPayHomePage() {
   usePreventBodyScroll(addMenuOpen || incomeModalOpen);
 
   // Data hooks
-  const { suppliers, addSupplier, loading: suppliersLoading, loadAll: loadAllSuppliers, hasNextPage: hasMoreSuppliers } = useSuppliers();
-  const { customers, addCustomer, loading: customersLoading, loadAll: loadAllCustomers, hasNextPage: hasMoreCustomers } = useCustomers();
+  const {
+    suppliers,
+    addSupplier,
+    loading: suppliersLoading,
+    loadAll: loadAllSuppliers,
+    hasNextPage: hasMoreSuppliers,
+  } = useSuppliers();
+  const {
+    customers,
+    addCustomer,
+    loading: customersLoading,
+    loadAll: loadAllCustomers,
+    hasNextPage: hasMoreCustomers,
+  } = useCustomers();
   const { transactions, addTransaction, loading: transactionsLoading } = useTransactions();
   const { udharList, addUdhar, loading: udharLoading } = useUdhar();
   const { addIncome } = useIncome();
@@ -118,14 +142,14 @@ export default function GPayHomePage() {
   // Combine suppliers and customers for "People" grid
   const allPeople = useMemo(() => {
     const people = [];
-    
+
     // Add suppliers with pending amounts
     suppliers.forEach(s => {
       const supplierTxns = transactions.filter(t => t.supplierId === s.id);
       const pendingAmount = supplierTxns
         .filter(t => t.paymentStatus !== "paid")
         .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-      
+
       people.push({
         id: s.id,
         name: s.companyName || s.name,
@@ -138,14 +162,14 @@ export default function GPayHomePage() {
         createdAt: s.createdAt,
       });
     });
-    
+
     // Add customers with pending udhar
     customers.forEach(c => {
       const customerUdhar = udharList.filter(u => u.customerId === c.id);
       const pendingAmount = customerUdhar
         .filter(u => u.status !== "paid")
         .reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
-      
+
       people.push({
         id: c.id,
         name: c.name,
@@ -158,22 +182,22 @@ export default function GPayHomePage() {
         createdAt: c.createdAt,
       });
     });
-    
+
     return people;
   }, [suppliers, customers, transactions, udharList]);
 
   // Separate suppliers and customers lists
   const suppliersList = useMemo(() => {
     let result = allPeople.filter(p => p.type === "supplier");
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      result = result.filter(p => 
-        p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
+      result = result.filter(
+        p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
       );
     }
-    
+
     // Apply sorting
     switch (sortBy) {
       case "amount":
@@ -183,27 +207,28 @@ export default function GPayHomePage() {
         result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
         break;
       case "recent":
-        result.sort((a, b) => 
-          new Date(b.lastActivity || b.createdAt || 0) - 
-          new Date(a.lastActivity || a.createdAt || 0)
+        result.sort(
+          (a, b) =>
+            new Date(b.lastActivity || b.createdAt || 0) -
+            new Date(a.lastActivity || a.createdAt || 0)
         );
         break;
     }
-    
+
     return result;
   }, [allPeople, searchQuery, sortBy]);
-  
+
   const customersList = useMemo(() => {
     let result = allPeople.filter(p => p.type === "customer");
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      result = result.filter(p => 
-        p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
+      result = result.filter(
+        p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
       );
     }
-    
+
     // Apply sorting
     switch (sortBy) {
       case "amount":
@@ -213,16 +238,17 @@ export default function GPayHomePage() {
         result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
         break;
       case "recent":
-        result.sort((a, b) => 
-          new Date(b.lastActivity || b.createdAt || 0) - 
-          new Date(a.lastActivity || a.createdAt || 0)
+        result.sort(
+          (a, b) =>
+            new Date(b.lastActivity || b.createdAt || 0) -
+            new Date(a.lastActivity || a.createdAt || 0)
         );
         break;
     }
-    
+
     return result;
   }, [allPeople, searchQuery, sortBy]);
-  
+
   // Recently accessed people (based on last activity, limited to 6)
   const recentPeople = useMemo(() => {
     return [...allPeople]
@@ -234,17 +260,17 @@ export default function GPayHomePage() {
   // Apply filters and sorting (kept for backward compatibility)
   const filteredAndSortedPeople = useMemo(() => {
     let result = [...allPeople];
-    
+
     // Apply type filter
     if (filterBy !== "all") {
       result = result.filter(p => p.type === filterBy);
     }
-    
+
     // Apply search filter (name, phone, and amount)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
-      
+
       result = result.filter(p => {
         // Match by name or phone
         if (p.name?.toLowerCase().includes(query) || p.phone?.includes(query)) {
@@ -258,7 +284,7 @@ export default function GPayHomePage() {
         return false;
       });
     }
-    
+
     // Apply sorting
     switch (sortBy) {
       case "amount":
@@ -268,16 +294,17 @@ export default function GPayHomePage() {
         result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
         break;
       case "recent":
-        result.sort((a, b) => 
-          new Date(b.lastActivity || b.createdAt || 0) - 
-          new Date(a.lastActivity || a.createdAt || 0)
+        result.sort(
+          (a, b) =>
+            new Date(b.lastActivity || b.createdAt || 0) -
+            new Date(a.lastActivity || a.createdAt || 0)
         );
         break;
     }
-    
+
     return result;
   }, [allPeople, filterBy, searchQuery, sortBy]);
-  
+
   // Check if any filter is active
   const hasActiveFilters = filterBy !== "all" || sortBy !== "amount";
 
@@ -299,7 +326,7 @@ export default function GPayHomePage() {
         totalCustomerPending: statsData.totalCustomerPending,
       };
     }
-    
+
     // Fallback to loaded data while API loads
     const totalSupplierPending = allPeople
       .filter(p => p.type === "supplier")
@@ -307,7 +334,7 @@ export default function GPayHomePage() {
     const totalCustomerPending = allPeople
       .filter(p => p.type === "customer")
       .reduce((sum, p) => sum + p.pendingAmount, 0);
-    
+
     return {
       supplierCount: suppliers.length,
       customerCount: customers.length,
@@ -317,7 +344,7 @@ export default function GPayHomePage() {
   }, [statsData, allPeople, suppliers.length, customers.length]);
 
   // Handlers
-  const handleAddSupplier = async (data) => {
+  const handleAddSupplier = async data => {
     const result = await addSupplier(data);
     if (result.success) {
       toast.success("Supplier added");
@@ -327,7 +354,7 @@ export default function GPayHomePage() {
     }
   };
 
-  const handleAddCustomer = async (data) => {
+  const handleAddCustomer = async data => {
     const result = await addCustomer(data);
     if (result.success) {
       toast.success("Customer added");
@@ -337,7 +364,7 @@ export default function GPayHomePage() {
     }
   };
 
-  const handleAddTransaction = async (data) => {
+  const handleAddTransaction = async data => {
     const result = await addTransaction(data);
     if (result.success) {
       toast.success("Transaction added");
@@ -347,7 +374,7 @@ export default function GPayHomePage() {
     }
   };
 
-  const handleAddUdhar = async (data) => {
+  const handleAddUdhar = async data => {
     const result = await addUdhar(data);
     if (result.success) {
       toast.success("Udhar added");
@@ -361,41 +388,41 @@ export default function GPayHomePage() {
   const isStatsLoading = statsLoading && !statsData;
 
   return (
-    <div className="min-h-screen lg:max-w-6xl lg:mx-auto xl:max-w-7xl">
+    <div className="min-h-screen lg:mx-auto lg:max-w-6xl xl:max-w-7xl">
       {/* Search Bar */}
-      <div className="sticky top-0 z-20 header-glass px-4 py-3 border-b border-border">
+      <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <input
               type="text"
               placeholder="Search name or amount..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="input-hero pl-12"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
-              "p-3 rounded-xl transition-colors flex-shrink-0 relative",
+              "relative flex-shrink-0 rounded-xl p-3 transition-colors",
               showFilters ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
             )}
           >
             <SlidersHorizontal className="h-5 w-5" />
             {/* Badge when filters active */}
             {hasActiveFilters && !showFilters && (
-              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
+              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
             )}
           </button>
         </div>
 
         {/* Filter & Sort Options */}
         {showFilters && (
-          <div className="mt-3 space-y-3 animate-slide-up">
+          <div className="animate-slide-up mt-3 space-y-3">
             {/* Type Filter */}
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Filter by</p>
-              <div className="flex gap-2 flex-wrap">
+              <p className="mb-2 text-xs text-muted-foreground">Filter by</p>
+              <div className="flex flex-wrap gap-2">
                 {FILTER_OPTIONS.map(opt => (
                   <FilterChip
                     key={opt.id}
@@ -408,11 +435,11 @@ export default function GPayHomePage() {
                 ))}
               </div>
             </div>
-            
+
             {/* Sort Options */}
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Sort by</p>
-              <div className="flex gap-2 flex-wrap">
+              <p className="mb-2 text-xs text-muted-foreground">Sort by</p>
+              <div className="flex flex-wrap gap-2">
                 {SORT_OPTIONS.map(opt => (
                   <FilterChip
                     key={opt.id}
@@ -432,7 +459,7 @@ export default function GPayHomePage() {
       {/* Stats Summary - Pending amounts only */}
       <div className="px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
-          <motion.div 
+          <motion.div
             className="theme-card p-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -440,10 +467,10 @@ export default function GPayHomePage() {
           >
             <p className="text-xs text-muted-foreground">You Owe (Suppliers)</p>
             {isStatsLoading ? (
-              <div className="h-7 w-24 skeleton-hero rounded my-0.5" />
+              <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
             ) : (
-              <motion.p 
-                className="text-lg font-bold font-mono amount-negative"
+              <motion.p
+                className="amount-negative font-mono text-lg font-bold"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -453,7 +480,7 @@ export default function GPayHomePage() {
             )}
             <p className="text-xs text-muted-foreground">{stats.supplierCount} suppliers</p>
           </motion.div>
-          <motion.div 
+          <motion.div
             className="theme-card p-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -461,11 +488,11 @@ export default function GPayHomePage() {
           >
             <p className="text-xs text-muted-foreground">Pending with Customers</p>
             {isStatsLoading ? (
-              <div className="h-7 w-24 skeleton-hero rounded my-0.5" />
+              <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
             ) : (
               // Customer pending shown in amber/orange (NOT green - pending money)
-              <motion.p 
-                className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400"
+              <motion.p
+                className="font-mono text-lg font-bold text-amber-600 dark:text-amber-400"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -481,17 +508,22 @@ export default function GPayHomePage() {
       {/* Recently Accessed Section */}
       {recentPeople.length > 0 && (
         <section className="px-4 py-2">
-          <button 
+          <button
             onClick={() => setRecentExpanded(!recentExpanded)}
-            className="w-full flex items-center justify-between mb-3"
+            className="mb-3 flex w-full items-center justify-between"
           >
             <div className="flex items-center gap-2">
               <History className="h-5 w-5 text-muted-foreground" />
-              <h2 className="text-lg font-heading tracking-wide">Recent</h2>
+              <h2 className="font-heading text-lg tracking-wide">Recent</h2>
             </div>
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", recentExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                recentExpanded && "rotate-180"
+              )}
+            />
           </button>
-          
+
           <AnimatePresence>
             {recentExpanded && (
               <motion.div
@@ -501,14 +533,18 @@ export default function GPayHomePage() {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {recentPeople.map((person) => (
+                <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
+                  {recentPeople.map(person => (
                     <div key={`recent-${person.type}-${person.id}`} className="flex-shrink-0">
                       <PersonAvatarWithName
                         name={person.name}
                         image={person.image}
                         amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                        amountColor={person.type === "supplier" ? "amount-negative" : "text-amber-600 dark:text-amber-400"}
+                        amountColor={
+                          person.type === "supplier"
+                            ? "amount-negative"
+                            : "text-amber-600 dark:text-amber-400"
+                        }
                         href={`/person/${person.type}/${person.id}`}
                         size="sm"
                       />
@@ -522,24 +558,28 @@ export default function GPayHomePage() {
       )}
 
       {/* Suppliers Section */}
-      <section className="px-4 py-6 mt-6">
-        <button 
+      <section className="mt-6 px-4 py-6">
+        <button
           onClick={() => setSuppliersExpanded(!suppliersExpanded)}
-          className="w-full flex items-center justify-between mb-3"
+          className="mb-3 flex w-full items-center justify-between"
         >
           <div className="flex items-center gap-2">
             <Store className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-heading tracking-wide text-green-500">Suppliers</h2>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            <h2 className="font-heading text-lg tracking-wide text-green-500">Suppliers</h2>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               {statsData?.supplierCount || suppliersList.length}
             </span>
           </div>
           <div className="flex items-center gap-2">
-      
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", suppliersExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                suppliersExpanded && "rotate-180"
+              )}
+            />
           </div>
         </button>
-        
+
         <AnimatePresence>
           {suppliersExpanded && (
             <motion.div
@@ -550,41 +590,41 @@ export default function GPayHomePage() {
               className="overflow-hidden"
             >
               {isLoading ? (
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center">
+                <div className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6">
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-2 p-2">
-                      <div className="h-12 w-12 rounded-full skeleton-hero" />
-                      <div className="h-3 w-10 rounded skeleton-hero" />
+                      <div className="skeleton-hero h-12 w-12 rounded-full" />
+                      <div className="skeleton-hero h-3 w-10 rounded" />
                     </div>
                   ))}
                 </div>
               ) : suppliersList.length === 0 ? (
-                <div className="text-center py-6 theme-card">
-                  <Store className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">No suppliers yet</p>
+                <div className="theme-card py-6 text-center">
+                  <Store className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                  <p className="mb-3 text-sm text-muted-foreground">No suppliers yet</p>
                   <button
                     onClick={() => setSupplierFormOpen(true)}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium"
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                   >
                     + Add Supplier
                   </button>
                 </div>
               ) : (
-                <motion.div 
-                  className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center"
+                <motion.div
+                  className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6"
                   initial="hidden"
                   animate="visible"
                   variants={{
                     hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } }
+                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
                   }}
                 >
-                  {suppliersList.slice(0, showAllPeople ? undefined : 8).map((person) => (
+                  {suppliersList.slice(0, showAllPeople ? undefined : 8).map(person => (
                     <motion.div
                       key={`supplier-${person.id}`}
                       variants={{
                         hidden: { opacity: 0, scale: 0.9 },
-                        visible: { opacity: 1, scale: 1 }
+                        visible: { opacity: 1, scale: 1 },
                       }}
                     >
                       <PersonAvatarWithName
@@ -602,10 +642,12 @@ export default function GPayHomePage() {
                       onClick={() => setShowAllPeople(true)}
                       className="flex flex-col items-center gap-1 p-2"
                     >
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <span className="text-[10px] text-muted-foreground">+{suppliersList.length - 8}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        +{suppliersList.length - 8}
+                      </span>
                     </button>
                   )}
                 </motion.div>
@@ -616,24 +658,28 @@ export default function GPayHomePage() {
       </section>
 
       {/* Customers Section */}
-      <section className="px-4 py-2 mt-3">  
-        <button 
+      <section className="mt-3 px-4 py-2">
+        <button
           onClick={() => setCustomersExpanded(!customersExpanded)}
-          className="w-full flex items-center justify-between mb-3"
+          className="mb-3 flex w-full items-center justify-between"
         >
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-amber-500" />
-            <h2 className="text-lg font-heading tracking-wide text-orange-500">Customers</h2>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            <h2 className="font-heading text-lg tracking-wide text-orange-500">Customers</h2>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               {statsData?.customerCount || customersList.length}
             </span>
           </div>
           <div className="flex items-center gap-2">
-      
-            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", customersExpanded && "rotate-180")} />
+            <ChevronDown
+              className={cn(
+                "h-5 w-5 text-muted-foreground transition-transform",
+                customersExpanded && "rotate-180"
+              )}
+            />
           </div>
         </button>
-        
+
         <AnimatePresence>
           {customersExpanded && (
             <motion.div
@@ -644,41 +690,41 @@ export default function GPayHomePage() {
               className="overflow-hidden"
             >
               {isLoading ? (
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center">
+                <div className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6">
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-2 p-2">
-                      <div className="h-12 w-12 rounded-full skeleton-hero" />
-                      <div className="h-3 w-10 rounded skeleton-hero" />
+                      <div className="skeleton-hero h-12 w-12 rounded-full" />
+                      <div className="skeleton-hero h-3 w-10 rounded" />
                     </div>
                   ))}
                 </div>
               ) : customersList.length === 0 ? (
-                <div className="text-center py-6 theme-card">
-                  <Users className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">No customers yet</p>
+                <div className="theme-card py-6 text-center">
+                  <Users className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                  <p className="mb-3 text-sm text-muted-foreground">No customers yet</p>
                   <button
                     onClick={() => setCustomerFormOpen(true)}
-                    className="px-4 py-2 bg-amber-500 text-white rounded-full text-sm font-medium"
+                    className="rounded-full bg-amber-500 px-4 py-2 text-sm font-medium text-white"
                   >
                     + Add Customer
                   </button>
                 </div>
               ) : (
-                <motion.div 
-                  className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 justify-items-center"
+                <motion.div
+                  className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6"
                   initial="hidden"
                   animate="visible"
                   variants={{
                     hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } }
+                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
                   }}
                 >
-                  {customersList.slice(0, showAllPeople ? undefined : 8).map((person) => (
+                  {customersList.slice(0, showAllPeople ? undefined : 8).map(person => (
                     <motion.div
                       key={`customer-${person.id}`}
                       variants={{
                         hidden: { opacity: 0, scale: 0.9 },
-                        visible: { opacity: 1, scale: 1 }
+                        visible: { opacity: 1, scale: 1 },
                       }}
                     >
                       <PersonAvatarWithName
@@ -696,10 +742,12 @@ export default function GPayHomePage() {
                       onClick={() => setShowAllPeople(true)}
                       className="flex flex-col items-center gap-1 p-2"
                     >
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <span className="text-[10px] text-muted-foreground">+{customersList.length - 8}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        +{customersList.length - 8}
+                      </span>
                     </button>
                   )}
                 </motion.div>
@@ -725,81 +773,96 @@ export default function GPayHomePage() {
       {/* Add Menu Modal - Fixed with proper bottom padding */}
       <AnimatePresence>
         {addMenuOpen && (
-          <motion.div 
-            className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
             onClick={() => setAddMenuOpen(false)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <motion.div 
-              className="w-full max-w-md bg-card rounded-t-3xl p-6 pb-nav"
+            <motion.div
+              className="pb-nav w-full max-w-md rounded-t-3xl bg-card p-6"
               onClick={e => e.stopPropagation()}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-heading tracking-wide">Add New</h3>
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="font-heading text-xl tracking-wide">Add New</h3>
                 <button
                   onClick={() => setAddMenuOpen(false)}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                  className="rounded-full p-2 transition-colors hover:bg-muted"
                 >
                   <X className="h-5 w-5" />
                 </button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => { setAddMenuOpen(false); setSupplierFormOpen(true); }}
-                className="theme-card p-4 text-left hover:border-primary transition-colors"
-              >
-                <Store className="h-8 w-8 text-primary mb-2" />
-                <p className="font-medium">Supplier</p>
-                <p className="text-xs text-muted-foreground">Add new vendor</p>
-              </button>
-              
-              <button
-                onClick={() => { setAddMenuOpen(false); setCustomerFormOpen(true); }}
-                className="theme-card p-4 text-left hover:border-primary transition-colors"
-              >
-                <Users className="h-8 w-8 text-primary mb-2" />
-                <p className="font-medium">Customer</p>
-                <p className="text-xs text-muted-foreground">Add new customer</p>
-              </button>
-              
-              <button
-                onClick={() => { setAddMenuOpen(false); setTransactionFormOpen(true); }}
-                className="theme-card p-4 text-left hover:border-primary transition-colors"
-              >
-                <ArrowUpRight className="h-8 w-8 amount-negative mb-2" />
-                <p className="font-medium">Bill</p>
-                <p className="text-xs text-muted-foreground">Record purchase</p>
-              </button>
-              
-              <button
-                onClick={() => { setAddMenuOpen(false); setUdharFormOpen(true); }}
-                className="theme-card p-4 text-left hover:border-primary transition-colors"
-              >
-                <ArrowDownLeft className="h-8 w-8 status-pending mb-2" />
-                <p className="font-medium">Udhar</p>
-                <p className="text-xs text-muted-foreground">Record credit</p>
-              </button>
+              </div>
 
-              <button
-                onClick={() => { setAddMenuOpen(false); setIncomeModalOpen(true); }}
-                className="theme-card p-4 text-left hover:border-primary transition-colors col-span-2"
-              >
-                <PiggyBank className="h-8 w-8 amount-positive mb-2" />
-                <p className="font-medium">Income</p>
-                <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
-              </button>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    setSupplierFormOpen(true);
+                  }}
+                  className="theme-card p-4 text-left transition-colors hover:border-primary"
+                >
+                  <Store className="mb-2 h-8 w-8 text-primary" />
+                  <p className="font-medium">Supplier</p>
+                  <p className="text-xs text-muted-foreground">Add new vendor</p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    setCustomerFormOpen(true);
+                  }}
+                  className="theme-card p-4 text-left transition-colors hover:border-primary"
+                >
+                  <Users className="mb-2 h-8 w-8 text-primary" />
+                  <p className="font-medium">Customer</p>
+                  <p className="text-xs text-muted-foreground">Add new customer</p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    setTransactionFormOpen(true);
+                  }}
+                  className="theme-card p-4 text-left transition-colors hover:border-primary"
+                >
+                  <ArrowUpRight className="amount-negative mb-2 h-8 w-8" />
+                  <p className="font-medium">Bill</p>
+                  <p className="text-xs text-muted-foreground">Record purchase</p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    setUdharFormOpen(true);
+                  }}
+                  className="theme-card p-4 text-left transition-colors hover:border-primary"
+                >
+                  <ArrowDownLeft className="status-pending mb-2 h-8 w-8" />
+                  <p className="font-medium">Udhar</p>
+                  <p className="text-xs text-muted-foreground">Record credit</p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    setIncomeModalOpen(true);
+                  }}
+                  className="theme-card col-span-2 p-4 text-left transition-colors hover:border-primary"
+                >
+                  <PiggyBank className="amount-positive mb-2 h-8 w-8" />
+                  <p className="font-medium">Income</p>
+                  <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
       </AnimatePresence>
 
       {/* Forms */}
@@ -846,8 +909,8 @@ export default function GPayHomePage() {
 function getLocalDate() {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -861,12 +924,12 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
 
   usePreventBodyScroll(open);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     const cash = Number(cashAmount) || 0;
     const online = Number(onlineAmount) || 0;
     const total = cash + online;
-    
+
     if (total <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -880,7 +943,7 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
       date: date,
       type: "daily",
     });
-    
+
     if (result.success) {
       toast.success("Income added");
       setCashAmount("");
@@ -897,8 +960,8 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div 
-        className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl pb-nav animate-slide-up overscroll-contain"
+      <div
+        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 overscroll-contain rounded-t-3xl bg-card"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center py-3">
@@ -906,40 +969,40 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
         </div>
 
         <div className="px-4 pb-6">
-          <h2 className="text-xl font-heading tracking-wide mb-4">Add Income</h2>
+          <h2 className="mb-4 font-heading text-xl tracking-wide">Add Income</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Cash</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Cash</label>
                 <input
                   type="number"
                   inputMode="numeric"
                   placeholder="0"
                   value={cashAmount}
-                  onChange={(e) => setCashAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={e => setCashAmount(e.target.value)}
+                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Online</label>
+                <label className="mb-1 block text-xs text-muted-foreground">Online</label>
                 <input
                   type="number"
                   inputMode="numeric"
                   placeholder="0"
                   value={onlineAmount}
-                  onChange={(e) => setOnlineAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={e => setOnlineAmount(e.target.value)}
+                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Date</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Date</label>
               <input
                 type="date"
                 value={date}
-                onChange={(e) => {
+                onChange={e => {
                   const selectedDate = e.target.value;
                   // Prevent future dates (iOS Safari ignores max attribute)
                   if (selectedDate > today) {
@@ -954,10 +1017,13 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
             </div>
 
             {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
-              <div className="p-3 bg-emerald-500/10 rounded-xl text-center">
+              <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold font-mono amount-positive">
-                  ₹{((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString("en-IN")}
+                <p className="amount-positive font-mono text-2xl font-bold">
+                  ₹
+                  {((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString(
+                    "en-IN"
+                  )}
                 </p>
               </div>
             )}
@@ -965,7 +1031,7 @@ function IncomeQuickModal({ open, onClose, onSubmit }) {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full btn-hero disabled:opacity-50"
+              className="btn-hero w-full disabled:opacity-50"
             >
               {submitting ? "Adding..." : "Add Income"}
             </button>

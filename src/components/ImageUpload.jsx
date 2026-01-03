@@ -110,7 +110,7 @@ export function ImageUpload({
 
   const handleRemove = async e => {
     e.stopPropagation();
-    
+
     // If the current value is a storage key (not data URL), delete it from R2
     if (value && typeof value === "string" && !isDataUrl(value)) {
       try {
@@ -124,7 +124,7 @@ export function ImageUpload({
         console.error("Failed to delete image:", err);
       }
     }
-    
+
     setPreview(null);
     onChange?.(null);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -145,7 +145,7 @@ export function ImageUpload({
   };
 
   // Determine display URL
-  const displayUrl = isDataUrl(preview) ? preview : (optimizedUrls.medium || optimizedUrls.src || "");
+  const displayUrl = isDataUrl(preview) ? preview : optimizedUrls.medium || optimizedUrls.src || "";
   const lqipUrl = isDataUrl(preview) ? preview : optimizedUrls.lqip;
   const isBase64 = isDataUrl(preview);
 
@@ -367,7 +367,7 @@ export function MultiImageUpload({
 
   const handleRemove = async index => {
     const removedKey = value[index];
-    
+
     // If the removed item is a storage key (not data URL), delete it from R2
     if (removedKey && typeof removedKey === "string" && !isDataUrl(removedKey)) {
       try {
@@ -381,7 +381,7 @@ export function MultiImageUpload({
         console.error("Failed to delete image:", err);
       }
     }
-    
+
     const newValue = value.filter((_, i) => i !== index);
     onChange?.(newValue);
   };
@@ -528,7 +528,9 @@ function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
   const [hasError, setHasError] = useState(false);
 
   // Get the resolved URL - for base64, use as-is; otherwise use CDN URLs
-  const imageSrc = isBase64 ? storageKey : (urls.thumbnail || urls.src || urls.original || storageKey);
+  const imageSrc = isBase64
+    ? storageKey
+    : urls.thumbnail || urls.src || urls.original || storageKey;
 
   if (hasError) {
     return (

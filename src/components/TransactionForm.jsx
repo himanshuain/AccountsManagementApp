@@ -50,11 +50,11 @@ export function TransactionForm({
   const [viewerIndex, setViewerIndex] = useState(0);
 
   // Handle image tap to view (for captured images)
-  const handleImageTap = (index) => {
+  const handleImageTap = index => {
     setViewerIndex(index);
     setImageViewerOpen(true);
   };
-  
+
   // Handle quickCaptureData (legacy support)
   useEffect(() => {
     if (open && quickCaptureData) {
@@ -92,8 +92,8 @@ export function TransactionForm({
   const getLocalDate = () => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -152,7 +152,7 @@ export function TransactionForm({
     setIsSubmitting(true);
     try {
       let uploadedUrls = [];
-      
+
       // Upload pending files (from file picker)
       if (pendingFiles.length > 0) {
         for (const file of pendingFiles) {
@@ -181,7 +181,7 @@ export function TransactionForm({
           }
         }
       }
-      
+
       // Upload base64 images (from camera capture) that haven't been uploaded yet
       if (pendingFiles.length === 0 && billImages.length > 0) {
         for (let i = 0; i < billImages.length; i++) {
@@ -215,7 +215,8 @@ export function TransactionForm({
         }
       }
 
-      const finalBillImages = uploadedUrls.length > 0 ? uploadedUrls : billImages.filter(img => !img.startsWith("data:"));
+      const finalBillImages =
+        uploadedUrls.length > 0 ? uploadedUrls : billImages.filter(img => !img.startsWith("data:"));
 
       // Calculate payment status based on existing payments and new amount
       const newAmount = Number(data.amount) || 0;
@@ -281,7 +282,7 @@ export function TransactionForm({
   };
 
   // Handler for Sheet's onOpenChange - only close, don't interfere with opening
-  const handleSheetOpenChange = (isOpen) => {
+  const handleSheetOpenChange = isOpen => {
     if (!isOpen) {
       handleClose();
     }
@@ -478,7 +479,7 @@ export function TransactionForm({
                     {billImages.map((url, index) => (
                       <div
                         key={index}
-                        className="relative aspect-square overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50 cursor-pointer group"
+                        className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50"
                         onClick={() => handleImageTap(index)}
                       >
                         <img
@@ -487,14 +488,15 @@ export function TransactionForm({
                           className="h-full w-full object-cover"
                         />
                         {/* Tap to expand hint */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
                           <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-70" />
                         </div>
                       </div>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {pendingFiles.length} bill(s) will be uploaded when you save • Tap image to expand
+                    {pendingFiles.length} bill(s) will be uploaded when you save • Tap image to
+                    expand
                   </p>
                   {/* Image Viewer for captured images */}
                   <PhotoGalleryViewer
@@ -567,15 +569,15 @@ export function TransactionForm({
                 <Input
                   id="date"
                   type="date"
-                  {...register("date", { 
+                  {...register("date", {
                     required: "Date is required",
-                    validate: (value) => {
+                    validate: value => {
                       const today = getLocalDate();
                       if (value > today) return "Future dates are not allowed";
                       return true;
-                    }
+                    },
                   })}
-                  onChange={(e) => {
+                  onChange={e => {
                     // Prevent future dates (iOS Safari ignores max attribute)
                     const today = getLocalDate();
                     if (e.target.value > today) {
@@ -606,7 +608,7 @@ export function TransactionForm({
                 </div>
               </div>
 
-              <div className={`flex items-center justify-between rounded-lg bg-muted/50 p-3 $`}>
+              <div className={`$ flex items-center justify-between rounded-lg bg-muted/50 p-3`}>
                 <div className="space-y-0.5">
                   <Label className="text-base">Payment Status</Label>
                   <p className="text-xs text-muted-foreground">

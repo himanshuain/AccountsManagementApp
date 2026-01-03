@@ -4,12 +4,40 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  ChevronRight, IndianRupee, BarChart3, Download, Upload, 
-  LogOut, Database, Wallet, TrendingUp, PiggyBank, 
-  RefreshCw, Cloud, HardDrive, Lock, Pencil, Trash2, X, Check, Plus,
-  Sun, Moon, FileDown, CalendarDays, Banknote, Smartphone, Eye, EyeOff,
-  TrendingDown, ImageIcon, Fingerprint, Shield
+import {
+  ChevronRight,
+  IndianRupee,
+  BarChart3,
+  Download,
+  Upload,
+  LogOut,
+  Database,
+  Wallet,
+  TrendingUp,
+  PiggyBank,
+  RefreshCw,
+  Cloud,
+  HardDrive,
+  Lock,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  Plus,
+  Sun,
+  Moon,
+  FileDown,
+  CalendarDays,
+  Banknote,
+  Smartphone,
+  Eye,
+  EyeOff,
+  TrendingDown,
+  ImageIcon,
+  Fingerprint,
+  Shield,
+  MoreVertical,
+  Percent,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears } from "date-fns";
 import { toast } from "sonner";
@@ -28,15 +56,15 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 function usePreventBodyScroll(isOpen) {
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
     } else {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     }
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, [isOpen]);
 }
@@ -56,7 +84,7 @@ function getMonthOptions() {
 }
 
 // Collapsible Income Item Component with inline edit form
-function IncomeItem({ item, onUpdate, onDelete }) {
+function IncomeItem({ item, onUpdate, onDelete, profitMargin = 40 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,14 +92,15 @@ function IncomeItem({ item, onUpdate, onDelete }) {
   const [editOnline, setEditOnline] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editIsMonthly, setEditIsMonthly] = useState(false);
-  
+
   // Get today's date for max validation
   const today = getLocalDate();
   const currentMonth = today.substring(0, 7);
 
   const cashAmount = Number(item.cashAmount) || 0;
   const onlineAmount = Number(item.onlineAmount) || 0;
-  const totalAmount = Number(item.amount) || (cashAmount + onlineAmount);
+  const totalAmount = Number(item.amount) || cashAmount + onlineAmount;
+  const profitAmount = Math.round(totalAmount * (profitMargin / 100));
 
   const startEditing = () => {
     setEditCash(String(item.cashAmount || ""));
@@ -90,7 +119,7 @@ function IncomeItem({ item, onUpdate, onDelete }) {
     const cash = Number(editCash) || 0;
     const online = Number(editOnline) || 0;
     const total = cash + online;
-    
+
     if (total <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -104,7 +133,7 @@ function IncomeItem({ item, onUpdate, onDelete }) {
       date: editIsMonthly ? `${editDate.substring(0, 7)}-01` : editDate,
       type: editIsMonthly ? "monthly" : "daily",
     });
-    
+
     if (result.success) {
       toast.success("Income updated");
       setIsEditing(false);
@@ -116,9 +145,9 @@ function IncomeItem({ item, onUpdate, onDelete }) {
   };
 
   return (
-    <motion.div 
+    <motion.div
       layout
-      className="rounded-xl overflow-hidden bg-muted"
+      className="overflow-hidden rounded-xl bg-muted"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -133,32 +162,40 @@ function IncomeItem({ item, onUpdate, onDelete }) {
         )}
         whileTap={isEditing ? undefined : { scale: 0.98 }}
       >
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className={cn(
-              "px-2 py-0.5 rounded text-[10px] font-medium",
-              item.type === "monthly" ? "bg-primary/20 text-primary" : "bg-muted-foreground/20 text-muted-foreground"
-            )}>
+            <span
+              className={cn(
+                "rounded px-2 py-0.5 text-[10px] font-medium",
+                item.type === "monthly"
+                  ? "bg-primary/20 text-primary"
+                  : "bg-muted-foreground/20 text-muted-foreground"
+              )}
+            >
               {item.type === "monthly" ? "Monthly" : "Daily"}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {item.type === "monthly" 
+          <p className="mt-1 text-xs text-muted-foreground">
+            {item.type === "monthly"
               ? format(new Date(item.date), "MMMM yyyy")
-              : format(new Date(item.date), "dd MMM yyyy")
-            }
+              : format(new Date(item.date), "dd MMM yyyy")}
           </p>
           {(cashAmount > 0 || onlineAmount > 0) && (
-            <div className="flex gap-2 mt-1 text-[10px] text-muted-foreground">
+            <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
               {cashAmount > 0 && <span>₹{cashAmount.toLocaleString("en-IN")} cash</span>}
               {cashAmount > 0 && onlineAmount > 0 && <span>•</span>}
               {onlineAmount > 0 && <span>₹{onlineAmount.toLocaleString("en-IN")} online</span>}
             </div>
           )}
         </div>
-        <p className="amount-positive font-bold font-mono">
-          +₹{totalAmount.toLocaleString("en-IN")}
-        </p>
+        <div className="text-right">
+          <p className="amount-positive font-mono font-bold">
+            +₹{totalAmount.toLocaleString("en-IN")}
+          </p>
+          <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+            Profit: ₹{profitAmount.toLocaleString("en-IN")}
+          </p>
+        </div>
       </motion.div>
 
       {/* Expandable Section */}
@@ -172,15 +209,17 @@ function IncomeItem({ item, onUpdate, onDelete }) {
           >
             {isEditing ? (
               /* Inline Edit Form */
-              <div className="p-4 border-t border-border/50 space-y-4">
+              <div className="space-y-4 border-t border-border/50 p-4">
                 {/* Type Toggle */}
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={() => setEditIsMonthly(false)}
                     className={cn(
-                      "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-                      !editIsMonthly ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                      "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
+                      !editIsMonthly
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground"
                     )}
                   >
                     Daily
@@ -189,8 +228,10 @@ function IncomeItem({ item, onUpdate, onDelete }) {
                     type="button"
                     onClick={() => setEditIsMonthly(true)}
                     className={cn(
-                      "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-                      editIsMonthly ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                      "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
+                      editIsMonthly
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground"
                     )}
                   >
                     Monthly
@@ -200,21 +241,21 @@ function IncomeItem({ item, onUpdate, onDelete }) {
                 {/* Amount Inputs */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Cash ₹</label>
+                    <label className="mb-1 block text-xs text-muted-foreground">Cash ₹</label>
                     <input
                       type="number"
                       value={editCash}
-                      onChange={(e) => setEditCash(e.target.value)}
+                      onChange={e => setEditCash(e.target.value)}
                       placeholder="0"
                       className="input-hero text-center"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Online ₹</label>
+                    <label className="mb-1 block text-xs text-muted-foreground">Online ₹</label>
                     <input
                       type="number"
                       value={editOnline}
-                      onChange={(e) => setEditOnline(e.target.value)}
+                      onChange={e => setEditOnline(e.target.value)}
                       placeholder="0"
                       className="input-hero text-center"
                     />
@@ -223,11 +264,11 @@ function IncomeItem({ item, onUpdate, onDelete }) {
 
                 {/* Date Input */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Date</label>
+                  <label className="mb-1 block text-xs text-muted-foreground">Date</label>
                   <input
                     type={editIsMonthly ? "month" : "date"}
                     value={editIsMonthly ? editDate.substring(0, 7) : editDate}
-                    onChange={(e) => {
+                    onChange={e => {
                       const selectedValue = e.target.value;
                       if (editIsMonthly) {
                         // Prevent future months
@@ -255,14 +296,14 @@ function IncomeItem({ item, onUpdate, onDelete }) {
                   <button
                     onClick={cancelEditing}
                     disabled={isSubmitting}
-                    className="flex-1 py-2 bg-background rounded-lg text-sm font-medium"
+                    className="flex-1 rounded-lg bg-background py-2 text-sm font-medium"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isSubmitting}
-                    className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground"
                   >
                     {isSubmitting ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
@@ -277,11 +318,11 @@ function IncomeItem({ item, onUpdate, onDelete }) {
               /* Action Buttons */
               <div className="flex border-t border-border/50">
                 <motion.button
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
+                  onClick={e => {
+                    e.stopPropagation();
                     startEditing();
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                  className="flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
                   whileTap={{ scale: 0.95 }}
                 >
                   <Pencil className="h-4 w-4" />
@@ -289,12 +330,12 @@ function IncomeItem({ item, onUpdate, onDelete }) {
                 </motion.button>
                 <div className="w-px bg-border/50" />
                 <motion.button
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
+                  onClick={e => {
+                    e.stopPropagation();
                     setIsExpanded(false);
-                    onDelete(item); 
+                    onDelete(item);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  className="flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                   whileTap={{ scale: 0.95 }}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -317,46 +358,87 @@ const CHART_DURATION_OPTIONS = [
 ];
 
 // Simple Bar Chart Component with dynamic height based on 10k base
-function IncomeChart({ data, duration, onDurationChange }) {
+function IncomeChart({ data, duration, onDurationChange, profitMargin, onProfitMarginChange }) {
+  const [showMenu, setShowMenu] = useState(false);
+
   // Base value for height calculation (10k = 1 unit height)
   const BASE_VALUE = 10000;
   const CHART_HEIGHT = 140; // pixels
-  
+
   if (!data || data.length === 0) {
     // Show empty placeholder chart
     return (
       <div className="theme-card p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 font-medium">
             <TrendingUp className="h-4 w-4 text-primary" />
             Revenue Trend
           </h3>
-          <div className="flex gap-1">
-            {CHART_DURATION_OPTIONS.map(opt => (
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {CHART_DURATION_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => onDurationChange?.(opt.value)}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                    duration === opt.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {/* Three-dot menu */}
+            <div className="relative">
               <button
-                key={opt.value}
-                onClick={() => onDurationChange?.(opt.value)}
-                className={cn(
-                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
-                  duration === opt.value 
-                    ? "bg-primary text-primary-foreground" 
-                    : "bg-muted text-muted-foreground hover:bg-accent"
-                )}
+                onClick={() => setShowMenu(!showMenu)}
+                className="rounded-lg p-1.5 transition-colors hover:bg-muted"
               >
-                {opt.label}
+                <MoreVertical className="h-4 w-4 text-muted-foreground" />
               </button>
-            ))}
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border bg-card p-3 shadow-lg">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Percent className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Profit Margin</span>
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={profitMargin}
+                        onChange={e => onProfitMarginChange?.(Number(e.target.value))}
+                        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+                      />
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">0%</span>
+                        <span className="font-bold text-primary">{profitMargin}%</span>
+                        <span className="text-muted-foreground">100%</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
           {[...Array(6)].map((_, idx) => (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-              <div className="w-full h-1 bg-muted rounded-t-sm" />
-              <span className="text-[9px] text-muted-foreground truncate w-full text-center">-</span>
+            <div key={idx} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+              <div className="h-1 w-full rounded-t-sm bg-muted" />
+              <span className="w-full truncate text-center text-[9px] text-muted-foreground">
+                -
+              </span>
             </div>
           ))}
         </div>
-        <p className="text-center text-xs text-muted-foreground mt-4">No income data yet</p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">No income data yet</p>
       </div>
     );
   }
@@ -365,18 +447,19 @@ function IncomeChart({ data, duration, onDurationChange }) {
   const maxValue = Math.max(...data.map(d => d.value), BASE_VALUE);
   const maxUnits = Math.ceil(maxValue / BASE_VALUE);
   const totalRevenue = data.reduce((sum, d) => sum + d.value, 0);
-  
+  const totalProfit = Math.round(totalRevenue * (profitMargin / 100));
+
   // Calculate height for each bar based on 10k units
-  const getBarHeight = (value) => {
+  const getBarHeight = value => {
     if (value <= 0) return 4;
     const units = value / BASE_VALUE;
     // Scale to chart height with min height of 8px
     const percentage = Math.min((units / maxUnits) * 100, 100);
     return Math.max(percentage, 5);
   };
-  
+
   // Format value for display
-  const formatValue = (value) => {
+  const formatValue = value => {
     if (value >= 100000) return `₹${(value / 100000).toFixed(2)}L`;
     if (value >= 1000) return `₹${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`;
     return `₹${value}`;
@@ -386,59 +469,133 @@ function IncomeChart({ data, duration, onDurationChange }) {
 
   return (
     <div className="theme-card p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium flex items-center gap-2">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-medium">
           <TrendingUp className="h-4 w-4 text-primary" />
           Revenue Trend
         </h3>
-        <div className="flex gap-1">
-          {CHART_DURATION_OPTIONS.map(opt => (
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {CHART_DURATION_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onDurationChange?.(opt.value)}
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                  duration === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {/* Three-dot menu */}
+          <div className="relative">
             <button
-              key={opt.value}
-              onClick={() => onDurationChange?.(opt.value)}
-              className={cn(
-                "px-2 py-1 rounded-md text-xs font-medium transition-colors",
-                duration === opt.value 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-muted text-muted-foreground hover:bg-accent"
-              )}
+              onClick={() => setShowMenu(!showMenu)}
+              className="rounded-lg p-1.5 transition-colors hover:bg-muted"
             >
-              {opt.label}
+              <MoreVertical className="h-4 w-4 text-muted-foreground" />
             </button>
-          ))}
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border bg-card p-3 shadow-lg">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Percent className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Profit Margin</span>
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={profitMargin}
+                      onChange={e => onProfitMarginChange?.(Number(e.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+                    />
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">0%</span>
+                      <span className="font-bold text-primary">{profitMargin}%</span>
+                      <span className="text-muted-foreground">100%</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-      
+
       {/* Y-axis scale indicator */}
-      <div className="flex items-center justify-end gap-2 mb-2 text-[10px] text-muted-foreground">
+      <div className="mb-2 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
         <span>Max: {formatValue(maxValue)}</span>
       </div>
-      
+
       <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
-        {data.map((item, idx) => (
-          <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-            <div className="text-[12px] text-center font-mono text-muted-foreground mb-1">
-              {item.value > 0 ? formatValue(item.value) : ""}
+        {data.map((item, idx) => {
+          const profit = Math.round(item.value * (profitMargin / 100));
+          return (
+            <div key={idx} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+              <div className="mb-1 text-center font-mono text-[10px] leading-tight text-muted-foreground">
+                {item.value > 0 && (
+                  <>
+                    <div>{formatValue(item.value)}</div>
+                    <div className="text-[9px] text-emerald-600 dark:text-emerald-400">
+                      {formatValue(profit)}
+                    </div>
+                  </>
+                )}
+              </div>
+              {/* Stacked bar: profit on top of revenue */}
+              <div
+                className="relative w-full overflow-hidden rounded-t-sm transition-all duration-300"
+                style={{
+                  height: `${getBarHeight(item.value)}%`,
+                  minHeight: item.value > 0 ? "8px" : "4px",
+                }}
+              >
+                {/* Base revenue bar */}
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-600/70 to-blue-400/70" />
+                {/* Profit overlay (bottom portion) */}
+                <div
+                  className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-emerald-600 to-emerald-400"
+                  style={{ height: `${profitMargin}%` }}
+                />
+              </div>
+              <span className="w-full truncate text-center text-[9px] font-medium text-muted-foreground">
+                {item.label}
+              </span>
             </div>
-            <div 
-              className={cn(
-                "w-full rounded-t-sm transition-all duration-300",
-                item.value > 0 ? "bg-gradient-to-t from-emerald-600 to-emerald-400" : "bg-muted"
-              )}
-              style={{ 
-                height: `${getBarHeight(item.value)}%`,
-                minHeight: item.value > 0 ? "8px" : "4px"
-              }}
-            />
-            <span className="text-[9px] text-muted-foreground truncate w-full text-center font-medium">
-              {item.label}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <div className="flex justify-between mt-3 text-xs">
+
+      {/* Legend */}
+      <div className="mt-3 flex items-center justify-center gap-4 text-[10px]">
+        <div className="flex items-center gap-1">
+          <div className="h-3 w-3 rounded-sm bg-gradient-to-t from-blue-600/70 to-blue-400/70" />
+          <span className="text-muted-foreground">Revenue</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="h-3 w-3 rounded-sm bg-gradient-to-t from-emerald-600 to-emerald-400" />
+          <span className="text-muted-foreground">Profit ({profitMargin}%)</span>
+        </div>
+      </div>
+
+      <div className="mt-3 flex justify-between text-xs">
         <span className="text-muted-foreground">{durationLabel} Month Total:</span>
-        <span className="font-mono font-semibold amount-positive">{formatValue(totalRevenue)}</span>
+        <div className="text-right">
+          <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+            {formatValue(totalRevenue)}
+          </span>
+          <span className="mx-1 text-muted-foreground">•</span>
+          <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+            {formatValue(totalProfit)}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -459,15 +616,15 @@ function getAvailableMonths(incomeList) {
   const monthsSet = new Set();
   incomeList.forEach(item => {
     const date = new Date(item.date);
-    monthsSet.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+    monthsSet.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`);
   });
-  
+
   // Convert to array and sort by year desc, then month desc
   return Array.from(monthsSet)
     .sort((a, b) => b.localeCompare(a))
     .map(monthKey => ({
       value: monthKey,
-      label: format(new Date(monthKey + '-01'), 'MMMM yyyy'),
+      label: format(new Date(monthKey + "-01"), "MMMM yyyy"),
     }));
 }
 
@@ -475,8 +632,8 @@ function getAvailableMonths(incomeList) {
 function getLocalDate() {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -496,7 +653,25 @@ function IncomeModal({ open, onClose }) {
   const [showOnlyMonthlyEntries, setShowOnlyMonthlyEntries] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
   const [chartDuration, setChartDuration] = useState("6months");
-  
+  const [profitMargin, setProfitMargin] = useState(40);
+
+  // Load profit margin from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("income-profit-margin");
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+        setProfitMargin(parsed);
+      }
+    }
+  }, []);
+
+  // Save profit margin to localStorage when changed
+  const handleProfitMarginChange = value => {
+    setProfitMargin(value);
+    localStorage.setItem("income-profit-margin", String(value));
+  };
+
   const monthOptions = useMemo(() => getMonthOptions(), []);
   const availableFilterMonths = useMemo(() => getAvailableMonths(incomeList), [incomeList]);
 
@@ -508,21 +683,21 @@ function IncomeModal({ open, onClose }) {
     let startDate;
     let endDate = now;
     let filtered;
-    
+
     switch (filter) {
       case "monthly":
         if (!selectedFilterMonth) {
           // If no month selected, show current month
-          const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
           filtered = incomeList.filter(i => {
             const d = new Date(i.date);
-            const itemMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const itemMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
             return itemMonth === currentMonthKey;
           });
         } else {
           filtered = incomeList.filter(i => {
             const d = new Date(i.date);
-            const itemMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const itemMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
             return itemMonth === selectedFilterMonth;
           });
         }
@@ -548,12 +723,12 @@ function IncomeModal({ open, onClose }) {
       default:
         return [...incomeList].sort((a, b) => new Date(b.date) - new Date(a.date));
     }
-    
+
     filtered = incomeList.filter(i => {
       const d = new Date(i.date);
       return d >= startDate && d <= endDate;
     });
-    
+
     // Sort by date (newest first)
     return [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [incomeList, filter, selectedFilterMonth, showOnlyMonthlyEntries]);
@@ -562,34 +737,34 @@ function IncomeModal({ open, onClose }) {
   const chartData = useMemo(() => {
     const now = new Date();
     const data = [];
-    
+
     // Get number of months based on duration
     const durationOption = CHART_DURATION_OPTIONS.find(o => o.value === chartDuration);
     const numMonths = durationOption?.months || 6;
-    
+
     for (let i = numMonths - 1; i >= 0; i--) {
       const monthDate = subMonths(now, i);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
-      
+
       const monthIncome = incomeList.filter(item => {
         const d = new Date(item.date);
         return d >= monthStart && d <= monthEnd;
       });
-      
+
       const total = monthIncome.reduce((sum, item) => {
         const cash = Number(item.cashAmount) || 0;
         const online = Number(item.onlineAmount) || 0;
-        return sum + (Number(item.amount) || (cash + online));
+        return sum + (Number(item.amount) || cash + online);
       }, 0);
-      
+
       data.push({
         label: format(monthDate, numMonths > 6 ? "MMM" : "MMM"),
         fullLabel: format(monthDate, "MMM yy"),
         value: total,
       });
     }
-    
+
     return data;
   }, [incomeList, chartDuration]);
 
@@ -597,18 +772,19 @@ function IncomeModal({ open, onClose }) {
   const totals = useMemo(() => {
     const now = new Date();
     const income = incomeList || [];
-    
-    const calcTotal = (list) => list.reduce((sum, i) => {
-      const cash = Number(i.cashAmount) || 0;
-      const online = Number(i.onlineAmount) || 0;
-      return sum + (Number(i.amount) || (cash + online));
-    }, 0);
-    
+
+    const calcTotal = list =>
+      list.reduce((sum, i) => {
+        const cash = Number(i.cashAmount) || 0;
+        const online = Number(i.onlineAmount) || 0;
+        return sum + (Number(i.amount) || cash + online);
+      }, 0);
+
     const thisMonth = income.filter(i => {
       const d = new Date(i.date);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-    
+
     return {
       total: calcTotal(income),
       thisMonth: calcTotal(thisMonth),
@@ -629,17 +805,17 @@ function IncomeModal({ open, onClose }) {
     const cash = Number(cashAmount) || 0;
     const online = Number(onlineAmount) || 0;
     const total = cash + online;
-    
+
     if (total <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
 
     setSubmitting(true);
-    
+
     // For monthly, use first day of selected month
     const incomeDate = isMonthly ? `${selectedMonth}-01` : date;
-    
+
     const incomeData = {
       amount: total,
       cashAmount: cash,
@@ -647,7 +823,7 @@ function IncomeModal({ open, onClose }) {
       date: incomeDate,
       type: isMonthly ? "monthly" : "daily",
     };
-    
+
     const result = await addIncome(incomeData);
     if (result.success) {
       toast.success("Income added");
@@ -680,76 +856,88 @@ function IncomeModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60" onClick={handleBackdropClick}>
-      <div 
-        className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[90vh] overflow-y-auto pb-nav animate-slide-up overscroll-contain"
+      <div
+        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-card"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-center py-3 sticky top-0 bg-card z-10">
+        <div className="sticky top-0 z-10 flex justify-center bg-card py-3">
           <div className="sheet-handle" />
         </div>
 
         <div className="px-4 pb-6">
-          <h2 className="text-2xl font-heading tracking-wide mb-6">Income Tracker</h2>
+          <h2 className="mb-6 font-heading text-2xl tracking-wide">Income Tracker</h2>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="mb-6 grid grid-cols-3 gap-3">
             <div className="theme-card p-3 text-center">
               <p className="text-xs text-muted-foreground">Today</p>
-              <p className="text-lg font-bold font-mono amount-positive">
+              <p className="amount-positive font-mono text-lg font-bold">
                 ₹{totals.today.toLocaleString("en-IN")}
+              </p>
+              <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                ₹{Math.round((totals.today * profitMargin) / 100).toLocaleString("en-IN")} profit
               </p>
             </div>
             <div className="theme-card p-3 text-center">
               <p className="text-xs text-muted-foreground">This Month</p>
-              <p className="text-md font-bold font-mono text-primary">
+              <p className="text-md font-mono font-bold text-primary">
                 ₹{totals.thisMonth.toLocaleString("en-IN")}
+              </p>
+              <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                ₹{Math.round((totals.thisMonth * profitMargin) / 100).toLocaleString("en-IN")}{" "}
+                profit
               </p>
             </div>
             <div className="theme-card p-3 text-center">
               <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-md font-bold font-mono">
-                ₹{totals.total.toLocaleString("en-IN")}
+              <p className="text-md font-mono font-bold">₹{totals.total.toLocaleString("en-IN")}</p>
+              <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                ₹{Math.round((totals.total * profitMargin) / 100).toLocaleString("en-IN")} profit
               </p>
             </div>
           </div>
 
           {/* Revenue Chart */}
           {showGraph && (
-            <IncomeChart 
-              data={chartData} 
-              duration={chartDuration} 
-              onDurationChange={setChartDuration} 
+            <IncomeChart
+              data={chartData}
+              duration={chartDuration}
+              onDurationChange={setChartDuration}
+              profitMargin={profitMargin}
+              onProfitMarginChange={handleProfitMarginChange}
             />
           )}
 
           {/* Add Income Form */}
-          <div className="theme-card p-4 mb-6 mt-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="theme-card mb-6 mt-4 p-4">
+            <div className="mb-4 flex items-center justify-between">
               <h3 className="font-medium">Add Income</h3>
             </div>
-            
+
             <div className="space-y-3">
               {/* Monthly Toggle */}
-              <div className="flex items-center justify-between p-3 bg-muted rounded-xl">
+              <div className="flex items-center justify-between rounded-xl bg-muted p-3">
                 <span className="text-sm font-medium">Monthly Income</span>
                 <button
                   type="button"
                   onClick={() => setIsMonthly(!isMonthly)}
                   className={cn(
-                    "relative w-12 h-6 rounded-full transition-colors",
+                    "relative h-6 w-12 rounded-full transition-colors",
                     isMonthly ? "bg-primary" : "bg-muted-foreground/30"
                   )}
                 >
-                  <div className={cn(
-                    "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
-                    isMonthly ? "translate-x-7" : "translate-x-1"
-                  )} />
+                  <div
+                    className={cn(
+                      "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                      isMonthly ? "translate-x-7" : "translate-x-1"
+                    )}
+                  />
                 </button>
               </div>
 
               {/* Cash Amount */}
               <div>
-                <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <Banknote className="h-3 w-3" /> Cash Amount
                 </label>
                 <input
@@ -757,14 +945,14 @@ function IncomeModal({ open, onClose }) {
                   inputMode="numeric"
                   placeholder="0"
                   value={cashAmount}
-                  onChange={(e) => setCashAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={e => setCashAmount(e.target.value)}
+                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
 
               {/* Online Amount */}
               <div>
-                <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <Smartphone className="h-3 w-3" /> Online Amount
                 </label>
                 <input
@@ -772,31 +960,33 @@ function IncomeModal({ open, onClose }) {
                   inputMode="numeric"
                   placeholder="0"
                   value={onlineAmount}
-                  onChange={(e) => setOnlineAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={e => setOnlineAmount(e.target.value)}
+                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </div>
 
               {/* Date or Month Picker */}
               <div>
-                <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <CalendarDays className="h-3 w-3" /> {isMonthly ? "Month" : "Date"}
                 </label>
                 {isMonthly ? (
                   <select
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    onChange={e => setSelectedMonth(e.target.value)}
                     className="input-hero"
                   >
                     {monthOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 ) : (
                   <input
                     type="date"
                     value={date}
-                    onChange={(e) => {
+                    onChange={e => {
                       const selectedDate = e.target.value;
                       // Prevent future dates (iOS Safari ignores max attribute)
                       if (selectedDate > today) {
@@ -813,10 +1003,13 @@ function IncomeModal({ open, onClose }) {
 
               {/* Total Preview */}
               {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
-                <div className="p-3 bg-emerald-500/10 rounded-xl text-center">
+                <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold font-mono amount-positive">
-                    ₹{((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString("en-IN")}
+                  <p className="amount-positive font-mono text-2xl font-bold">
+                    ₹
+                    {((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString(
+                      "en-IN"
+                    )}
                   </p>
                 </div>
               )}
@@ -824,7 +1017,7 @@ function IncomeModal({ open, onClose }) {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="w-full h-12 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 {submitting ? (
                   <RefreshCw className="h-5 w-5 animate-spin" />
@@ -840,7 +1033,7 @@ function IncomeModal({ open, onClose }) {
 
           {/* Filter Chips */}
           <div className="mb-4">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <div className="scrollbar-none flex gap-2 overflow-x-auto pb-2">
               {FILTER_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
@@ -852,7 +1045,7 @@ function IncomeModal({ open, onClose }) {
                     }
                   }}
                   className={cn(
-                    "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+                    "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                     filter === opt.value
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-accent"
@@ -862,43 +1055,50 @@ function IncomeModal({ open, onClose }) {
                 </button>
               ))}
             </div>
-            
+
             {/* Month Selector when Monthly filter is active */}
             {filter === "monthly" && availableFilterMonths.length > 0 && (
               <div className="mt-3 space-y-3">
                 <select
                   value={selectedFilterMonth}
-                  onChange={(e) => setSelectedFilterMonth(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-muted border-0 text-sm font-medium focus:ring-2 focus:ring-primary"
+                  onChange={e => setSelectedFilterMonth(e.target.value)}
+                  className="w-full rounded-xl border-0 bg-muted p-3 text-sm font-medium focus:ring-2 focus:ring-primary"
                 >
                   {availableFilterMonths.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
                   ))}
                 </select>
-                
+
                 {/* Toggle for Monthly entries only */}
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                   <span className="text-sm font-medium">Monthly entries only</span>
                   <button
                     type="button"
                     onClick={() => setShowOnlyMonthlyEntries(!showOnlyMonthlyEntries)}
                     className={cn(
-                      "relative w-11 h-6 rounded-full transition-colors",
+                      "relative h-6 w-11 rounded-full transition-colors",
                       showOnlyMonthlyEntries ? "bg-primary" : "bg-muted-foreground/30"
                     )}
                   >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
-                      showOnlyMonthlyEntries ? "translate-x-6" : "translate-x-1"
-                    )} />
+                    <div
+                      className={cn(
+                        "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                        showOnlyMonthlyEntries ? "translate-x-6" : "translate-x-1"
+                      )}
+                    />
                   </button>
                 </div>
               </div>
             )}
-            
+
             {filter !== "all" && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Filtered total: <span className="font-mono font-semibold">₹{totals.filtered.toLocaleString("en-IN")}</span>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Filtered total:{" "}
+                <span className="font-mono font-semibold">
+                  ₹{totals.filtered.toLocaleString("en-IN")}
+                </span>
                 {filter === "monthly" && filteredIncomeList.length > 0 && (
                   <span className="ml-2">({filteredIncomeList.length} entries)</span>
                 )}
@@ -908,14 +1108,20 @@ function IncomeModal({ open, onClose }) {
 
           {/* Recent Income */}
           <div>
-            <h3 className="font-medium mb-2">Recent Income</h3>
-            <p className="text-xs text-muted-foreground mb-3">Tap to expand and edit or delete</p>
+            <h3 className="mb-2 font-medium">Recent Income</h3>
+            <p className="mb-3 text-xs text-muted-foreground">Tap to expand and edit or delete</p>
             <div className="space-y-2">
               {filteredIncomeList.slice(0, 20).map(item => (
-                <IncomeItem key={item.id} item={item} onUpdate={updateIncome} onDelete={setDeleteItem} />
+                <IncomeItem
+                  key={item.id}
+                  item={item}
+                  onUpdate={updateIncome}
+                  onDelete={setDeleteItem}
+                  profitMargin={profitMargin}
+                />
               ))}
               {filteredIncomeList.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No income recorded</p>
+                <p className="py-8 text-center text-muted-foreground">No income recorded</p>
               )}
             </div>
           </div>
@@ -924,16 +1130,20 @@ function IncomeModal({ open, onClose }) {
 
       <DeleteConfirmDialog
         open={!!deleteItem}
-        onOpenChange={(open) => !open && setDeleteItem(null)}
+        onOpenChange={open => !open && setDeleteItem(null)}
         onConfirm={handleDelete}
         title="Delete Income"
-        description={deleteItem ? `Delete income of ₹${Number(deleteItem.amount || ((deleteItem.cashAmount || 0) + (deleteItem.onlineAmount || 0))).toLocaleString("en-IN")}?` : ""}
+        description={
+          deleteItem
+            ? `Delete income of ₹${Number(deleteItem.amount || (deleteItem.cashAmount || 0) + (deleteItem.onlineAmount || 0)).toLocaleString("en-IN")}?`
+            : ""
+        }
       />
     </div>
   );
 }
 
-// Reports Modal Component  
+// Reports Modal Component
 function ReportsModal({ open, onClose }) {
   const { transactions = [] } = useTransactions();
   const { udharList = [] } = useUdhar();
@@ -947,28 +1157,38 @@ function ReportsModal({ open, onClose }) {
     const txns = transactions || [];
     const udhars = udharList || [];
     const income = incomeList || [];
-    
+
     const totalPurchases = txns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const paidPurchases = txns.filter(t => t.paymentStatus === "paid" || t.paymentStatus === "partial" ).reduce((sum, t) => sum + (Number(t.paidAmount) || 0), 0);
+    const paidPurchases = txns
+      .filter(t => t.paymentStatus === "paid" || t.paymentStatus === "partial")
+      .reduce((sum, t) => sum + (Number(t.paidAmount) || 0), 0);
     const pendingPurchases = totalPurchases - paidPurchases;
 
     const totalUdhar = udhars.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
-    const paidUdhar = udhars.filter(u => u.paymentStatus === "paid" || u.paymentStatus === "partial").reduce((sum, u) => sum + (Number(u.paidAmount) || 0), 0);
+    const paidUdhar = udhars
+      .filter(u => u.paymentStatus === "paid" || u.paymentStatus === "partial")
+      .reduce((sum, u) => sum + (Number(u.paidAmount) || 0), 0);
     const pendingUdhar = totalUdhar - paidUdhar;
 
-    const calcIncomeTotal = (list) => list.reduce((sum, i) => {
-      const cash = Number(i.cashAmount) || 0;
-      const online = Number(i.onlineAmount) || 0;
-      return sum + (Number(i.amount) || (cash + online));
-    }, 0);
+    const calcIncomeTotal = list =>
+      list.reduce((sum, i) => {
+        const cash = Number(i.cashAmount) || 0;
+        const online = Number(i.onlineAmount) || 0;
+        return sum + (Number(i.amount) || cash + online);
+      }, 0);
 
     const totalIncome = calcIncomeTotal(income);
     const monthlyIncome = calcIncomeTotal(income.filter(i => new Date(i.date) >= thisMonth));
 
     return {
-      totalPurchases, paidPurchases, pendingPurchases,
-      totalUdhar, paidUdhar, pendingUdhar,
-      totalIncome, monthlyIncome,
+      totalPurchases,
+      paidPurchases,
+      pendingPurchases,
+      totalUdhar,
+      paidUdhar,
+      pendingUdhar,
+      totalIncome,
+      monthlyIncome,
       netPosition: pendingUdhar - pendingPurchases,
     };
   }, [transactions, udharList, incomeList]);
@@ -977,16 +1197,16 @@ function ReportsModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div 
-        className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[85vh] overflow-y-auto pb-nav animate-slide-up overscroll-contain"
+      <div
+        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-card"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-center py-3 sticky top-0 bg-card z-10">
+        <div className="sticky top-0 z-10 flex justify-center bg-card py-3">
           <div className="sheet-handle" />
         </div>
 
         <div className="px-4 pb-6">
-          <h2 className="text-2xl font-heading tracking-wide mb-6">Reports</h2>
+          <h2 className="mb-6 font-heading text-2xl tracking-wide">Reports</h2>
 
           {/* <div className={cn("p-4 rounded-xl mb-6", stats.netPosition >= 0 ? "bg-emerald-500/20" : "bg-red-500/20")}>
             <p className="text-sm text-muted-foreground">Net Position</p>
@@ -998,38 +1218,78 @@ function ReportsModal({ open, onClose }) {
             </p>
           </div> */}
 
-          <div className="theme-card p-4 mb-4">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="theme-card mb-4 p-4">
+            <div className="mb-4 flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-destructive" />
               <h3 className="font-medium">Supplier Purchases</h3>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold font-mono">₹{stats.totalPurchases.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Paid</p><p className="text-lg font-bold font-mono amount-positive">₹{stats.paidPurchases.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-bold font-mono amount-pending">₹{stats.pendingPurchases.toLocaleString("en-IN")}</p></div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-mono text-lg font-bold">
+                  ₹{stats.totalPurchases.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Paid</p>
+                <p className="amount-positive font-mono text-lg font-bold">
+                  ₹{stats.paidPurchases.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Pending</p>
+                <p className="amount-pending font-mono text-lg font-bold">
+                  ₹{stats.pendingPurchases.toLocaleString("en-IN")}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="theme-card p-4 mb-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Wallet className="h-5 w-5 amount-positive" />
+          <div className="theme-card mb-4 p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <Wallet className="amount-positive h-5 w-5" />
               <h3 className="font-medium">Customer Udhar</h3>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold font-mono">₹{stats.totalUdhar.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Received</p><p className="text-lg font-bold font-mono amount-positive">₹{stats.paidUdhar.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-bold font-mono amount-pending">₹{stats.pendingUdhar.toLocaleString("en-IN")}</p></div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-mono text-lg font-bold">
+                  ₹{stats.totalUdhar.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Received</p>
+                <p className="amount-positive font-mono text-lg font-bold">
+                  ₹{stats.paidUdhar.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Pending</p>
+                <p className="amount-pending font-mono text-lg font-bold">
+                  ₹{stats.pendingUdhar.toLocaleString("en-IN")}
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="theme-card p-4">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="mb-4 flex items-center gap-2">
               <PiggyBank className="h-5 w-5 text-primary" />
               <h3 className="font-medium">Income</h3>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-xs text-muted-foreground">This Month</p><p className="text-lg font-bold font-mono text-primary">₹{stats.monthlyIncome.toLocaleString("en-IN")}</p></div>
-              <div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold font-mono">₹{stats.totalIncome.toLocaleString("en-IN")}</p></div>
+              <div>
+                <p className="text-xs text-muted-foreground">This Month</p>
+                <p className="font-mono text-lg font-bold text-primary">
+                  ₹{stats.monthlyIncome.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-mono text-lg font-bold">
+                  ₹{stats.totalIncome.toLocaleString("en-IN")}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1053,7 +1313,9 @@ function BackupModal({ open, onClose }) {
       const result = await response.json();
       if (result.success) toast.success("Backup created successfully");
       else toast.error(result.error || "Backup failed");
-    } catch { toast.error("Backup failed"); }
+    } catch {
+      toast.error("Backup failed");
+    }
     setLoading(false);
   };
 
@@ -1069,7 +1331,9 @@ function BackupModal({ open, onClose }) {
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Backup downloaded");
-    } catch { toast.error("Export failed"); }
+    } catch {
+      toast.error("Export failed");
+    }
     setLoading(false);
   };
 
@@ -1078,8 +1342,12 @@ function BackupModal({ open, onClose }) {
     suppliers.forEach(supplier => {
       const supplierTxns = transactions.filter(t => t.supplierId === supplier.id);
       if (supplierTxns.length > 0) {
-        try { exportSupplierTransactionsPDF(supplier, supplierTxns); exported++; } 
-        catch (e) { console.error("PDF export failed for", supplier.name, e); }
+        try {
+          exportSupplierTransactionsPDF(supplier, supplierTxns);
+          exported++;
+        } catch (e) {
+          console.error("PDF export failed for", supplier.name, e);
+        }
       }
     });
     if (exported > 0) toast.success(`Exported ${exported} PDF reports`);
@@ -1090,37 +1358,76 @@ function BackupModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl max-h-[85vh] overflow-y-auto pb-nav animate-slide-up overscroll-contain" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center py-3 sticky top-0 bg-card z-10"><div className="sheet-handle" /></div>
+      <div
+        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-card"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 flex justify-center bg-card py-3">
+          <div className="sheet-handle" />
+        </div>
         <div className="px-4 pb-6">
-          <h2 className="text-2xl font-heading tracking-wide mb-6">Backup & Export</h2>
+          <h2 className="mb-6 font-heading text-2xl tracking-wide">Backup & Export</h2>
 
-          <div className="theme-card p-4 mb-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center"><Cloud className="h-6 w-6 text-primary" /></div>
-              <div><h3 className="font-medium">Cloud Backup</h3><p className="text-xs text-muted-foreground">Backup to email (automatic daily)</p></div>
+          <div className="theme-card mb-4 p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
+                <Cloud className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium">Cloud Backup</h3>
+                <p className="text-xs text-muted-foreground">Backup to email (automatic daily)</p>
+              </div>
             </div>
-            <button onClick={handleBackup} disabled={loading} className="w-full btn-hero disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />} Backup Now
+            <button
+              onClick={handleBackup}
+              disabled={loading}
+              className="btn-hero flex w-full items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <Upload className="h-5 w-5" />
+              )}{" "}
+              Backup Now
             </button>
           </div>
 
-          <div className="theme-card p-4 mb-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center"><HardDrive className="h-6 w-6 text-emerald-500" /></div>
-              <div><h3 className="font-medium">Local Export</h3><p className="text-xs text-muted-foreground">Download backup file to device</p></div>
+          <div className="theme-card mb-4 p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
+                <HardDrive className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Local Export</h3>
+                <p className="text-xs text-muted-foreground">Download backup file to device</p>
+              </div>
             </div>
-            <button onClick={handleExport} disabled={loading} className="w-full h-12 bg-muted rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-accent transition-colors">
+            <button
+              onClick={handleExport}
+              disabled={loading}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
+            >
               <Download className="h-5 w-5" /> Export Data
             </button>
           </div>
 
           <div className="theme-card p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-12 w-12 rounded-full bg-red-500/20 flex items-center justify-center"><FileDown className="h-6 w-6 text-red-500" /></div>
-              <div><h3 className="font-medium">Export All PDFs</h3><p className="text-xs text-muted-foreground">Export all supplier transaction reports</p></div>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/20">
+                <FileDown className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Export All PDFs</h3>
+                <p className="text-xs text-muted-foreground">
+                  Export all supplier transaction reports
+                </p>
+              </div>
             </div>
-            <button onClick={handleExportAllPDF} disabled={loading} className="w-full h-12 bg-muted rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-accent transition-colors">
+            <button
+              onClick={handleExportAllPDF}
+              disabled={loading}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
+            >
               <FileDown className="h-5 w-5" /> Export All PDFs
             </button>
           </div>
@@ -1163,7 +1470,7 @@ function ChangePinModal({ open, onClose }) {
         body: JSON.stringify({ currentPassword: currentPin, newPassword: newPin }),
       });
       const result = await response.json();
-      
+
       if (result.success) {
         toast.success("PIN changed successfully");
         setCurrentPin("");
@@ -1183,57 +1490,78 @@ function ChangePinModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl pb-nav animate-slide-up overscroll-contain" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center py-3"><div className="sheet-handle" /></div>
+      <div
+        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 overscroll-contain rounded-t-3xl bg-card"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center py-3">
+          <div className="sheet-handle" />
+        </div>
         <div className="px-4 pb-6">
-          <h2 className="text-2xl font-heading tracking-wide mb-6">Change PIN</h2>
+          <h2 className="mb-6 font-heading text-2xl tracking-wide">Change PIN</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-muted-foreground block mb-2">Current PIN</label>
+              <label className="mb-2 block text-sm text-muted-foreground">Current PIN</label>
               <div className="relative">
                 <input
                   type={showCurrent ? "text" : "password"}
                   value={currentPin}
-                  onChange={(e) => setCurrentPin(e.target.value)}
+                  onChange={e => setCurrentPin(e.target.value)}
                   placeholder="Enter current PIN"
                   className="input-hero pr-12"
                 />
-                <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
                   {showCurrent ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-muted-foreground block mb-2">New PIN</label>
+              <label className="mb-2 block text-sm text-muted-foreground">New PIN</label>
               <div className="relative">
                 <input
                   type={showNew ? "text" : "password"}
                   value={newPin}
-                  onChange={(e) => setNewPin(e.target.value)}
+                  onChange={e => setNewPin(e.target.value)}
                   placeholder="Enter new PIN"
                   className="input-hero pr-12"
                 />
-                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
                   {showNew ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-muted-foreground block mb-2">Confirm New PIN</label>
+              <label className="mb-2 block text-sm text-muted-foreground">Confirm New PIN</label>
               <input
                 type={showNew ? "text" : "password"}
                 value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value)}
+                onChange={e => setConfirmPin(e.target.value)}
                 placeholder="Confirm new PIN"
                 className="input-hero"
               />
             </div>
 
-            <button onClick={handleSubmit} disabled={loading} className="w-full btn-hero disabled:opacity-50 flex items-center justify-center gap-2 mt-6">
-              {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="btn-hero mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <Check className="h-5 w-5" />
+              )}
               Change PIN
             </button>
           </div>
@@ -1250,13 +1578,13 @@ function StorageInfo() {
   if (loading) {
     return (
       <div className="theme-card p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <Database className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-3 w-32 bg-muted rounded animate-pulse mt-1" />
+            <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+            <div className="mt-1 h-3 w-32 animate-pulse rounded bg-muted" />
           </div>
         </div>
       </div>
@@ -1267,7 +1595,7 @@ function StorageInfo() {
     return (
       <div className="theme-card p-4">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
             <Database className="h-6 w-6 text-muted-foreground" />
           </div>
           <div>
@@ -1283,8 +1611,8 @@ function StorageInfo() {
 
   return (
     <div className="theme-card p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/20">
           <Database className="h-6 w-6 text-blue-500" />
         </div>
         <div className="flex-1">
@@ -1293,11 +1621,11 @@ function StorageInfo() {
             {storageInfo.usedFormatted} of {storageInfo.totalFormatted} used
           </p>
         </div>
-        <span className="text-sm font-mono">{usedPercent.toFixed(1)}%</span>
+        <span className="font-mono text-sm">{usedPercent.toFixed(1)}%</span>
       </div>
-      
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div 
+
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div
           className={cn(
             "h-full rounded-full transition-all",
             usedPercent > 90 ? "bg-red-500" : usedPercent > 70 ? "bg-amber-500" : "bg-blue-500"
@@ -1305,8 +1633,8 @@ function StorageInfo() {
           style={{ width: `${Math.min(usedPercent, 100)}%` }}
         />
       </div>
-      
-      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <ImageIcon className="h-3 w-3" />
           {storageInfo.fileCount || 0} images
@@ -1323,11 +1651,11 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
 
   if (!open) return null;
 
-  const handleToggle = (key) => {
-    if (key === 'enabled' && !settings.enabled) {
+  const handleToggle = key => {
+    if (key === "enabled" && !settings.enabled) {
       // When enabling, also enable protection for both sections by default
       updateSettings({ enabled: true, protectIncome: true, protectReports: true });
-    } else if (key === 'enabled' && settings.enabled) {
+    } else if (key === "enabled" && settings.enabled) {
       // When disabling, disable all protections
       updateSettings({ enabled: false, protectIncome: false, protectReports: false });
     } else {
@@ -1336,44 +1664,56 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div 
-        className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-2xl animate-slide-up max-h-[90vh] overflow-y-auto"
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="animate-slide-up max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-card sm:max-w-md sm:rounded-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center py-3 sm:hidden">
           <div className="sheet-handle" />
         </div>
-        
-        <div className="p-4 pb-safe mb-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-heading tracking-wide">Biometric Lock</h2>
-            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
+
+        <div className="pb-safe mb-16 p-4">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="font-heading text-xl tracking-wide">Biometric Lock</h2>
+            <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {!isAvailable && (
-            <div className="mb-4 p-4 bg-amber-500/10 text-amber-600 rounded-xl text-sm">
-              <p className="font-medium mb-1">Biometrics Not Available</p>
-              <p className="text-xs">Your device doesn&apos;t support biometric authentication or it&apos;s not set up.</p>
+            <div className="mb-4 rounded-xl bg-amber-500/10 p-4 text-sm text-amber-600">
+              <p className="mb-1 font-medium">Biometrics Not Available</p>
+              <p className="text-xs">
+                Your device doesn&apos;t support biometric authentication or it&apos;s not set up.
+              </p>
             </div>
           )}
 
           <div className="space-y-4">
             {/* Main Enable Toggle */}
-            <div 
+            <div
               className={cn(
-                "flex items-center justify-between p-4 rounded-xl transition-colors",
+                "flex items-center justify-between rounded-xl p-4 transition-colors",
                 settings.enabled ? "bg-emerald-500/10" : "bg-muted"
               )}
             >
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center",
-                  settings.enabled ? "bg-emerald-500/20" : "bg-muted-foreground/10"
-                )}>
-                  <Fingerprint className={cn("h-5 w-5", settings.enabled ? "text-emerald-500" : "text-muted-foreground")} />
+                <div
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full",
+                    settings.enabled ? "bg-emerald-500/20" : "bg-muted-foreground/10"
+                  )}
+                >
+                  <Fingerprint
+                    className={cn(
+                      "h-5 w-5",
+                      settings.enabled ? "text-emerald-500" : "text-muted-foreground"
+                    )}
+                  />
                 </div>
                 <div>
                   <p className="font-medium">Enable Biometric Lock</p>
@@ -1381,18 +1721,20 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
                 </div>
               </div>
               <button
-                onClick={() => handleToggle('enabled')}
+                onClick={() => handleToggle("enabled")}
                 disabled={!isAvailable}
                 className={cn(
-                  "w-12 h-7 rounded-full transition-colors relative",
+                  "relative h-7 w-12 rounded-full transition-colors",
                   settings.enabled ? "bg-emerald-500" : "bg-muted-foreground/30",
-                  !isAvailable && "opacity-50 cursor-not-allowed"
+                  !isAvailable && "cursor-not-allowed opacity-50"
                 )}
               >
-                <div className={cn(
-                  "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
-                  settings.enabled ? "translate-x-6" : "translate-x-1"
-                )} />
+                <div
+                  className={cn(
+                    "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
+                    settings.enabled ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
               </button>
             </div>
 
@@ -1405,45 +1747,49 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
                   exit={{ opacity: 0, height: 0 }}
                   className="space-y-3"
                 >
-                  <p className="text-sm text-muted-foreground px-1">Protected Sections</p>
-                  
+                  <p className="px-1 text-sm text-muted-foreground">Protected Sections</p>
+
                   {/* Income Tracker */}
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                  <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                     <div className="flex items-center gap-3">
                       <IndianRupee className="h-5 w-5 text-emerald-500" />
                       <span className="font-medium">Income Tracker</span>
                     </div>
                     <button
-                      onClick={() => handleToggle('protectIncome')}
+                      onClick={() => handleToggle("protectIncome")}
                       className={cn(
-                        "w-10 h-6 rounded-full transition-colors relative",
+                        "relative h-6 w-10 rounded-full transition-colors",
                         settings.protectIncome ? "bg-emerald-500" : "bg-muted-foreground/30"
                       )}
                     >
-                      <div className={cn(
-                        "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                        settings.protectIncome ? "translate-x-5" : "translate-x-1"
-                      )} />
+                      <div
+                        className={cn(
+                          "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                          settings.protectIncome ? "translate-x-5" : "translate-x-1"
+                        )}
+                      />
                     </button>
                   </div>
 
                   {/* Reports */}
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                  <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                     <div className="flex items-center gap-3">
                       <BarChart3 className="h-5 w-5 text-primary" />
                       <span className="font-medium">Reports</span>
                     </div>
                     <button
-                      onClick={() => handleToggle('protectReports')}
+                      onClick={() => handleToggle("protectReports")}
                       className={cn(
-                        "w-10 h-6 rounded-full transition-colors relative",
+                        "relative h-6 w-10 rounded-full transition-colors",
                         settings.protectReports ? "bg-emerald-500" : "bg-muted-foreground/30"
                       )}
                     >
-                      <div className={cn(
-                        "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                        settings.protectReports ? "translate-x-5" : "translate-x-1"
-                      )} />
+                      <div
+                        className={cn(
+                          "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                          settings.protectReports ? "translate-x-5" : "translate-x-1"
+                        )}
+                      />
                     </button>
                   </div>
                 </motion.div>
@@ -1451,11 +1797,11 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
             )}
 
             {/* Info */}
-            <div className="mt-4 p-3 bg-primary/5 rounded-xl">
+            <div className="mt-4 rounded-xl bg-primary/5 p-3">
               <p className="text-xs text-muted-foreground">
-                <Shield className="h-3 w-3 inline mr-1" />
-                When enabled, you&apos;ll need to authenticate with your device&apos;s biometrics to access protected sections.
-                The lock resets when you close the app.
+                <Shield className="mr-1 inline h-3 w-3" />
+                When enabled, you&apos;ll need to authenticate with your device&apos;s biometrics to
+                access protected sections. The lock resets when you close the app.
               </p>
             </div>
           </div>
@@ -1475,24 +1821,24 @@ export default function SettingsPage() {
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
   const [biometricModalOpen, setBiometricModalOpen] = useState(false);
-  
+
   // Biometric lock settings
-  const { 
-    settings: biometricSettings, 
-    updateSettings: updateBiometricSettings, 
+  const {
+    settings: biometricSettings,
+    updateSettings: updateBiometricSettings,
     isBiometricAvailable,
     isProtected,
     canAccess,
     requestUnlock,
     startRelockTimer,
-    cancelRelockTimer
+    cancelRelockTimer,
   } = useBiometricLock();
 
   // Handle opening protected modals with biometric check
   const handleOpenProtectedModal = async (section, openFn) => {
     // Cancel any pending relock timer when opening
     cancelRelockTimer();
-    
+
     // If the section is protected and user doesn't have access
     if (isProtected(section) && !canAccess(section)) {
       // Request biometric unlock
@@ -1533,7 +1879,9 @@ export default function SettingsPage() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
-    toast.success(theme === "dark" ? "Spider-Man Theme Activated! 🕷️" : "Iron Man Theme Activated! 🦾");
+    toast.success(
+      theme === "dark" ? "Spider-Man Theme Activated! 🕷️" : "Iron Man Theme Activated! 🦾"
+    );
   };
 
   // Use stable defaults for SSR, then update on client
@@ -1550,86 +1898,125 @@ export default function SettingsPage() {
           color: isDark ? "text-amber-400" : "text-red-500",
           bgColor: isDark ? "bg-amber-500/20" : "bg-red-500/20",
           onClick: toggleTheme,
-          rightContent: <span className="text-xs text-muted-foreground">{isDark ? "🦾" : "🕷️"}</span>,
+          rightContent: (
+            <span className="text-xs text-muted-foreground">{isDark ? "🦾" : "🕷️"}</span>
+          ),
         },
       ],
     },
     {
       section: "Business",
       items: [
-        { 
-          icon: IndianRupee, 
-          label: "Income Tracker", 
-          sublabel: isProtected("income") ? "🔒 Protected" : "Track daily & monthly income", 
-          color: "amount-positive", 
-          bgColor: "bg-emerald-500/20", 
+        {
+          icon: IndianRupee,
+          label: "Income Tracker",
+          sublabel: isProtected("income") ? "🔒 Protected" : "Track daily & monthly income",
+          color: "amount-positive",
+          bgColor: "bg-emerald-500/20",
           onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
-          rightContent: isProtected("income") ? <Lock className="h-4 w-4 text-emerald-500" /> : null,
+          rightContent: isProtected("income") ? (
+            <Lock className="h-4 w-4 text-emerald-500" />
+          ) : null,
         },
-        { 
-          icon: BarChart3, 
-          label: "Reports", 
-          sublabel: isProtected("reports") ? "🔒 Protected" : "View analytics & insights", 
-          color: "text-primary", 
-          bgColor: "bg-primary/20", 
+        {
+          icon: BarChart3,
+          label: "Reports",
+          sublabel: isProtected("reports") ? "🔒 Protected" : "View analytics & insights",
+          color: "text-primary",
+          bgColor: "bg-primary/20",
           onClick: () => handleOpenProtectedModal("reports", setReportsModalOpen),
           rightContent: isProtected("reports") ? <Lock className="h-4 w-4 text-primary" /> : null,
         },
-        { icon: Database, label: "Backup & Export", sublabel: "Manage your data & PDFs", color: "status-pending", bgColor: "bg-amber-500/20", onClick: () => setBackupModalOpen(true) },
+        {
+          icon: Database,
+          label: "Backup & Export",
+          sublabel: "Manage your data & PDFs",
+          color: "status-pending",
+          bgColor: "bg-amber-500/20",
+          onClick: () => setBackupModalOpen(true),
+        },
       ],
     },
     {
       section: "Security",
       items: [
-        { 
-          icon: Fingerprint, 
-          label: "Biometric Lock", 
-          sublabel: biometricSettings.enabled ? "🔒 Enabled" : "Protect sensitive data", 
-          color: biometricSettings.enabled ? "text-emerald-500" : "text-muted-foreground", 
-          bgColor: biometricSettings.enabled ? "bg-emerald-500/20" : "bg-muted", 
+        {
+          icon: Fingerprint,
+          label: "Biometric Lock",
+          sublabel: biometricSettings.enabled ? "🔒 Enabled" : "Protect sensitive data",
+          color: biometricSettings.enabled ? "text-emerald-500" : "text-muted-foreground",
+          bgColor: biometricSettings.enabled ? "bg-emerald-500/20" : "bg-muted",
           onClick: () => handleOpenProtectedModal("biometric-settings", setBiometricModalOpen),
-          rightContent: biometricSettings.enabled ? <Shield className="h-4 w-4 text-emerald-500" /> : null,
+          rightContent: biometricSettings.enabled ? (
+            <Shield className="h-4 w-4 text-emerald-500" />
+          ) : null,
         },
-        { icon: Lock, label: "Change PIN", sublabel: "Update your security PIN", color: "text-muted-foreground", bgColor: "bg-muted", onClick: () => setChangePinModalOpen(true) },
+        {
+          icon: Lock,
+          label: "Change PIN",
+          sublabel: "Update your security PIN",
+          color: "text-muted-foreground",
+          bgColor: "bg-muted",
+          onClick: () => setChangePinModalOpen(true),
+        },
       ],
     },
     {
       section: "Account",
       items: [
-        { icon: LogOut, label: "Logout", sublabel: "Sign out of your account", color: "text-destructive", bgColor: "bg-destructive/20", onClick: handleLogout },
+        {
+          icon: LogOut,
+          label: "Logout",
+          sublabel: "Sign out of your account",
+          color: "text-destructive",
+          bgColor: "bg-destructive/20",
+          onClick: handleLogout,
+        },
       ],
     },
   ];
 
   return (
     <div className="min-h-screen">
-      <div className="sticky top-0 z-20 header-glass px-4 py-4 border-b border-border">
-        <h1 className="text-2xl font-heading tracking-wide">Settings</h1>
+      <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-4">
+        <h1 className="font-heading text-2xl tracking-wide">Settings</h1>
       </div>
 
-      <div className="px-4 py-4 space-y-6 pb-24">
+      <div className="space-y-6 px-4 py-4 pb-24">
         <div>
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">Storage</h2>
+          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Storage
+          </h2>
           <StorageInfo />
         </div>
 
-        {menuItems.map((section) => (
+        {menuItems.map(section => (
           <div key={section.section}>
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">{section.section}</h2>
-            <div className="theme-card overflow-hidden divide-y divide-border">
-              {section.items.map((item) => {
+            <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {section.section}
+            </h2>
+            <div className="theme-card divide-y divide-border overflow-hidden">
+              {section.items.map(item => {
                 const Icon = item.icon;
                 return (
-                  <button key={item.label} onClick={item.onClick} className="w-full text-left hover:bg-accent/20 transition-colors">
+                  <button
+                    key={item.label}
+                    onClick={item.onClick}
+                    className="w-full text-left transition-colors hover:bg-accent/20"
+                  >
                     <div className="flex items-center gap-3 p-4">
-                      <div className={`h-10 w-10 rounded-full ${item.bgColor} flex items-center justify-center`}>
+                      <div
+                        className={`h-10 w-10 rounded-full ${item.bgColor} flex items-center justify-center`}
+                      >
                         <Icon className={`h-5 w-5 ${item.color}`} />
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{item.label}</p>
                         <p className="text-xs text-muted-foreground">{item.sublabel}</p>
                       </div>
-                      {item.rightContent || <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                      {item.rightContent || (
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      )}
                     </div>
                   </button>
                 );
@@ -1639,12 +2026,18 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      <IncomeModal open={incomeModalOpen} onClose={() => handleCloseProtectedModal("income", setIncomeModalOpen)} />
-      <ReportsModal open={reportsModalOpen} onClose={() => handleCloseProtectedModal("reports", setReportsModalOpen)} />
+      <IncomeModal
+        open={incomeModalOpen}
+        onClose={() => handleCloseProtectedModal("income", setIncomeModalOpen)}
+      />
+      <ReportsModal
+        open={reportsModalOpen}
+        onClose={() => handleCloseProtectedModal("reports", setReportsModalOpen)}
+      />
       <BackupModal open={backupModalOpen} onClose={() => setBackupModalOpen(false)} />
       <ChangePinModal open={changePinModalOpen} onClose={() => setChangePinModalOpen(false)} />
-      <BiometricSettingsModal 
-        open={biometricModalOpen} 
+      <BiometricSettingsModal
+        open={biometricModalOpen}
         onClose={() => handleCloseProtectedModal("biometric-settings", setBiometricModalOpen)}
         settings={biometricSettings}
         updateSettings={updateBiometricSettings}

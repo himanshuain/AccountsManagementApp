@@ -42,7 +42,7 @@ export async function hashPin(pin) {
 export async function verifyPassword(password, storedValue) {
   // Ensure password is a string
   const passwordStr = String(password);
-  
+
   // Check if the stored value is a bcrypt hash
   if (isBcryptHash(storedValue)) {
     // It's a hash - use bcrypt compare

@@ -120,13 +120,12 @@ export async function PUT(request, { params }) {
     // Clean up old images that were removed (best-effort, non-blocking)
     if (currentUdhar) {
       const imagesToDelete = [];
-      
+
       // Check if bill image was replaced
-      if (currentUdhar.bill_image && 
-          currentUdhar.bill_image !== record.bill_image) {
+      if (currentUdhar.bill_image && currentUdhar.bill_image !== record.bill_image) {
         imagesToDelete.push(currentUdhar.bill_image);
       }
-      
+
       // Check for removed khata photos
       const oldKhataPhotos = currentUdhar.khata_photos || [];
       const newKhataPhotos = record.khata_photos || [];
@@ -135,11 +134,11 @@ export async function PUT(request, { params }) {
           imagesToDelete.push(photo);
         }
       });
-      
+
       // Check for removed payment receipts
       const oldPayments = currentUdhar.payments || [];
       const newPayments = record.payments || [];
-      
+
       // Collect all receipt URLs from new payments (single and array)
       const newReceiptUrls = new Set();
       newPayments.forEach(p => {
@@ -149,7 +148,7 @@ export async function PUT(request, { params }) {
         const receipts = p.receiptUrls || p.receipt_urls || [];
         receipts.forEach(url => newReceiptUrls.add(url));
       });
-      
+
       // Find removed receipts from old payments
       oldPayments.forEach(payment => {
         // Check single receipt URL
@@ -165,7 +164,7 @@ export async function PUT(request, { params }) {
           }
         });
       });
-      
+
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {
           console.error("[Udhar Update] Image cleanup error:", err);

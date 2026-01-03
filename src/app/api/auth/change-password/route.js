@@ -57,10 +57,7 @@ export async function POST(request) {
     // Validate password strength
     const { valid, errors } = validatePasswordStrength(newPassword);
     if (!valid) {
-      return NextResponse.json(
-        { success: false, error: errors[0] },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: errors[0] }, { status: 400 });
     }
 
     const supabase = getServerClient();
@@ -140,7 +137,8 @@ export async function POST(request) {
     }
 
     // Verify current password (handles both hashed and legacy plaintext)
-    const storedPassword = existingSettings?.value || process.env.APP_PASSWORD || process.env.APP_PIN || "admin123";
+    const storedPassword =
+      existingSettings?.value || process.env.APP_PASSWORD || process.env.APP_PIN || "admin123";
     const { valid: currentPasswordValid } = await verifyPassword(currentPassword, storedPassword);
     if (!currentPasswordValid) {
       return NextResponse.json(
@@ -156,11 +154,15 @@ export async function POST(request) {
     if (settingsKey === "app_pin") {
       // Delete the old app_pin entry
       await supabase.from("app_settings").delete().eq("key", "app_pin");
-      
+
       // Insert new app_password entry
       const { error: insertError } = await supabase
         .from("app_settings")
-        .insert({ key: "app_password", value: hashedNewPassword, updated_at: new Date().toISOString() });
+        .insert({
+          key: "app_password",
+          value: hashedNewPassword,
+          updated_at: new Date().toISOString(),
+        });
 
       if (insertError) {
         console.error("Failed to migrate password:", insertError);

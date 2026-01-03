@@ -2,7 +2,17 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Share2, Download, ZoomIn, ZoomOut, RotateCw, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import {
+  X,
+  Share2,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -80,64 +90,70 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   };
 
   // Touch handlers
-  const handleTouchStart = useCallback((e) => {
-    const touches = e.touches;
-    
-    if (touches.length === 2) {
-      e.preventDefault();
-      touchState.current.isPinching = true;
-      touchState.current.startDistance = getDistance(touches[0], touches[1]);
-      touchState.current.startScale = scale;
-      touchState.current.startPosition = { ...position };
-    } else if (touches.length === 1) {
-      const now = Date.now();
-      const touch = touches[0];
-      
-      // Double tap detection
-      if (now - touchState.current.lastTap < 300) {
-        e.preventDefault();
-        if (scale > 1) {
-          setScale(1);
-          setPosition({ x: 0, y: 0 });
-        } else {
-          setScale(2.5);
-        }
-        touchState.current.lastTap = 0;
-      } else {
-        touchState.current.lastTap = now;
-        touchState.current.startX = touch.clientX;
-        touchState.current.startY = touch.clientY;
-        touchState.current.startPosition = { ...position };
-        touchState.current.isDragging = true;
-      }
-    }
-  }, [scale, position]);
+  const handleTouchStart = useCallback(
+    e => {
+      const touches = e.touches;
 
-  const handleTouchMove = useCallback((e) => {
-    const touches = e.touches;
-    
-    if (touchState.current.isPinching && touches.length === 2) {
-      e.preventDefault();
-      const currentDistance = getDistance(touches[0], touches[1]);
-      const scaleFactor = currentDistance / touchState.current.startDistance;
-      const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
-      setScale(newScale);
-    } else if (touchState.current.isDragging && touches.length === 1) {
-      const deltaX = touches[0].clientX - touchState.current.startX;
-      const deltaY = touches[0].clientY - touchState.current.startY;
-      
-      if (scale > 1) {
+      if (touches.length === 2) {
         e.preventDefault();
-        setPosition({
-          x: touchState.current.startPosition.x + deltaX / scale,
-          y: touchState.current.startPosition.y + deltaY / scale,
-        });
-      } else if (deltaY > 100 && Math.abs(deltaX) < 50) {
-        // Swipe down to close
-        onOpenChange(false);
+        touchState.current.isPinching = true;
+        touchState.current.startDistance = getDistance(touches[0], touches[1]);
+        touchState.current.startScale = scale;
+        touchState.current.startPosition = { ...position };
+      } else if (touches.length === 1) {
+        const now = Date.now();
+        const touch = touches[0];
+
+        // Double tap detection
+        if (now - touchState.current.lastTap < 300) {
+          e.preventDefault();
+          if (scale > 1) {
+            setScale(1);
+            setPosition({ x: 0, y: 0 });
+          } else {
+            setScale(2.5);
+          }
+          touchState.current.lastTap = 0;
+        } else {
+          touchState.current.lastTap = now;
+          touchState.current.startX = touch.clientX;
+          touchState.current.startY = touch.clientY;
+          touchState.current.startPosition = { ...position };
+          touchState.current.isDragging = true;
+        }
       }
-    }
-  }, [scale, onOpenChange]);
+    },
+    [scale, position]
+  );
+
+  const handleTouchMove = useCallback(
+    e => {
+      const touches = e.touches;
+
+      if (touchState.current.isPinching && touches.length === 2) {
+        e.preventDefault();
+        const currentDistance = getDistance(touches[0], touches[1]);
+        const scaleFactor = currentDistance / touchState.current.startDistance;
+        const newScale = Math.min(Math.max(touchState.current.startScale * scaleFactor, 0.5), 5);
+        setScale(newScale);
+      } else if (touchState.current.isDragging && touches.length === 1) {
+        const deltaX = touches[0].clientX - touchState.current.startX;
+        const deltaY = touches[0].clientY - touchState.current.startY;
+
+        if (scale > 1) {
+          e.preventDefault();
+          setPosition({
+            x: touchState.current.startPosition.x + deltaX / scale,
+            y: touchState.current.startPosition.y + deltaY / scale,
+          });
+        } else if (deltaY > 100 && Math.abs(deltaX) < 50) {
+          // Swipe down to close
+          onOpenChange(false);
+        }
+      }
+    },
+    [scale, onOpenChange]
+  );
 
   const handleTouchEnd = useCallback(() => {
     touchState.current.isPinching = false;
@@ -149,13 +165,16 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   }, [scale]);
 
   // Mouse wheel zoom
-  const handleWheel = useCallback((e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.3 : 0.3;
-    const newScale = Math.min(Math.max(scale + delta, 1), 5);
-    setScale(newScale);
-    if (newScale === 1) setPosition({ x: 0, y: 0 });
-  }, [scale]);
+  const handleWheel = useCallback(
+    e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.3 : 0.3;
+      const newScale = Math.min(Math.max(scale + delta, 1), 5);
+      setScale(newScale);
+      if (newScale === 1) setPosition({ x: 0, y: 0 });
+    },
+    [scale]
+  );
 
   // Actions
   const handleDownload = async () => {
@@ -194,13 +213,9 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   if (!open || !mounted) return null;
 
   const content = (
-    <div
-      className="fixed inset-0 z-[99999] flex flex-col bg-black"
-      role="dialog"
-      aria-modal="true"
-    >
+    <div className="fixed inset-0 z-[99999] flex flex-col bg-black" role="dialog" aria-modal="true">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-3">
         <Button
           variant="ghost"
           size="icon"
@@ -220,7 +235,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           >
             <ZoomOut className="h-5 w-5" />
           </Button>
-          <span className="min-w-[50px] text-center text-sm text-white font-mono">
+          <span className="min-w-[50px] text-center font-mono text-sm text-white">
             {Math.round(scale * 100)}%
           </span>
           <Button
@@ -262,13 +277,13 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden"
+        className="flex flex-1 items-center justify-center overflow-hidden"
         style={{ touchAction: "none" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
-        onClick={(e) => e.target === containerRef.current && scale === 1 && handleClose()}
+        onClick={e => e.target === containerRef.current && scale === 1 && handleClose()}
       >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -280,7 +295,13 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           <div className="flex flex-col items-center gap-4 text-white/70">
             <AlertCircle className="h-16 w-16" />
             <p>Failed to load image</p>
-            <Button variant="outline" onClick={() => { setHasError(false); setIsLoading(true); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setHasError(false);
+                setIsLoading(true);
+              }}
+            >
               Retry
             </Button>
           </div>
@@ -295,12 +316,16 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
             )}
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-              transition: touchState.current.isPinching || touchState.current.isDragging
-                ? "none"
-                : "transform 0.2s ease-out",
+              transition:
+                touchState.current.isPinching || touchState.current.isDragging
+                  ? "none"
+                  : "transform 0.2s ease-out",
             }}
             onLoad={() => setIsLoading(false)}
-            onError={() => { setIsLoading(false); setHasError(true); }}
+            onError={() => {
+              setIsLoading(false);
+              setHasError(true);
+            }}
             draggable={false}
           />
         )}
@@ -321,12 +346,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
 /**
  * Gallery Viewer for multiple images
  */
-export function ImageGalleryViewer({ 
-  images = [], 
-  initialIndex = 0, 
-  open, 
-  onOpenChange 
-}) {
+export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -346,7 +366,7 @@ export function ImageGalleryViewer({
   }, [images]);
 
   const currentImage = normalizedImages[currentIndex] || {};
-  
+
   // Resolve URL with fallback
   const imageUrl = useMemo(() => {
     const src = currentImage.url;
@@ -386,7 +406,9 @@ export function ImageGalleryViewer({
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open, initialIndex]);
 
   // Reset when changing images
@@ -397,12 +419,12 @@ export function ImageGalleryViewer({
     setIsLoading(true);
     setHasError(false);
   }, [currentIndex]);
-  
+
   // Preload adjacent images for smooth navigation
   useEffect(() => {
     if (!open || normalizedImages.length === 0) return;
-    
-    const preloadImage = (index) => {
+
+    const preloadImage = index => {
       if (index >= 0 && index < normalizedImages.length) {
         const img = normalizedImages[index];
         const src = img?.url;
@@ -416,7 +438,7 @@ export function ImageGalleryViewer({
         }
       }
     };
-    
+
     // Preload current, next, and previous images
     preloadImage(currentIndex);
     preloadImage(currentIndex + 1);
@@ -429,72 +451,78 @@ export function ImageGalleryViewer({
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const handleTouchStart = useCallback((e) => {
-    const touches = e.touches;
-    
-    if (touches.length === 2) {
-      e.preventDefault();
-      touchState.current.isPinching = true;
-      touchState.current.startDistance = getDistance(touches[0], touches[1]);
-      touchState.current.startScale = scale;
-      touchState.current.startPosition = { ...position };
-    } else if (touches.length === 1) {
-      const now = Date.now();
-      const touch = touches[0];
-      
-      if (now - touchState.current.lastTap < 300) {
-        e.preventDefault();
-        if (scale > 1) {
-          setScale(1);
-          setPosition({ x: 0, y: 0 });
-        } else {
-          setScale(2.5);
-        }
-        touchState.current.lastTap = 0;
-      } else {
-        touchState.current.lastTap = now;
-        touchState.current.startX = touch.clientX;
-        touchState.current.startY = touch.clientY;
-        touchState.current.startPosition = { ...position };
-        touchState.current.isDragging = true;
-      }
-    }
-  }, [scale, position]);
+  const handleTouchStart = useCallback(
+    e => {
+      const touches = e.touches;
 
-  const handleTouchMove = useCallback((e) => {
-    const touches = e.touches;
-    
-    if (touchState.current.isPinching && touches.length === 2) {
-      e.preventDefault();
-      const dist = getDistance(touches[0], touches[1]);
-      const factor = dist / touchState.current.startDistance;
-      setScale(Math.min(Math.max(touchState.current.startScale * factor, 0.5), 5));
-    } else if (touchState.current.isDragging && touches.length === 1) {
-      const deltaX = touches[0].clientX - touchState.current.startX;
-      const deltaY = touches[0].clientY - touchState.current.startY;
-      
-      if (scale > 1) {
+      if (touches.length === 2) {
         e.preventDefault();
-        setPosition({
-          x: touchState.current.startPosition.x + deltaX / scale,
-          y: touchState.current.startPosition.y + deltaY / scale,
-        });
-      } else {
-        // Swipe gestures when not zoomed
-        if (deltaY > 100 && Math.abs(deltaX) < 50) {
-          onOpenChange(false);
-        } else if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 50) {
-          if (deltaX > 0 && currentIndex > 0) {
-            setCurrentIndex(i => i - 1);
-            touchState.current.isDragging = false;
-          } else if (deltaX < 0 && currentIndex < normalizedImages.length - 1) {
-            setCurrentIndex(i => i + 1);
-            touchState.current.isDragging = false;
+        touchState.current.isPinching = true;
+        touchState.current.startDistance = getDistance(touches[0], touches[1]);
+        touchState.current.startScale = scale;
+        touchState.current.startPosition = { ...position };
+      } else if (touches.length === 1) {
+        const now = Date.now();
+        const touch = touches[0];
+
+        if (now - touchState.current.lastTap < 300) {
+          e.preventDefault();
+          if (scale > 1) {
+            setScale(1);
+            setPosition({ x: 0, y: 0 });
+          } else {
+            setScale(2.5);
+          }
+          touchState.current.lastTap = 0;
+        } else {
+          touchState.current.lastTap = now;
+          touchState.current.startX = touch.clientX;
+          touchState.current.startY = touch.clientY;
+          touchState.current.startPosition = { ...position };
+          touchState.current.isDragging = true;
+        }
+      }
+    },
+    [scale, position]
+  );
+
+  const handleTouchMove = useCallback(
+    e => {
+      const touches = e.touches;
+
+      if (touchState.current.isPinching && touches.length === 2) {
+        e.preventDefault();
+        const dist = getDistance(touches[0], touches[1]);
+        const factor = dist / touchState.current.startDistance;
+        setScale(Math.min(Math.max(touchState.current.startScale * factor, 0.5), 5));
+      } else if (touchState.current.isDragging && touches.length === 1) {
+        const deltaX = touches[0].clientX - touchState.current.startX;
+        const deltaY = touches[0].clientY - touchState.current.startY;
+
+        if (scale > 1) {
+          e.preventDefault();
+          setPosition({
+            x: touchState.current.startPosition.x + deltaX / scale,
+            y: touchState.current.startPosition.y + deltaY / scale,
+          });
+        } else {
+          // Swipe gestures when not zoomed
+          if (deltaY > 100 && Math.abs(deltaX) < 50) {
+            onOpenChange(false);
+          } else if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 50) {
+            if (deltaX > 0 && currentIndex > 0) {
+              setCurrentIndex(i => i - 1);
+              touchState.current.isDragging = false;
+            } else if (deltaX < 0 && currentIndex < normalizedImages.length - 1) {
+              setCurrentIndex(i => i + 1);
+              touchState.current.isDragging = false;
+            }
           }
         }
       }
-    }
-  }, [scale, onOpenChange, currentIndex, normalizedImages.length]);
+    },
+    [scale, onOpenChange, currentIndex, normalizedImages.length]
+  );
 
   const handleTouchEnd = useCallback(() => {
     touchState.current.isPinching = false;
@@ -505,13 +533,16 @@ export function ImageGalleryViewer({
     }
   }, [scale]);
 
-  const handleWheel = useCallback((e) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.3 : 0.3;
-    const newScale = Math.min(Math.max(scale + delta, 1), 5);
-    setScale(newScale);
-    if (newScale === 1) setPosition({ x: 0, y: 0 });
-  }, [scale]);
+  const handleWheel = useCallback(
+    e => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.3 : 0.3;
+      const newScale = Math.min(Math.max(scale + delta, 1), 5);
+      setScale(newScale);
+      if (newScale === 1) setPosition({ x: 0, y: 0 });
+    },
+    [scale]
+  );
 
   const handleDownload = async () => {
     if (!imageUrl) return;
@@ -546,18 +577,15 @@ export function ImageGalleryViewer({
 
   const handleClose = () => onOpenChange(false);
   const handlePrev = () => currentIndex > 0 && setCurrentIndex(i => i - 1);
-  const handleNext = () => currentIndex < normalizedImages.length - 1 && setCurrentIndex(i => i + 1);
+  const handleNext = () =>
+    currentIndex < normalizedImages.length - 1 && setCurrentIndex(i => i + 1);
 
   if (!open || !mounted || normalizedImages.length === 0) return null;
 
   const content = (
-    <div
-      className="fixed inset-0 z-[99999] flex flex-col bg-black"
-      role="dialog"
-      aria-modal="true"
-    >
+    <div className="fixed inset-0 z-[99999] flex flex-col bg-black" role="dialog" aria-modal="true">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-3">
         <Button
           variant="ghost"
           size="icon"
@@ -568,7 +596,7 @@ export function ImageGalleryViewer({
         </Button>
 
         {normalizedImages.length > 1 && (
-          <span className="text-white font-mono text-sm">
+          <span className="font-mono text-sm text-white">
             {currentIndex + 1} / {normalizedImages.length}
           </span>
         )}
@@ -604,7 +632,7 @@ export function ImageGalleryViewer({
       {/* Image Container */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden"
+        className="flex flex-1 items-center justify-center overflow-hidden"
         style={{ touchAction: "none" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -633,12 +661,16 @@ export function ImageGalleryViewer({
             )}
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-              transition: touchState.current.isPinching || touchState.current.isDragging
-                ? "none"
-                : "transform 0.2s ease-out",
+              transition:
+                touchState.current.isPinching || touchState.current.isDragging
+                  ? "none"
+                  : "transform 0.2s ease-out",
             }}
             onLoad={() => setIsLoading(false)}
-            onError={() => { setIsLoading(false); setHasError(true); }}
+            onError={() => {
+              setIsLoading(false);
+              setHasError(true);
+            }}
             draggable={false}
           />
         )}
@@ -649,7 +681,7 @@ export function ImageGalleryViewer({
         <>
           {currentIndex > 0 && (
             <button
-              className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+              className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
               onClick={handlePrev}
             >
               <ChevronLeft className="h-6 w-6" />
@@ -657,7 +689,7 @@ export function ImageGalleryViewer({
           )}
           {currentIndex < normalizedImages.length - 1 && (
             <button
-              className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+              className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
               onClick={handleNext}
             >
               <ChevronRight className="h-6 w-6" />
@@ -668,8 +700,8 @@ export function ImageGalleryViewer({
 
       {/* Transaction Info */}
       {currentImage.amount !== undefined && (
-        <div className="absolute bottom-20 left-4 right-4 rounded-xl bg-black/70 backdrop-blur-sm p-4 text-white">
-          <p className="text-2xl font-bold font-mono">
+        <div className="absolute bottom-20 left-4 right-4 rounded-xl bg-black/70 p-4 text-white backdrop-blur-sm">
+          <p className="font-mono text-2xl font-bold">
             ₹{Number(currentImage.amount).toLocaleString("en-IN")}
           </p>
           {currentImage.customerName && (
@@ -689,7 +721,7 @@ export function ImageGalleryViewer({
 
       {/* Thumbnails */}
       {normalizedImages.length > 1 && (
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 px-4 overflow-x-auto">
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4">
           {normalizedImages.slice(0, 8).map((img, idx) => {
             const thumbUrl = resolveImageUrl(img.url || img);
             return (
@@ -698,23 +730,18 @@ export function ImageGalleryViewer({
                 className={cn(
                   "h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
                   idx === currentIndex
-                    ? "border-white scale-110"
+                    ? "scale-110 border-white"
                     : "border-transparent opacity-60 hover:opacity-100"
                 )}
                 onClick={() => setCurrentIndex(idx)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={thumbUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  loading="eager"
-                />
+                <img src={thumbUrl} alt="" className="h-full w-full object-cover" loading="eager" />
               </button>
             );
           })}
           {normalizedImages.length > 8 && (
-            <div className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-lg bg-black/50 text-white text-xs">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-black/50 text-xs text-white">
               +{normalizedImages.length - 8}
             </div>
           )}

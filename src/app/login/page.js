@@ -27,7 +27,7 @@ export default function LoginPage() {
     checkAuth();
   }, [router]);
 
-  const handlePasswordSubmit = async (pwd) => {
+  const handlePasswordSubmit = async pwd => {
     if (isLoading) return;
 
     setIsLoading(true);
@@ -37,7 +37,7 @@ export default function LoginPage() {
 
     if (result.success) {
       // Small delay to ensure cookie is set before redirect
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100));
       window.location.href = "/";
     } else {
       setError(result.error || "Invalid password");
@@ -75,9 +75,7 @@ export default function LoginPage() {
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">Shop Manager</CardTitle>
-            <CardDescription className="mt-2">
-              Enter your password to access
-            </CardDescription>
+            <CardDescription className="mt-2">Enter your password to access</CardDescription>
           </div>
         </CardHeader>
 
@@ -93,9 +91,7 @@ export default function LoginPage() {
               submitButtonText="Login"
             />
 
-            {error && (
-              <p className="animate-shake text-center text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="animate-shake text-center text-sm text-destructive">{error}</p>}
 
             <p className="text-center text-xs text-muted-foreground">
               Contact your administrator if you forgot your password

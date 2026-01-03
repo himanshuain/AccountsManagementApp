@@ -504,7 +504,9 @@ export function TransactionTable({
                                         <button
                                           onClick={e => {
                                             e.stopPropagation();
-                                            setSelectedImages([resolveImageUrl(payment.receiptUrl)]);
+                                            setSelectedImages([
+                                              resolveImageUrl(payment.receiptUrl),
+                                            ]);
                                             setImageDialogOpen(true);
                                           }}
                                           className="ml-auto rounded-full bg-primary/10 p-1.5 text-primary transition-colors hover:bg-primary/20"

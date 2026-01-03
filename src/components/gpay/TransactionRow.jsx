@@ -18,19 +18,19 @@ export function TransactionRow({
   status = "success", // "success" | "pending" | "failed"
   description,
   onClick,
-  className
+  className,
 }) {
   const isIncome = type === "income" || type === "payment";
   const isFailed = status === "failed";
   const isPending = status === "pending";
 
   // Format date
-  const formatDate = (dateStr) => {
+  const formatDate = dateStr => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long'
+    return d.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
     });
   };
 
@@ -38,8 +38,8 @@ export function TransactionRow({
     <div
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 p-3 -mx-3",
-        "active:bg-muted/50 transition-colors cursor-pointer",
+        "-mx-3 flex items-center gap-3 p-3",
+        "cursor-pointer transition-colors active:bg-muted/50",
         "border-b border-border/50 last:border-b-0",
         className
       )}
@@ -48,8 +48,8 @@ export function TransactionRow({
       <PersonAvatar name={name} image={image} size="md" />
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{name}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">{name}</p>
         <p className="text-xs text-muted-foreground">
           {formatDate(date)}
           {description && ` • ${description}`}
@@ -57,25 +57,27 @@ export function TransactionRow({
       </div>
 
       {/* Amount and Status */}
-      <div className="text-right flex-shrink-0">
-        <p className={cn(
-          "font-semibold",
-          isFailed && "text-muted-foreground line-through",
-          !isFailed && isIncome && "text-emerald-500",
-          !isFailed && !isIncome && isPending && "text-amber-500"
-        )}>
-          {isIncome && !isFailed && "+"} ₹{amount?.toLocaleString('en-IN')}
+      <div className="flex-shrink-0 text-right">
+        <p
+          className={cn(
+            "font-semibold",
+            isFailed && "text-muted-foreground line-through",
+            !isFailed && isIncome && "text-emerald-500",
+            !isFailed && !isIncome && isPending && "text-amber-500"
+          )}
+        >
+          {isIncome && !isFailed && "+"} ₹{amount?.toLocaleString("en-IN")}
         </p>
-        
+
         {/* Status indicator */}
         {isFailed && (
-          <span className="flex items-center justify-end gap-1 text-xs text-red-500 mt-0.5">
+          <span className="mt-0.5 flex items-center justify-end gap-1 text-xs text-red-500">
             <XCircle className="h-3 w-3" />
             Failed
           </span>
         )}
         {isPending && !isFailed && (
-          <span className="flex items-center justify-end gap-1 text-xs text-amber-500 mt-0.5">
+          <span className="mt-0.5 flex items-center justify-end gap-1 text-xs text-amber-500">
             <Clock className="h-3 w-3" />
             Pending
           </span>
@@ -90,14 +92,14 @@ export function TransactionRow({
  */
 export function TransactionRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 p-3 -mx-3 border-b border-border/50">
-      <div className="h-12 w-12 rounded-full skeleton-shimmer" />
+    <div className="-mx-3 flex items-center gap-3 border-b border-border/50 p-3">
+      <div className="skeleton-shimmer h-12 w-12 rounded-full" />
       <div className="flex-1 space-y-2">
-        <div className="h-4 w-32 skeleton-shimmer rounded" />
-        <div className="h-3 w-24 skeleton-shimmer rounded" />
+        <div className="skeleton-shimmer h-4 w-32 rounded" />
+        <div className="skeleton-shimmer h-3 w-24 rounded" />
       </div>
-      <div className="text-right space-y-2">
-        <div className="h-4 w-16 skeleton-shimmer rounded ml-auto" />
+      <div className="space-y-2 text-right">
+        <div className="skeleton-shimmer ml-auto h-4 w-16 rounded" />
       </div>
     </div>
   );
@@ -113,28 +115,30 @@ export function TransactionGroup({
   isPositive = true,
   transactions = [],
   onTransactionClick,
-  className
+  className,
 }) {
   return (
     <div className={cn("mb-4", className)}>
       {/* Month Header */}
-      <div className="flex items-center justify-between py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+      <div className="sticky top-0 z-10 flex items-center justify-between bg-background/95 py-3 backdrop-blur-sm">
         <div>
-          <span className="text-[10px] text-muted-foreground block">{year}</span>
+          <span className="block text-[10px] text-muted-foreground">{year}</span>
           <span className="text-lg font-bold">{month}</span>
         </div>
         {totalAmount !== undefined && (
-          <span className={cn(
-            "text-base font-semibold",
-            isPositive ? "text-emerald-500" : "text-foreground"
-          )}>
-            {isPositive && "+"} ₹{Math.abs(totalAmount).toLocaleString('en-IN')}
+          <span
+            className={cn(
+              "text-base font-semibold",
+              isPositive ? "text-emerald-500" : "text-foreground"
+            )}
+          >
+            {isPositive && "+"} ₹{Math.abs(totalAmount).toLocaleString("en-IN")}
           </span>
         )}
       </div>
 
       {/* Transactions */}
-      <div className="bg-card rounded-xl border overflow-hidden">
+      <div className="overflow-hidden rounded-xl border bg-card">
         {transactions.map((txn, index) => (
           <TransactionRow
             key={txn.id || index}
@@ -154,8 +158,3 @@ export function TransactionGroup({
 }
 
 export default TransactionRow;
-
-
-
-
-

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Phone, 
-  Copy, 
-  ExternalLink, 
-  MapPin, 
+import {
+  Phone,
+  Copy,
+  ExternalLink,
+  MapPin,
   Building2,
   CreditCard,
   MessageSquare,
@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   MoreVertical,
   Edit,
-  Trash2
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,17 +36,17 @@ import { haptics } from "@/hooks/useHaptics";
 // Generate UPI payment URL
 const generateUpiPaymentUrl = (upiId, name, amount) => {
   if (!upiId) return null;
-  
+
   const params = new URLSearchParams({
     pa: upiId, // Payee address
-    pn: name || '', // Payee name
-    cu: 'INR', // Currency
+    pn: name || "", // Payee name
+    cu: "INR", // Currency
   });
-  
+
   if (amount && amount > 0) {
-    params.append('am', amount.toString());
+    params.append("am", amount.toString());
   }
-  
+
   return `upi://pay?${params.toString()}`;
 };
 
@@ -55,14 +55,14 @@ const generateGPayUrl = (upiId, phoneNumber) => {
   // Try GPay deep link first
   if (phoneNumber) {
     // Remove country code if present
-    const cleanPhone = phoneNumber.replace(/^\+91|^91/, '').replace(/\D/g, '');
+    const cleanPhone = phoneNumber.replace(/^\+91|^91/, "").replace(/\D/g, "");
     return `tez://upi/sendmoney?pn=&pa=&am=&tn=&mc=&mam=&mode=00&purpose=00&orgid=000000&refUrl=https://example.com&refId=ref&ver=01&sign=&qrdata=&psp=gpay&category=&extra=&phoneno=${cleanPhone}`;
   }
-  
+
   if (upiId) {
     return `tez://upi/pay?pa=${upiId}&mc=0000&mode=02&purpose=00`;
   }
-  
+
   return null;
 };
 
@@ -77,7 +77,7 @@ export function ProfileSheet({
   onEdit,
   onDelete,
   onCall,
-  className
+  className,
 }) {
   const [copied, setCopied] = useState(null);
 
@@ -106,7 +106,7 @@ export function ProfileSheet({
   const handleCall = () => {
     if (!phone) return;
     haptics.light();
-    
+
     if (onCall) {
       onCall(phone);
     } else {
@@ -117,7 +117,7 @@ export function ProfileSheet({
   // Handle UPI payment
   const handleUpiPay = (amount = 0) => {
     haptics.medium();
-    
+
     const url = generateUpiPaymentUrl(upiId, name, amount);
     if (url) {
       window.location.href = url;
@@ -129,29 +129,26 @@ export function ProfileSheet({
   // Handle Open in GPay
   const handleOpenGPay = () => {
     haptics.medium();
-    
+
     const url = generateGPayUrl(upiId, phone);
     if (url) {
       window.location.href = url;
     } else {
       // Fallback - try to open GPay app
       const fallbackUrl = `https://pay.google.com/`;
-      window.open(fallbackUrl, '_blank');
+      window.open(fallbackUrl, "_blank");
     }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
-        side="bottom" 
-        className={cn(
-          "h-[85vh] rounded-t-3xl p-0 flex flex-col",
-          className
-        )}
+      <SheetContent
+        side="bottom"
+        className={cn("flex h-[85vh] flex-col rounded-t-3xl p-0", className)}
         hideClose
       >
         {/* Header */}
-        <SheetHeader className="flex-shrink-0 flex flex-row items-center justify-between p-4 border-b">
+        <SheetHeader className="flex flex-shrink-0 flex-row items-center justify-between border-b p-4">
           <Button
             variant="ghost"
             size="icon"
@@ -160,7 +157,7 @@ export function ProfileSheet({
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -170,16 +167,16 @@ export function ProfileSheet({
             <DropdownMenuContent align="end">
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
               )}
               {onDelete && (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={onDelete}
                   className="text-destructive focus:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
               )}
@@ -191,24 +188,21 @@ export function ProfileSheet({
         <div className="flex-1 overflow-y-auto">
           {/* Avatar and Name */}
           <div className="flex flex-col items-center py-6">
-            <PersonAvatar
-              name={name}
-              image={person.profilePicture}
-              size="xl"
-            />
-            <h2 className="text-xl font-bold mt-4">{name}</h2>
+            <PersonAvatar name={name} image={person.profilePicture} size="xl" />
+            <h2 className="mt-4 text-xl font-bold">{name}</h2>
             {secondaryName && (
               <p className="text-sm text-muted-foreground">
-                {type === "supplier" ? "Contact: " : ""}{secondaryName}
+                {type === "supplier" ? "Contact: " : ""}
+                {secondaryName}
               </p>
             )}
           </div>
 
           {/* Contact Info Card */}
-          <div className="mx-4 mb-4 rounded-2xl bg-card border overflow-hidden">
+          <div className="mx-4 mb-4 overflow-hidden rounded-2xl border bg-card">
             {/* Phone */}
             {phone && (
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between border-b p-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Phone number</p>
                   <p className="font-medium">{phone}</p>
@@ -226,7 +220,7 @@ export function ProfileSheet({
 
             {/* UPI ID */}
             {upiId && (
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between border-b p-4">
                 <div>
                   <p className="text-xs text-muted-foreground">UPI ID</p>
                   <p className="font-medium">{upiId}</p>
@@ -248,7 +242,7 @@ export function ProfileSheet({
 
             {/* Company (for suppliers) */}
             {type === "supplier" && person.companyName && (
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between border-b p-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Company</p>
                   <p className="font-medium">{person.companyName}</p>
@@ -264,7 +258,7 @@ export function ProfileSheet({
                   <p className="text-xs text-muted-foreground">Address</p>
                   <p className="font-medium">{address}</p>
                 </div>
-                <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                <MapPin className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
               </div>
             )}
           </div>
@@ -272,18 +266,20 @@ export function ProfileSheet({
           {/* Payment Summary (if has transactions) */}
           {totalAmount > 0 && (
             <div className="mx-4 mb-4 rounded-2xl bg-muted/50 p-4">
-              <p className="text-xs text-muted-foreground mb-2">Payment Summary</p>
+              <p className="mb-2 text-xs text-muted-foreground">Payment Summary</p>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">₹{totalAmount.toLocaleString('en-IN')}</p>
+                  <p className="text-2xl font-bold">₹{totalAmount.toLocaleString("en-IN")}</p>
                   <p className="text-xs text-muted-foreground">Total</p>
                 </div>
                 <div className="text-right">
-                  <p className={cn(
-                    "text-lg font-semibold",
-                    pendingAmount > 0 ? "text-amber-500" : "text-emerald-500"
-                  )}>
-                    ₹{pendingAmount.toLocaleString('en-IN')}
+                  <p
+                    className={cn(
+                      "text-lg font-semibold",
+                      pendingAmount > 0 ? "text-amber-500" : "text-emerald-500"
+                    )}
+                  >
+                    ₹{pendingAmount.toLocaleString("en-IN")}
                   </p>
                   <p className="text-xs text-muted-foreground">Pending</p>
                 </div>
@@ -296,21 +292,17 @@ export function ProfileSheet({
             {/* Pay via GPay */}
             {upiId && (
               <Button
-                className="w-full h-12 gap-2 bg-[#4285F4] hover:bg-[#3367D6] text-white"
+                className="h-12 w-full gap-2 bg-[#4285F4] text-white hover:bg-[#3367D6]"
                 onClick={() => handleUpiPay(pendingAmount)}
               >
                 <CreditCard className="h-5 w-5" />
-                Pay{pendingAmount > 0 ? ` ₹${pendingAmount.toLocaleString('en-IN')}` : ""} via UPI
+                Pay{pendingAmount > 0 ? ` ₹${pendingAmount.toLocaleString("en-IN")}` : ""} via UPI
               </Button>
             )}
 
             {/* Open in GPay */}
             {(upiId || phone) && (
-              <Button
-                variant="outline"
-                className="w-full h-12 gap-2"
-                onClick={handleOpenGPay}
-              >
+              <Button variant="outline" className="h-12 w-full gap-2" onClick={handleOpenGPay}>
                 <ExternalLink className="h-5 w-5" />
                 Open in GPay
               </Button>
@@ -323,8 +315,3 @@ export function ProfileSheet({
 }
 
 export default ProfileSheet;
-
-
-
-
-

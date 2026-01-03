@@ -14,11 +14,11 @@ export default function LegacyDashboardLayout({ children }) {
   useEffect(() => {
     // Map old routes to new GPay routes
     const redirectMap = {
-      "/": "/",                           // Home stays at /
-      "/suppliers": "/",                  // Suppliers now in home
-      "/customers": "/",                  // Customers now in home  
-      "/transactions": "/history",        // Transactions -> History
-      "/reports": "/settings",            // Reports -> Settings (with reports modal)
+      "/": "/", // Home stays at /
+      "/suppliers": "/", // Suppliers now in home
+      "/customers": "/", // Customers now in home
+      "/transactions": "/history", // Transactions -> History
+      "/reports": "/settings", // Reports -> Settings (with reports modal)
     };
 
     // Check for supplier/customer detail pages

@@ -28,9 +28,7 @@ export function UdharForm({
   const isOnline = useOnlineStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [khataPhotos, setKhataPhotos] = useState([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState(
-    defaultCustomerId || ""
-  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId || "");
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [isUploadingKhata, setIsUploadingKhata] = useState(false);
 
@@ -38,8 +36,8 @@ export function UdharForm({
   const getLocalDate = () => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -179,7 +177,7 @@ export function UdharForm({
   };
 
   // Handler for Sheet's onOpenChange - only close, don't interfere with opening
-  const handleSheetOpenChange = (isOpen) => {
+  const handleSheetOpenChange = isOpen => {
     if (!isOpen) {
       handleClose();
     }
@@ -407,15 +405,15 @@ export function UdharForm({
                 <Input
                   id="date"
                   type="date"
-                  {...register("date", { 
+                  {...register("date", {
                     required: "Date is required",
-                    validate: (value) => {
+                    validate: value => {
                       const today = getLocalDate();
                       if (value > today) return "Future dates are not allowed";
                       return true;
-                    }
+                    },
                   })}
-                  onChange={(e) => {
+                  onChange={e => {
                     // Prevent future dates (iOS Safari ignores max attribute)
                     const today = getLocalDate();
                     if (e.target.value > today) {

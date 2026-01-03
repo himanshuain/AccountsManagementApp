@@ -2,7 +2,15 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, ArrowUpRight, ArrowDownLeft, X, Store, Users } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  ArrowUpRight,
+  ArrowDownLeft,
+  X,
+  Store,
+  Users,
+} from "lucide-react";
 import { format, parseISO, subMonths, isWithinInterval, startOfMonth, endOfMonth } from "date-fns";
 
 import { useSuppliers } from "@/hooks/useSuppliers";
@@ -118,11 +126,13 @@ export default function HistoryPage() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
-      
+
       result = result.filter(t => {
         // Match by name or description
-        if (t.personName?.toLowerCase().includes(query) ||
-            t.description?.toLowerCase().includes(query)) {
+        if (
+          t.personName?.toLowerCase().includes(query) ||
+          t.description?.toLowerCase().includes(query)
+        ) {
           return true;
         }
         // Match by amount if search looks like a number
@@ -140,11 +150,11 @@ export default function HistoryPage() {
   // Group by month for display
   const groupedTransactions = useMemo(() => {
     const groups = {};
-    
+
     filteredTransactions.forEach(txn => {
       const monthKey = format(parseISO(txn.date), "yyyy-MM");
       const monthLabel = format(parseISO(txn.date), "MMMM yyyy");
-      
+
       if (!groups[monthKey]) {
         groups[monthKey] = {
           key: monthKey,
@@ -154,25 +164,31 @@ export default function HistoryPage() {
           totalOut: 0,
         };
       }
-      
+
       groups[monthKey].transactions.push(txn);
-      
+
       if (txn.isOutgoing) {
         groups[monthKey].totalOut += txn.amount;
       } else {
         groups[monthKey].totalIn += txn.amount;
       }
     });
-    
+
     return Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
   }, [filteredTransactions]);
 
   // Summary stats
   const stats = useMemo(() => {
-    const totalOut = filteredTransactions.filter(t => t.isOutgoing).reduce((sum, t) => sum + t.amount, 0);
-    const totalIn = filteredTransactions.filter(t => !t.isOutgoing).reduce((sum, t) => sum + t.amount, 0);
-    const pending = filteredTransactions.filter(t => t.status !== "paid").reduce((sum, t) => sum + t.amount, 0);
-    
+    const totalOut = filteredTransactions
+      .filter(t => t.isOutgoing)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalIn = filteredTransactions
+      .filter(t => !t.isOutgoing)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const pending = filteredTransactions
+      .filter(t => t.status !== "paid")
+      .reduce((sum, t) => sum + t.amount, 0);
+
     return { totalOut, totalIn, pending, count: filteredTransactions.length };
   }, [filteredTransactions]);
 
@@ -182,22 +198,22 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-20 header-glass">
+      <div className="header-glass sticky top-0 z-20">
         {/* Search */}
-        <div className="px-4 py-3 border-b border-border">
+        <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search name or amount..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="input-hero pl-12 pr-10"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-accent text-muted-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -206,14 +222,14 @@ export default function HistoryPage() {
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "p-3 rounded-xl transition-colors flex-shrink-0 relative",
+                "relative flex-shrink-0 rounded-xl p-3 transition-colors",
                 showFilters ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
               )}
             >
               <SlidersHorizontal className="h-5 w-5" />
               {/* Active filter indicator */}
               {hasActiveFilters && !showFilters && (
-                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+                <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-primary" />
               )}
             </button>
           </div>
@@ -221,17 +237,17 @@ export default function HistoryPage() {
 
         {/* Filter Chips */}
         {showFilters && (
-          <div className="px-4 py-3 space-y-3 animate-slide-up border-b border-border">
+          <div className="animate-slide-up space-y-3 border-b border-border px-4 py-3">
             {/* Type filters */}
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Type</p>
-              <div className="flex gap-2 overflow-x-hidden flex-wrap">
+              <p className="mb-2 text-xs text-muted-foreground">Type</p>
+              <div className="flex flex-wrap gap-2 overflow-x-hidden">
                 {FILTER_OPTIONS.map(filter => (
                   <button
                     key={filter.id}
                     onClick={() => setActiveFilter(filter.id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+                      "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                       activeFilter === filter.id
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-accent"
@@ -245,14 +261,14 @@ export default function HistoryPage() {
 
             {/* Time filters */}
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Time Period</p>
-              <div className="flex gap-2 overflow-x-hidden flex-wrap">
+              <p className="mb-2 text-xs text-muted-foreground">Time Period</p>
+              <div className="flex flex-wrap gap-2 overflow-x-hidden">
                 {TIME_FILTERS.map(filter => (
                   <button
                     key={filter.id}
                     onClick={() => setTimeFilter(filter.id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+                      "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                       timeFilter === filter.id
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-accent"
@@ -272,7 +288,7 @@ export default function HistoryPage() {
                   setTimeFilter("all");
                   setSearchQuery("");
                 }}
-                className="text-sm text-primary font-medium"
+                className="text-sm font-medium text-primary"
               >
                 Clear all filters
               </button>
@@ -281,7 +297,7 @@ export default function HistoryPage() {
         )}
 
         {/* Summary Stats */}
-        <div className="px-4 py-3 border-b border-border">
+        <div className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="text-muted-foreground">{stats.count} transactions</span>
@@ -294,7 +310,7 @@ export default function HistoryPage() {
       <div className="overflow-y-auto overflow-x-hidden">
         {groupedTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <p className="text-muted-foreground mb-2">No transactions found</p>
+            <p className="mb-2 text-muted-foreground">No transactions found</p>
             {hasActiveFilters && (
               <button
                 onClick={() => {
@@ -302,7 +318,7 @@ export default function HistoryPage() {
                   setActiveFilter("all");
                   setTimeFilter("all");
                 }}
-                className="text-primary text-sm font-medium"
+                className="text-sm font-medium text-primary"
               >
                 Clear filters
               </button>
@@ -312,8 +328,8 @@ export default function HistoryPage() {
           groupedTransactions.map(group => (
             <div key={group.key} className="bg-card/30 backdrop-blur-sm">
               {/* Month Header */}
-              <div className="sticky top-0 z-10 header-glass px-4 py-4 flex items-center justify-between border-b border-border">
-                <span className="font-heading text-lg tracking-wide">{group.label}</span>         
+              <div className="header-glass sticky top-0 z-10 flex items-center justify-between border-b border-border px-4 py-4">
+                <span className="font-heading text-lg tracking-wide">{group.label}</span>
               </div>
 
               {/* Transactions */}
@@ -321,8 +337,10 @@ export default function HistoryPage() {
                 {group.transactions.map(txn => (
                   <div
                     key={`${txn.type}-${txn.id}`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer active:scale-[0.99]"
-                    onClick={() => router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`)}
+                    className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 active:scale-[0.99]"
+                    onClick={() =>
+                      router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`)
+                    }
                   >
                     <PersonAvatar
                       name={txn.personName}
@@ -330,44 +348,64 @@ export default function HistoryPage() {
                       size="md"
                       className="avatar-hero"
                     />
-                    
-                    <div className="flex-1 min-w-0">
+
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{txn.personName}</p>
+                        <p className="truncate font-medium">{txn.personName}</p>
                         {/* Type badge - Supplier or Customer */}
-                        <span className={cn(
-                          "px-1.5 py-0.5 rounded text-[10px] font-medium flex items-center gap-0.5",
-                          txn.type === "supplier" ? "badge-supplier" : "badge-customer"
-                        )}>
+                        <span
+                          className={cn(
+                            "flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                            txn.type === "supplier" ? "badge-supplier" : "badge-customer"
+                          )}
+                        >
                           {txn.type === "supplier" ? (
-                            <><Store className="h-2.5 w-2.5" /> Supplier</>
+                            <>
+                              <Store className="h-2.5 w-2.5" /> Supplier
+                            </>
                           ) : (
-                            <><Users className="h-2.5 w-2.5" /> Customer</>
+                            <>
+                              <Users className="h-2.5 w-2.5" /> Customer
+                            </>
                           )}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="truncate text-sm text-muted-foreground">
                         {format(parseISO(txn.date), "dd MMM, h:mm a")}
                         {txn.description && ` • ${txn.description}`}
                       </p>
                     </div>
-                    
-                    <div className="text-right flex-shrink-0">
+
+                    <div className="flex-shrink-0 text-right">
                       <div className="flex items-center gap-1 font-mono font-semibold">
                         {txn.isOutgoing ? (
-                          <ArrowUpRight className={cn("h-4 w-4", txn.status === "paid" ? "amount-positive" : "amount-negative")} />
+                          <ArrowUpRight
+                            className={cn(
+                              "h-4 w-4",
+                              txn.status === "paid" ? "amount-positive" : "amount-negative"
+                            )}
+                          />
                         ) : (
-                          <ArrowDownLeft className={cn("h-4 w-4", txn.status === "paid" ? "amount-positive" : "amount-negative")} />
+                          <ArrowDownLeft
+                            className={cn(
+                              "h-4 w-4",
+                              txn.status === "paid" ? "amount-positive" : "amount-negative"
+                            )}
+                          />
                         )}
-                        <span className={txn.status === "paid" ?  "amount-positive": "amount-negative"}>
+                        <span
+                          className={txn.status === "paid" ? "amount-positive" : "amount-negative"}
+                        >
                           ₹{txn.amount.toLocaleString("en-IN")}
                         </span>
                       </div>
                       {/* Status badge - Paid (green) or Pending (orange) */}
-                      <span className={cn(
-                        "text-[10px] font-medium",
-                        txn.status === "paid" ? "status-paid" : "status-pending"
-                      )}>
+                      <span
+                        className={cn(
+                          "text-[10px] font-medium",
+                          txn.status === "paid" ? "status-paid" : "status-pending"
+                        )}
+                      >
                         {txn.status === "paid" ? "Paid" : "Pending"}
                       </span>
                     </div>

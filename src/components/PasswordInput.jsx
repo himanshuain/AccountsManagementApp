@@ -20,7 +20,7 @@ export function PasswordInput({
 }) {
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = e => {
     if (e.key === "Enter" && onSubmit && value) {
       onSubmit(value);
     }
@@ -33,7 +33,7 @@ export function PasswordInput({
         <Input
           type={showPassword ? "text" : "password"}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled || isLoading}
@@ -52,11 +52,7 @@ export function PasswordInput({
           onClick={() => setShowPassword(!showPassword)}
           disabled={disabled || isLoading}
         >
-          {showPassword ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>
       </div>
 
@@ -81,4 +77,3 @@ export function PasswordInput({
 }
 
 export default PasswordInput;
-

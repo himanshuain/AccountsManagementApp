@@ -3,15 +3,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import {
-  Search,
-  ChevronLeft,
-  MoreVertical,
-  Users,
-  Store,
-  Receipt,
-  Banknote,
-} from "lucide-react";
+import { Search, ChevronLeft, MoreVertical, Users, Store, Receipt, Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,7 +37,7 @@ export default function TransactionsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const isOnline = useOnlineStatus();
-  
+
   const { suppliers } = useSuppliers();
   const {
     transactions,
@@ -55,7 +47,7 @@ export default function TransactionsPage() {
     hasNextPage: hasMoreTransactions,
     isFetchingNextPage: isFetchingMoreTransactions,
   } = useTransactions();
-  
+
   const { customers } = useCustomers();
   const {
     udharList,
@@ -80,7 +72,7 @@ export default function TransactionsPage() {
   const [dateFilter, setDateFilter] = useState("all");
 
   // Persist tab selection
-  const handleTabChange = (tab) => {
+  const handleTabChange = tab => {
     setActiveTab(tab);
     haptics.light();
     if (typeof window !== "undefined") {
@@ -130,7 +122,7 @@ export default function TransactionsPage() {
   // Process supplier transactions
   const processedTransactions = useMemo(() => {
     let filtered = [...transactions];
-    
+
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -144,12 +136,12 @@ export default function TransactionsPage() {
         );
       });
     }
-    
+
     // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(t => t.paymentStatus === statusFilter);
     }
-    
+
     // Date filter
     if (dateFilter !== "all") {
       const days = parseInt(dateFilter);
@@ -157,20 +149,20 @@ export default function TransactionsPage() {
       startDate.setDate(startDate.getDate() - days);
       filtered = filtered.filter(t => new Date(t.date) >= startDate);
     }
-    
+
     // Sort by date (newest first)
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
+
     // Group by month
     const grouped = {};
     filtered.forEach(t => {
       const date = new Date(t.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       if (!grouped[monthKey]) {
         grouped[monthKey] = {
           month: monthKey,
           year: date.getFullYear(),
-          monthName: date.toLocaleDateString('en-IN', { month: 'long' }),
+          monthName: date.toLocaleDateString("en-IN", { month: "long" }),
           transactions: [],
           total: 0,
         };
@@ -178,14 +170,14 @@ export default function TransactionsPage() {
       grouped[monthKey].transactions.push(t);
       grouped[monthKey].total += Number(t.amount) || 0;
     });
-    
+
     return Object.values(grouped).sort((a, b) => b.month.localeCompare(a.month));
   }, [transactions, suppliers, searchQuery, statusFilter, dateFilter]);
 
   // Process customer udhar
   const processedUdhar = useMemo(() => {
     let filtered = [...udharList];
-    
+
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -198,12 +190,12 @@ export default function TransactionsPage() {
         );
       });
     }
-    
+
     // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(u => u.paymentStatus === statusFilter);
     }
-    
+
     // Date filter
     if (dateFilter !== "all") {
       const days = parseInt(dateFilter);
@@ -211,23 +203,23 @@ export default function TransactionsPage() {
       startDate.setDate(startDate.getDate() - days);
       filtered = filtered.filter(u => new Date(u.date) >= startDate);
     }
-    
+
     // Sort by date (newest first)
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
+
     // Group by month
     const grouped = {};
     filtered.forEach(u => {
       const date = new Date(u.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const amount = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
       const paidAmount = u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
-      
+
       if (!grouped[monthKey]) {
         grouped[monthKey] = {
           month: monthKey,
           year: date.getFullYear(),
-          monthName: date.toLocaleDateString('en-IN', { month: 'long' }),
+          monthName: date.toLocaleDateString("en-IN", { month: "long" }),
           transactions: [],
           total: 0,
           collected: 0,
@@ -237,12 +229,12 @@ export default function TransactionsPage() {
       grouped[monthKey].total += amount;
       grouped[monthKey].collected += paidAmount;
     });
-    
+
     return Object.values(grouped).sort((a, b) => b.month.localeCompare(a.month));
   }, [udharList, customers, searchQuery, statusFilter, dateFilter]);
 
   // Handle transaction click
-  const handleTransactionClick = (item) => {
+  const handleTransactionClick = item => {
     haptics.light();
     if (activeTab === "suppliers") {
       router.push(`/chat/supplier/${item.supplierId}`);
@@ -257,7 +249,7 @@ export default function TransactionsPage() {
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-6">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b">
+      <div className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur-sm">
         <div className="flex items-center gap-2 px-2 py-2">
           <Button
             variant="ghost"
@@ -267,19 +259,19 @@ export default function TransactionsPage() {
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          
+
           {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search transactions..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 bg-muted border-0 rounded-xl"
+              onChange={e => setSearchQuery(e.target.value)}
+              className="h-10 rounded-xl border-0 bg-muted pl-9"
             />
           </div>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
@@ -326,9 +318,9 @@ export default function TransactionsPage() {
         ) : data.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             {activeTab === "suppliers" ? (
-              <Receipt className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <Receipt className="mb-4 h-12 w-12 text-muted-foreground/50" />
             ) : (
-              <Banknote className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <Banknote className="mb-4 h-12 w-12 text-muted-foreground/50" />
             )}
             <p className="text-muted-foreground">No transactions found</p>
             {(searchQuery || statusFilter !== "all" || dateFilter !== "all") && (
@@ -347,7 +339,7 @@ export default function TransactionsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {data.map((group) => (
+            {data.map(group => (
               <div key={group.month} className="space-y-1">
                 {/* Month Header */}
                 <MonthHeader
@@ -356,21 +348,23 @@ export default function TransactionsPage() {
                   totalAmount={activeTab === "customers" ? group.collected : group.total}
                   isPositive={activeTab === "customers"}
                 />
-                
+
                 {/* Transactions */}
-                <div className="bg-card rounded-xl border overflow-hidden">
+                <div className="overflow-hidden rounded-xl border bg-card">
                   {group.transactions.map((item, index) => {
-                    const person = activeTab === "suppliers"
-                      ? suppliers.find(s => s.id === item.supplierId)
-                      : customers.find(c => c.id === item.customerId);
-                    
-                    const amount = activeTab === "suppliers"
-                      ? item.amount
-                      : item.amount || (item.cashAmount || 0) + (item.onlineAmount || 0);
-                    
+                    const person =
+                      activeTab === "suppliers"
+                        ? suppliers.find(s => s.id === item.supplierId)
+                        : customers.find(c => c.id === item.customerId);
+
+                    const amount =
+                      activeTab === "suppliers"
+                        ? item.amount
+                        : item.amount || (item.cashAmount || 0) + (item.onlineAmount || 0);
+
                     const isPaid = item.paymentStatus === "paid";
                     const isPartial = item.paymentStatus === "partial";
-                    
+
                     return (
                       <TransactionRow
                         key={item.id || index}

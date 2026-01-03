@@ -23,7 +23,14 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -294,7 +301,9 @@ export function MobileNav() {
                         </div>
                         <div className="space-y-0.5">
                           <p className="text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">{storageInfo.usedFormatted}</span>
+                            <span className="font-medium text-foreground">
+                              {storageInfo.usedFormatted}
+                            </span>
                             {" / "}
                             {storageInfo.totalFormatted} ({storageInfo.usedPercentage}%)
                           </p>
@@ -441,9 +450,7 @@ export function MobileNav() {
               <Key className="h-5 w-5" />
               Change Password
             </SheetTitle>
-            <SheetDescription>
-              Enter your current password and choose a new one
-            </SheetDescription>
+            <SheetDescription>Enter your current password and choose a new one</SheetDescription>
           </SheetHeader>
 
           <div className="space-y-4 py-4">
@@ -496,11 +503,7 @@ export function MobileNav() {
                   className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                 >
-                  {showNewPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -534,20 +537,14 @@ export function MobileNav() {
               </div>
             </div>
 
-            {passwordError && (
-              <p className="text-sm text-destructive">{passwordError}</p>
-            )}
+            {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
           </div>
 
           <div className="flex gap-3 pb-6">
             <Button variant="outline" className="flex-1" onClick={resetPasswordForm}>
               Cancel
             </Button>
-            <Button
-              className="flex-1"
-              onClick={handlePasswordChange}
-              disabled={isChangingPassword}
-            >
+            <Button className="flex-1" onClick={handlePasswordChange} disabled={isChangingPassword}>
               {isChangingPassword ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

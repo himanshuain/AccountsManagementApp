@@ -34,7 +34,9 @@ export function isCdnConfigured() {
  */
 export function isStorageKey(value) {
   if (!value || typeof value !== "string") return false;
-  return !value.startsWith("http://") && !value.startsWith("https://") && !value.startsWith("data:");
+  return (
+    !value.startsWith("http://") && !value.startsWith("https://") && !value.startsWith("data:")
+  );
 }
 
 /**
@@ -323,4 +325,3 @@ export default {
   normalizeToStorageKey,
   processImageArray,
 };
-

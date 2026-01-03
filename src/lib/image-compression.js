@@ -1,6 +1,6 @@
 /**
  * Enhanced image compression optimized for mobile and Cloudflare R2 storage
- * 
+ *
  * Improvements:
  * - WebP format support for better compression
  * - More aggressive compression for R2 storage savings
@@ -13,17 +13,17 @@
  * Check if WebP is supported
  */
 const supportsWebP = () => {
-  if (typeof document === 'undefined') return false;
-  const canvas = document.createElement('canvas');
+  if (typeof document === "undefined") return false;
+  const canvas = document.createElement("canvas");
   canvas.width = 1;
   canvas.height = 1;
-  return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
 };
 
 /**
  * Compress an image file while maintaining acceptable quality
  * Optimized for Cloudflare R2 storage
- * 
+ *
  * @param {File} file - The image file to compress
  * @param {Object} options - Compression options
  * @param {number} options.maxWidth - Maximum width (default: 1200 for mobile)
@@ -34,12 +34,12 @@ const supportsWebP = () => {
  * @returns {Promise<File>} - Compressed image file
  */
 export async function compressImage(file, options = {}) {
-  const { 
-    maxWidth = 1600,  // Higher resolution for better quality
-    maxHeight = 1600, 
-    quality = 0.85,   // Better quality default
-    maxSizeKB = 500,  // Increased target for better quality
-    useWebP = false   // JPEG for better compatibility
+  const {
+    maxWidth = 1600, // Higher resolution for better quality
+    maxHeight = 1600,
+    quality = 0.85, // Better quality default
+    maxSizeKB = 500, // Increased target for better quality
+    useWebP = false, // JPEG for better compatibility
   } = options;
 
   // Skip compression for very small files (under 50KB)
@@ -53,8 +53,8 @@ export async function compressImage(file, options = {}) {
   }
 
   const canUseWebP = useWebP && supportsWebP();
-  const outputFormat = canUseWebP ? 'image/webp' : 'image/jpeg';
-  const outputExtension = canUseWebP ? '.webp' : '.jpg';
+  const outputFormat = canUseWebP ? "image/webp" : "image/jpeg";
+  const outputExtension = canUseWebP ? ".webp" : ".jpg";
 
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -65,7 +65,7 @@ export async function compressImage(file, options = {}) {
       img.onload = () => {
         // Clean up object URL to prevent memory leaks (important for Android)
         URL.revokeObjectURL(img.src);
-        
+
         // Calculate new dimensions while maintaining aspect ratio
         let { width, height } = img;
         const originalWidth = width;
@@ -74,7 +74,7 @@ export async function compressImage(file, options = {}) {
         // More aggressive downscaling for large images
         const maxDimension = Math.max(maxWidth, maxHeight);
         const currentMaxDimension = Math.max(width, height);
-        
+
         if (currentMaxDimension > maxDimension) {
           const scale = maxDimension / currentMaxDimension;
           width = Math.round(width * scale);
@@ -93,33 +93,33 @@ export async function compressImage(file, options = {}) {
         canvas.width = width;
         canvas.height = height;
 
-        const ctx = canvas.getContext("2d", { 
+        const ctx = canvas.getContext("2d", {
           alpha: false, // No transparency needed for photos
-          desynchronized: true // Better performance on Android
+          desynchronized: true, // Better performance on Android
         });
-        
+
         // Use better image smoothing for quality
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        
+        ctx.imageSmoothingQuality = "high";
+
         // Fill with white background (prevents black background for JPEGs)
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, width, height);
-        
+
         ctx.drawImage(img, 0, 0, width, height);
 
         // Progressive quality reduction to meet target size
-        const compressWithQuality = (currentQuality) => {
+        const compressWithQuality = currentQuality => {
           canvas.toBlob(
             blob => {
               if (!blob) {
-                console.warn('[Image Compression] Blob creation failed, returning original');
+                console.warn("[Image Compression] Blob creation failed, returning original");
                 resolve(file);
                 return;
               }
 
               const currentSizeKB = blob.size / 1024;
-              
+
               // If still too large and quality can be reduced, try again
               // Minimum quality of 0.5 to maintain decent image quality
               if (currentSizeKB > maxSizeKB && currentQuality > 0.5) {
@@ -130,7 +130,7 @@ export async function compressImage(file, options = {}) {
               }
 
               // Generate new filename with proper extension
-              const baseName = file.name.replace(/\.[^.]+$/, '');
+              const baseName = file.name.replace(/\.[^.]+$/, "");
               const newFileName = `${baseName}${outputExtension}`;
 
               // Create new file with compressed blob
@@ -144,7 +144,7 @@ export async function compressImage(file, options = {}) {
               const compressedSizeKB = Math.round(compressedFile.size / 1024);
               const savings = Math.round(((file.size - compressedFile.size) / file.size) * 100);
               const dimensionChange = `${originalWidth}x${originalHeight} → ${width}x${height}`;
-              
+
               console.log(
                 `[Image Compression] ${originalSizeKB}KB → ${compressedSizeKB}KB (${savings}% reduction) | ${dimensionChange} | Format: ${outputFormat}`
               );
@@ -172,7 +172,7 @@ export async function compressImage(file, options = {}) {
       };
 
       img.onerror = () => {
-        console.warn('[Image Compression] Image loading failed, returning original');
+        console.warn("[Image Compression] Image loading failed, returning original");
         resolve(file);
       };
 
@@ -182,7 +182,7 @@ export async function compressImage(file, options = {}) {
     };
 
     reader.onerror = () => {
-      console.warn('[Image Compression] File reading failed, returning original');
+      console.warn("[Image Compression] File reading failed, returning original");
       resolve(file);
     };
 
@@ -218,7 +218,7 @@ export async function compressForThumbnail(file) {
     maxHeight: 200,
     quality: 0.6,
     maxSizeKB: 30,
-    useWebP: true
+    useWebP: true,
   });
 }
 
@@ -233,7 +233,7 @@ export async function compressForBill(file) {
     maxHeight: 1800, // Taller for receipts
     quality: 0.85,
     maxSizeKB: 400,
-    useWebP: false // JPEG for better compatibility
+    useWebP: false, // JPEG for better compatibility
   });
 }
 
@@ -248,7 +248,7 @@ export async function compressForProfile(file) {
     maxHeight: 400,
     quality: 0.8,
     maxSizeKB: 80,
-    useWebP: true
+    useWebP: true,
   });
 }
 

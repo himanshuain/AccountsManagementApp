@@ -1,6 +1,6 @@
 /**
  * GPay-style UI Components
- * 
+ *
  * A collection of components designed to match Google Pay's interface patterns:
  * - Chat-like transaction views
  * - People grid with avatars
@@ -10,62 +10,37 @@
  */
 
 // Avatar Components
-export { 
-  PersonAvatar, 
-  PersonAvatarWithName, 
-  PersonAvatarSkeleton 
-} from './PersonAvatar';
+export { PersonAvatar, PersonAvatarWithName, PersonAvatarSkeleton } from "./PersonAvatar";
 
 // Grid Components
-export { 
-  PeopleGrid, 
-  PeopleRow 
-} from './PeopleGrid';
+export { PeopleGrid, PeopleRow } from "./PeopleGrid";
 
 // Chat Components
-export { 
-  ChatBubble, 
-  PaymentBubble, 
-  ChatBubbleSkeleton 
-} from './ChatBubble';
+export { ChatBubble, PaymentBubble, ChatBubbleSkeleton } from "./ChatBubble";
 
 // Date/Time Components
-export { 
-  DateSeparator, 
-  MonthHeader, 
-  Divider 
-} from './DateSeparator';
+export { DateSeparator, MonthHeader, Divider } from "./DateSeparator";
 
 // Progress Components
-export { 
-  PaymentProgress, 
-  ProgressBar, 
-  SummaryStats 
-} from './PaymentProgress';
+export { PaymentProgress, ProgressBar, SummaryStats } from "./PaymentProgress";
 
 // Filter Components - SegmentedControl re-export
-export { SegmentedControl } from './FilterChips';
+export { SegmentedControl } from "./FilterChips";
 
 // Profile Components
-export { ProfileSheet } from './ProfileSheet';
+export { ProfileSheet } from "./ProfileSheet";
 
 // Action Components
-export { 
-  QuickActionBar, 
-  FloatingActionButton, 
-  FABMenu, 
-  QuickCaptureBar 
-} from './QuickActionBar';
+export { QuickActionBar, FloatingActionButton, FABMenu, QuickCaptureBar } from "./QuickActionBar";
 
 // Transaction Row Component (for history view)
-export { TransactionRow, TransactionRowSkeleton } from './TransactionRow';
+export { TransactionRow, TransactionRowSkeleton } from "./TransactionRow";
 
 // Filter Components
-export { FilterChips } from './FilterChips';
+export { FilterChips } from "./FilterChips";
 
 // Chat Header Component
-export { ChatHeader } from './ChatHeader';
+export { ChatHeader } from "./ChatHeader";
 
 // Navigation Components
-export { BottomTabs } from './BottomTabs';
-
+export { BottomTabs } from "./BottomTabs";

@@ -73,7 +73,7 @@ export function useUdhar() {
     },
     onSuccess: () => {
       // Refetch all udhar queries immediately
-      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: 'all' });
+      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
@@ -95,7 +95,7 @@ export function useUdhar() {
     },
     onSuccess: () => {
       // Refetch all udhar queries immediately
-      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: 'all' });
+      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
@@ -137,7 +137,7 @@ export function useUdhar() {
     },
     onSettled: () => {
       // Refetch all udhar queries immediately
-      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: 'all' });
+      queryClient.refetchQueries({ queryKey: UDHAR_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
@@ -189,8 +189,10 @@ export function useUdhar() {
       const newPaidAmount = currentPaid + amount;
 
       // Support both single URL (string) and array of URLs
-      const receipts = receiptUrls 
-        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+      const receipts = receiptUrls
+        ? Array.isArray(receiptUrls)
+          ? receiptUrls
+          : [receiptUrls]
         : [];
 
       const newPayment = {
@@ -224,8 +226,10 @@ export function useUdhar() {
       const remainingAmount = totalAmount - currentPaid;
 
       // Support both single URL (string) and array of URLs
-      const receipts = receiptUrls 
-        ? (Array.isArray(receiptUrls) ? receiptUrls : [receiptUrls])
+      const receipts = receiptUrls
+        ? Array.isArray(receiptUrls)
+          ? receiptUrls
+          : [receiptUrls]
         : [];
 
       const payments = [...(udhar.payments || [])];

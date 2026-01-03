@@ -20,10 +20,10 @@ export function PeopleGrid({
   loading = false,
   showPendingAmount = true,
   emptyMessage = "No people yet",
-  className
+  className,
 }) {
   const [expanded, setExpanded] = useState(false);
-  
+
   // Sort by pending amount (highest first) then by name
   const sortedPeople = useMemo(() => {
     return [...people].sort((a, b) => {
@@ -34,10 +34,8 @@ export function PeopleGrid({
     });
   }, [people]);
 
-  const visiblePeople = expanded 
-    ? sortedPeople 
-    : sortedPeople.slice(0, DEFAULT_VISIBLE_COUNT);
-  
+  const visiblePeople = expanded ? sortedPeople : sortedPeople.slice(0, DEFAULT_VISIBLE_COUNT);
+
   const hasMore = sortedPeople.length > DEFAULT_VISIBLE_COUNT;
   const remainingCount = sortedPeople.length - DEFAULT_VISIBLE_COUNT;
 
@@ -45,14 +43,14 @@ export function PeopleGrid({
     return (
       <div className={cn("space-y-3", className)}>
         <div className="flex items-center justify-between px-1">
-          <div className="h-5 w-20 skeleton-shimmer rounded" />
+          <div className="skeleton-shimmer h-5 w-20 rounded" />
         </div>
         <div className="grid grid-cols-4 gap-1">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 p-2">
               <PersonAvatarSkeleton size="lg" />
-              <div className="h-3 w-14 skeleton-shimmer rounded mt-1" />
-              <div className="h-2.5 w-10 skeleton-shimmer rounded" />
+              <div className="skeleton-shimmer mt-1 h-3 w-14 rounded" />
+              <div className="skeleton-shimmer h-2.5 w-10 rounded" />
             </div>
           ))}
         </div>
@@ -67,11 +65,11 @@ export function PeopleGrid({
           <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
         </div>
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <p className="text-sm text-muted-foreground mb-4">{emptyMessage}</p>
+          <p className="mb-4 text-sm text-muted-foreground">{emptyMessage}</p>
           {onAddClick && (
             <button
               onClick={onAddClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium active:scale-95 transition-transform"
+              className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform active:scale-95"
             >
               <Plus className="h-4 w-4" />
               Add New
@@ -90,7 +88,7 @@ export function PeopleGrid({
         {hasMore && !expanded && (
           <button
             onClick={() => setExpanded(true)}
-            className="text-xs text-primary font-medium flex items-center gap-1 active:opacity-70"
+            className="flex items-center gap-1 text-xs font-medium text-primary active:opacity-70"
           >
             More
             <ChevronDown className="h-3 w-3" />
@@ -100,16 +98,16 @@ export function PeopleGrid({
 
       {/* Grid */}
       <div className="grid grid-cols-4 gap-0.5">
-        {visiblePeople.map((person) => (
+        {visiblePeople.map(person => (
           <PersonAvatarWithName
             key={person.id}
             name={person.name || person.companyName}
             image={person.profilePicture}
             amount={showPendingAmount ? person.pendingAmount : undefined}
             amountColor={
-              person.pendingAmount > 0 
-                ? "text-amber-500 dark:text-amber-400" 
-                : person.totalAmount > 0 
+              person.pendingAmount > 0
+                ? "text-amber-500 dark:text-amber-400"
+                : person.totalAmount > 0
                   ? "text-emerald-500 dark:text-emerald-400"
                   : "text-muted-foreground"
             }
@@ -123,12 +121,12 @@ export function PeopleGrid({
           <div
             className={cn(
               "flex flex-col items-center gap-1.5 p-2",
-              "active:scale-95 transition-transform cursor-pointer",
+              "cursor-pointer transition-transform active:scale-95",
               "rounded-xl hover:bg-muted/50"
             )}
             onClick={onAddClick}
           >
-            <div className="h-16 w-16 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/30">
               <Plus className="h-6 w-6 text-muted-foreground/50" />
             </div>
             <p className="text-xs text-muted-foreground">Add New</p>
@@ -140,12 +138,12 @@ export function PeopleGrid({
           <div
             className={cn(
               "flex flex-col items-center gap-1.5 p-2",
-              "active:scale-95 transition-transform cursor-pointer",
+              "cursor-pointer transition-transform active:scale-95",
               "rounded-xl hover:bg-muted/50"
             )}
             onClick={() => setExpanded(true)}
           >
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <ChevronDown className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground">+{remainingCount}</p>
@@ -157,7 +155,7 @@ export function PeopleGrid({
       {expanded && hasMore && (
         <button
           onClick={() => setExpanded(false)}
-          className="w-full py-2 text-xs text-primary font-medium flex items-center justify-center gap-1 active:opacity-70"
+          className="flex w-full items-center justify-center gap-1 py-2 text-xs font-medium text-primary active:opacity-70"
         >
           Show Less
           <ChevronDown className="h-3 w-3 rotate-180" />
@@ -175,17 +173,17 @@ export function PeopleRow({
   title = "Recent",
   onPersonClick,
   loading = false,
-  className
+  className,
 }) {
   if (loading) {
     return (
       <div className={cn("space-y-2", className)}>
-        <h3 className="text-sm font-semibold text-muted-foreground px-1">{title}</h3>
-        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2">
+        <h3 className="px-1 text-sm font-semibold text-muted-foreground">{title}</h3>
+        <div className="scrollbar-none flex gap-3 overflow-x-auto pb-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
               <PersonAvatarSkeleton size="md" />
-              <div className="h-3 w-12 skeleton-shimmer rounded" />
+              <div className="skeleton-shimmer h-3 w-12 rounded" />
             </div>
           ))}
         </div>
@@ -197,9 +195,9 @@ export function PeopleRow({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <h3 className="text-sm font-semibold text-muted-foreground px-1">{title}</h3>
-      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2 -mx-4 px-4">
-        {people.map((person) => (
+      <h3 className="px-1 text-sm font-semibold text-muted-foreground">{title}</h3>
+      <div className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
+        {people.map(person => (
           <PersonAvatarWithName
             key={person.id}
             name={person.name || person.companyName}
@@ -215,8 +213,3 @@ export function PeopleRow({
 }
 
 export default PeopleGrid;
-
-
-
-
-

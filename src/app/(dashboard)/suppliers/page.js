@@ -341,16 +341,16 @@ export default function SuppliersPage() {
   useEffect(() => {
     const scrollToSupplierId = searchParams.get("scrollToSupplier");
     const highlightTxnId = searchParams.get("highlight");
-    
+
     if (scrollToSupplierId && suppliersWithStats.length > 0 && !loading) {
       const supplierToScrollTo = suppliersWithStats.find(s => s.id === scrollToSupplierId);
       if (supplierToScrollTo) {
         // Clear URL params first
         router.replace("/suppliers", { scroll: false });
-        
+
         // Open the supplier detail drawer
         setSelectedSupplier(supplierToScrollTo);
-        
+
         // If a transaction ID is provided for highlighting, expand it
         if (highlightTxnId) {
           setExpandedTransactionId(highlightTxnId);
@@ -758,7 +758,7 @@ export default function SuppliersPage() {
                   key="active-pending"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("pending")}
                 >
                   <Clock className="mr-1 h-3 w-3" />
@@ -770,7 +770,7 @@ export default function SuppliersPage() {
                   key="active-partial"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("partial")}
                 >
                   Partial ({summaryStats.partialCount})
@@ -781,7 +781,7 @@ export default function SuppliersPage() {
                   key="active-paid"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("paid")}
                 >
                   <CheckCircle className="mr-1 h-3 w-3" />
@@ -793,7 +793,7 @@ export default function SuppliersPage() {
                   key="active-high"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("high")}
                 >
                   High ₹10k+ ({summaryStats.highAmountCount})
@@ -811,7 +811,7 @@ export default function SuppliersPage() {
                   key="active-oldest"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleSortChange("oldest")}
                 >
                   <ArrowUp className="mr-1 h-3 w-3" />
@@ -823,7 +823,7 @@ export default function SuppliersPage() {
                   key="active-highest"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleSortChange("highest")}
                 >
                   <TrendingUp className="mr-1 h-3 w-3" />
@@ -835,7 +835,7 @@ export default function SuppliersPage() {
                   key="active-lowest"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleSortChange("lowest")}
                 >
                   <TrendingDown className="mr-1 h-3 w-3" />
@@ -1214,7 +1214,7 @@ export default function SuppliersPage() {
                       key="txn-active-pending"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setAllTxnStatusFilter("pending");
@@ -1229,7 +1229,7 @@ export default function SuppliersPage() {
                       key="txn-active-partial"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setAllTxnStatusFilter("partial");
@@ -1243,7 +1243,7 @@ export default function SuppliersPage() {
                       key="txn-active-paid"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setAllTxnStatusFilter("paid");
@@ -1259,13 +1259,15 @@ export default function SuppliersPage() {
               {/* Active sort chips - shown after active filter */}
               {allTxnAmountSort !== "newest" && (
                 <>
-                  {allTxnStatusFilter === "all" && <div className="mx-1 h-8 w-px shrink-0 bg-border" />}
+                  {allTxnStatusFilter === "all" && (
+                    <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+                  )}
                   {allTxnAmountSort === "oldest" && (
                     <Button
                       key="txn-active-oldest"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setAllTxnAmountSort("oldest");
@@ -1280,7 +1282,7 @@ export default function SuppliersPage() {
                       key="txn-active-highest"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setAllTxnAmountSort("highest");
@@ -1295,7 +1297,7 @@ export default function SuppliersPage() {
                       key="txn-active-lowest"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setAllTxnAmountSort("lowest");
@@ -1850,9 +1852,9 @@ export default function SuppliersPage() {
                       {/* Bills Section - View all bills from transactions */}
                       {selectedSupplierBillImages.length > 0 && (
                         <div className="mb-4">
-                          <div className="mb-2 flex items-center justify-between ">                           
+                          <div className="mb-2 flex items-center justify-between">
                             <Button
-                              className="bg-sky-800/10 text-sky-800  hover:bg-sky-800/20 "
+                              className="bg-sky-800/10 text-sky-800 hover:bg-sky-800/20"
                               variant="secondary"
                               size="sm"
                               onClick={() => setSupplierBillGalleryOpen(true)}
@@ -1861,7 +1863,6 @@ export default function SuppliersPage() {
                               View All Bill Photos ({selectedSupplierBillImages.length})
                             </Button>
                           </div>
-                          
                         </div>
                       )}
 

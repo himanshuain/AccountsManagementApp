@@ -330,16 +330,16 @@ export default function CustomersPage() {
   useEffect(() => {
     const scrollToCustomerId = searchParams.get("scrollToCustomer");
     const highlightUdharId = searchParams.get("highlight");
-    
+
     if (scrollToCustomerId && customersWithStats.length > 0 && !customersLoading) {
       const customerToScrollTo = customersWithStats.find(c => c.id === scrollToCustomerId);
       if (customerToScrollTo) {
         // Clear URL params first
         router.replace("/customers", { scroll: false });
-        
+
         // Open the customer detail drawer
         setSelectedCustomer(customerToScrollTo);
-        
+
         // If an udhar ID is provided for highlighting, expand it
         if (highlightUdharId) {
           setExpandedUdharId(highlightUdharId);
@@ -1181,7 +1181,7 @@ export default function CustomersPage() {
                   key="active-pending"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("pending")}
                 >
                   <Clock className="mr-1 h-3 w-3" />
@@ -1193,7 +1193,7 @@ export default function CustomersPage() {
                   key="active-partial"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("partial")}
                 >
                   Partial ({summaryStats.partialCount})
@@ -1204,7 +1204,7 @@ export default function CustomersPage() {
                   key="active-paid"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("paid")}
                 >
                   <CheckCircle className="mr-1 h-3 w-3" />
@@ -1216,7 +1216,7 @@ export default function CustomersPage() {
                   key="active-high"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleFilterChange("high")}
                 >
                   High ₹5k+ ({summaryStats.highAmountCount})
@@ -1234,7 +1234,7 @@ export default function CustomersPage() {
                   key="active-oldest"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleSortChange("oldest")}
                 >
                   <ArrowUp className="mr-1 h-3 w-3" />
@@ -1246,7 +1246,7 @@ export default function CustomersPage() {
                   key="active-highest"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleSortChange("highest")}
                 >
                   <TrendingUp className="mr-1 h-3 w-3" />
@@ -1258,7 +1258,7 @@ export default function CustomersPage() {
                   key="active-lowest"
                   variant="default"
                   size="sm"
-                  className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                  className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                   onClick={() => handleSortChange("lowest")}
                 >
                   <TrendingDown className="mr-1 h-3 w-3" />
@@ -1711,7 +1711,9 @@ export default function CustomersPage() {
                                             className="h-6 gap-1 px-2 text-xs"
                                             onClick={e => {
                                               e.stopPropagation();
-                                              setImageViewerSrc(resolveImageUrl(payment.receiptUrl));
+                                              setImageViewerSrc(
+                                                resolveImageUrl(payment.receiptUrl)
+                                              );
                                               setImageViewerOpen(true);
                                             }}
                                           >
@@ -1928,7 +1930,7 @@ export default function CustomersPage() {
                       key="udhar-active-pending"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setUdharStatusFilter("pending");
@@ -1943,7 +1945,7 @@ export default function CustomersPage() {
                       key="udhar-active-paid"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setUdharStatusFilter("paid");
@@ -1959,13 +1961,15 @@ export default function CustomersPage() {
               {/* Active sort chips - shown after active filter */}
               {udharAmountSort !== "newest" && (
                 <>
-                  {udharStatusFilter === "all" && <div className="mx-1 h-8 w-px shrink-0 bg-border" />}
+                  {udharStatusFilter === "all" && (
+                    <div className="mx-1 h-8 w-px shrink-0 bg-border" />
+                  )}
                   {udharAmountSort === "oldest" && (
                     <Button
                       key="udhar-active-oldest"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setUdharAmountSort("oldest");
@@ -1980,7 +1984,7 @@ export default function CustomersPage() {
                       key="udhar-active-highest"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setUdharAmountSort("highest");
@@ -1995,7 +1999,7 @@ export default function CustomersPage() {
                       key="udhar-active-lowest"
                       variant="default"
                       size="sm"
-                      className="h-8 shrink-0 animate-filter-active rounded-full px-3 text-xs"
+                      className="animate-filter-active h-8 shrink-0 rounded-full px-3 text-xs"
                       onClick={() => {
                         haptics.light();
                         setUdharAmountSort("lowest");
@@ -3031,14 +3035,14 @@ export default function CustomersPage() {
                       selectedCustomer.profilePicture &&
                         "cursor-pointer transition-all hover:ring-2 hover:ring-primary"
                     )}
-                                    onClick={() => {
-                                      if (selectedCustomer.profilePicture) {
-                                        setImageViewerSrc(resolveImageUrl(selectedCustomer.profilePicture));
-                                        setImageViewerOpen(true);
-                                      }
-                                    }}
-                                  >
-                                    <AvatarImage src={resolveImageUrl(selectedCustomer.profilePicture)} />
+                    onClick={() => {
+                      if (selectedCustomer.profilePicture) {
+                        setImageViewerSrc(resolveImageUrl(selectedCustomer.profilePicture));
+                        setImageViewerOpen(true);
+                      }
+                    }}
+                  >
+                    <AvatarImage src={resolveImageUrl(selectedCustomer.profilePicture)} />
                     <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
                       {getCustomerInitials(selectedCustomer.name)}
                     </AvatarFallback>
@@ -3824,7 +3828,9 @@ export default function CustomersPage() {
                                                         className="h-6 px-2 text-xs"
                                                         onClick={e => {
                                                           e.stopPropagation();
-                                                          setImageViewerSrc(resolveImageUrl(payment.receiptUrl));
+                                                          setImageViewerSrc(
+                                                            resolveImageUrl(payment.receiptUrl)
+                                                          );
                                                           setImageViewerOpen(true);
                                                         }}
                                                       >

@@ -33,12 +33,12 @@ export default function CustomerChatPage({ params }) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
   const chatContainerRef = useRef(null);
-  
+
   const { customers, updateCustomer, deleteCustomer, addCustomer } = useCustomers();
-  const { 
-    udharList, 
-    addUdhar, 
-    updateUdhar, 
+  const {
+    udharList,
+    addUdhar,
+    updateUdhar,
     deleteUdhar,
     recordDeposit,
     markFullPaid,
@@ -55,7 +55,7 @@ export default function CustomerChatPage({ params }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
-  
+
   // Collect payment sheet
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [collectUdhar, setCollectUdhar] = useState(null);
@@ -92,13 +92,13 @@ export default function CustomerChatPage({ params }) {
   const groupedItems = useMemo(() => {
     const groups = [];
     let currentDate = null;
-    
+
     // Create a flat list with both udhars and payments
     const allItems = [];
-    
+
     customerUdhars.forEach(udhar => {
       const udharAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
-      
+
       // Add the udhar itself
       allItems.push({
         type: "udhar",
@@ -107,7 +107,7 @@ export default function CustomerChatPage({ params }) {
         date: udhar.date || udhar.createdAt,
         sortDate: new Date(udhar.date || udhar.createdAt),
       });
-      
+
       // Add payments as separate items
       if (udhar.payments && udhar.payments.length > 0) {
         udhar.payments.forEach(payment => {
@@ -121,14 +121,14 @@ export default function CustomerChatPage({ params }) {
         });
       }
     });
-    
+
     // Sort by date
     allItems.sort((a, b) => a.sortDate - b.sortDate);
-    
+
     // Group by date
     allItems.forEach(item => {
       const dateStr = new Date(item.date).toDateString();
-      
+
       if (dateStr !== currentDate) {
         groups.push({
           type: "date",
@@ -136,10 +136,10 @@ export default function CustomerChatPage({ params }) {
         });
         currentDate = dateStr;
       }
-      
+
       groups.push(item);
     });
-    
+
     return groups;
   }, [customerUdhars]);
 
@@ -172,7 +172,7 @@ export default function CustomerChatPage({ params }) {
     setUdharFormOpen(true);
   };
 
-  const handleEditUdhar = (udhar) => {
+  const handleEditUdhar = udhar => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot edit while offline");
@@ -182,7 +182,7 @@ export default function CustomerChatPage({ params }) {
     setUdharFormOpen(true);
   };
 
-  const handleDeleteUdhar = (udhar) => {
+  const handleDeleteUdhar = udhar => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot delete while offline");
@@ -204,7 +204,7 @@ export default function CustomerChatPage({ params }) {
     }
   };
 
-  const handleSubmitUdhar = async (data) => {
+  const handleSubmitUdhar = async data => {
     if (udharToEdit) {
       const result = await updateUdhar(udharToEdit.id, data);
       if (result.success) {
@@ -223,7 +223,7 @@ export default function CustomerChatPage({ params }) {
     }
   };
 
-  const handleCollectPayment = (udhar) => {
+  const handleCollectPayment = udhar => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot collect while offline");
@@ -236,17 +236,19 @@ export default function CustomerChatPage({ params }) {
 
   const handleSubmitCollect = async () => {
     if (!collectUdhar || !collectAmount) return;
-    
+
     const amount = Number(collectAmount);
-    const udharAmount = collectUdhar.amount || (collectUdhar.cashAmount || 0) + (collectUdhar.onlineAmount || 0);
-    const paidAmount = collectUdhar.paidAmount || (collectUdhar.paidCash || 0) + (collectUdhar.paidOnline || 0);
+    const udharAmount =
+      collectUdhar.amount || (collectUdhar.cashAmount || 0) + (collectUdhar.onlineAmount || 0);
+    const paidAmount =
+      collectUdhar.paidAmount || (collectUdhar.paidCash || 0) + (collectUdhar.paidOnline || 0);
     const pendingAmount = udharAmount - paidAmount;
-    
+
     if (amount > pendingAmount) {
       toast.error(`Cannot collect more than ₹${pendingAmount.toLocaleString()}`);
       return;
     }
-    
+
     const result = await recordDeposit(collectUdhar.id, amount, null, null);
     if (result?.success) {
       toast.success("Payment collected!");
@@ -257,7 +259,7 @@ export default function CustomerChatPage({ params }) {
     }
   };
 
-  const handleMarkFullPaid = async (udhar) => {
+  const handleMarkFullPaid = async udhar => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot update while offline");
@@ -277,7 +279,7 @@ export default function CustomerChatPage({ params }) {
     setGalleryOpen(true);
   };
 
-  const handleBubbleClick = (udhar) => {
+  const handleBubbleClick = udhar => {
     haptics.light();
     setExpandedBubbleId(expandedBubbleId === udhar.id ? null : udhar.id);
   };
@@ -309,14 +311,14 @@ export default function CustomerChatPage({ params }) {
 
   if (!customer) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Customer not found</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background w-full max-w-4xl mx-auto">
+    <div className="mx-auto flex h-screen w-full max-w-4xl flex-col bg-background">
       {/* Header */}
       <ChatHeader
         name={customer.name}
@@ -329,36 +331,21 @@ export default function CustomerChatPage({ params }) {
       />
 
       {/* Payment Progress - Fixed */}
-      <PaymentProgress
-        totalAmount={totals.total}
-        paidAmount={totals.paid}
-        label="Udhar Progress"
-      />
+      <PaymentProgress totalAmount={totals.total} paidAmount={totals.paid} label="Udhar Progress" />
 
       {/* Chat Messages */}
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4"
-      >
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {groupedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-muted-foreground mb-2">No udhar records yet</p>
-            <p className="text-sm text-muted-foreground">
-              Add your first udhar to start tracking
-            </p>
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <p className="mb-2 text-muted-foreground">No udhar records yet</p>
+            <p className="text-sm text-muted-foreground">Add your first udhar to start tracking</p>
           </div>
         ) : (
           groupedItems.map((item, index) => {
             if (item.type === "date") {
-              return (
-                <DateSeparator
-                  key={`date-${item.date}`}
-                  date={item.date}
-                  showTime={false}
-                />
-              );
+              return <DateSeparator key={`date-${item.date}`} date={item.date} showTime={false} />;
             }
-            
+
             if (item.type === "payment") {
               return (
                 <ChatBubble
@@ -369,11 +356,15 @@ export default function CustomerChatPage({ params }) {
                   status="paid"
                   notes={item.data.notes}
                   hasImages={!!item.data.receiptUrl}
-                  onClick={item.data.receiptUrl ? () => handleViewImages([item.data.receiptUrl]) : undefined}
+                  onClick={
+                    item.data.receiptUrl
+                      ? () => handleViewImages([item.data.receiptUrl])
+                      : undefined
+                  }
                 />
               );
             }
-            
+
             // Udhar bubble
             const udhar = item.data;
             const isExpanded = expandedBubbleId === udhar.id;
@@ -381,7 +372,7 @@ export default function CustomerChatPage({ params }) {
             const paidAmount = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
             const isPaid = udhar.paymentStatus === "paid";
             const allImages = [...(udhar.khataPhotos || []), ...(udhar.billImages || [])];
-            
+
             return (
               <div key={udhar.id} className="mb-2">
                 <ChatBubble
@@ -396,22 +387,22 @@ export default function CustomerChatPage({ params }) {
                   notes={udhar.notes}
                   onClick={() => handleBubbleClick(udhar)}
                 />
-                
+
                 {/* Expanded Actions */}
                 {isExpanded && (
-                  <div className="flex justify-end gap-2 mb-4 mt-1 animate-fade-in flex-wrap">
+                  <div className="animate-fade-in mb-4 mt-1 flex flex-wrap justify-end gap-2">
                     {!isPaid && (
                       <>
                         <button
                           onClick={() => handleCollectPayment(udhar)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium"
+                          className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-600"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Collect
                         </button>
                         <button
                           onClick={() => handleMarkFullPaid(udhar)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-600 text-xs font-medium"
+                          className="flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-600"
                         >
                           <Check className="h-3.5 w-3.5" />
                           Full Paid
@@ -421,7 +412,7 @@ export default function CustomerChatPage({ params }) {
                     {allImages.length > 0 && (
                       <button
                         onClick={() => handleViewImages(allImages)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted text-xs font-medium"
+                        className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium"
                       >
                         <ImageIcon className="h-3.5 w-3.5" />
                         Photos
@@ -429,14 +420,14 @@ export default function CustomerChatPage({ params }) {
                     )}
                     <button
                       onClick={() => handleEditUdhar(udhar)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted text-xs font-medium"
+                      className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium"
                     >
                       <Edit className="h-3.5 w-3.5" />
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteUdhar(udhar)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium"
+                      className="flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Delete
@@ -455,7 +446,7 @@ export default function CustomerChatPage({ params }) {
         onPrimaryAction={handleAddUdhar}
         showInput={false}
         disabled={!isOnline}
-        className="max-w-4xl mx-auto w-full"
+        className="mx-auto w-full max-w-4xl"
       />
 
       {/* Profile Sheet */}
@@ -476,7 +467,7 @@ export default function CustomerChatPage({ params }) {
       {/* Udhar Form */}
       <UdharForm
         open={udharFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setUdharFormOpen(open);
           if (!open) setUdharToEdit(null);
         }}
@@ -494,42 +485,45 @@ export default function CustomerChatPage({ params }) {
           <SheetHeader className="pb-4">
             <SheetTitle>Collect Payment</SheetTitle>
           </SheetHeader>
-          
+
           {collectUdhar && (
             <div className="space-y-4 pb-6">
-              <div className="bg-muted/50 rounded-xl p-4">
+              <div className="rounded-xl bg-muted/50 p-4">
                 <p className="text-sm text-muted-foreground">Pending Amount</p>
                 <p className="text-2xl font-bold text-amber-500">
-                  ₹{(
-                    (collectUdhar.amount || (collectUdhar.cashAmount || 0) + (collectUdhar.onlineAmount || 0)) -
-                    (collectUdhar.paidAmount || (collectUdhar.paidCash || 0) + (collectUdhar.paidOnline || 0))
+                  ₹
+                  {(
+                    (collectUdhar.amount ||
+                      (collectUdhar.cashAmount || 0) + (collectUdhar.onlineAmount || 0)) -
+                    (collectUdhar.paidAmount ||
+                      (collectUdhar.paidCash || 0) + (collectUdhar.paidOnline || 0))
                   ).toLocaleString()}
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Amount to Collect (₹)</Label>
                 <Input
                   type="number"
                   inputMode="numeric"
                   value={collectAmount}
-                  onChange={(e) => setCollectAmount(e.target.value)}
+                  onChange={e => setCollectAmount(e.target.value)}
                   placeholder="Enter amount"
-                  className="h-14 text-xl font-semibold text-center"
+                  className="h-14 text-center text-xl font-semibold"
                   autoFocus
                 />
               </div>
-              
+
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  className="flex-1 h-12"
+                  className="h-12 flex-1"
                   onClick={() => setCollectSheetOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 h-12"
+                  className="h-12 flex-1"
                   onClick={handleSubmitCollect}
                   disabled={!collectAmount || Number(collectAmount) <= 0}
                 >
@@ -548,7 +542,11 @@ export default function CustomerChatPage({ params }) {
         onConfirm={handleConfirmDelete}
         title="Delete Udhar"
         description="This action cannot be undone."
-        itemName={udharToDelete ? `₹${(udharToDelete.amount || (udharToDelete.cashAmount || 0) + (udharToDelete.onlineAmount || 0))?.toLocaleString()}` : ""}
+        itemName={
+          udharToDelete
+            ? `₹${(udharToDelete.amount || (udharToDelete.cashAmount || 0) + (udharToDelete.onlineAmount || 0))?.toLocaleString()}`
+            : ""
+        }
       />
 
       {/* Image Gallery */}
@@ -561,4 +559,3 @@ export default function CustomerChatPage({ params }) {
     </div>
   );
 }
-

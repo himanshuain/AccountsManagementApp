@@ -100,19 +100,20 @@ export async function PUT(request, { params }) {
     // Clean up old images that were replaced (best-effort, non-blocking)
     if (existingCustomer) {
       const imagesToDelete = [];
-      
+
       // Check if profile picture was replaced
-      if (existingCustomer.profile_picture && 
-          existingCustomer.profile_picture !== record.profile_picture) {
+      if (
+        existingCustomer.profile_picture &&
+        existingCustomer.profile_picture !== record.profile_picture
+      ) {
         imagesToDelete.push(existingCustomer.profile_picture);
       }
-      
+
       // Check if khata photo was replaced
-      if (existingCustomer.khata_photo && 
-          existingCustomer.khata_photo !== record.khata_photo) {
+      if (existingCustomer.khata_photo && existingCustomer.khata_photo !== record.khata_photo) {
         imagesToDelete.push(existingCustomer.khata_photo);
       }
-      
+
       // Check for removed khata photos from array
       if (existingCustomer.khata_photos && Array.isArray(existingCustomer.khata_photos)) {
         const newKhataPhotos = record.khata_photos || [];
@@ -122,7 +123,7 @@ export async function PUT(request, { params }) {
           }
         });
       }
-      
+
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {
           console.error("[Customer Update] Image cleanup error:", err);

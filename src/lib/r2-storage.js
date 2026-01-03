@@ -8,7 +8,13 @@
  * Example: suppliers/1703520000000-abc123.jpg
  */
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
 
 // R2 Configuration
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
@@ -51,10 +57,10 @@ export function generateStorageKey(folder, originalFilename) {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
   const extension = originalFilename?.split(".").pop()?.toLowerCase() || "jpg";
-  
+
   // Sanitize folder name
   const sanitizedFolder = folder.replace(/^\/+|\/+$/g, "").replace(/[^a-zA-Z0-9-_/]/g, "");
-  
+
   return `${sanitizedFolder}/${timestamp}-${randomStr}.${extension}`;
 }
 
@@ -68,7 +74,7 @@ export function generateStorageKey(folder, originalFilename) {
 export async function uploadToR2(fileData, storageKey, contentType = "image/jpeg") {
   try {
     const client = getR2Client();
-    
+
     // Convert to Buffer if needed
     let buffer;
     if (Buffer.isBuffer(fileData)) {
@@ -91,7 +97,7 @@ export async function uploadToR2(fileData, storageKey, contentType = "image/jpeg
     });
 
     await client.send(command);
-    
+
     console.log(`[R2] Uploaded: ${storageKey}`);
     return { success: true, storageKey };
   } catch (error) {
@@ -107,10 +113,10 @@ export async function uploadToR2(fileData, storageKey, contentType = "image/jpeg
  */
 export async function deleteFromR2(storageKey) {
   if (!storageKey) return false;
-  
+
   try {
     const client = getR2Client();
-    
+
     const command = new DeleteObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: storageKey,
@@ -132,14 +138,16 @@ export async function deleteFromR2(storageKey) {
  */
 export async function deleteMultipleFromR2(storageKeys) {
   const result = { deleted: 0, failed: 0 };
-  
+
   if (!isR2Configured()) {
     console.log("[R2] Not configured, skipping deletion");
     return result;
   }
 
-  const validKeys = (storageKeys || []).filter(key => key && typeof key === "string" && !key.startsWith("data:"));
-  
+  const validKeys = (storageKeys || []).filter(
+    key => key && typeof key === "string" && !key.startsWith("data:")
+  );
+
   if (validKeys.length === 0) {
     return result;
   }
@@ -166,10 +174,10 @@ export async function deleteMultipleFromR2(storageKeys) {
  */
 export async function existsInR2(storageKey) {
   if (!storageKey || !isR2Configured()) return false;
-  
+
   try {
     const client = getR2Client();
-    
+
     const command = new HeadObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: storageKey,
@@ -210,7 +218,7 @@ export async function getR2StorageStats() {
       });
 
       const response = await client.send(command);
-      
+
       if (response.Contents) {
         for (const obj of response.Contents) {
           totalSize += obj.Size || 0;
@@ -266,4 +274,3 @@ const r2Storage = {
 };
 
 export default r2Storage;
-

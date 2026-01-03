@@ -30,12 +30,12 @@ export default function SupplierChatPage({ params }) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
   const chatContainerRef = useRef(null);
-  
+
   const { suppliers, updateSupplier, deleteSupplier } = useSuppliers();
-  const { 
-    transactions, 
-    addTransaction, 
-    updateTransaction, 
+  const {
+    transactions,
+    addTransaction,
+    updateTransaction,
     deleteTransaction,
     recordPayment,
     markFullPaid,
@@ -83,10 +83,10 @@ export default function SupplierChatPage({ params }) {
   const groupedTransactions = useMemo(() => {
     const groups = [];
     let currentDate = null;
-    
+
     // Create a flat list with both bills and payments
     const allItems = [];
-    
+
     supplierTransactions.forEach(txn => {
       // Add the bill itself
       allItems.push({
@@ -95,7 +95,7 @@ export default function SupplierChatPage({ params }) {
         date: txn.date || txn.createdAt,
         sortDate: new Date(txn.date || txn.createdAt),
       });
-      
+
       // Add payments as separate items
       if (txn.payments && txn.payments.length > 0) {
         txn.payments.forEach(payment => {
@@ -109,14 +109,14 @@ export default function SupplierChatPage({ params }) {
         });
       }
     });
-    
+
     // Sort by date
     allItems.sort((a, b) => a.sortDate - b.sortDate);
-    
+
     // Group by date
     allItems.forEach(item => {
       const dateStr = new Date(item.date).toDateString();
-      
+
       if (dateStr !== currentDate) {
         groups.push({
           type: "date",
@@ -124,10 +124,10 @@ export default function SupplierChatPage({ params }) {
         });
         currentDate = dateStr;
       }
-      
+
       groups.push(item);
     });
-    
+
     return groups;
   }, [supplierTransactions]);
 
@@ -160,7 +160,7 @@ export default function SupplierChatPage({ params }) {
     setTransactionFormOpen(true);
   };
 
-  const handleEditBill = (txn) => {
+  const handleEditBill = txn => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot edit while offline");
@@ -170,7 +170,7 @@ export default function SupplierChatPage({ params }) {
     setTransactionFormOpen(true);
   };
 
-  const handleDeleteBill = (txn) => {
+  const handleDeleteBill = txn => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot delete while offline");
@@ -192,7 +192,7 @@ export default function SupplierChatPage({ params }) {
     }
   };
 
-  const handleSubmitTransaction = async (data) => {
+  const handleSubmitTransaction = async data => {
     if (transactionToEdit) {
       const result = await updateTransaction(transactionToEdit.id, data);
       if (result.success) {
@@ -217,7 +217,7 @@ export default function SupplierChatPage({ params }) {
     setGalleryOpen(true);
   };
 
-  const handleBubbleClick = (txn) => {
+  const handleBubbleClick = txn => {
     haptics.light();
     setExpandedBubbleId(expandedBubbleId === txn.id ? null : txn.id);
   };
@@ -250,14 +250,14 @@ export default function SupplierChatPage({ params }) {
 
   if (!supplier) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Supplier not found</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background w-full max-w-4xl mx-auto">
+    <div className="mx-auto flex h-screen w-full max-w-4xl flex-col bg-background">
       {/* Header */}
       <ChatHeader
         name={supplier.companyName || supplier.name}
@@ -277,29 +277,18 @@ export default function SupplierChatPage({ params }) {
       />
 
       {/* Chat Messages */}
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4"
-      >
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {groupedTransactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-muted-foreground mb-2">No transactions yet</p>
-            <p className="text-sm text-muted-foreground">
-              Add your first bill to start tracking
-            </p>
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <p className="mb-2 text-muted-foreground">No transactions yet</p>
+            <p className="text-sm text-muted-foreground">Add your first bill to start tracking</p>
           </div>
         ) : (
           groupedTransactions.map((item, index) => {
             if (item.type === "date") {
-              return (
-                <DateSeparator
-                  key={`date-${item.date}`}
-                  date={item.date}
-                  showTime={false}
-                />
-              );
+              return <DateSeparator key={`date-${item.date}`} date={item.date} showTime={false} />;
             }
-            
+
             if (item.type === "payment") {
               return (
                 <ChatBubble
@@ -311,16 +300,20 @@ export default function SupplierChatPage({ params }) {
                   paymentMethod={item.data.mode}
                   notes={item.data.notes}
                   hasImages={!!item.data.receiptUrl}
-                  onClick={item.data.receiptUrl ? () => handleViewImages([item.data.receiptUrl]) : undefined}
+                  onClick={
+                    item.data.receiptUrl
+                      ? () => handleViewImages([item.data.receiptUrl])
+                      : undefined
+                  }
                 />
               );
             }
-            
+
             // Bill bubble
             const txn = item.data;
             const isExpanded = expandedBubbleId === txn.id;
             const paidAmount = txn.paidAmount || 0;
-            
+
             return (
               <div key={txn.id} className="mb-2">
                 <ChatBubble
@@ -335,14 +328,14 @@ export default function SupplierChatPage({ params }) {
                   notes={txn.notes}
                   onClick={() => handleBubbleClick(txn)}
                 />
-                
+
                 {/* Expanded Actions */}
                 {isExpanded && (
-                  <div className="flex justify-end gap-2 mb-4 mt-1 animate-fade-in">
+                  <div className="animate-fade-in mb-4 mt-1 flex justify-end gap-2">
                     {txn.billImages?.length > 0 && (
                       <button
                         onClick={() => handleViewImages(txn.billImages)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted text-xs font-medium"
+                        className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium"
                       >
                         <ImageIcon className="h-3.5 w-3.5" />
                         Photos
@@ -350,14 +343,14 @@ export default function SupplierChatPage({ params }) {
                     )}
                     <button
                       onClick={() => handleEditBill(txn)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted text-xs font-medium"
+                      className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium"
                     >
                       <Edit className="h-3.5 w-3.5" />
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteBill(txn)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium"
+                      className="flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                       Delete
@@ -376,7 +369,7 @@ export default function SupplierChatPage({ params }) {
         onPrimaryAction={handleAddBill}
         showInput={false}
         disabled={!isOnline}
-        className="max-w-4xl mx-auto w-full"
+        className="mx-auto w-full max-w-4xl"
       />
 
       {/* Profile Sheet */}
@@ -397,7 +390,7 @@ export default function SupplierChatPage({ params }) {
       {/* Transaction Form */}
       <TransactionForm
         open={transactionFormOpen}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           setTransactionFormOpen(open);
           if (!open) setTransactionToEdit(null);
         }}
@@ -428,4 +421,3 @@ export default function SupplierChatPage({ params }) {
     </div>
   );
 }
-
