@@ -252,4 +252,20 @@ export async function compressForProfile(file) {
   });
 }
 
+/**
+ * Compress for HD quality - minimal compression for best quality
+ * Used when user wants to preserve maximum image quality
+ * @param {File} file - The image file
+ * @returns {Promise<File>} - Minimally compressed file
+ */
+export async function compressForHD(file) {
+  return compressImage(file, {
+    maxWidth: 4096, // Support 4K resolution
+    maxHeight: 4096,
+    quality: 0.95, // Very high quality
+    maxSizeKB: 5000, // Allow larger files up to 5MB
+    useWebP: false, // JPEG for best compatibility
+  });
+}
+
 export default compressImage;

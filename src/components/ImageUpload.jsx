@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
-import { compressImage } from "@/lib/image-compression";
+import { compressImage, compressForHD } from "@/lib/image-compression";
 import { getImageUrls, isDataUrl, isCdnConfigured } from "@/lib/image-url";
 
 export function ImageUpload({
@@ -17,12 +17,14 @@ export function ImageUpload({
   disabled = false,
   onUploadingChange,
   folder = "general",
+  showHDToggle = true, // Show HD toggle by default
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [optimizedUrls, setOptimizedUrls] = useState({ src: "", lqip: "", medium: "" });
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isHDMode, setIsHDMode] = useState(false); // HD mode toggle state
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
@@ -57,14 +59,20 @@ export function ImageUpload({
     setUploadingState(true);
 
     try {
-      // Compress image before upload with higher quality
-      const compressedFile = await compressImage(file, {
-        maxWidth: 2048,
-        maxHeight: 2048,
-        quality: 0.9,
-        maxSizeKB: 800,
-        useWebP: false, // Keep JPEG for better compatibility
-      });
+      // Use HD compression if enabled, otherwise use standard compression
+      let compressedFile;
+      if (isHDMode) {
+        compressedFile = await compressForHD(file);
+        console.log(`[HD Upload] Original: ${Math.round(file.size/1024)}KB → Compressed: ${Math.round(compressedFile.size/1024)}KB`);
+      } else {
+        compressedFile = await compressImage(file, {
+          maxWidth: 2048,
+          maxHeight: 2048,
+          quality: 0.9,
+          maxSizeKB: 800,
+          useWebP: false, // Keep JPEG for better compatibility
+        });
+      }
 
       // Create local preview from compressed file
       const reader = new FileReader();
@@ -269,6 +277,23 @@ export function ImageUpload({
                     Gallery
                   </Button>
                 </div>
+                {/* HD Toggle */}
+                {showHDToggle && (
+                  <button
+                    type="button"
+                    onClick={() => setIsHDMode(!isHDMode)}
+                    disabled={disabled || isUploading}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                      isHDMode 
+                        ? "bg-amber-500 text-white shadow-sm" 
+                        : "bg-muted text-muted-foreground hover:bg-accent"
+                    )}
+                  >
+                    <Sparkles className={cn("h-3 w-3", isHDMode && "animate-pulse")} />
+                    HD {isHDMode ? "ON" : "OFF"}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -294,10 +319,12 @@ export function MultiImageUpload({
   onUploadingChange,
   folder = "general",
   onImageTap, // Optional callback when image is tapped (index) => void
+  showHDToggle = true, // Show HD toggle by default
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [isHDMode, setIsHDMode] = useState(false); // HD mode toggle state
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
@@ -318,13 +345,19 @@ export function MultiImageUpload({
 
     for (const file of filesToUpload) {
       try {
-        // Compress image before upload
-        const compressedFile = await compressImage(file, {
-          maxWidth: 1920,
-          maxHeight: 1920,
-          quality: 0.8,
-          maxSizeKB: 500,
-        });
+        // Use HD compression if enabled, otherwise use standard compression
+        let compressedFile;
+        if (isHDMode) {
+          compressedFile = await compressForHD(file);
+          console.log(`[HD Upload] Original: ${Math.round(file.size/1024)}KB → Compressed: ${Math.round(compressedFile.size/1024)}KB`);
+        } else {
+          compressedFile = await compressImage(file, {
+            maxWidth: 1920,
+            maxHeight: 1920,
+            quality: 0.8,
+            maxSizeKB: 500,
+          });
+        }
 
         // Create local preview first
         const localUrl = await new Promise(resolve => {
@@ -506,9 +539,33 @@ export function MultiImageUpload({
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          {value.length} of {maxImages} images • Tap to view
-        </p>
+        {/* HD Toggle and info */}
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {value.length} of {maxImages} images • Tap to view
+          </p>
+          {showHDToggle && (
+            <button
+              type="button"
+              onClick={() => setIsHDMode(!isHDMode)}
+              disabled={disabled || isUploading}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all",
+                isHDMode 
+                  ? "bg-amber-500 text-white shadow-sm" 
+                  : "bg-muted text-muted-foreground hover:bg-accent"
+              )}
+            >
+              <Sparkles className={cn("h-3 w-3", isHDMode && "animate-pulse")} />
+              HD {isHDMode ? "ON" : "OFF"}
+            </button>
+          )}
+        </div>
+        {isHDMode && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400">
+            HD mode: Images will be uploaded in high quality (larger file size)
+          </p>
+        )}
       </div>
 
       {/* Gallery Viewer */}

@@ -159,11 +159,13 @@ export function PhotoViewerProvider({ children, loop = true }) {
  * PhotoViewTrigger - Click trigger that opens the photo in gallery
  */
 export function PhotoViewTrigger({ src, alt, children, className }) {
+  // Use original quality for full view
   const imageUrl = useMemo(() => {
     if (!src) return "";
     if (isDataUrl(src)) return src;
     try {
-      return resolveImageUrl(src);
+      const urls = getImageUrls(src);
+      return urls.original || resolveImageUrl(src);
     } catch {
       return src;
     }
@@ -200,11 +202,13 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
     setMounted(true);
   }, []);
 
+  // Use original quality for full view
   const imageUrl = useMemo(() => {
     if (!src) return "";
     if (isDataUrl(src)) return src;
     try {
-      return resolveImageUrl(src);
+      const urls = getImageUrls(src);
+      return urls.original || resolveImageUrl(src);
     } catch {
       return src;
     }
@@ -353,11 +357,18 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     setMounted(true);
   }, []);
 
-  // Normalize and resolve images
+  // Normalize and resolve images - use original quality for full view
   const normalizedImages = useMemo(() => {
     return images.map((img, idx) => {
       const src = typeof img === "string" ? img : img.url || img.src;
-      const resolvedUrl = isDataUrl(src) ? src : resolveImageUrl(src);
+      let resolvedUrl;
+      if (isDataUrl(src)) {
+        resolvedUrl = src;
+      } else {
+        // Use getImageUrls to get original quality URL
+        const urls = getImageUrls(src);
+        resolvedUrl = urls.original || resolveImageUrl(src);
+      }
       return {
         src: resolvedUrl,
         key: `${resolvedUrl}-${idx}`,
