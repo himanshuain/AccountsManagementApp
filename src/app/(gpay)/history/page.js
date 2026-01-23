@@ -49,6 +49,19 @@ export default function HistoryPage() {
   const { transactions } = useTransactions();
   const { udharList } = useUdhar();
 
+  // Helper to get latest activity timestamp (considers payments too)
+  const getLatestActivity = (item) => {
+    let latest = new Date(item.updatedAt || item.createdAt || item.date || 0).getTime();
+    
+    // Check payment dates for more recent activity
+    (item.payments || []).forEach(p => {
+      const paymentTime = new Date(p.date || 0).getTime();
+      if (paymentTime > latest) latest = paymentTime;
+    });
+    
+    return latest;
+  };
+
   // Combine and filter all transactions
   const allTransactions = useMemo(() => {
     const txns = [];
@@ -57,6 +70,7 @@ export default function HistoryPage() {
     transactions.forEach(t => {
       const supplier = suppliers.find(s => s.id === t.supplierId);
       const timeValue = t.date?.includes("T") ? t.date : t.createdAt || t.date;
+      const lastActivity = getLatestActivity(t);
       txns.push({
         id: t.id,
         type: "supplier",
@@ -66,6 +80,7 @@ export default function HistoryPage() {
         amount: Number(t.amount) || 0,
         date: t.date,
         time: timeValue,
+        lastActivity,
         description: t.description || t.itemName,
         status: t.paymentStatus,
         isOutgoing: true,
@@ -76,6 +91,7 @@ export default function HistoryPage() {
     udharList.forEach(u => {
       const customer = customers.find(c => c.id === u.customerId);
       const timeValue = u.date?.includes("T") ? u.date : u.createdAt || u.date;
+      const lastActivity = getLatestActivity(u);
       txns.push({
         id: u.id,
         type: "customer",
@@ -85,14 +101,15 @@ export default function HistoryPage() {
         amount: Number(u.amount) || 0,
         date: u.date,
         time: timeValue,
+        lastActivity,
         description: u.description,
         status: u.status,
         isOutgoing: false,
       });
     });
 
-    // Sort by date (newest first)
-    return txns.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Sort by last activity (most recent modified/updated first)
+    return txns.sort((a, b) => b.lastActivity - a.lastActivity);
   }, [transactions, udharList, suppliers, customers]);
 
   // Apply filters

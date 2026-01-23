@@ -240,10 +240,17 @@ export function useSuppliers() {
 
   // Load all remaining pages (for components that need complete data)
   const loadAll = useCallback(async () => {
-    while (hasNextPage) {
-      await fetchNextPage();
+    let hasMore = true;
+    let safety = 0;
+    while (hasMore && safety < 50) {
+      const result = await fetchNextPage();
+      const pages = result?.data?.pages || [];
+      const lastPage = pages[pages.length - 1];
+      hasMore = !!lastPage?.pagination?.hasMore;
+      safety += 1;
+      if (!lastPage) break;
     }
-  }, [hasNextPage, fetchNextPage]);
+  }, [fetchNextPage]);
 
   return {
     suppliers,

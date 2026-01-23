@@ -153,16 +153,18 @@ export function PersonAvatarWithName({
       <PersonAvatar name={name} image={image} size={size} />
 
       <div className="w-full text-center">
-        <p className="max-w-[72px] truncate text-xs font-medium">{name || "Unknown"}</p>
+        <p className="max-w-[80px] text-xs font-bold leading-tight line-clamp-2">
+          {name || "Unknown"}
+        </p>
 
         {subtitle && (
-          <p className="max-w-[72px] truncate text-[10px] text-muted-foreground">{subtitle}</p>
+          <p className="max-w-[80px] text-[10px] text-muted-foreground line-clamp-1">{subtitle}</p>
         )}
 
         {amount !== undefined && (
           <p
             className={cn(
-              "mt-0.5 font-mono text-[11px] font-bold",
+              "mt-0.5 font-mono text-[11px] font-thin",
               amountColor || "amount-pending"
             )}
           >
@@ -174,7 +176,7 @@ export function PersonAvatarWithName({
   );
 
   const sharedClasses = cn(
-    "flex flex-col items-center gap-1.5 p-2 px-8",
+    "flex flex-col items-center gap-1.5 p-2 px-4",
     "active:scale-95 transition-transform cursor-pointer",
     "rounded-2xl hover:bg-accent/20",
     className

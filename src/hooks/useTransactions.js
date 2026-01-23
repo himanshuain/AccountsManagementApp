@@ -244,13 +244,15 @@ export function useTransactions(supplierId = null) {
 
   // Record a partial payment for a transaction
   const recordPayment = useCallback(
-    async (id, amount, receiptUrls = null, paymentDate = null) => {
+    async (id, amount, receiptUrls = null, paymentDate = null, notes = "", isReturn = false) => {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return { success: false, error: "Transaction not found" };
 
       const totalAmount = transaction.amount || 0;
       const currentPaid = transaction.paidAmount || 0;
-      const newPaidAmount = currentPaid + amount;
+      // Return payments don't add to paid amount
+      const effectiveAmount = isReturn ? 0 : amount;
+      const newPaidAmount = currentPaid + effectiveAmount;
 
       // Support both single URL (string) and array of URLs
       const receipts = receiptUrls
@@ -265,6 +267,8 @@ export function useTransactions(supplierId = null) {
         date: paymentDate || new Date().toISOString(),
         receiptUrl: receipts[0] || null, // Keep for backward compatibility
         receiptUrls: receipts, // New field for multiple receipts
+        notes: notes || "",
+        isReturn: isReturn,
       };
 
       const updates = {
@@ -335,13 +339,20 @@ export function useTransactions(supplierId = null) {
       const oldPayment = payments[paymentIndex];
       const oldAmount = Number(oldPayment.amount) || 0;
       const newAmount = Number(paymentUpdates.amount) || oldAmount;
-      const amountDiff = newAmount - oldAmount;
+      const oldIsReturn = !!oldPayment.isReturn;
+      const newIsReturn = paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
+      
+      // Calculate effective amounts (returns don't count toward paid)
+      const oldEffective = oldIsReturn ? 0 : oldAmount;
+      const newEffective = newIsReturn ? 0 : newAmount;
+      const amountDiff = newEffective - oldEffective;
 
       // Update the payment
       payments[paymentIndex] = {
         ...oldPayment,
         ...paymentUpdates,
         amount: newAmount,
+        isReturn: newIsReturn,
       };
 
       // Recalculate paid amount

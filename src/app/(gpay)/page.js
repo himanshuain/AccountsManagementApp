@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -16,7 +17,6 @@ import {
   PiggyBank,
   ArrowUpRight,
   ArrowDownLeft,
-  ChevronRight,
   History,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ import { CustomerForm } from "@/components/CustomerForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
 import { cn } from "@/lib/utils";
+import { resolveImageUrl } from "@/lib/image-url";
 
 // Hook to prevent body scroll when modal is open
 function usePreventBodyScroll(isOpen) {
@@ -84,8 +85,8 @@ const FILTER_OPTIONS = [
 ];
 
 export default function GPayHomePage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAllPeople, setShowAllPeople] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("amount");
   const [filterBy, setFilterBy] = useState("all");
@@ -101,7 +102,7 @@ export default function GPayHomePage() {
   // Section collapse states
   const [suppliersExpanded, setSuppliersExpanded] = useState(true);
   const [customersExpanded, setCustomersExpanded] = useState(true);
-  const [recentExpanded, setRecentExpanded] = useState(true);
+  const [recentExpanded, setRecentExpanded] = useState(false);
 
   // Prevent body scroll when modal is open
   usePreventBodyScroll(addMenuOpen || incomeModalOpen);
@@ -186,19 +187,11 @@ export default function GPayHomePage() {
     return people;
   }, [suppliers, customers, transactions, udharList]);
 
-  // Separate suppliers and customers lists
+  // Separate suppliers and customers lists (no search filtering - dropdown handles that)
   const suppliersList = useMemo(() => {
     let result = allPeople.filter(p => p.type === "supplier");
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
-      );
-    }
-
-    // Apply sorting
+    // Apply sorting only
     switch (sortBy) {
       case "amount":
         result.sort((a, b) => b.pendingAmount - a.pendingAmount);
@@ -216,20 +209,12 @@ export default function GPayHomePage() {
     }
 
     return result;
-  }, [allPeople, searchQuery, sortBy]);
+  }, [allPeople, sortBy]);
 
   const customersList = useMemo(() => {
     let result = allPeople.filter(p => p.type === "customer");
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query)
-      );
-    }
-
-    // Apply sorting
+    // Apply sorting only
     switch (sortBy) {
       case "amount":
         result.sort((a, b) => b.pendingAmount - a.pendingAmount);
@@ -247,7 +232,7 @@ export default function GPayHomePage() {
     }
 
     return result;
-  }, [allPeople, searchQuery, sortBy]);
+  }, [allPeople, sortBy]);
 
   // Recently accessed people (based on last activity, limited to 6)
   const recentPeople = useMemo(() => {
@@ -308,13 +293,16 @@ export default function GPayHomePage() {
   // Check if any filter is active
   const hasActiveFilters = filterBy !== "all" || sortBy !== "amount";
 
-  // Load all data when "View all" is clicked
-  useEffect(() => {
-    if (showAllPeople) {
-      if (hasMoreSuppliers) loadAllSuppliers();
-      if (hasMoreCustomers) loadAllCustomers();
-    }
-  }, [showAllPeople, hasMoreSuppliers, hasMoreCustomers, loadAllSuppliers, loadAllCustomers]);
+  // Search suggestions for dropdown
+  const searchSuggestions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    return allPeople
+      .filter(p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query))
+      .slice(0, 6);
+  }, [allPeople, searchQuery]);
+
 
   // Statistics - Use API data for accurate totals, fall back to loaded data
   const stats = useMemo(() => {
@@ -400,6 +388,52 @@ export default function GPayHomePage() {
               onChange={e => setSearchQuery(e.target.value)}
               className="input-hero pl-12"
             />
+            {/* Search Dropdown */}
+            {searchSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-lg backdrop-blur-xl">
+                {searchSuggestions.map(person => (
+                  <button
+                    key={`suggest-${person.type}-${person.id}`}
+                    onClick={() => {
+                      setSearchQuery("");
+                      router.push(`/person/${person.type}/${person.id}`);
+                    }}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/40"
+                  >
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                      {person.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={resolveImageUrl(person.image)}
+                          alt={person.name || "Avatar"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {(person.name || "?").slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{person.name}</p>
+                      {person.phone && (
+                        <p className="truncate text-[10px] text-muted-foreground">{person.phone}</p>
+                      )}
+                    </div>
+                    <span
+                      className={cn(
+                        "flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        person.type === "supplier"
+                          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                      )}
+                    >
+                      {person.type === "supplier" ? "Supplier" : "Customer"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -546,7 +580,7 @@ export default function GPayHomePage() {
                             : "text-amber-600 dark:text-amber-400"
                         }
                         href={`/person/${person.type}/${person.id}`}
-                        size="sm"
+                        size="lg"
                       />
                     </div>
                   ))}
@@ -558,7 +592,7 @@ export default function GPayHomePage() {
       )}
 
       {/* Suppliers Section */}
-      <section className="mt-6 px-4 py-6">
+      <section className="mt-6 px-4 py-1">
         <button
           onClick={() => setSuppliersExpanded(!suppliersExpanded)}
           className="mb-3 flex w-full items-center justify-between"
@@ -593,8 +627,8 @@ export default function GPayHomePage() {
                 <div className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6">
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-2 p-2">
-                      <div className="skeleton-hero h-12 w-12 rounded-full" />
-                      <div className="skeleton-hero h-3 w-10 rounded" />
+                      <div className="skeleton-hero h-14 w-14 rounded-full" />
+                      <div className="skeleton-hero h-3 w-12 rounded" />
                     </div>
                   ))}
                 </div>
@@ -619,7 +653,7 @@ export default function GPayHomePage() {
                     visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
                   }}
                 >
-                  {suppliersList.slice(0, showAllPeople ? undefined : 8).map(person => (
+                  {suppliersList.map(person => (
                     <motion.div
                       key={`supplier-${person.id}`}
                       variants={{
@@ -633,23 +667,10 @@ export default function GPayHomePage() {
                         amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
                         amountColor="amount-negative"
                         href={`/person/supplier/${person.id}`}
-                        size="sm"
+                        size="lg"
                       />
                     </motion.div>
                   ))}
-                  {!showAllPeople && suppliersList.length > 8 && (
-                    <button
-                      onClick={() => setShowAllPeople(true)}
-                      className="flex flex-col items-center gap-1 p-2"
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">
-                        +{suppliersList.length - 8}
-                      </span>
-                    </button>
-                  )}
                 </motion.div>
               )}
             </motion.div>
@@ -693,8 +714,8 @@ export default function GPayHomePage() {
                 <div className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6">
                   {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex flex-col items-center gap-2 p-2">
-                      <div className="skeleton-hero h-12 w-12 rounded-full" />
-                      <div className="skeleton-hero h-3 w-10 rounded" />
+                      <div className="skeleton-hero h-14 w-14 rounded-full" />
+                      <div className="skeleton-hero h-3 w-12 rounded" />
                     </div>
                   ))}
                 </div>
@@ -719,7 +740,7 @@ export default function GPayHomePage() {
                     visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
                   }}
                 >
-                  {customersList.slice(0, showAllPeople ? undefined : 8).map(person => (
+                  {customersList.map(person => (
                     <motion.div
                       key={`customer-${person.id}`}
                       variants={{
@@ -733,23 +754,10 @@ export default function GPayHomePage() {
                         amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
                         amountColor="text-amber-600 dark:text-amber-400"
                         href={`/person/customer/${person.id}`}
-                        size="sm"
+                        size="lg"
                       />
                     </motion.div>
                   ))}
-                  {!showAllPeople && customersList.length > 8 && (
-                    <button
-                      onClick={() => setShowAllPeople(true)}
-                      className="flex flex-col items-center gap-1 p-2"
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">
-                        +{customersList.length - 8}
-                      </span>
-                    </button>
-                  )}
                 </motion.div>
               )}
             </motion.div>

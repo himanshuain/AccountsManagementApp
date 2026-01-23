@@ -180,13 +180,15 @@ export function useUdhar() {
   );
 
   const recordDeposit = useCallback(
-    async (id, amount, receiptUrls = null, notes = null, paymentDate = null) => {
+    async (id, amount, receiptUrls = null, notes = null, paymentDate = null, isReturn = false) => {
       const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
       const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
-      const newPaidAmount = currentPaid + amount;
+      // Return payments don't add to paid amount
+      const effectiveAmount = isReturn ? 0 : amount;
+      const newPaidAmount = currentPaid + effectiveAmount;
 
       // Support both single URL (string) and array of URLs
       const receipts = receiptUrls
@@ -202,12 +204,13 @@ export function useUdhar() {
         receiptUrl: receipts[0] || null, // Keep for backward compatibility
         receiptUrls: receipts, // New field for multiple receipts
         notes: notes,
+        isReturn: isReturn,
       };
 
       const updates = {
         payments: [...(udhar.payments || []), newPayment],
         paidAmount: newPaidAmount,
-        paidCash: (udhar.paidCash || 0) + amount,
+        paidCash: (udhar.paidCash || 0) + effectiveAmount,
         paymentStatus: newPaidAmount >= totalAmount ? "paid" : "partial",
       };
 
@@ -273,13 +276,20 @@ export function useUdhar() {
       const oldPayment = payments[paymentIndex];
       const oldAmount = Number(oldPayment.amount) || 0;
       const newAmount = Number(paymentUpdates.amount) || oldAmount;
-      const amountDiff = newAmount - oldAmount;
+      const oldIsReturn = !!oldPayment.isReturn;
+      const newIsReturn = paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
+      
+      // Calculate effective amounts (returns don't count toward paid)
+      const oldEffective = oldIsReturn ? 0 : oldAmount;
+      const newEffective = newIsReturn ? 0 : newAmount;
+      const amountDiff = newEffective - oldEffective;
 
       // Update the payment
       payments[paymentIndex] = {
         ...oldPayment,
         ...paymentUpdates,
         amount: newAmount,
+        isReturn: newIsReturn,
       };
 
       // Recalculate paid amount

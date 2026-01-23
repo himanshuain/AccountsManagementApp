@@ -87,6 +87,8 @@ function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
   const today = getLocalDate();
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today);
+  const [notes, setNotes] = useState("");
+  const [isReturn, setIsReturn] = useState(false);
   const [receiptImages, setReceiptImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -169,19 +171,24 @@ function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
   const handleSubmit = e => {
     e.preventDefault();
     const paymentAmount = Number(amount);
-    if (paymentAmount <= 0) {
+    // For GR, allow zero; for regular payments, require positive amount
+    if (!isReturn && paymentAmount <= 0) {
       toast.error("Enter valid amount");
       return;
     }
-    if (paymentAmount > remainingAmount) {
+    if (isReturn && paymentAmount < 0) {
+      toast.error("Amount cannot be negative");
+      return;
+    }
+    if (!isReturn && paymentAmount > remainingAmount) {
       toast.error(`Max amount is ₹${remainingAmount.toLocaleString("en-IN")}`);
       return;
     }
-    onSubmit(paymentAmount, date, false, receiptImages);
+    onSubmit(paymentAmount, date, false, receiptImages, notes, isReturn);
   };
 
   const handleFullPayment = () => {
-    onSubmit(remainingAmount, date, true, receiptImages);
+    onSubmit(remainingAmount, date, true, receiptImages, notes, false);
   };
 
   return (
@@ -250,6 +257,36 @@ function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
               />
             </div>
 
+            {/* Return GR Toggle */}
+            <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+              <div>
+                <p className="text-sm font-medium">Return (GR)</p>
+                <p className="text-xs text-muted-foreground">Mark as goods return</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newIsReturn = !isReturn;
+                  setIsReturn(newIsReturn);
+                  // Set default 0 when enabling GR
+                  if (newIsReturn && !amount) {
+                    setAmount("0");
+                  }
+                }}
+                className={cn(
+                  "relative h-6 w-11 rounded-full transition-colors",
+                  isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
+                )}
+              >
+                <div
+                  className={cn(
+                    "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                    isReturn ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </button>
+            </div>
+
             {/* Quick Amount Buttons */}
             <div className="flex flex-wrap gap-2">
               {[1000, 5000, 10000].map(val => (
@@ -262,6 +299,18 @@ function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
                   ₹{val.toLocaleString("en-IN")}
                 </button>
               ))}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="mb-2 block text-sm text-muted-foreground">Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Payment notes..."
+                className="input-hero min-h-[60px] resize-none"
+              />
             </div>
 
             {/* Receipt Images Upload */}
@@ -396,6 +445,7 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
   const [amount, setAmount] = useState(String(payment?.amount || ""));
   const [date, setDate] = useState(payment?.date ? payment.date.split("T")[0] : getLocalDate());
   const [notes, setNotes] = useState(payment?.notes || "");
+  const [isReturn, setIsReturn] = useState(!!payment?.isReturn);
   const [receiptImages, setReceiptImages] = useState(() => {
     // Support both old (receiptUrl) and new (receiptUrls) format
     if (payment?.receiptUrls && payment.receiptUrls.length > 0) {
@@ -491,11 +541,16 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
   const handleSubmit = e => {
     e.preventDefault();
     const paymentAmount = Number(amount);
-    if (paymentAmount <= 0) {
+    // For GR, allow zero; for regular payments, require positive amount
+    if (!isReturn && paymentAmount <= 0) {
       toast.error("Enter valid amount");
       return;
     }
-    if (paymentAmount > maxAmount) {
+    if (isReturn && paymentAmount < 0) {
+      toast.error("Amount cannot be negative");
+      return;
+    }
+    if (!isReturn && paymentAmount > maxAmount) {
       toast.error(`Max amount is ₹${maxAmount.toLocaleString("en-IN")}`);
       return;
     }
@@ -505,6 +560,7 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
       notes: notes,
       receiptUrl: receiptImages[0] || null,
       receiptUrls: receiptImages,
+      isReturn: isReturn,
     });
   };
 
@@ -570,6 +626,36 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
                 max={getLocalDate()}
                 className="input-hero"
               />
+            </div>
+
+            {/* Return GR Toggle */}
+            <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+              <div>
+                <p className="text-sm font-medium">Return (GR)</p>
+                <p className="text-xs text-muted-foreground">Mark as goods return</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newIsReturn = !isReturn;
+                  setIsReturn(newIsReturn);
+                  // Set default 0 when enabling GR
+                  if (newIsReturn && !amount) {
+                    setAmount("0");
+                  }
+                }}
+                className={cn(
+                  "relative h-6 w-11 rounded-full transition-colors",
+                  isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
+                )}
+              >
+                <div
+                  className={cn(
+                    "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                    isReturn ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </button>
             </div>
 
             {/* Notes Input */}
@@ -878,34 +964,49 @@ function TransactionDetailModal({
             </button>
           </div>
 
-          {/* Amount */}
-          <div className="py-4 text-center">
-            <p
-              className={cn(
-                "font-mono text-4xl font-bold",
-                isSupplier ? "amount-negative" : "text-amber-600 dark:text-amber-400"
+          {/* Amount - Horizontal Layout */}
+          <div className="flex items-stretch gap-3 rounded-2xl bg-muted/50 p-3">
+            {/* Total Amount - Smaller */}
+            <div className="flex flex-col justify-center rounded-xl bg-background/50 px-4 py-3">
+              <p className="text-[10px] text-muted-foreground">Total</p>
+              <p
+                className={cn(
+                  "font-mono text-lg font-bold",
+                  isSupplier ? "text-foreground" : "text-foreground"
+                )}
+              >
+                ₹{totalAmount.toLocaleString("en-IN")}
+              </p>
+            </div>
+            
+            {/* Pending Amount - Dominating */}
+            <div className="flex flex-1 flex-col justify-center rounded-xl bg-background px-4 py-3">
+              <p className="text-[10px] text-muted-foreground">
+                {isPaid ? "Status" : "Pending"}
+              </p>
+              {isPaid ? (
+                <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  ✓ Paid
+                </p>
+              ) : (
+                <p className={cn(
+                  "font-mono text-2xl font-bold",
+                  isSupplier ? "amount-negative" : "text-amber-600 dark:text-amber-400"
+                )}>
+                  ₹{remainingAmount.toLocaleString("en-IN")}
+                </p>
               )}
-            >
-              ₹{totalAmount.toLocaleString("en-IN")}
-            </p>
-            <span
-              className={cn(
-                "mt-2 inline-block rounded-full px-3 py-1 text-sm font-medium",
-                isPaid ? "badge-paid" : "badge-pending"
-              )}
-            >
-              {isPaid ? "✓ Paid" : `⏳ ₹${remainingAmount.toLocaleString("en-IN")} Pending`}
-            </span>
+            </div>
           </div>
 
           {/* Progress Bar */}
-          {totalAmount > 0 && (
+          {totalAmount > 0 && !isPaid && (
             <ProgressBar
               total={totalAmount}
               paid={paidAmount}
               size="md"
               showLabels
-              className="mt-4"
+              className="mt-3"
             />
           )}
         </div>
@@ -1055,9 +1156,21 @@ function TransactionDetailModal({
                           {/* Payment details */}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between">
-                              <p className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                                +₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                {payment.isReturn && (
+                                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                                    GR
+                                  </span>
+                                )}
+                                <p className={cn(
+                                  "font-mono font-semibold",
+                                  payment.isReturn 
+                                    ? "text-blue-600 dark:text-blue-400" 
+                                    : "text-emerald-600 dark:text-emerald-400"
+                                )}>
+                                  {payment.isReturn ? "" : "+"}₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
+                                </p>
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {format(parseISO(payment.date), "dd MMM yyyy")}
                               </p>
@@ -1714,7 +1827,7 @@ export default function PersonChatPage() {
 
   // Handle recording a payment
   const handleRecordPayment = useCallback(
-    async (amount, date, isFullPayment = false, receiptImages = []) => {
+    async (amount, date, isFullPayment = false, receiptImages = [], notes = "", isReturn = false) => {
       if (!paymentTransaction) return;
 
       setIsSubmittingPayment(true);
@@ -1731,7 +1844,9 @@ export default function PersonChatPage() {
               paymentTransaction.id,
               amount,
               receiptUrl,
-              date
+              date,
+              notes,
+              isReturn
             );
           }
         } else {
@@ -1742,8 +1857,9 @@ export default function PersonChatPage() {
               paymentTransaction.id,
               amount,
               receiptUrl,
-              null,
-              date
+              notes,
+              date,
+              isReturn
             );
           }
         }
