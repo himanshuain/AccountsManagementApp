@@ -1925,6 +1925,7 @@ export default function SettingsPage() {
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
   const [biometricModalOpen, setBiometricModalOpen] = useState(false);
+  const [showHeroBackground, setShowHeroBackground] = useState(true);
 
   // Biometric lock settings
   const {
@@ -1970,6 +1971,10 @@ export default function SettingsPage() {
   // Prevent hydration mismatch for theme
   useEffect(() => {
     setMounted(true);
+    const heroStored = localStorage.getItem("ui-show-hero-background");
+    if (heroStored !== null) {
+      setShowHeroBackground(heroStored === "true");
+    }
   }, []);
 
   const handleLogout = async () => {
@@ -1988,6 +1993,14 @@ export default function SettingsPage() {
     );
   };
 
+  const toggleHeroBackground = () => {
+    const nextValue = !showHeroBackground;
+    setShowHeroBackground(nextValue);
+    localStorage.setItem("ui-show-hero-background", String(nextValue));
+    window.dispatchEvent(new Event("hero-background-visibility-changed"));
+    toast.success(nextValue ? "Hero background shown" : "Hero background hidden");
+  };
+
   // Use stable defaults for SSR, then update on client
   const isDark = mounted ? theme === "dark" : false;
 
@@ -2004,6 +2017,34 @@ export default function SettingsPage() {
           onClick: toggleTheme,
           rightContent: (
             <span className="text-xs text-muted-foreground">{isDark ? "🦾" : "🕷️"}</span>
+          ),
+        },
+        {
+          icon: showHeroBackground ? ImageIcon : EyeOff,
+          label: "Hero Background",
+          sublabel: showHeroBackground ? "Superhero art visible" : "Background art hidden",
+          color: showHeroBackground ? "text-primary" : "text-muted-foreground",
+          bgColor: showHeroBackground ? "bg-primary/20" : "bg-muted",
+          onClick: toggleHeroBackground,
+          rightContent: (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                toggleHeroBackground();
+              }}
+              className={cn(
+                "relative h-6 w-11 rounded-full transition-colors",
+                showHeroBackground ? "bg-primary" : "bg-muted-foreground/30"
+              )}
+            >
+              <div
+                className={cn(
+                  "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                  showHeroBackground ? "translate-x-6" : "translate-x-1"
+                )}
+              />
+            </button>
           ),
         },
       ],
@@ -2103,9 +2144,17 @@ export default function SettingsPage() {
               {section.items.map(item => {
                 const Icon = item.icon;
                 return (
-                  <button
+                  <div
                     key={item.label}
+                    role="button"
+                    tabIndex={0}
                     onClick={item.onClick}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        item.onClick?.();
+                      }
+                    }}
                     className="w-full text-left transition-colors hover:bg-accent/20"
                   >
                     <div className="flex items-center gap-3 p-4">
@@ -2122,7 +2171,7 @@ export default function SettingsPage() {
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

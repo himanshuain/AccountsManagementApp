@@ -30,8 +30,9 @@ export function QuickActionBar({
       className={cn(
         "fixed bottom-0 left-0 right-0 z-30",
         "border-t border-border bg-background/95 backdrop-blur-sm",
+        "shadow-[0_-8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.45)]",
         "safe-area-bottom pb-4 lg:pb-0",
-        "lg:static lg:border-t-0",
+        "lg:static lg:border-t-0 lg:shadow-none",
         className
       )}
     >

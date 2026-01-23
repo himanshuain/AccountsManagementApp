@@ -1966,17 +1966,6 @@ export default function PersonChatPage() {
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Search Toggle Button */}
-            <button
-              onClick={() => setShowSearch(!showSearch)}
-              className={cn(
-                "rounded-full p-2 transition-colors",
-                showSearch ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-              )}
-            >
-              <Search className="h-5 w-5" />
-            </button>
-
             {person.phone && (
               <button
                 onClick={handleCall}
@@ -2188,6 +2177,19 @@ export default function PersonChatPage() {
           >
             <Images className="h-3 w-3" />
             Bills
+          </button>
+
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+              showSearch
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted hover:bg-accent"
+            )}
+          >
+            <Search className="h-3 w-3" />
+            Search
           </button>
 
           {/* PDF Export Button - Only for suppliers */}

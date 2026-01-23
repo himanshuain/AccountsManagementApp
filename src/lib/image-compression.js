@@ -26,19 +26,19 @@ const supportsWebP = () => {
  *
  * @param {File} file - The image file to compress
  * @param {Object} options - Compression options
- * @param {number} options.maxWidth - Maximum width (default: 1200 for mobile)
- * @param {number} options.maxHeight - Maximum height (default: 1200 for mobile)
- * @param {number} options.quality - Initial quality 0-1 (default: 0.75)
- * @param {number} options.maxSizeKB - Target max file size in KB (default: 200)
+ * @param {number} options.maxWidth - Maximum width (default: 2200 for better detail)
+ * @param {number} options.maxHeight - Maximum height (default: 2200 for better detail)
+ * @param {number} options.quality - Initial quality 0-1 (default: 0.9)
+ * @param {number} options.maxSizeKB - Target max file size in KB (default: 1500)
  * @param {boolean} options.useWebP - Use WebP format if supported (default: true)
  * @returns {Promise<File>} - Compressed image file
  */
 export async function compressImage(file, options = {}) {
   const {
-    maxWidth = 1600, // Higher resolution for better quality
-    maxHeight = 1600,
-    quality = 0.85, // Better quality default
-    maxSizeKB = 500, // Increased target for better quality
+    maxWidth = 2200, // Higher resolution for better detail
+    maxHeight = 2200,
+    quality = 0.9, // Higher quality default
+    maxSizeKB = 1500, // Larger target for better quality
     useWebP = false, // JPEG for better compatibility
   } = options;
 
@@ -81,9 +81,9 @@ export async function compressImage(file, options = {}) {
           height = Math.round(height * scale);
         }
 
-        // Additional downscaling for very large files (>2MB)
-        if (file.size > 2 * 1024 * 1024 && Math.max(width, height) > 800) {
-          const additionalScale = 800 / Math.max(width, height);
+        // Additional downscaling for very large files (>8MB)
+        if (file.size > 8 * 1024 * 1024 && Math.max(width, height) > 1600) {
+          const additionalScale = 1600 / Math.max(width, height);
           width = Math.round(width * additionalScale);
           height = Math.round(height * additionalScale);
         }
@@ -162,10 +162,10 @@ export async function compressImage(file, options = {}) {
 
         // Determine starting quality based on original file size
         let startingQuality = quality;
-        if (file.size > 5 * 1024 * 1024) {
-          startingQuality = 0.6; // Very large files start with lower quality
-        } else if (file.size > 2 * 1024 * 1024) {
-          startingQuality = 0.7;
+        if (file.size > 8 * 1024 * 1024) {
+          startingQuality = 0.75; // Very large files start slightly lower
+        } else if (file.size > 4 * 1024 * 1024) {
+          startingQuality = 0.8;
         }
 
         compressWithQuality(startingQuality);
@@ -229,10 +229,10 @@ export async function compressForThumbnail(file) {
  */
 export async function compressForBill(file) {
   return compressImage(file, {
-    maxWidth: 1400,
-    maxHeight: 1800, // Taller for receipts
-    quality: 0.85,
-    maxSizeKB: 400,
+    maxWidth: 2000,
+    maxHeight: 2600, // Taller for receipts
+    quality: 0.9,
+    maxSizeKB: 1200,
     useWebP: false, // JPEG for better compatibility
   });
 }
@@ -246,8 +246,8 @@ export async function compressForProfile(file) {
   return compressImage(file, {
     maxWidth: 400,
     maxHeight: 400,
-    quality: 0.8,
-    maxSizeKB: 80,
+    quality: 0.85,
+    maxSizeKB: 120,
     useWebP: true,
   });
 }

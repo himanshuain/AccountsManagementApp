@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
+import { getImageSizeBytes, formatBytes } from "@/lib/image-size";
 
 /**
  * Simplified Image Viewer with reliable touch gestures
@@ -33,6 +34,7 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [sizeLabel, setSizeLabel] = useState("");
 
   const containerRef = useRef(null);
 
@@ -81,6 +83,22 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    if (!open || !imageUrl) return;
+
+    getImageSizeBytes(imageUrl, { allowDownload: true }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [imageUrl, open]);
 
   // Get distance between two touch points
   const getDistance = (t1, t2) => {
@@ -225,6 +243,12 @@ export function ImageViewer({ src, alt = "Image", open, onOpenChange }) {
           <X className="h-6 w-6" />
         </Button>
 
+        {sizeLabel && (
+          <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-xs text-white">
+            {sizeLabel}
+          </span>
+        )}
+
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -354,6 +378,7 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [sizeLabel, setSizeLabel] = useState("");
 
   const containerRef = useRef(null);
 
@@ -377,6 +402,22 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
       return src;
     }
   }, [currentImage.url]);
+
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    if (!open || !imageUrl) return;
+
+    getImageSizeBytes(imageUrl, { allowDownload: true }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [imageUrl, open]);
 
   // Touch state
   const touchState = useRef({
@@ -594,6 +635,12 @@ export function ImageGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         >
           <X className="h-6 w-6" />
         </Button>
+
+        {sizeLabel && (
+          <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-xs text-white">
+            {sizeLabel}
+          </span>
+        )}
 
         {normalizedImages.length > 1 && (
           <span className="font-mono text-sm text-white">

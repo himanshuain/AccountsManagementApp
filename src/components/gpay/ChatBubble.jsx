@@ -51,10 +51,13 @@ export function ChatBubble({
         className={cn(
           "relative max-w-[85%] cursor-pointer rounded-2xl p-3",
           "hw-accelerate transition-transform active:scale-[0.98]",
+          "shadow-sm shadow-black/5 ring-1 ring-black/5",
+          "before:absolute before:h-3 before:w-3 before:rotate-45 before:content-['']",
+          "dark:shadow-black/40 dark:ring-white/5",
           // Bubble colors
           isPayment
-            ? "rounded-tl-sm border border-border bg-card" // Left bubble (received)
-            : "rounded-tr-sm bg-muted/80 dark:bg-zinc-800", // Right bubble (sent/gave)
+            ? "rounded-bl-sm bg-white text-foreground before:-left-1 before:bottom-1 before:bg-white dark:bg-zinc-900 dark:before:bg-zinc-900" // Left bubble (received)
+            : "rounded-br-sm bg-emerald-100 text-emerald-950 before:-right-1 before:bottom-1 before:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:before:bg-emerald-900/40", // Right bubble (sent/gave)
           // Status-based border accent
           !isPayment && isPaid && "border-l-4 border-l-emerald-500",
           !isPayment && isPartial && "border-l-4 border-l-blue-500",

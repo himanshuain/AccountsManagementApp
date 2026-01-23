@@ -25,6 +25,7 @@ export function PaymentProgress({
       className={cn(
         "border-b border-border bg-card/95 p-4 backdrop-blur-sm",
         "sticky top-0 z-20",
+        "shadow-sm shadow-black/5",
         className
       )}
     >

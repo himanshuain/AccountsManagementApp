@@ -56,6 +56,7 @@ export default function HistoryPage() {
     // Add supplier transactions
     transactions.forEach(t => {
       const supplier = suppliers.find(s => s.id === t.supplierId);
+      const timeValue = t.date?.includes("T") ? t.date : t.createdAt || t.date;
       txns.push({
         id: t.id,
         type: "supplier",
@@ -64,6 +65,7 @@ export default function HistoryPage() {
         personImage: supplier?.profilePicture,
         amount: Number(t.amount) || 0,
         date: t.date,
+        time: timeValue,
         description: t.description || t.itemName,
         status: t.paymentStatus,
         isOutgoing: true,
@@ -73,6 +75,7 @@ export default function HistoryPage() {
     // Add customer udhar
     udharList.forEach(u => {
       const customer = customers.find(c => c.id === u.customerId);
+      const timeValue = u.date?.includes("T") ? u.date : u.createdAt || u.date;
       txns.push({
         id: u.id,
         type: "customer",
@@ -81,6 +84,7 @@ export default function HistoryPage() {
         personImage: customer?.profilePicture,
         amount: Number(u.amount) || 0,
         date: u.date,
+        time: timeValue,
         description: u.description,
         status: u.status,
         isOutgoing: false,
@@ -351,34 +355,26 @@ export default function HistoryPage() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate font-medium">{txn.personName}</p>
-                        {/* Type badge - Supplier or Customer */}
-                        <span
-                          className={cn(
-                            "flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium",
-                            txn.type === "supplier" ? "badge-supplier" : "badge-customer"
-                          )}
-                        >
-                          {txn.type === "supplier" ? (
-                            <>
-                              <Store className="h-2.5 w-2.5" /> Supplier
-                            </>
-                          ) : (
-                            <>
-                              <Users className="h-2.5 w-2.5" /> Customer
-                            </>
-                          )}
-                        </span>
+                        <p className="truncate font-bold">{txn.personName}</p>
                       </div>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {format(parseISO(txn.date), "dd MMM, h:mm a")}
-                        {txn.description && ` • ${txn.description}`}
+                      <p className="truncate text-xs text-muted-foreground">
+                        {format(parseISO(txn.time || txn.date), "dd MMM, h:mm a")}
+                        {/* show supplier and customer with icon and color badge next to the date in one line */}
+                        {txn.type === "supplier" ? (
+                          <span className="text-green-500 ml-2 inline-flex items-center gap-1">
+                              <Store className="h-2.5 w-2.5" /> Supplier
+                          </span>
+                        ) : (
+                          <span className="text-red-500 ml-2">
+                            <Users className="h-2.5 w-2.5" /> Customer
+                          </span>
+                        )}
                       </p>
                     </div>
 
                     <div className="flex-shrink-0 text-right">
                       <div className="flex items-center gap-1 font-mono font-semibold">
-                        {txn.isOutgoing ? (
+                        {/* {txn.isOutgoing ? (
                           <ArrowUpRight
                             className={cn(
                               "h-4 w-4",
@@ -392,7 +388,7 @@ export default function HistoryPage() {
                               txn.status === "paid" ? "amount-positive" : "amount-negative"
                             )}
                           />
-                        )}
+                        )} */}
                         <span
                           className={txn.status === "paid" ? "amount-positive" : "amount-negative"}
                         >

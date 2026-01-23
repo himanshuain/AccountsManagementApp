@@ -10,13 +10,29 @@ import { useEffect, useState } from "react";
 export function HeroBackground() {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [showHero, setShowHero] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    const syncSetting = () => {
+      const stored = localStorage.getItem("ui-show-hero-background");
+      setShowHero(stored !== "false");
+    };
+
+    syncSetting();
+    window.addEventListener("storage", syncSetting);
+    window.addEventListener("hero-background-visibility-changed", syncSetting);
+    return () => {
+      window.removeEventListener("storage", syncSetting);
+      window.removeEventListener("hero-background-visibility-changed", syncSetting);
+    };
+  }, []);
+
   // Prevent hydration mismatch
-  if (!mounted) return null;
+  if (!mounted || !showHero) return null;
 
   const isDark = resolvedTheme === "dark";
 

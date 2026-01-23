@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { X, Download, Share2, AlertCircle, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
+import { getImageSizeBytes, formatBytes } from "@/lib/image-size";
 import { cn } from "@/lib/utils";
 
 import "react-photo-view/dist/react-photo-view.css";
@@ -15,7 +16,7 @@ import "react-photo-view/dist/react-photo-view.css";
  * Floating toolbar overlay for the photo viewer
  * This renders as fixed position overlay for maximum visibility
  */
-function FloatingToolbar({ onDownload, onShare, onClose, index, total }) {
+function FloatingToolbar({ onDownload, onShare, onClose, index, total, sizeLabel }) {
   return (
     <>
       {/* Top bar with close and counter */}
@@ -32,6 +33,12 @@ function FloatingToolbar({ onDownload, onShare, onClose, index, total }) {
         {total > 1 && (
           <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-sm text-white">
             {index + 1} / {total}
+          </span>
+        )}
+
+        {sizeLabel && (
+          <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-xs text-white">
+            File Size: {sizeLabel}
           </span>
         )}
 
@@ -57,13 +64,13 @@ function FloatingToolbar({ onDownload, onShare, onClose, index, total }) {
         </button>
       </div>
 
-      {/* Swipe hint */}
+      {/* Swipe hint
       <div className="pointer-events-none fixed left-1/2 top-20 z-[2147483647] -translate-x-1/2">
         <div className="flex flex-col items-center gap-1 text-white/50">
-          <ChevronDown className="h-5 w-5 animate-bounce" />
+          <ChevronDown className="h-5 w-5 animate-bounce duration-50" />
           <span className="text-xs">Swipe down to close</span>
         </div>
-      </div>
+      </div> */}
     </>
   );
 }
@@ -186,6 +193,7 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
   const [scale, setScale] = useState(1);
   const [rotate, setRotate] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [sizeLabel, setSizeLabel] = useState("");
 
   // Ensure we only render portal on client
   useEffect(() => {
@@ -209,6 +217,22 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
       setRotate(0);
     }
   }, [open]);
+
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    if (!open || !imageUrl) return;
+
+    getImageSizeBytes(imageUrl, { allowDownload: true }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [imageUrl, open]);
 
   const handleDownload = async () => {
     if (!imageUrl) return;
@@ -306,6 +330,7 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
         onDownload={handleDownload}
         onShare={handleShare}
         onClose={() => onOpenChange(false)}
+        sizeLabel={sizeLabel}
       />
     </>
   );
@@ -321,6 +346,7 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
 export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [mounted, setMounted] = useState(false);
+  const [sizeLabel, setSizeLabel] = useState("");
 
   // Ensure we only render portal on client
   useEffect(() => {
@@ -420,6 +446,23 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     }
   }, [normalizedImages, currentIndex]);
 
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    const currentUrl = normalizedImages[currentIndex]?.src;
+    if (!open || !currentUrl) return;
+
+    getImageSizeBytes(currentUrl, { allowDownload: true }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentIndex, normalizedImages, open]);
+
   if (!open || normalizedImages.length === 0 || !mounted) return null;
 
   const currentImage = normalizedImages[currentIndex];
@@ -481,6 +524,7 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         onDownload={handleDownload}
         onShare={handleShare}
         onClose={() => onOpenChange(false)}
+        sizeLabel={sizeLabel}
       />
     </>
   );
@@ -517,6 +561,24 @@ export function ImageThumbnail({
     return resolveImageUrl(src);
   }, [src]);
 
+  const [sizeLabel, setSizeLabel] = useState("");
+
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    if (!fullUrl) return;
+
+    getImageSizeBytes(fullUrl, { allowDownload: false }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [fullUrl]);
+
   const aspectClasses = {
     square: "aspect-square",
     video: "aspect-video",
@@ -552,6 +614,11 @@ export function ImageThumbnail({
             <Maximize2 className="h-5 w-5 text-white" />
           </motion.div>
         </div>
+      )}
+      {sizeLabel && (
+        <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-mono text-white">
+          {sizeLabel}
+        </span>
       )}
     </div>
   );

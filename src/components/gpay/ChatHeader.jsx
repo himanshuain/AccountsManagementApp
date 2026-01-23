@@ -43,6 +43,7 @@ export function ChatHeader({
         "bg-background/95 backdrop-blur-sm",
         "border-b border-border",
         "sticky top-0 z-30",
+        "shadow-sm shadow-black/5",
         className
       )}
     >

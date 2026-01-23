@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { getOptimizedImageUrl, resolveImageUrl } from "@/lib/imagekit";
+import { getImageSizeBytes, formatBytes } from "@/lib/image-size";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { PROGRESSIVE_LOAD } from "@/lib/constants";
 
@@ -17,6 +18,7 @@ export function BillGallery({ transactions, suppliers }) {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageErrors, setImageErrors] = useState({});
+  const [selectedSizeLabel, setSelectedSizeLabel] = useState("");
 
   // Touch handling refs
   const touchStartRef = useRef({ x: 0, y: 0, distance: 0 });
@@ -71,6 +73,7 @@ export function BillGallery({ transactions, suppliers }) {
     setSelectedTransaction(null);
     setZoom(1);
     setPosition({ x: 0, y: 0 });
+    setSelectedSizeLabel("");
   };
 
   const goToPrevious = useCallback(() => {
@@ -165,6 +168,22 @@ export function BillGallery({ transactions, suppliers }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedImage, goToPrevious, goToNext]);
+
+  useEffect(() => {
+    let isActive = true;
+    setSelectedSizeLabel("");
+    if (!selectedImage) return;
+
+    getImageSizeBytes(selectedImage, { allowDownload: true }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSelectedSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedImage]);
 
   const getSupplierName = supplierId => {
     const supplier = suppliers.find(s => s.id === supplierId);
@@ -267,6 +286,11 @@ export function BillGallery({ transactions, suppliers }) {
             <span className="text-sm text-white/70">
               {currentIndex + 1} / {allBills.length}
             </span>
+            {selectedSizeLabel && (
+              <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-mono text-white/80">
+                {selectedSizeLabel}
+              </span>
+            )}
             <button
               onClick={closeLightbox}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
@@ -367,10 +391,27 @@ export function BillGallery({ transactions, suppliers }) {
 // Optimized thumbnail component with LQIP support
 function OptimizedBillThumbnail({ url, alt, onError }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [sizeLabel, setSizeLabel] = useState("");
   // Resolve storage key to full URL first, then get optimized versions
   const resolvedUrl = resolveImageUrl(url);
   const urls = getOptimizedImageUrl(url);
   const isImageKit = resolvedUrl.includes("ik.imagekit.io");
+
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    if (!resolvedUrl) return;
+
+    getImageSizeBytes(resolvedUrl, { allowDownload: false }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [resolvedUrl]);
 
   return (
     <>
@@ -398,6 +439,11 @@ function OptimizedBillThumbnail({ url, alt, onError }) {
         onError={onError}
         loading="eager"
       />
+      {sizeLabel && (
+        <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-mono text-white">
+          {sizeLabel}
+        </span>
+      )}
     </>
   );
 }
@@ -406,6 +452,7 @@ function OptimizedBillThumbnail({ url, alt, onError }) {
 function LazyThumbnailButton({ bill, isSelected, onClick }) {
   const [isInView, setIsInView] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [sizeLabel, setSizeLabel] = useState("");
   const buttonRef = useRef(null);
 
   // Use IntersectionObserver for lazy loading
@@ -432,12 +479,28 @@ function LazyThumbnailButton({ bill, isSelected, onClick }) {
   const urls = getOptimizedImageUrl(bill.url);
   const isImageKit = resolvedUrl.includes("ik.imagekit.io");
 
+  useEffect(() => {
+    let isActive = true;
+    setSizeLabel("");
+    if (!resolvedUrl) return;
+
+    getImageSizeBytes(resolvedUrl, { allowDownload: false }).then(bytes => {
+      if (!isActive) return;
+      const label = bytes ? formatBytes(bytes) : "";
+      setSizeLabel(label);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [resolvedUrl]);
+
   return (
     <button
       ref={buttonRef}
       onClick={onClick}
       className={cn(
-        "h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+        "relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
         isSelected ? "border-primary ring-2 ring-primary/50" : "border-transparent opacity-60"
       )}
     >
@@ -454,6 +517,11 @@ function LazyThumbnailButton({ bill, isSelected, onClick }) {
         />
       ) : (
         <div className="h-full w-full animate-pulse bg-muted" />
+      )}
+      {sizeLabel && (
+        <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-mono text-white">
+          {sizeLabel}
+        </span>
       )}
     </button>
   );
