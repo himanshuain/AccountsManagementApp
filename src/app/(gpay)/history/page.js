@@ -375,17 +375,19 @@ export default function HistoryPage() {
                         <p className="truncate font-bold">{txn.personName}</p>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
-                        {format(parseISO(txn.time || txn.date), "dd MMM, h:mm a")}
+                       
                         {/* show supplier and customer with icon and color badge next to the date in one line */}
                         {txn.type === "supplier" ? (
-                          <span className="text-green-500 ml-2 inline-flex items-center gap-1">
+                          <span className="text-green-500  inline-flex items-center gap-1">
                               <Store className="h-2.5 w-2.5" /> Supplier
                           </span>
                         ) : (
-                          <span className="text-red-500 ml-2">
+                          <span className="text-red-500 ">
                             <Users className="h-2.5 w-2.5" /> Customer
                           </span>
                         )}
+                        {" • "}
+                         {format(parseISO(txn.time || txn.date), "dd MMM, h:mm a")}
                       </p>
                     </div>
 

@@ -898,141 +898,152 @@ function IncomeModal({ open, onClose }) {
           </div>
 
           {/* Revenue Chart */}
-          {showGraph && (
-            <IncomeChart
-              data={chartData}
-              duration={chartDuration}
-              onDurationChange={setChartDuration}
-              profitMargin={profitMargin}
-              onProfitMarginChange={handleProfitMarginChange}
-            />
-          )}
+          <details className="group">
+            <summary className="mb-2 cursor-pointer list-none flex items-center gap-1 text-sm font-medium text-muted-foreground">
+              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+              Revenue Chart
+            </summary>
+            {showGraph && (
+              <IncomeChart
+                data={chartData}
+                duration={chartDuration}
+                onDurationChange={setChartDuration}
+                profitMargin={profitMargin}
+                onProfitMarginChange={handleProfitMarginChange}
+              />
+            )}
+          </details>
 
           {/* Add Income Form */}
-          <div className="theme-card mb-6 mt-4 p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-medium">Add Income</h3>
-            </div>
+          <details className="group">
+            <summary className="my-2 cursor-pointer list-none flex items-center gap-1 text-sm font-medium text-muted-foreground">
+              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+              Add Income
+            </summary>
+            <div className="theme-card mb-6 mt-4 p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-medium">Add Income</h3>
+              </div>
 
-            <div className="space-y-3">
-              {/* Monthly Toggle */}
-              <div className="flex items-center justify-between rounded-xl bg-muted p-3">
-                <span className="text-sm font-medium">Monthly Income</span>
-                <button
-                  type="button"
-                  onClick={() => setIsMonthly(!isMonthly)}
-                  className={cn(
-                    "relative h-6 w-12 rounded-full transition-colors",
-                    isMonthly ? "bg-primary" : "bg-muted-foreground/30"
-                  )}
-                >
-                  <div
+              <div className="space-y-3">
+                {/* Monthly Toggle */}
+                <div className="flex items-center justify-between rounded-xl bg-muted p-3">
+                  <span className="text-sm font-medium">Monthly Income</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsMonthly(!isMonthly)}
                     className={cn(
-                      "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                      isMonthly ? "translate-x-7" : "translate-x-1"
+                      "relative h-6 w-12 rounded-full transition-colors",
+                      isMonthly ? "bg-primary" : "bg-muted-foreground/30"
                     )}
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                        isMonthly ? "translate-x-7" : "translate-x-1"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Cash Amount */}
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Banknote className="h-3 w-3" /> Cash Amount
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={cashAmount}
+                    onChange={e => setCashAmount(e.target.value)}
+                    className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
+                </div>
+
+                {/* Online Amount */}
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Smartphone className="h-3 w-3" /> Online Amount
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={onlineAmount}
+                    onChange={e => setOnlineAmount(e.target.value)}
+                    className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </div>
+
+                {/* Date or Month Picker */}
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <CalendarDays className="h-3 w-3" /> {isMonthly ? "Month" : "Date"}
+                  </label>
+                  {isMonthly ? (
+                    <select
+                      value={selectedMonth}
+                      onChange={e => setSelectedMonth(e.target.value)}
+                      className="input-hero"
+                    >
+                      {monthOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={e => {
+                        const selectedDate = e.target.value;
+                        // Prevent future dates (iOS Safari ignores max attribute)
+                        if (selectedDate > today) {
+                          setDate(today);
+                        } else {
+                          setDate(selectedDate);
+                        }
+                      }}
+                      max={today}
+                      className="input-hero"
+                    />
+                  )}
+                </div>
+
+                {/* Total Preview */}
+                {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
+                  <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="amount-positive font-mono text-2xl font-bold">
+                      ₹
+                      {((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString(
+                        "en-IN"
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <RefreshCw className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5" />
+                      Add Income
+                    </>
+                  )}
                 </button>
               </div>
-
-              {/* Cash Amount */}
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Banknote className="h-3 w-3" /> Cash Amount
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={cashAmount}
-                  onChange={e => setCashAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-              </div>
-
-              {/* Online Amount */}
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Smartphone className="h-3 w-3" /> Online Amount
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={onlineAmount}
-                  onChange={e => setOnlineAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-              </div>
-
-              {/* Date or Month Picker */}
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <CalendarDays className="h-3 w-3" /> {isMonthly ? "Month" : "Date"}
-                </label>
-                {isMonthly ? (
-                  <select
-                    value={selectedMonth}
-                    onChange={e => setSelectedMonth(e.target.value)}
-                    className="input-hero"
-                  >
-                    {monthOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={e => {
-                      const selectedDate = e.target.value;
-                      // Prevent future dates (iOS Safari ignores max attribute)
-                      if (selectedDate > today) {
-                        setDate(today);
-                      } else {
-                        setDate(selectedDate);
-                      }
-                    }}
-                    max={today}
-                    className="input-hero"
-                  />
-                )}
-              </div>
-
-              {/* Total Preview */}
-              {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
-                <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="amount-positive font-mono text-2xl font-bold">
-                    ₹
-                    {((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString(
-                      "en-IN"
-                    )}
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {submitting ? (
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    <Plus className="h-5 w-5" />
-                    Add Income
-                  </>
-                )}
-              </button>
             </div>
-          </div>
-
+          </details>
           {/* Filter Chips */}
-          <div className="mb-4">
+          <div className="my-4">
             <div className="scrollbar-none flex gap-2 overflow-x-auto pb-2">
               {FILTER_OPTIONS.map(opt => (
                 <button
@@ -1380,7 +1391,7 @@ function BackupModal({ open, onClose }) {
       toast.error("No unused files to delete");
       return;
     }
-    
+
     setCleanupLoading(true);
     try {
       const response = await fetch("/api/storage/cleanup", {
@@ -1487,12 +1498,10 @@ function BackupModal({ open, onClose }) {
               </div>
               <div>
                 <h3 className="font-medium">Storage Cleanup</h3>
-                <p className="text-xs text-muted-foreground">
-                  Remove unused images from storage
-                </p>
+                <p className="text-xs text-muted-foreground">Remove unused images from storage</p>
               </div>
             </div>
-            
+
             {cleanupAnalysis && cleanupAnalysis.analysis.orphanedCount > 0 && (
               <div className="mb-3 rounded-xl bg-amber-500/10 p-3">
                 <p className="text-sm font-medium text-amber-600">
@@ -1505,7 +1514,7 @@ function BackupModal({ open, onClose }) {
                 </p>
               </div>
             )}
-            
+
             <div className="flex gap-2">
               <button
                 onClick={handleAnalyzeStorage}
@@ -2006,6 +2015,39 @@ export default function SettingsPage() {
 
   const menuItems = [
     {
+      section: "Business",
+      items: [
+        {
+          icon: IndianRupee,
+          label: "Income Tracker",
+          sublabel: isProtected("income") ? "🔒 Protected" : "Track daily & monthly income",
+          color: "amount-positive",
+          bgColor: "bg-emerald-500/20",
+          onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
+          rightContent: isProtected("income") ? (
+            <Lock className="h-4 w-4 text-emerald-500" />
+          ) : null,
+        },
+        {
+          icon: BarChart3,
+          label: "Reports",
+          sublabel: isProtected("reports") ? "🔒 Protected" : "View analytics & insights",
+          color: "text-primary",
+          bgColor: "bg-primary/20",
+          onClick: () => handleOpenProtectedModal("reports", setReportsModalOpen),
+          rightContent: isProtected("reports") ? <Lock className="h-4 w-4 text-primary" /> : null,
+        },
+        {
+          icon: Database,
+          label: "Backup & Export",
+          sublabel: "Manage your data & PDFs",
+          color: "status-pending",
+          bgColor: "bg-amber-500/20",
+          onClick: () => setBackupModalOpen(true),
+        },
+      ],
+    },
+    {
       section: "Appearance",
       items: [
         {
@@ -2046,39 +2088,6 @@ export default function SettingsPage() {
               />
             </button>
           ),
-        },
-      ],
-    },
-    {
-      section: "Business",
-      items: [
-        {
-          icon: IndianRupee,
-          label: "Income Tracker",
-          sublabel: isProtected("income") ? "🔒 Protected" : "Track daily & monthly income",
-          color: "amount-positive",
-          bgColor: "bg-emerald-500/20",
-          onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
-          rightContent: isProtected("income") ? (
-            <Lock className="h-4 w-4 text-emerald-500" />
-          ) : null,
-        },
-        {
-          icon: BarChart3,
-          label: "Reports",
-          sublabel: isProtected("reports") ? "🔒 Protected" : "View analytics & insights",
-          color: "text-primary",
-          bgColor: "bg-primary/20",
-          onClick: () => handleOpenProtectedModal("reports", setReportsModalOpen),
-          rightContent: isProtected("reports") ? <Lock className="h-4 w-4 text-primary" /> : null,
-        },
-        {
-          icon: Database,
-          label: "Backup & Export",
-          sublabel: "Manage your data & PDFs",
-          color: "status-pending",
-          bgColor: "bg-amber-500/20",
-          onClick: () => setBackupModalOpen(true),
         },
       ],
     },
@@ -2128,12 +2137,13 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6 px-4 py-4 pb-24">
-        <div>
-          <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <details className="group">
+          <summary className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground cursor-pointer list-none flex items-center gap-1">
+            <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
             Storage
-          </h2>
+          </summary>
           <StorageInfo />
-        </div>
+        </details>
 
         {menuItems.map(section => (
           <div key={section.section}>

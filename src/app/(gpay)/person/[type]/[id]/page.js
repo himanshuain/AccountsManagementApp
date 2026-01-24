@@ -96,7 +96,8 @@ function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
   const [isHDMode, setIsHDMode] = useState(false); // HD mode toggle
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
-  const remainingAmount = (Number(txn.amount) || 0) - (Number(txn.paidAmount) || 0);
+  const paidAmount = txn.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const remainingAmount = (Number(txn.amount) || 0) - (Number(paidAmount) || 0);
 
   // Handle image tap to view
   const handleImageTap = index => {
