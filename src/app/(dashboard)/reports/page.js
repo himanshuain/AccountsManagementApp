@@ -68,17 +68,9 @@ import { useTransactions } from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 import { cn, getAmountTextSize } from "@/lib/utils";
+import { getLocalDate } from "@/lib/date-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BiometricLock } from "@/components/BiometricLock";
-
-// Get today's date in local timezone (YYYY-MM-DD format)
-function getLocalDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899"];
 

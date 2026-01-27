@@ -44,3 +44,6 @@ export { ChatHeader } from "./ChatHeader";
 
 // Navigation Components
 export { BottomTabs } from "./BottomTabs";
+
+// Modal Components
+export { IncomeQuickModal } from "./IncomeQuickModal";

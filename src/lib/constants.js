@@ -20,6 +20,54 @@ export const PAGE_SIZE = {
   UDHAR: 20, // Udhar records per page
 };
 
+/**
+ * Number of items to display per page in UI lists
+ */
+export const ITEMS_PER_PAGE = 20;
+
+// ======================
+// CHART & FILTER OPTIONS
+// ======================
+
+/**
+ * Chart duration options for income/revenue charts
+ */
+export const CHART_DURATION_OPTIONS = [
+  { value: "3months", label: "3M", months: 3 },
+  { value: "6months", label: "6M", months: 6 },
+  { value: "12months", label: "1Y", months: 12 },
+];
+
+/**
+ * Income filter options for filtering income list
+ */
+export const INCOME_FILTER_OPTIONS = [
+  { value: "all", label: "All Time" },
+  { value: "monthly", label: "Month" },
+  { value: "3months", label: "3 Months" },
+  { value: "6months", label: "6 Months" },
+  { value: "thisYear", label: "This Year" },
+  { value: "lastYear", label: "Last Year" },
+];
+
+/**
+ * Sort options for people lists (suppliers/customers)
+ */
+export const SORT_OPTIONS = [
+  { id: "amount", label: "Amount" },
+  { id: "name", label: "Name" },
+  { id: "recent", label: "Recent" },
+];
+
+/**
+ * Filter options for people lists
+ */
+export const PEOPLE_FILTER_OPTIONS = [
+  { id: "all", label: "All" },
+  { id: "supplier", label: "Suppliers" },
+  { id: "customer", label: "Customers" },
+];
+
 // ======================
 // UI PROGRESSIVE LOADING
 // ======================

@@ -26,31 +26,17 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { useIncome } from "@/hooks/useIncome";
+import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 
 import { PersonAvatarWithName } from "@/components/gpay/PersonAvatar";
+import { IncomeQuickModal } from "@/components/gpay/IncomeQuickModal";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
-
-// Hook to prevent body scroll when modal is open
-function usePreventBodyScroll(isOpen) {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.touchAction = "";
-    };
-  }, [isOpen]);
-}
+import { getLocalDate } from "@/lib/date-utils";
 
 // Filter Chip Component
 function FilterChip({ active, onClick, children, icon: Icon }) {
@@ -913,139 +899,3 @@ export default function GPayHomePage() {
   );
 }
 
-// Get today's date in local timezone (YYYY-MM-DD format)
-function getLocalDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-// Quick Income Modal Component
-function IncomeQuickModal({ open, onClose, onSubmit }) {
-  const today = getLocalDate();
-  const [cashAmount, setCashAmount] = useState("");
-  const [onlineAmount, setOnlineAmount] = useState("");
-  const [date, setDate] = useState(today);
-  const [submitting, setSubmitting] = useState(false);
-
-  usePreventBodyScroll(open);
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-    const cash = Number(cashAmount) || 0;
-    const online = Number(onlineAmount) || 0;
-    const total = cash + online;
-
-    if (total <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
-    setSubmitting(true);
-    const result = await onSubmit({
-      amount: total,
-      cashAmount: cash,
-      onlineAmount: online,
-      date: date,
-      type: "daily",
-    });
-
-    if (result.success) {
-      toast.success("Income added");
-      setCashAmount("");
-      setOnlineAmount("");
-      setDate(today);
-      onClose();
-    } else {
-      toast.error(result.error || "Failed to add");
-    }
-    setSubmitting(false);
-  };
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div
-        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 overscroll-contain rounded-t-3xl bg-card"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-center py-3">
-          <div className="sheet-handle" />
-        </div>
-
-        <div className="px-4 pb-6">
-          <h2 className="mb-4 font-heading text-xl tracking-wide">Add Income</h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Cash</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={cashAmount}
-                  onChange={e => setCashAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Online</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={onlineAmount}
-                  onChange={e => setOnlineAmount(e.target.value)}
-                  className="input-hero [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs text-muted-foreground">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => {
-                  const selectedDate = e.target.value;
-                  // Prevent future dates (iOS Safari ignores max attribute)
-                  if (selectedDate > today) {
-                    setDate(today);
-                  } else {
-                    setDate(selectedDate);
-                  }
-                }}
-                max={today}
-                className="input-hero"
-              />
-            </div>
-
-            {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
-              <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="amount-positive font-mono text-2xl font-bold">
-                  ₹
-                  {((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString(
-                    "en-IN"
-                  )}
-                </p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-hero w-full disabled:opacity-50"
-            >
-              {submitting ? "Adding..." : "Add Income"}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-}
