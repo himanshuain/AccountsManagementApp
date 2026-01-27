@@ -51,6 +51,7 @@ import { useBiometricLock } from "@/hooks/useBiometricLock";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { InfiniteScrollTrigger } from "@/components/InfiniteScrollTrigger";
 
 // Hook to prevent body scroll when modal is open
 function usePreventBodyScroll(isOpen) {
@@ -638,6 +639,8 @@ function getLocalDate() {
 }
 
 // Income Modal Component
+const ITEMS_PER_PAGE = 20;
+
 function IncomeModal({ open, onClose }) {
   const { incomeList = [], addIncome, updateIncome, deleteIncome } = useIncome();
   const today = getLocalDate();
@@ -654,6 +657,7 @@ function IncomeModal({ open, onClose }) {
   const [showGraph, setShowGraph] = useState(true);
   const [chartDuration, setChartDuration] = useState("6months");
   const [profitMargin, setProfitMargin] = useState(40);
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
 
   // Load profit margin from localStorage on mount
   useEffect(() => {
@@ -676,6 +680,16 @@ function IncomeModal({ open, onClose }) {
   const availableFilterMonths = useMemo(() => getAvailableMonths(incomeList), [incomeList]);
 
   usePreventBodyScroll(open);
+
+  // Reset display count when filter changes
+  useEffect(() => {
+    setDisplayCount(ITEMS_PER_PAGE);
+  }, [filter, selectedFilterMonth, showOnlyMonthlyEntries]);
+
+  // Load more items
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + ITEMS_PER_PAGE);
+  };
 
   // Filter income list
   const filteredIncomeList = useMemo(() => {
@@ -1122,7 +1136,7 @@ function IncomeModal({ open, onClose }) {
             <h3 className="mb-2 font-medium">Recent Income</h3>
             <p className="mb-3 text-xs text-muted-foreground">Tap to expand and edit or delete</p>
             <div className="space-y-2">
-              {filteredIncomeList.slice(0, 20).map(item => (
+              {filteredIncomeList.slice(0, displayCount).map(item => (
                 <IncomeItem
                   key={item.id}
                   item={item}
@@ -1133,6 +1147,15 @@ function IncomeModal({ open, onClose }) {
               ))}
               {filteredIncomeList.length === 0 && (
                 <p className="py-8 text-center text-muted-foreground">No income recorded</p>
+              )}
+              {filteredIncomeList.length > 0 && (
+                <InfiniteScrollTrigger
+                  onLoadMore={handleLoadMore}
+                  hasMore={displayCount < filteredIncomeList.length}
+                  isLoading={false}
+                  loadedCount={Math.min(displayCount, filteredIncomeList.length)}
+                  totalCount={filteredIncomeList.length}
+                />
               )}
             </div>
           </div>
