@@ -118,8 +118,8 @@ export default function ReportsPage() {
     deleteIncome,
     getTotalIncome,
   } = useIncome();
-  const { udharList } = useUdhar();
-  const { transactions } = useTransactions();
+  const { udharList } = useUdhar({ fetchAll: true });
+  const { transactions } = useTransactions(null, { fetchAll: true });
   const [timeRange, setTimeRange] = useState("6months");
   const [incomeFormOpen, setIncomeFormOpen] = useState(false);
   const [incomeToEdit, setIncomeToEdit] = useState(null);

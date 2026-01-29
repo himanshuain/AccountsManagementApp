@@ -1051,7 +1051,7 @@ export default function PersonChatPage() {
       profileImageViewerOpen
   );
 
-  // Data hooks
+  // Data hooks - fetchAll: true ensures we load all transactions for accurate filtering
   const { suppliers, loading: suppliersLoading, updateSupplier, deleteSupplier } = useSuppliers();
   const { customers, loading: customersLoading, updateCustomer, deleteCustomer } = useCustomers();
   const {
@@ -1063,7 +1063,7 @@ export default function PersonChatPage() {
     markFullPaid: markTransactionFullPaid,
     updatePayment: updateTransactionPayment,
     deletePayment: deleteTransactionPayment,
-  } = useTransactions();
+  } = useTransactions(null, { fetchAll: true });
   const {
     udharList,
     addUdhar,
@@ -1073,7 +1073,7 @@ export default function PersonChatPage() {
     markFullPaid: markUdharFullPaid,
     updatePayment: updateUdharPayment,
     deletePayment: deleteUdharPayment,
-  } = useUdhar();
+  } = useUdhar({ fetchAll: true });
 
   const isSupplier = type === "supplier";
 

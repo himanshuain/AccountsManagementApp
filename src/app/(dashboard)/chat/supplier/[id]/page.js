@@ -39,7 +39,7 @@ export default function SupplierChatPage({ params }) {
     deleteTransaction,
     recordPayment,
     markFullPaid,
-  } = useTransactions();
+  } = useTransactions(null, { fetchAll: true });
 
   // State
   const [profileOpen, setProfileOpen] = useState(false);

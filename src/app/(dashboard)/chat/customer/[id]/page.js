@@ -43,7 +43,7 @@ export default function CustomerChatPage({ params }) {
     recordDeposit,
     markFullPaid,
     deletePayment,
-  } = useUdhar();
+  } = useUdhar({ fetchAll: true });
 
   // State
   const [profileOpen, setProfileOpen] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
@@ -93,23 +93,15 @@ export default function GPayHomePage() {
   // Prevent body scroll when modal is open
   usePreventBodyScroll(addMenuOpen || incomeModalOpen);
 
-  // Data hooks
+  // Data hooks - fetchAll: true loads all data in one request for accurate calculations
+  const { suppliers, addSupplier, loading: suppliersLoading } = useSuppliers();
+  const { customers, addCustomer, loading: customersLoading } = useCustomers();
   const {
-    suppliers,
-    addSupplier,
-    loading: suppliersLoading,
-    loadAll: loadAllSuppliers,
-    hasNextPage: hasMoreSuppliers,
-  } = useSuppliers();
-  const {
-    customers,
-    addCustomer,
-    loading: customersLoading,
-    loadAll: loadAllCustomers,
-    hasNextPage: hasMoreCustomers,
-  } = useCustomers();
-  const { transactions, addTransaction, loading: transactionsLoading } = useTransactions();
-  const { udharList, addUdhar, loading: udharLoading } = useUdhar();
+    transactions,
+    addTransaction,
+    loading: transactionsLoading,
+  } = useTransactions(null, { fetchAll: true });
+  const { udharList, addUdhar, loading: udharLoading } = useUdhar({ fetchAll: true });
   const { addIncome } = useIncome();
 
   // Fetch aggregated stats from API (totals without loading all data)
@@ -288,7 +280,6 @@ export default function GPayHomePage() {
       .filter(p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query))
       .slice(0, 6);
   }, [allPeople, searchQuery]);
-
 
   // Statistics - Use API data for accurate totals, fall back to loaded data
   const stats = useMemo(() => {
@@ -898,4 +889,3 @@ export default function GPayHomePage() {
     </div>
   );
 }
-

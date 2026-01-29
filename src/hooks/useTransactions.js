@@ -1,28 +1,49 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const TRANSACTIONS_KEY = ["transactions"];
 const STATS_KEY = ["stats"];
 
-export function useTransactions(supplierId = null) {
+/**
+ * Hook to fetch and manage transactions
+ * @param {string|null} supplierId - Filter by supplier ID
+ * @param {Object} options - Hook options
+ * @param {boolean} options.fetchAll - If true, fetches all data without pagination (for home page)
+ */
+export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
   const queryClient = useQueryClient();
 
-  const queryKey = supplierId ? [...TRANSACTIONS_KEY, { supplierId }] : TRANSACTIONS_KEY;
+  const baseQueryKey = supplierId ? [...TRANSACTIONS_KEY, { supplierId }] : TRANSACTIONS_KEY;
+  const queryKey = fetchAll ? [...baseQueryKey, { fetchAll }] : baseQueryKey;
+
+  // Fetch ALL transactions in one request (no pagination)
+  const allDataQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
+      let url = `/api/transactions?limit=0`; // limit=0 means no pagination
+      if (supplierId) {
+        url += `&supplierId=${supplierId}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to fetch transactions");
+      }
+      const result = await response.json();
+      return result.data || [];
+    },
+    enabled: fetchAll,
+    staleTime: CACHE_SETTINGS.STALE_TIME,
+    retry: CACHE_SETTINGS.RETRY_COUNT,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
 
   // Fetch transactions with pagination using infinite query
-  const {
-    data,
-    isLoading: loading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey,
+  const paginatedQuery = useInfiniteQuery({
+    queryKey: baseQueryKey,
     queryFn: async ({ pageParam = 1 }) => {
       let url = `/api/transactions?page=${pageParam}&limit=${PAGE_SIZE.TRANSACTIONS}`;
       if (supplierId) {
@@ -45,17 +66,42 @@ export function useTransactions(supplierId = null) {
       return undefined;
     },
     initialPageParam: 1,
+    enabled: !fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
 
-  // Flatten all pages into a single array for backward compatibility
+  // Use the appropriate data source based on fetchAll option
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = fetchAll
+    ? {
+        data: allDataQuery.data,
+        isLoading: allDataQuery.isLoading,
+        error: allDataQuery.error,
+        refetch: allDataQuery.refetch,
+        fetchNextPage: () => {},
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      }
+    : paginatedQuery;
+
+  // Flatten pages for paginated query, or use data directly for fetchAll
   const transactions = useMemo(() => {
+    if (fetchAll) {
+      return data || [];
+    }
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page.data);
-  }, [data]);
+  }, [data, fetchAll]);
 
   // Get total count from the first page's pagination
   const totalCount = useMemo(() => {
@@ -340,8 +386,9 @@ export function useTransactions(supplierId = null) {
       const oldAmount = Number(oldPayment.amount) || 0;
       const newAmount = Number(paymentUpdates.amount) || oldAmount;
       const oldIsReturn = !!oldPayment.isReturn;
-      const newIsReturn = paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
-      
+      const newIsReturn =
+        paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
+
       // Calculate effective amounts (returns don't count toward paid)
       const oldEffective = oldIsReturn ? 0 : oldAmount;
       const newEffective = newIsReturn ? 0 : newAmount;
@@ -432,13 +479,6 @@ export function useTransactions(supplierId = null) {
     queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
   }, [queryClient]);
 
-  // Load all remaining pages (for components that need complete data)
-  const loadAll = useCallback(async () => {
-    while (hasNextPage) {
-      await fetchNextPage();
-    }
-  }, [hasNextPage, fetchNextPage]);
-
   return {
     transactions,
     loading,
@@ -453,12 +493,11 @@ export function useTransactions(supplierId = null) {
     getPendingPayments,
     getRecentTransactions,
     refresh,
-    // Pagination helpers
+    // Pagination helpers (only relevant when fetchAll=false)
     totalCount,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    loadAll,
   };
 }
 

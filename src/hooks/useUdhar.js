@@ -1,26 +1,43 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 
 const UDHAR_KEY = ["udhar"];
 const CUSTOMERS_KEY = ["customers"];
 const STATS_KEY = ["stats"];
 
-export function useUdhar() {
+/**
+ * Hook to fetch and manage udhar records
+ * @param {Object} options - Hook options
+ * @param {boolean} options.fetchAll - If true, fetches all data without pagination (for home page)
+ */
+export function useUdhar({ fetchAll = false } = {}) {
   const queryClient = useQueryClient();
 
+  const queryKey = fetchAll ? [...UDHAR_KEY, { fetchAll }] : UDHAR_KEY;
+
+  // Fetch ALL udhar in one request (no pagination)
+  const allDataQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const response = await fetch(`/api/udhar?limit=0`); // limit=0 means no pagination
+      if (!response.ok) {
+        throw new Error("Failed to fetch udhar");
+      }
+      const result = await response.json();
+      return result.data || [];
+    },
+    enabled: fetchAll,
+    staleTime: CACHE_SETTINGS.STALE_TIME,
+    retry: CACHE_SETTINGS.RETRY_COUNT,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
   // Fetch udhar with pagination using infinite query
-  const {
-    data,
-    isLoading: loading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const paginatedQuery = useInfiniteQuery({
     queryKey: UDHAR_KEY,
     queryFn: async ({ pageParam = 1 }) => {
       const response = await fetch(`/api/udhar?page=${pageParam}&limit=${PAGE_SIZE.UDHAR}`);
@@ -40,22 +57,50 @@ export function useUdhar() {
       return undefined;
     },
     initialPageParam: 1,
+    enabled: !fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
 
-  // Flatten all pages into a single array for backward compatibility
+  // Use the appropriate data source based on fetchAll option
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = fetchAll
+    ? {
+        data: allDataQuery.data,
+        isLoading: allDataQuery.isLoading,
+        error: allDataQuery.error,
+        refetch: allDataQuery.refetch,
+        fetchNextPage: () => {},
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      }
+    : paginatedQuery;
+
+  // Flatten pages for paginated query, or use data directly for fetchAll
   const udharList = useMemo(() => {
+    if (fetchAll) {
+      return data || [];
+    }
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page.data);
-  }, [data]);
+  }, [data, fetchAll]);
 
   // Get total count from the first page's pagination
   const totalCount = useMemo(() => {
+    if (fetchAll) {
+      return udharList.length;
+    }
     return data?.pages?.[0]?.pagination?.total ?? udharList.length;
-  }, [data, udharList.length]);
+  }, [data, udharList.length, fetchAll]);
 
   // Add udhar mutation - directly to cloud
   const addMutation = useMutation({
@@ -277,8 +322,9 @@ export function useUdhar() {
       const oldAmount = Number(oldPayment.amount) || 0;
       const newAmount = Number(paymentUpdates.amount) || oldAmount;
       const oldIsReturn = !!oldPayment.isReturn;
-      const newIsReturn = paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
-      
+      const newIsReturn =
+        paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
+
       // Calculate effective amounts (returns don't count toward paid)
       const oldEffective = oldIsReturn ? 0 : oldAmount;
       const newEffective = newIsReturn ? 0 : newAmount;
@@ -404,13 +450,6 @@ export function useUdhar() {
     [udharList]
   );
 
-  // Load all remaining pages (for components that need complete data)
-  const loadAll = useCallback(async () => {
-    while (hasNextPage) {
-      await fetchNextPage();
-    }
-  }, [hasNextPage, fetchNextPage]);
-
   return {
     udharList,
     loading,
@@ -428,12 +467,11 @@ export function useUdhar() {
     filterByDateRange,
     sortByAmount,
     refresh,
-    // Pagination helpers
+    // Pagination helpers (only relevant when fetchAll=false)
     totalCount,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    loadAll,
   };
 }
 

@@ -43,22 +43,22 @@ export default function HistoryPage() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Data hooks
+  // Data hooks - fetchAll: true to load complete history
   const { suppliers } = useSuppliers();
   const { customers } = useCustomers();
-  const { transactions } = useTransactions();
-  const { udharList } = useUdhar();
+  const { transactions } = useTransactions(null, { fetchAll: true });
+  const { udharList } = useUdhar({ fetchAll: true });
 
   // Helper to get latest activity timestamp (considers payments too)
-  const getLatestActivity = (item) => {
+  const getLatestActivity = item => {
     let latest = new Date(item.updatedAt || item.createdAt || item.date || 0).getTime();
-    
+
     // Check payment dates for more recent activity
     (item.payments || []).forEach(p => {
       const paymentTime = new Date(p.date || 0).getTime();
       if (paymentTime > latest) latest = paymentTime;
     });
-    
+
     return latest;
   };
 
@@ -375,11 +375,10 @@ export default function HistoryPage() {
                         <p className="truncate font-bold">{txn.personName}</p>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
-                       
                         {/* show supplier and customer with icon and color badge next to the date in one line */}
                         {txn.type === "supplier" ? (
                           <span className="text-green-500  inline-flex items-center gap-1">
-                              <Store className="h-2.5 w-2.5" /> Supplier
+                            <Store className="h-2.5 w-2.5" /> Supplier
                           </span>
                         ) : (
                           <span className="text-red-500 ">
@@ -387,7 +386,7 @@ export default function HistoryPage() {
                           </span>
                         )}
                         {" • "}
-                         {format(parseISO(txn.time || txn.date), "dd MMM, h:mm a")}
+                        {format(parseISO(txn.time || txn.date), "dd MMM, h:mm a")}
                       </p>
                     </div>
 
