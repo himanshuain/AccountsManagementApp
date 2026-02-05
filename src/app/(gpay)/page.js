@@ -127,7 +127,11 @@ export default function GPayHomePage() {
       const supplierTxns = transactions.filter(t => t.supplierId === s.id);
       const pendingAmount = supplierTxns
         .filter(t => t.paymentStatus !== "paid")
-        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        .reduce((sum, t) => {
+          const amount = Number(t.amount) || 0;
+          const paid = Number(t.paidAmount) || 0;
+          return sum + Math.max(0, amount - paid);
+        }, 0);
 
       people.push({
         id: s.id,
@@ -147,7 +151,11 @@ export default function GPayHomePage() {
       const customerUdhar = udharList.filter(u => u.customerId === c.id);
       const pendingAmount = customerUdhar
         .filter(u => u.status !== "paid")
-        .reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+        .reduce((sum, u) => {
+          const amount = Number(u.amount) || (Number(u.cashAmount) || 0) + (Number(u.onlineAmount) || 0);
+          const paid = Number(u.paidAmount) || (Number(u.paidCash) || 0) + (Number(u.paidOnline) || 0);
+          return sum + Math.max(0, amount - paid);
+        }, 0);
 
       people.push({
         id: c.id,
