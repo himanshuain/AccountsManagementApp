@@ -24,6 +24,7 @@ export function QuickActionBar({
   onInputSubmit,
   disabled = false,
   className,
+  children,
 }) {
   return (
     <div
@@ -37,6 +38,8 @@ export function QuickActionBar({
       )}
     >
       <div className="flex items-center gap-2 p-3 pt-2">
+        {children}
+
         {/* Primary Action Button */}
         <Button
           onClick={() => {

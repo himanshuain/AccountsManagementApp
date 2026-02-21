@@ -51,6 +51,7 @@ import {
   PhotoViewer as ImageViewer,
 } from "@/components/PhotoViewer";
 import { ProgressBar } from "@/components/gpay/PaymentProgress";
+import { LumpsumPaymentDrawer } from "@/components/gpay/LumpsumPaymentDrawer";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { compressImage, compressForHD } from "@/lib/image-compression";
@@ -1156,6 +1157,27 @@ export default function PersonChatPage() {
     return { total, paid, pending, progress };
   }, [personTransactions]);
 
+  // Pending items sorted earliest first (for lumpsum payment)
+  const pendingItems = useMemo(() => {
+    return personTransactions
+      .filter(t => (t.paymentStatus || t.status) !== "paid")
+      .map(t => {
+        const amount = Number(t.amount) || 0;
+        const paid = Number(t.paidAmount) ||
+          (t.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        return {
+          id: t.id,
+          description: t.itemName || t.description || t.itemDescription || t.notes,
+          totalAmount: amount,
+          paidAmount: paid,
+          pendingAmount: Math.max(0, amount - paid),
+          date: t.date || t.createdAt,
+        };
+      })
+      .filter(t => t.pendingAmount > 0)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [personTransactions]);
+
   // Group transactions by date for chat view (oldest first, newest at bottom)
   const groupedByDate = useMemo(() => {
     const groups = [];
@@ -1417,6 +1439,39 @@ export default function PersonChatPage() {
     setPaymentTransaction(txn);
     setPaymentFormOpen(true);
   }, []);
+
+  // Handle lumpsum payment across multiple bills
+  const handleLumpsumPay = useCallback(
+    async (payments) => {
+      for (const payment of payments) {
+        let result;
+        if (isSupplier) {
+          result = await recordTransactionPayment(
+            payment.id,
+            payment.amount,
+            payment.receiptUrls,
+            null,
+            payment.notes,
+            false
+          );
+        } else {
+          result = await recordUdharPayment(
+            payment.id,
+            payment.amount,
+            payment.receiptUrls,
+            payment.notes,
+            null,
+            false
+          );
+        }
+        if (!result?.success) {
+          toast.error(`Failed to record payment for one of the bills`);
+          throw new Error(result?.error || "Payment failed");
+        }
+      }
+    },
+    [isSupplier, recordTransactionPayment, recordUdharPayment]
+  );
 
   // Handle recording a payment
   const handleRecordPayment = useCallback(
@@ -1846,6 +1901,7 @@ export default function PersonChatPage() {
             )}
           </div>
         </div>
+
       </header>
 
       {/* Chat Messages */}
@@ -1988,10 +2044,18 @@ export default function PersonChatPage() {
             </button>
           )}
 
+          {/* Lumpsum Payment */}
+          <LumpsumPaymentDrawer
+            type={isSupplier ? "supplier" : "customer"}
+            totalPending={totals.pending}
+            pendingItems={pendingItems}
+            onPayBills={handleLumpsumPay}
+          />
+
           {/* Add Transaction/Udhar */}
           <button
             onClick={() => {
-              setEditingTransaction(null); // Clear any editing state
+              setEditingTransaction(null);
               if (isSupplier) {
                 setTransactionFormOpen(true);
               } else {

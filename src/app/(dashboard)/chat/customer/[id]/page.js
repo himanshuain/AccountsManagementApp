@@ -26,6 +26,7 @@ import {
   DateSeparator,
   QuickActionBar,
   ProfileSheet,
+  LumpsumPaymentDrawer,
 } from "@/components/gpay";
 
 export default function CustomerChatPage({ params }) {
@@ -86,6 +87,26 @@ export default function CustomerChatPage({ params }) {
       paid: paidAmount,
       pending: Math.max(0, totalAmount - paidAmount),
     };
+  }, [customerUdhars]);
+
+  // Pending items sorted earliest first (for lumpsum payment)
+  const pendingItems = useMemo(() => {
+    return customerUdhars
+      .filter(u => u.paymentStatus !== "paid")
+      .map(u => {
+        const amount = u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0);
+        const paid = u.paidAmount || (u.paidCash || 0) + (u.paidOnline || 0);
+        return {
+          id: u.id,
+          description: u.description || u.notes || u.itemDescription,
+          totalAmount: amount,
+          paidAmount: paid,
+          pendingAmount: Math.max(0, amount - paid),
+          date: u.date || u.createdAt,
+        };
+      })
+      .filter(u => u.pendingAmount > 0)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [customerUdhars]);
 
   // Group transactions by date
@@ -279,6 +300,23 @@ export default function CustomerChatPage({ params }) {
     setGalleryOpen(true);
   };
 
+  const handleLumpsumPay = async (payments) => {
+    for (const payment of payments) {
+      const result = await recordDeposit(
+        payment.id,
+        payment.amount,
+        payment.receiptUrls,
+        payment.notes,
+        null,
+        false
+      );
+      if (!result?.success) {
+        toast.error(`Failed to record payment for one of the udhars`);
+        throw new Error(result?.error || "Payment failed");
+      }
+    }
+  };
+
   const handleBubbleClick = udhar => {
     haptics.light();
     setExpandedBubbleId(expandedBubbleId === udhar.id ? null : udhar.id);
@@ -447,7 +485,15 @@ export default function CustomerChatPage({ params }) {
         showInput={false}
         disabled={!isOnline}
         className="mx-auto w-full max-w-4xl"
-      />
+      >
+        <LumpsumPaymentDrawer
+          type="customer"
+          totalPending={totals.pending}
+          pendingItems={pendingItems}
+          onPayBills={handleLumpsumPay}
+          disabled={!isOnline}
+        />
+      </QuickActionBar>
 
       {/* Profile Sheet */}
       <ProfileSheet

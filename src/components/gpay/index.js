@@ -47,3 +47,6 @@ export { BottomTabs } from "./BottomTabs";
 
 // Modal Components
 export { IncomeQuickModal } from "./IncomeQuickModal";
+
+// Lumpsum Payment
+export { LumpsumPaymentDrawer } from "./LumpsumPaymentDrawer";

@@ -23,6 +23,7 @@ import {
   QuickActionBar,
   ProfileSheet,
   PaymentBubble,
+  LumpsumPaymentDrawer,
 } from "@/components/gpay";
 
 export default function SupplierChatPage({ params }) {
@@ -77,6 +78,26 @@ export default function SupplierChatPage({ params }) {
       paid: paidAmount,
       pending: Math.max(0, totalAmount - paidAmount),
     };
+  }, [supplierTransactions]);
+
+  // Pending items sorted earliest first (for lumpsum payment)
+  const pendingItems = useMemo(() => {
+    return supplierTransactions
+      .filter(t => t.paymentStatus !== "paid")
+      .map(t => {
+        const amount = Number(t.amount) || 0;
+        const paid = Number(t.paidAmount) || 0;
+        return {
+          id: t.id,
+          description: t.itemName || t.description,
+          totalAmount: amount,
+          paidAmount: paid,
+          pendingAmount: Math.max(0, amount - paid),
+          date: t.date || t.createdAt,
+        };
+      })
+      .filter(t => t.pendingAmount > 0)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [supplierTransactions]);
 
   // Group transactions by date
@@ -215,6 +236,23 @@ export default function SupplierChatPage({ params }) {
     setGalleryImages(images.map(img => resolveImageUrl(img)));
     setGalleryInitialIndex(initialIndex);
     setGalleryOpen(true);
+  };
+
+  const handleLumpsumPay = async (payments) => {
+    for (const payment of payments) {
+      const result = await recordPayment(
+        payment.id,
+        payment.amount,
+        payment.receiptUrls,
+        null,
+        payment.notes,
+        false
+      );
+      if (!result.success) {
+        toast.error(`Failed to record payment for one of the bills`);
+        throw new Error(result.error || "Payment failed");
+      }
+    }
   };
 
   const handleBubbleClick = txn => {
@@ -370,7 +408,15 @@ export default function SupplierChatPage({ params }) {
         showInput={false}
         disabled={!isOnline}
         className="mx-auto w-full max-w-4xl"
-      />
+      >
+        <LumpsumPaymentDrawer
+          type="supplier"
+          totalPending={totals.pending}
+          pendingItems={pendingItems}
+          onPayBills={handleLumpsumPay}
+          disabled={!isOnline}
+        />
+      </QuickActionBar>
 
       {/* Profile Sheet */}
       <ProfileSheet
