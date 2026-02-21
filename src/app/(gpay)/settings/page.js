@@ -46,10 +46,12 @@ import { useIncome } from "@/hooks/useIncome";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { useCustomers } from "@/hooks/useCustomers";
 import { useStorage } from "@/hooks/useStorage";
 import { useBiometricLock } from "@/hooks/useBiometricLock";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
-import { exportSupplierTransactionsPDF } from "@/lib/export";
+import { exportSupplierTransactionsPDF, exportCustomerTransactionsPDF } from "@/lib/export";
+import JSZip from "jszip";
 import { cn } from "@/lib/utils";
 import { getLocalDate, getMonthOptions, getAvailableMonths } from "@/lib/date-utils";
 import { CHART_DURATION_OPTIONS, INCOME_FILTER_OPTIONS, ITEMS_PER_PAGE } from "@/lib/constants";
@@ -756,6 +758,8 @@ function BackupModal({ open, onClose }) {
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const { suppliers = [] } = useSuppliers();
   const { transactions = [] } = useTransactions();
+  const { customers = [] } = useCustomers();
+  const { udharList = [] } = useUdhar({ fetchAll: true });
 
   usePreventBodyScroll(open);
 
@@ -790,21 +794,64 @@ function BackupModal({ open, onClose }) {
     setLoading(false);
   };
 
-  const handleExportAllPDF = () => {
-    let exported = 0;
-    suppliers.forEach(supplier => {
-      const supplierTxns = transactions.filter(t => t.supplierId === supplier.id);
-      if (supplierTxns.length > 0) {
-        try {
-          exportSupplierTransactionsPDF(supplier, supplierTxns);
-          exported++;
-        } catch (e) {
-          console.error("PDF export failed for", supplier.name, e);
+  const handleExportAllPDF = async () => {
+    setLoading(true);
+    try {
+      const zip = new JSZip();
+      const suppliersFolder = zip.folder("Suppliers");
+      const customersFolder = zip.folder("Customers");
+      let exported = 0;
+
+      suppliers.forEach(supplier => {
+        const supplierTxns = transactions.filter(t => t.supplierId === supplier.id);
+        if (supplierTxns.length > 0) {
+          try {
+            const { blob, filename } = exportSupplierTransactionsPDF(supplier, supplierTxns, { asBlob: true });
+            const safeName = (supplier.companyName || supplier.name || "supplier").replace(/[/\\?%*:|"<>]/g, "_");
+            suppliersFolder.file(`${safeName}.pdf`, blob);
+            exported++;
+          } catch (e) {
+            console.error("PDF export failed for", supplier.name, e);
+          }
         }
+      });
+
+      customers.forEach(customer => {
+        const customerUdhars = udharList.filter(u => u.customerId === customer.id);
+        if (customerUdhars.length > 0) {
+          try {
+            const { blob } = exportCustomerTransactionsPDF(customer, customerUdhars, { asBlob: true });
+            const safeName = (customer.name || "customer").replace(/[/\\?%*:|"<>]/g, "_");
+            customersFolder.file(`${safeName}.pdf`, blob);
+            exported++;
+          } catch (e) {
+            console.error("PDF export failed for", customer.name, e);
+          }
+        }
+      });
+
+      if (exported === 0) {
+        toast.error("No suppliers or customers with transactions to export");
+        setLoading(false);
+        return;
       }
-    });
-    if (exported > 0) toast.success(`Exported ${exported} PDF reports`);
-    else toast.error("No suppliers with transactions to export");
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `all_reports_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${exported} PDF reports as ZIP`);
+    } catch (e) {
+      console.error("ZIP export failed:", e);
+      toast.error("Failed to export reports");
+    }
+    setLoading(false);
   };
 
   const handleAnalyzeStorage = async () => {
@@ -915,9 +962,9 @@ function BackupModal({ open, onClose }) {
                 <FileDown className="h-6 w-6 text-red-500" />
               </div>
               <div>
-                <h3 className="font-medium">Export All PDFs</h3>
+                <h3 className="font-medium">Export All Reports</h3>
                 <p className="text-xs text-muted-foreground">
-                  Export all supplier transaction reports
+                  Download all supplier &amp; customer reports as ZIP
                 </p>
               </div>
             </div>
@@ -926,7 +973,7 @@ function BackupModal({ open, onClose }) {
               disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
             >
-              <FileDown className="h-5 w-5" /> Download All Reports PDFs to Device
+              {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />} Download All Reports (ZIP)
             </button>
           </div>
 

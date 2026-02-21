@@ -227,7 +227,7 @@ export function exportReport(data, title) {
 /**
  * Export supplier transactions to PDF with beautiful visuals
  */
-export function exportSupplierTransactionsPDF(supplier, transactions) {
+export function exportSupplierTransactionsPDF(supplier, transactions, options) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -514,9 +514,275 @@ export function exportSupplierTransactionsPDF(supplier, transactions) {
     align: "center",
   });
 
-  // Save the PDF
-  const filename = `${supplier.name || "supplier"}_transactions_${format(new Date(), "yyyy-MM-dd")}.pdf`;
-  doc.save(filename);
+  const filename = `${supplier.companyName || supplier.name || "supplier"}_transactions_${format(new Date(), "yyyy-MM-dd")}.pdf`;
 
+  if (options?.asBlob) {
+    return { blob: doc.output("blob"), filename };
+  }
+
+  doc.save(filename);
+  return filename;
+}
+
+/**
+ * Export customer (udhar) transactions to PDF
+ */
+export function exportCustomerTransactionsPDF(customer, udhars, options) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let y = margin;
+
+  const primaryColor = [139, 92, 246]; // Purple
+  const successColor = [34, 197, 94];
+  const warningColor = [245, 158, 11];
+  const textColor = [30, 41, 59];
+  const mutedColor = [100, 116, 139];
+
+  const formatCurrency = amount => `Rs. ${Number(amount).toLocaleString("en-IN")}`;
+
+  const checkPageBreak = neededHeight => {
+    if (y + neededHeight > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+      return true;
+    }
+    return false;
+  };
+
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 50, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.text("Customer Report", margin, 25);
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Vardhman Saree Centre", margin, 40);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Ganesh Bazaar, Narwar (473880), Madhya Pradesh", margin, 45);
+
+  doc.setFontSize(10);
+  doc.text(format(new Date(), "dd MMM yyyy"), pageWidth - margin, 40, { align: "right" });
+
+  y = 60;
+
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(margin, y, pageWidth - 2 * margin, 30, 3, 3, "F");
+
+  doc.setTextColor(...textColor);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Customer Details", margin + 8, y + 12);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...mutedColor);
+
+  let infoY = y + 22;
+  doc.text(`Name: ${customer.name || "Unknown"}`, margin + 8, infoY);
+  if (customer.phone) {
+    doc.text(`Phone: ${customer.phone}`, margin + 90, infoY);
+  }
+
+  y += 40;
+
+  const totalAmount = udhars.reduce(
+    (sum, u) => sum + (Number(u.amount) || (Number(u.cashAmount) || 0) + (Number(u.onlineAmount) || 0)),
+    0
+  );
+  const paidAmount = udhars.reduce((sum, u) => {
+    return sum + (Number(u.paidAmount) || (Number(u.paidCash) || 0) + (Number(u.paidOnline) || 0));
+  }, 0);
+  const pendingAmount = totalAmount - paidAmount;
+
+  const cardWidth = (pageWidth - 2 * margin - 20) / 3;
+
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(margin, y, cardWidth, 35, 3, 3, "F");
+  doc.setTextColor(...mutedColor);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Total Amount", margin + cardWidth / 2, y + 12, { align: "center" });
+  doc.setTextColor(...textColor);
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(formatCurrency(totalAmount), margin + cardWidth / 2, y + 26, { align: "center" });
+
+  doc.setFillColor(220, 252, 231);
+  doc.roundedRect(margin + cardWidth + 10, y, cardWidth, 35, 3, 3, "F");
+  doc.setTextColor(...successColor);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Paid", margin + cardWidth + 10 + cardWidth / 2, y + 12, { align: "center" });
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(formatCurrency(paidAmount), margin + cardWidth + 10 + cardWidth / 2, y + 26, { align: "center" });
+
+  doc.setFillColor(254, 243, 199);
+  doc.roundedRect(margin + 2 * cardWidth + 20, y, cardWidth, 35, 3, 3, "F");
+  doc.setTextColor(...warningColor);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Pending", margin + 2 * cardWidth + 20 + cardWidth / 2, y + 12, { align: "center" });
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(formatCurrency(pendingAmount), margin + 2 * cardWidth + 20 + cardWidth / 2, y + 26, { align: "center" });
+
+  y += 50;
+
+  doc.setTextColor(...textColor);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text("Udhar Records", margin, y);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...mutedColor);
+  doc.text(`(${udhars.length} total)`, margin + 35, y);
+
+  y += 12;
+
+  doc.setFillColor(...primaryColor);
+  doc.rect(margin, y, pageWidth - 2 * margin, 10, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+
+  const colX = [margin + 5, margin + 40, margin + 90, margin + 125, margin + 150];
+
+  doc.text("Date", colX[0], y + 7);
+  doc.text("Amount", colX[1], y + 7);
+  doc.text("Paid", colX[2], y + 7);
+  doc.text("Pending", colX[3], y + 7);
+  doc.text("Status", colX[4], y + 7);
+
+  y += 10;
+
+  doc.setFont("helvetica", "normal");
+  const sorted = [...udhars].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  sorted.forEach((record, index) => {
+    checkPageBreak(15);
+
+    if (index % 2 === 0) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(margin, y, pageWidth - 2 * margin, 12, "F");
+    }
+
+    const amount = Number(record.amount) || (Number(record.cashAmount) || 0) + (Number(record.onlineAmount) || 0);
+    const paid = Number(record.paidAmount) || (Number(record.paidCash) || 0) + (Number(record.paidOnline) || 0);
+    const pending = amount - paid;
+    const status =
+      record.paymentStatus === "paid"
+        ? "Fully Paid"
+        : record.paymentStatus === "partial"
+          ? "Partially Paid"
+          : "Total Pending";
+
+    doc.setTextColor(...textColor);
+    doc.setFontSize(9);
+
+    doc.text(
+      record.date ? format(new Date(record.date), "dd/MM/yyyy") : "-",
+      colX[0],
+      y + 8
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(amount), colX[1], y + 8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...successColor);
+    doc.text(formatCurrency(paid), colX[2], y + 8);
+
+    doc.setTextColor(...warningColor);
+    doc.text(formatCurrency(pending), colX[3], y + 8);
+
+    if (status === "Fully Paid") {
+      doc.setFillColor(...successColor);
+    } else if (status === "Partially Paid") {
+      doc.setFillColor(59, 130, 246);
+    } else {
+      doc.setFillColor(...warningColor);
+    }
+    doc.setTextColor(255, 255, 255);
+    doc.roundedRect(colX[4] - 2, y + 2, 25, 8, 2, 2, "F");
+    doc.setFontSize(7);
+    doc.text(status, colX[4] + 10, y + 7.5, { align: "center" });
+
+    y += 12;
+  });
+
+  const transactionsWithPayments = udhars.filter(u => u.payments && u.payments.length > 0);
+
+  if (transactionsWithPayments.length > 0) {
+    y += 10;
+    checkPageBreak(30);
+
+    doc.setTextColor(...textColor);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment History", margin, y);
+    y += 10;
+
+    transactionsWithPayments.forEach(record => {
+      checkPageBreak(20);
+
+      const amount = Number(record.amount) || (Number(record.cashAmount) || 0) + (Number(record.onlineAmount) || 0);
+
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin, y, pageWidth - 2 * margin, 8, 2, 2, "F");
+      doc.setTextColor(...mutedColor);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `${formatCurrency(amount)} Udhar of ${record.date ? format(new Date(record.date), "dd/MM/yyyy") : "-"}`,
+        margin + 5,
+        y + 5.5
+      );
+      y += 12;
+
+      (record.payments || []).forEach(payment => {
+        checkPageBreak(10);
+
+        doc.setTextColor(...successColor);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`- ${formatCurrency(payment.amount || 0)}`, margin + 10, y);
+        doc.setTextColor(...mutedColor);
+        doc.text(payment.date ? format(new Date(payment.date), "dd/MM/yyyy") : "-", margin + 55, y);
+        if (payment.isFinalPayment) {
+          doc.setTextColor(...successColor);
+          doc.text("(Final)", margin + 95, y);
+        }
+        if (payment.isReturn) {
+          doc.setTextColor(239, 68, 68);
+          doc.text("(Return)", margin + 95, y);
+        }
+        y += 8;
+      });
+
+      y += 5;
+    });
+  }
+
+  const footerY = pageHeight - 10;
+  doc.setTextColor(...mutedColor);
+  doc.setFontSize(8);
+  doc.text(`Generated on ${format(new Date(), "dd MMM yyyy, hh:mm a")}`, pageWidth / 2, footerY, {
+    align: "center",
+  });
+
+  const filename = `${customer.name || "customer"}_udhar_report_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+
+  if (options?.asBlob) {
+    return { blob: doc.output("blob"), filename };
+  }
+
+  doc.save(filename);
   return filename;
 }
