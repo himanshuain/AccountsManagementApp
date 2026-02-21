@@ -201,6 +201,61 @@ export function PersonAvatarWithName({
 }
 
 /**
+ * List-style person row for modern home page layout
+ */
+export function PersonListItem({
+  name,
+  image,
+  amount,
+  amountColor,
+  href,
+  onClick,
+  className,
+}) {
+  const content = (
+    <div className="flex items-center gap-3 w-full">
+      <PersonAvatar name={name} image={image} size="md" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold leading-tight truncate">
+          {name || "Unknown"}
+        </p>
+      </div>
+      {amount !== undefined && (
+        <span
+          className={cn(
+            "flex-shrink-0 font-mono text-sm font-bold tabular-nums",
+            amountColor || "amount-pending"
+          )}
+        >
+          ₹{amount.toLocaleString("en-IN")}
+        </span>
+      )}
+    </div>
+  );
+
+  const sharedClasses = cn(
+    "flex items-center w-full rounded-xl px-3 py-2.5",
+    "active:scale-[0.98] transition-all cursor-pointer",
+    "hover:bg-accent/30",
+    className
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={sharedClasses} prefetch={true}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={sharedClasses} onClick={onClick}>
+      {content}
+    </div>
+  );
+}
+
+/**
  * Skeleton loader for PersonAvatar
  */
 export function PersonAvatarSkeleton({ size = "md" }) {

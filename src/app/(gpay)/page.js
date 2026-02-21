@@ -28,7 +28,7 @@ import { useUdhar } from "@/hooks/useUdhar";
 import { useIncome } from "@/hooks/useIncome";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 
-import { PersonAvatarWithName } from "@/components/gpay/PersonAvatar";
+import { PersonAvatarWithName, PersonListItem } from "@/components/gpay/PersonAvatar";
 import { IncomeQuickModal } from "@/components/gpay/IncomeQuickModal";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
@@ -475,69 +475,64 @@ export default function GPayHomePage() {
         )}
       </div>
 
-      {/* Stats Summary - Pending amounts only */}
-      <div className="px-4 py-4">
+      {/* Stats Summary */}
+      <div className="px-4 pt-4 pb-2">
         <div className="grid grid-cols-2 gap-3">
           <motion.div
-            className="theme-card p-3"
+            className="relative overflow-hidden rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3.5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0 }}
           >
-            <p className="text-xs text-muted-foreground">You Owe (Suppliers)</p>
+            <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-rose-500/10" />
+            <ArrowUpRight className="mb-1.5 h-4 w-4 text-rose-500" />
+            <p className="text-[11px] font-medium text-muted-foreground">You Owe</p>
             {isStatsLoading ? (
               <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
             ) : (
-              <motion.p
-                className="amount-negative font-mono text-lg font-bold"
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
+              <p className="amount-negative font-mono text-lg font-bold tabular-nums">
                 ₹{stats.totalSupplierPending.toLocaleString("en-IN")}
-              </motion.p>
+              </p>
             )}
-            <p className="text-xs text-muted-foreground">{stats.supplierCount} suppliers</p>
+            <p className="text-[10px] text-muted-foreground">{stats.supplierCount} suppliers</p>
           </motion.div>
           <motion.div
-            className="theme-card p-3"
+            className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3.5"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <p className="text-xs text-muted-foreground">Pending with Customers</p>
+            <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-amber-500/10" />
+            <ArrowDownLeft className="mb-1.5 h-4 w-4 text-amber-500" />
+            <p className="text-[11px] font-medium text-muted-foreground">They Owe</p>
             {isStatsLoading ? (
               <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
             ) : (
-              // Customer pending shown in amber/orange (NOT green - pending money)
-              <motion.p
-                className="font-mono text-lg font-bold text-amber-600 dark:text-amber-400"
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
+              <p className="font-mono text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">
                 ₹{stats.totalCustomerPending.toLocaleString("en-IN")}
-              </motion.p>
+              </p>
             )}
-            <p className="text-xs text-muted-foreground">{stats.customerCount} customers</p>
+            <p className="text-[10px] text-muted-foreground">{stats.customerCount} customers</p>
           </motion.div>
         </div>
       </div>
 
       {/* Recently Accessed Section */}
       {recentPeople.length > 0 && (
-        <section className="px-4 py-2">
+        <section className="px-4 pt-2 pb-1">
           <button
             onClick={() => setRecentExpanded(!recentExpanded)}
-            className="mb-3 flex w-full items-center justify-between"
+            className="mb-2 flex w-full items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-heading text-lg tracking-wide">Recent</h2>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
+                <History className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <h2 className="text-sm font-semibold">Recent</h2>
             </div>
             <ChevronDown
               className={cn(
-                "h-5 w-5 text-muted-foreground transition-transform",
+                "h-4 w-4 text-muted-foreground transition-transform",
                 recentExpanded && "rotate-180"
               )}
             />
@@ -577,26 +572,26 @@ export default function GPayHomePage() {
       )}
 
       {/* Suppliers Section */}
-      <section className="mt-6 px-4 py-1">
+      <section className="mt-4 px-4">
         <button
           onClick={() => setSuppliersExpanded(!suppliersExpanded)}
-          className="mb-3 flex w-full items-center justify-between"
+          className="mb-2 flex w-full items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <Store className="h-5 w-5 text-primary" />
-            <h2 className="font-heading text-lg tracking-wide text-green-500">Suppliers</h2>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15">
+              <Store className="h-3.5 w-3.5 text-rose-500" />
+            </div>
+            <h2 className="text-sm font-semibold">Suppliers</h2>
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               {statsData?.supplierCount || suppliersList.length}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <ChevronDown
-              className={cn(
-                "h-5 w-5 text-muted-foreground transition-transform",
-                suppliersExpanded && "rotate-180"
-              )}
-            />
-          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              suppliersExpanded && "rotate-180"
+            )}
+          />
         </button>
 
         <AnimatePresence>
@@ -609,17 +604,20 @@ export default function GPayHomePage() {
               className="overflow-hidden"
             >
               {isLoading ? (
-                <div className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-2 p-2">
-                      <div className="skeleton-hero h-14 w-14 rounded-full" />
-                      <div className="skeleton-hero h-3 w-12 rounded" />
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5">
+                      <div className="skeleton-hero h-12 w-12 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="skeleton-hero h-3.5 w-28 rounded" />
+                      </div>
+                      <div className="skeleton-hero h-4 w-16 rounded" />
                     </div>
                   ))}
                 </div>
               ) : suppliersList.length === 0 ? (
-                <div className="theme-card py-6 mt-1 text-center">
-                  <Store className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                <div className="rounded-2xl border border-dashed border-border py-8 text-center">
+                  <Store className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
                   <p className="mb-3 text-sm text-muted-foreground">No suppliers yet</p>
                   <button
                     onClick={() => setSupplierFormOpen(true)}
@@ -630,29 +628,28 @@ export default function GPayHomePage() {
                 </div>
               ) : (
                 <motion.div
-                  className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6"
+                  className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40"
                   initial="hidden"
                   animate="visible"
                   variants={{
                     hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.02 } },
                   }}
                 >
                   {suppliersList.map(person => (
                     <motion.div
                       key={`supplier-${person.id}`}
                       variants={{
-                        hidden: { opacity: 0, scale: 0.9 },
-                        visible: { opacity: 1, scale: 1 },
+                        hidden: { opacity: 0, x: -10 },
+                        visible: { opacity: 1, x: 0 },
                       }}
                     >
-                      <PersonAvatarWithName
+                      <PersonListItem
                         name={person.name}
                         image={person.image}
                         amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
                         amountColor="amount-negative"
                         href={`/person/supplier/${person.id}`}
-                        size="lg"
                       />
                     </motion.div>
                   ))}
@@ -664,26 +661,26 @@ export default function GPayHomePage() {
       </section>
 
       {/* Customers Section */}
-      <section className="mt-3 px-4 py-2">
+      <section className="mt-5 px-4 pb-2">
         <button
           onClick={() => setCustomersExpanded(!customersExpanded)}
-          className="mb-3 flex w-full items-center justify-between"
+          className="mb-2 flex w-full items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-amber-500" />
-            <h2 className="font-heading text-lg tracking-wide text-orange-500">Customers</h2>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15">
+              <Users className="h-3.5 w-3.5 text-amber-500" />
+            </div>
+            <h2 className="text-sm font-semibold">Customers</h2>
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               {statsData?.customerCount || customersList.length}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <ChevronDown
-              className={cn(
-                "h-5 w-5 text-muted-foreground transition-transform",
-                customersExpanded && "rotate-180"
-              )}
-            />
-          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              customersExpanded && "rotate-180"
+            )}
+          />
         </button>
 
         <AnimatePresence>
@@ -696,17 +693,20 @@ export default function GPayHomePage() {
               className="overflow-hidden"
             >
               {isLoading ? (
-                <div className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex flex-col items-center gap-2 p-2">
-                      <div className="skeleton-hero h-14 w-14 rounded-full" />
-                      <div className="skeleton-hero h-3 w-12 rounded" />
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5">
+                      <div className="skeleton-hero h-12 w-12 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="skeleton-hero h-3.5 w-28 rounded" />
+                      </div>
+                      <div className="skeleton-hero h-4 w-16 rounded" />
                     </div>
                   ))}
                 </div>
               ) : customersList.length === 0 ? (
-                <div className="theme-card py-6 mt-1 text-center">
-                  <Users className="mx-auto mb-2 h-10 w-10 text-muted-foreground/50" />
+                <div className="rounded-2xl border border-dashed border-border py-8 text-center">
+                  <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
                   <p className="mb-3 text-sm text-muted-foreground">No customers yet</p>
                   <button
                     onClick={() => setCustomerFormOpen(true)}
@@ -717,29 +717,28 @@ export default function GPayHomePage() {
                 </div>
               ) : (
                 <motion.div
-                  className="grid grid-cols-4 justify-items-center gap-3 sm:grid-cols-5 md:grid-cols-6"
+                  className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40"
                   initial="hidden"
                   animate="visible"
                   variants={{
                     hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.02 } },
                   }}
                 >
                   {customersList.map(person => (
                     <motion.div
                       key={`customer-${person.id}`}
                       variants={{
-                        hidden: { opacity: 0, scale: 0.9 },
-                        visible: { opacity: 1, scale: 1 },
+                        hidden: { opacity: 0, x: -10 },
+                        visible: { opacity: 1, x: 0 },
                       }}
                     >
-                      <PersonAvatarWithName
+                      <PersonListItem
                         name={person.name}
                         image={person.image}
                         amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
                         amountColor="text-amber-600 dark:text-amber-400"
                         href={`/person/customer/${person.id}`}
-                        size="lg"
                       />
                     </motion.div>
                   ))}
