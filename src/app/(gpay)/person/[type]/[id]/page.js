@@ -549,51 +549,51 @@ function TransactionDetailModal({
             </button>
           </div>
 
-          {/* Amount - Horizontal Layout */}
-          <div className="flex items-stretch gap-3 rounded-2xl bg-muted/50 p-3">
-            {/* Total Amount - Smaller */}
-            <div className="flex flex-col justify-center rounded-xl bg-background/50 px-4 py-3">
-              <p className="text-[10px] text-muted-foreground">Total</p>
-              <p
-                className={cn(
-                  "font-mono text-lg font-bold",
-                  isSupplier ? "text-foreground" : "text-foreground"
-                )}
-              >
-                ₹{totalAmount.toLocaleString("en-IN")}
-              </p>
-            </div>
-
-            {/* Pending Amount - Dominating */}
-            <div className="flex flex-1 flex-col justify-center rounded-xl bg-background px-4 py-3">
-              <p className="text-[10px] text-muted-foreground">{isPaid ? "Status" : "Pending"}</p>
+          {/* Amount */}
+          <div
+            className={cn(
+              "overflow-hidden rounded-2xl border",
+              isPaid
+                ? "border-emerald-500/30 bg-emerald-500/5"
+                : isSupplier
+                  ? "border-rose-500/30 bg-rose-500/5"
+                  : "border-amber-500/30 bg-amber-500/5"
+            )}
+          >
+            <div className="px-4 pt-4 pb-2 text-center">
               {isPaid ? (
-                <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  ✓ Paid
-                </p>
+                <>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</p>
+                  <p className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">✓ Paid</p>
+                </>
               ) : (
-                <p
-                  className={cn(
-                    "font-mono text-2xl font-bold",
-                    isSupplier ? "amount-negative" : "text-amber-600 dark:text-amber-400"
-                  )}
-                >
-                  ₹{remainingAmount.toLocaleString("en-IN")}
-                </p>
+                <>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {paidAmount > 0 ? "Pending" : "Total Pending"}
+                  </p>
+                  <p
+                    className={cn(
+                      "font-mono text-3xl font-extrabold tabular-nums tracking-tight",
+                      isSupplier ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400"
+                    )}
+                  >
+                    ₹{remainingAmount.toLocaleString("en-IN")}
+                  </p>
+                </>
               )}
             </div>
+            {paidAmount > 0 && (
+              <div className="flex items-center justify-between border-t border-border/30 px-4 py-2">
+                <span className="text-xs text-muted-foreground">Total ₹{totalAmount.toLocaleString("en-IN")}</span>
+                <span className="text-xs text-emerald-600 dark:text-emerald-400">Paid ₹{paidAmount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {paidAmount > 0 && !isPaid && (
+              <div className="px-4 pb-3">
+                <ProgressBar total={totalAmount} paid={paidAmount} size="md" />
+              </div>
+            )}
           </div>
-
-          {/* Progress Bar */}
-          {totalAmount > 0 && !isPaid && (
-            <ProgressBar
-              total={totalAmount}
-              paid={paidAmount}
-              size="md"
-              showLabels
-              className="mt-3"
-            />
-          )}
         </div>
 
         {/* Details */}
@@ -752,7 +752,7 @@ function TransactionDetailModal({
                               </p>
                             </div>
                             {payment.notes && (
-                              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              <p className="mt-0.5 break-words text-xs text-muted-foreground">
                                 {payment.notes}
                               </p>
                             )}
@@ -916,55 +916,48 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
           />
 
           <div className="p-3">
-            {/* Amount Row */}
-            <div className="flex items-baseline justify-between gap-4">
-              {/* Total Amount */}
-              <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total</p>
-                <p className="font-mono text-xl font-normal text-foreground">
-                  ₹{totalAmount.toLocaleString("en-IN")}
+            {/* Pending — hero number */}
+            <div className="mb-1">
+              {isPaid ? (
+                <p className="flex items-center gap-1.5 font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  <Check className="h-4 w-4" />
+                  Paid
                 </p>
-              </div>
+              ) : (
+                <p
+                  className={cn(
+                    "font-mono text-2xl font-extrabold tabular-nums tracking-tight",
+                    isSupplier
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  )}
+                >
+                  ₹{remainingAmount.toLocaleString("en-IN")}
+                </p>
+              )}
+            </div>
 
-              {/* Pending/Paid Status */}
-              <div className="text-right">
-                {isPaid ? (
-                  <>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Status
-                    </p>
-                    <p className="flex items-center justify-end gap-1 font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                      <Check className="h-4 w-4" />
-                      Paid
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      Pending
-                    </p>
-                    <p
-                      className={cn(
-                        "font-mono text-xl font-bold",
-                        isSupplier
-                          ? "text-rose-600 dark:text-rose-400"
-                          : "text-amber-600 dark:text-amber-400"
-                      )}
-                    >
-                      ₹{remainingAmount.toLocaleString("en-IN")}
-                    </p>
-                  </>
-                )}
-              </div>
+            {/* Total & paid context line */}
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              {hasPartialPayment ? (
+                <>
+                  <span>of ₹{totalAmount.toLocaleString("en-IN")}</span>
+                  <span>·</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    ₹{paidAmount.toLocaleString("en-IN")} paid
+                  </span>
+                </>
+              ) : !isPaid ? (
+                <span>Total Pending</span>
+              ) : (
+                <span>₹{totalAmount.toLocaleString("en-IN")}</span>
+              )}
             </div>
 
             {/* Progress bar for partial payments */}
             {hasPartialPayment && (
               <div className="mt-2">
                 <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-                <p className="mt-1 text-[13px] font-bold text-muted-foreground">
-                  ₹{paidAmount.toLocaleString("en-IN")} Paid
-                </p>
               </div>
             )}
 
@@ -997,7 +990,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
           </div>
         </div>
 
-        {/* Pay Button - Show only if not fully paid */}
+        {/* Pay Button */}
         {!isPaid && (
           <div className="mt-2 flex justify-end">
             <button
@@ -1836,75 +1829,66 @@ export default function PersonChatPage() {
 
         {/* Summary Card */}
         <div className="px-4 pb-3">
-          <div className="rounded-2xl bg-gradient-to-r from-muted/80 to-muted/40 p-4">
-            {totals.total === totals.pending && totals.pending > 0 ? (
-              // When total equals pending - show single prominent display
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Total Amount Pending
-                  </span>
-                  <span
+          <div
+            className={cn(
+              "overflow-hidden rounded-2xl border",
+              totals.pending > 0
+                ? isSupplier
+                  ? "border-rose-500/30 bg-rose-500/5"
+                  : "border-amber-500/30 bg-amber-500/5"
+                : "border-emerald-500/30 bg-emerald-500/5"
+            )}
+          >
+            {/* Pending — the hero number */}
+            <div className="px-4 pt-4 pb-2 text-center">
+              {totals.pending > 0 ? (
+                <>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {isSupplier ? "You Owe" : "They Owe"}
+                  </p>
+                  <p
                     className={cn(
-                      "font-mono text-2xl font-bold",
+                      "font-mono text-3xl font-extrabold tabular-nums tracking-tight",
                       isSupplier
                         ? "text-rose-600 dark:text-rose-400"
                         : "text-amber-600 dark:text-amber-400"
                     )}
                   >
-                    ₹{totals.total.toLocaleString("en-IN")}
+                    ₹{totals.pending.toLocaleString("en-IN")}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Status
+                  </p>
+                  <p className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                    ✓ All Paid
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Total & Paid row */}
+            {totals.total > 0 && (
+              <div className="flex items-center justify-between border-t border-border/30 px-4 py-2">
+                <span className="text-xs text-muted-foreground">
+                  Total ₹{totals.total.toLocaleString("en-IN")}
+                </span>
+                {totals.paid > 0 && (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Paid ₹{totals.paid.toLocaleString("en-IN")}
                   </span>
-                </div>
-                <div
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-semibold",
-                    "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                  )}
-                >
-                  100% Pending
-                </div>
-              </div>
-            ) : (
-              // When partially paid or fully paid - show both amounts
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-muted-foreground">Total</span>
-                  <span className="font-mono text-xl font-bold text-foreground">
-                    ₹{totals.total.toLocaleString("en-IN")}
-                  </span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {totals.pending > 0 ? "Pending" : "Status"}
-                  </span>
-                  {totals.pending > 0 ? (
-                    <span
-                      className={cn(
-                        "font-mono text-xl font-bold",
-                        isSupplier
-                          ? "text-rose-600 dark:text-rose-400"
-                          : "text-amber-600 dark:text-amber-400"
-                      )}
-                    >
-                      ₹{totals.pending.toLocaleString("en-IN")}
-                    </span>
-                  ) : (
-                    <span className="font-mono text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                      ✓ All Paid
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             )}
-            {/* Progress bar - only show when partially paid */}
-            {totals.total !== totals.pending && totals.pending > 0 && (
-              <div className="mt-3">
+
+            {/* Progress bar */}
+            {totals.paid > 0 && totals.pending > 0 && (
+              <div className="px-4 pb-3">
                 <div className="progress-hero">
                   <div className="progress-hero-fill" style={{ width: `${totals.progress}%` }} />
                 </div>
-                <p className="mt-1.5 text-center text-[12px] text-muted-foreground">
-                  Paid ₹{totals.paid.toLocaleString("en-IN")}
-                </p>
               </div>
             )}
           </div>
