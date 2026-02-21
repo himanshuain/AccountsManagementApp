@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { X, IndianRupee, Camera, ImagePlus, Expand } from "lucide-react";
+import { X, IndianRupee, Camera, ImagePlus, Expand, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   PhotoGalleryViewer as ImageGalleryViewer,
@@ -10,6 +10,45 @@ import { getImageUrls, isDataUrl } from "@/lib/image-url";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
 import { getLocalDate } from "@/lib/date-utils";
+
+function ReceiptThumbnail({ src, idx, onTap, onRemove }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="group relative h-16 w-16 overflow-hidden rounded-lg bg-muted">
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={`Receipt ${idx + 1}`}
+        className={cn(
+          "h-full w-full cursor-pointer object-cover transition-opacity",
+          loaded ? "opacity-100" : "opacity-0"
+        )}
+        onLoad={() => setLoaded(true)}
+        onClick={() => onTap(idx)}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(idx);
+        }}
+        className="absolute right-0.5 top-0.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      {loaded && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+          <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Payment Form Modal Component with image upload
@@ -268,30 +307,13 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
                   const urls = getImageUrls(img);
                   const displayUrl = isDataUrl(img) ? img : urls.thumbnail || urls.src;
                   return (
-                    <div
+                    <ReceiptThumbnail
                       key={idx}
-                      className="group relative h-16 w-16 overflow-hidden rounded-lg bg-muted"
-                    >
-                      <img
-                        src={displayUrl}
-                        alt={`Receipt ${idx + 1}`}
-                        className="h-full w-full cursor-pointer object-cover"
-                        onClick={() => handleImageTap(idx)}
-                      />
-                      <button
-                        type="button"
-                        onClick={e => {
-                          e.stopPropagation();
-                          handleRemoveImage(idx);
-                        }}
-                        className="absolute right-0.5 top-0.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                        <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
-                      </div>
-                    </div>
+                      src={displayUrl}
+                      idx={idx}
+                      onTap={handleImageTap}
+                      onRemove={handleRemoveImage}
+                    />
                   );
                 })}
 

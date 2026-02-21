@@ -30,6 +30,7 @@ import {
   ImagePlus,
   Expand,
   Search,
+  Loader2,
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -59,6 +60,39 @@ import { cn } from "@/lib/utils";
 import { getLocalDate } from "@/lib/date-utils";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, BillsGalleryModal } from "@/components/person";
+
+function LoadingImg({ src, alt, className, onClick, loading = "eager" }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+
+  return (
+    <>
+      {!loaded && !errored && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      {errored && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={cn(
+          className,
+          "transition-opacity",
+          loaded && !errored ? "opacity-100" : "opacity-0"
+        )}
+        loading={loading}
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+        onClick={onClick}
+      />
+    </>
+  );
+}
 
 // Edit Payment Modal Component
 function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
@@ -332,8 +366,7 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
                       key={idx}
                       className="group relative h-16 w-16 overflow-hidden rounded-lg bg-muted"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <LoadingImg
                         src={displayUrl}
                         alt={`Receipt ${idx + 1}`}
                         className="h-full w-full cursor-pointer object-cover"
@@ -349,10 +382,6 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
                       >
                         <X className="h-3 w-3" />
                       </button>
-                      {/* Tap to expand hint */}
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                        <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
-                      </div>
                     </div>
                   );
                 })}
@@ -642,26 +671,10 @@ function TransactionDetailModal({
                       onClick={() => onViewImages(images, imgIndex)}
                       className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-muted transition-opacity hover:opacity-90"
                     >
-                      {/* Fallback shown when image fails */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
-                      </div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <LoadingImg
                         src={imgUrl}
                         alt={`${isSupplier ? "Bill" : "Photo"} ${imgIndex + 1}`}
                         className="relative z-10 h-full w-full object-cover"
-                        loading="eager"
-                        onLoad={e => {
-                          // Hide fallback when image loads
-                          if (e.target.previousElementSibling) {
-                            e.target.previousElementSibling.style.display = "none";
-                          }
-                        }}
-                        onError={e => {
-                          // Hide broken image, fallback icon will show
-                          e.target.style.display = "none";
-                        }}
                       />
                     </div>
                   );
@@ -751,14 +764,12 @@ function TransactionDetailModal({
                                   <div
                                     key={rIdx}
                                     onClick={() => onViewImages(receipts, rIdx)}
-                                    className="h-12 w-12 cursor-pointer overflow-hidden rounded-lg bg-muted transition-opacity hover:opacity-80"
+                                    className="relative h-12 w-12 cursor-pointer overflow-hidden rounded-lg bg-muted transition-opacity hover:opacity-80"
                                   >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
+                                    <LoadingImg
                                       src={resolveImageUrl(receipt)}
                                       alt={`Receipt ${rIdx + 1}`}
                                       className="h-full w-full object-cover"
-                                      loading="eager"
                                     />
                                   </div>
                                 ))}
@@ -1725,8 +1736,8 @@ export default function PersonChatPage() {
                 className="avatar-hero ring-2 ring-primary/20"
               />
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <p className="font-heading text-lg font-semibold tracking-wide line-clamp-1 max-w-[140px]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-heading text-lg font-semibold tracking-wide break-words">
                     {person.companyName || person.name}
                   </p>
                   <span

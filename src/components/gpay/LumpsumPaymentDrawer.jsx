@@ -9,7 +9,6 @@ import {
   Expand,
   Wallet,
   Loader2,
-  Calendar,
   Check,
   AlertCircle,
 } from "lucide-react";
@@ -23,13 +22,44 @@ import {
   PhotoGalleryViewer as ImageGalleryViewer,
 } from "@/components/PhotoViewer";
 
-function formatDate(dateStr) {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-  } catch {
-    return "";
-  }
+function ReceiptThumbnail({ src, idx, onTap, onRemove }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="group relative h-16 w-16 overflow-hidden rounded-lg bg-muted">
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={`Receipt ${idx + 1}`}
+        className={cn(
+          "h-full w-full cursor-pointer object-cover transition-opacity",
+          loaded ? "opacity-100" : "opacity-0"
+        )}
+        onLoad={() => setLoaded(true)}
+        onClick={() => onTap(idx)}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(idx);
+        }}
+        className="absolute right-0.5 top-0.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      {loaded && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+          <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -381,31 +411,13 @@ export function LumpsumPaymentDrawer({
                   const urls = getImageUrls(img);
                   const displayUrl = isDataUrl(img) ? img : urls.thumbnail || urls.src;
                   return (
-                    <div
+                    <ReceiptThumbnail
                       key={idx}
-                      className="group relative h-16 w-16 overflow-hidden rounded-lg bg-muted"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={displayUrl}
-                        alt={`Receipt ${idx + 1}`}
-                        className="h-full w-full cursor-pointer object-cover"
-                        onClick={() => handleImageTap(idx)}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveImage(idx);
-                        }}
-                        className="absolute right-0.5 top-0.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                        <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
-                      </div>
-                    </div>
+                      src={displayUrl}
+                      idx={idx}
+                      onTap={handleImageTap}
+                      onRemove={handleRemoveImage}
+                    />
                   );
                 })}
 
@@ -481,109 +493,81 @@ export function LumpsumPaymentDrawer({
                   </span>
                 </div>
 
-                <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-border bg-muted/30 p-2.5">
+                <div className="max-h-72 overflow-y-auto rounded-xl border border-border bg-muted/20">
                   {/* Bills being paid */}
                   {billsBeingPaid.map((bill, idx) => {
-                    const progressBefore = bill.totalAmount > 0
-                      ? ((bill.paidAmount) / bill.totalAmount) * 100
-                      : 0;
-                    const progressAfter = bill.totalAmount > 0
-                      ? ((bill.paidAmount + bill.payAmount) / bill.totalAmount) * 100
+                    const pct = bill.totalAmount > 0
+                      ? Math.round(((bill.paidAmount + bill.payAmount) / bill.totalAmount) * 100)
                       : 0;
 
                     return (
                       <div
                         key={bill.id}
                         className={cn(
-                          "rounded-lg bg-background p-3 transition-all",
-                          bill.fullyPaid && "ring-1 ring-emerald-500/30"
+                          "px-3 py-3",
+                          idx !== 0 && "border-t border-border/50"
                         )}
                       >
-                        {/* Top row: index, description, date */}
-                        <div className="mb-1.5 flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
+                        {/* Top: description + paying amount */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2 min-w-0">
                             <span
                               className={cn(
-                                "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                                "mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
                                 bill.fullyPaid
-                                  ? "bg-emerald-500 text-white"
-                                  : "bg-primary/15 text-primary"
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-muted text-muted-foreground"
                               )}
                             >
                               {bill.fullyPaid ? <Check className="h-3 w-3" /> : idx + 1}
                             </span>
-                            <span className="truncate text-sm font-medium">
-                              {bill.description || `${billLabel} #${idx + 1}`}
-                            </span>
-                          </div>
-                          <div className="flex flex-shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(bill.date)}
-                          </div>
-                        </div>
-
-                        {/* Amount details row */}
-                        <div className="mb-2 grid grid-cols-3 gap-1 text-center">
-                          <div className="rounded-md bg-muted/60 px-1.5 py-1">
-                            <p className="text-[9px] text-muted-foreground">Total</p>
-                            <p className="font-mono text-[11px] font-semibold">
-                              ₹{bill.totalAmount.toLocaleString("en-IN")}
-                            </p>
-                          </div>
-                          <div className="rounded-md bg-muted/60 px-1.5 py-1">
-                            <p className="text-[9px] text-muted-foreground">Already Paid</p>
-                            <p className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                              ₹{bill.paidAmount.toLocaleString("en-IN")}
-                            </p>
-                          </div>
-                          <div className="rounded-md bg-muted/60 px-1.5 py-1">
-                            <p className="text-[9px] text-muted-foreground">Pending</p>
-                            <p className={cn(
-                              "font-mono text-[11px] font-semibold",
-                              type === "supplier"
-                                ? "text-rose-600 dark:text-rose-400"
-                                : "text-amber-600 dark:text-amber-400"
-                            )}>
-                              ₹{bill.pendingAmount.toLocaleString("en-IN")}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Progress bar showing before → after */}
-                        <div className="mb-1.5">
-                          <div className="h-2 overflow-hidden rounded-full bg-muted">
-                            <div className="relative h-full">
-                              <div
-                                className="absolute inset-y-0 left-0 rounded-full bg-emerald-500/40"
-                                style={{ width: `${Math.min(progressAfter, 100)}%` }}
-                              />
-                              <div
-                                className="absolute inset-y-0 left-0 rounded-full bg-emerald-500"
-                                style={{ width: `${Math.min(progressBefore, 100)}%` }}
-                              />
+                            <div className="min-w-0">
+                              <p className="truncate text-[13px] font-medium leading-tight">
+                                {bill.description || `${billLabel} #${idx + 1}`}
+                              </p>
+                              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                {bill.date
+                                  ? new Date(bill.date).toLocaleDateString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "2-digit",
+                                    })
+                                  : ""}
+                              </p>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Paying now row */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            Paying now
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                          <div className="flex flex-shrink-0 flex-col items-end">
+                            <span className="font-mono text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
                               +₹{bill.payAmount.toLocaleString("en-IN")}
                             </span>
                             {bill.fullyPaid ? (
-                              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                Fully Cleared
+                              <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">
+                                Fully cleared
                               </span>
                             ) : (
-                              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
-                                Partial
+                              <span className="text-[10px] text-muted-foreground">
+                                of ₹{bill.pendingAmount.toLocaleString("en-IN")} pending
                               </span>
                             )}
                           </div>
+                        </div>
+
+                        {/* Progress: thin bar + remaining */}
+                        <div className="mt-2 flex items-center gap-2 pl-7">
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all",
+                                bill.fullyPaid ? "bg-emerald-500" : "bg-emerald-500/60"
+                              )}
+                              style={{ width: `${Math.min(pct, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] tabular-nums text-muted-foreground">
+                            {bill.fullyPaid
+                              ? "₹0"
+                              : `₹${(bill.pendingAmount - bill.payAmount).toLocaleString("en-IN")}`} left
+                          </span>
                         </div>
                       </div>
                     );
@@ -591,44 +575,42 @@ export function LumpsumPaymentDrawer({
 
                   {/* Untouched bills */}
                   {billsUntouched.length > 0 && (
-                    <div className="border-t border-border pt-2">
+                    <div className="border-t border-border bg-muted/10 px-3 py-2.5">
                       <p className="mb-1.5 text-[10px] font-medium text-muted-foreground">
-                        Not covered by this payment ({billsUntouched.length})
+                        Not covered ({billsUntouched.length})
                       </p>
-                      {billsUntouched.map((bill, idx) => (
-                        <div
-                          key={bill.id}
-                          className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 opacity-50"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-muted text-[9px] text-muted-foreground">
-                              {billsBeingPaid.length + idx + 1}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
+                      <div className="space-y-1">
+                        {billsUntouched.map((bill, idx) => (
+                          <div
+                            key={bill.id}
+                            className="flex items-center justify-between text-[11px] text-muted-foreground/70"
+                          >
+                            <span className="truncate">
                               {bill.description || `${billLabel} #${billsBeingPaid.length + idx + 1}`}
                             </span>
+                            <span className="flex-shrink-0 font-mono">
+                              ₹{bill.pendingAmount.toLocaleString("en-IN")}
+                            </span>
                           </div>
-                          <span className="flex-shrink-0 font-mono text-xs text-muted-foreground">
-                            ₹{bill.pendingAmount.toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary row */}
+                  {billsBeingPaid.length > 0 && (
+                    <div className="flex items-center justify-between border-t border-border bg-emerald-500/5 px-3 py-2.5">
+                      <span className="text-[11px] text-muted-foreground">
+                        {billsBeingPaid.filter((b) => b.fullyPaid).length} cleared
+                        {billsBeingPaid.filter((b) => !b.fullyPaid).length > 0 &&
+                          `, ${billsBeingPaid.filter((b) => !b.fullyPaid).length} partial`}
+                      </span>
+                      <span className="font-mono text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{totalPayingAmount.toLocaleString("en-IN")}
+                      </span>
                     </div>
                   )}
                 </div>
-
-                {/* Summary footer */}
-                {billsBeingPaid.length > 0 && (
-                  <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-500/10 px-3 py-2">
-                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      {billsBeingPaid.filter((b) => b.fullyPaid).length} fully cleared,{" "}
-                      {billsBeingPaid.filter((b) => !b.fullyPaid).length} partial
-                    </span>
-                    <span className="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                      ₹{totalPayingAmount.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
 

@@ -153,30 +153,31 @@ export function PersonAvatarWithName({
       <PersonAvatar name={name} image={image} size={size} />
 
       <div className="w-full text-center">
-        <p className="max-w-[80px] text-xs font-bold leading-tight line-clamp-2">
+        <p className="text-xs font-bold leading-tight line-clamp-2">
           {name || "Unknown"}
         </p>
 
         {subtitle && (
-          <p className="max-w-[80px] text-[10px] text-muted-foreground line-clamp-1">{subtitle}</p>
+          <p className="text-[10px] text-muted-foreground line-clamp-1">{subtitle}</p>
         )}
 
         {amount !== undefined && (
-          <p
+          <span
             className={cn(
-              "mt-0.5 font-mono text-[11px] font-thin",
+              "mt-1 inline-block rounded-md bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] font-semibold",
               amountColor || "amount-pending"
             )}
           >
             ₹{amount.toLocaleString("en-IN")}
-          </p>
+          </span>
         )}
       </div>
     </>
   );
 
   const sharedClasses = cn(
-    "flex flex-col items-center gap-1.5 p-2 px-4",
+    "flex flex-col items-center gap-1.5 p-2 px-1",
+    "w-[88px] h-[120px]",
     "active:scale-95 transition-transform cursor-pointer",
     "rounded-2xl hover:bg-accent/20",
     className

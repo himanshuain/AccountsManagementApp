@@ -1,9 +1,41 @@
 "use client";
 
-import { useMemo } from "react";
-import { X, Images } from "lucide-react";
+import { useState, useMemo } from "react";
+import { X, Images, Loader2, Image as ImageIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { resolveImageUrl } from "@/lib/image-url";
+import { cn } from "@/lib/utils";
+
+function GalleryImg({ src, alt }) {
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+
+  return (
+    <>
+      {!loaded && !errored && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      {errored && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={cn(
+          "h-full w-full object-cover transition-opacity",
+          loaded && !errored ? "opacity-100" : "opacity-0"
+        )}
+        loading="eager"
+        onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
+      />
+    </>
+  );
+}
 
 /**
  * Bills Gallery Modal - Shows all bills & receipts for transactions
@@ -74,15 +106,9 @@ export function BillsGalleryModal({ transactions, onClose, onViewImages }) {
                   }}
                   className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-muted transition-transform active:scale-95"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <GalleryImg
                     src={resolveImageUrl(bill.url)}
                     alt={`Bill ${idx + 1}`}
-                    className="h-full w-full object-cover"
-                    loading="eager"
-                    onError={e => {
-                      e.target.style.opacity = "0";
-                    }}
                   />
                   <div className="absolute inset-x-0 bottom-0 bg-green-700 px-2 pb-2 pt-4">
                     <p className="font-mono text-sm font-semibold text-white">

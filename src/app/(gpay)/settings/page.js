@@ -886,7 +886,7 @@ function BackupModal({ open, onClose }) {
               ) : (
                 <Upload className="h-5 w-5" />
               )}{" "}
-              Backup Now
+              Send Backup to email
             </button>
           </div>
 
@@ -905,7 +905,7 @@ function BackupModal({ open, onClose }) {
               disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
             >
-              <Download className="h-5 w-5" /> Export Data
+              <Download className="h-5 w-5" /> Download Data File to Device
             </button>
           </div>
 
@@ -926,7 +926,7 @@ function BackupModal({ open, onClose }) {
               disabled={loading}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
             >
-              <FileDown className="h-5 w-5" /> Export All PDFs
+              <FileDown className="h-5 w-5" /> Download All Reports PDFs to Device
             </button>
           </div>
 

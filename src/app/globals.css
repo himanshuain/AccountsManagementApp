@@ -1,5 +1,10 @@
 @import "react-photo-view/dist/react-photo-view.css";
 
+/* Ensure photo viewer portal stays interactive above Radix dialogs/sheets */
+.PhotoView-Portal {
+  pointer-events: auto !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -139,6 +144,14 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+  }
+
+  /* Disable active:scale effects on touch-only devices to prevent
+     highlight flashes while scrolling. Mouse/trackpad devices keep them. */
+  @media (hover: none) {
+    [class*="active\:scale"] {
+      transform: none !important;
+    }
   }
 
   /* Headings - Superhero Style */
