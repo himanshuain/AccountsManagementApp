@@ -125,10 +125,6 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
     onSubmit(paymentAmount, date, false, receiptImages, notes, isReturn);
   };
 
-  const handleFullPayment = () => {
-    onSubmit(remainingAmount, date, true, receiptImages, notes, false);
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
@@ -173,18 +169,18 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {[1000, 5000, 10000].map(val => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setAmount(String(Math.min(val, remainingAmount)))}
-                  className="rounded-full bg-muted px-3 py-1.5 font-mono text-sm transition-colors hover:bg-accent"
-                >
-                  ₹{val.toLocaleString("en-IN")}
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setAmount(String(remainingAmount))}
+              className={cn(
+                "rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
+                Number(amount) === remainingAmount
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-accent"
+              )}
+            >
+              Full — ₹{remainingAmount.toLocaleString("en-IN")}
+            </button>
 
             <div>
               <label className="mb-2 block text-sm text-muted-foreground">Payment Date</label>
@@ -360,21 +356,13 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
               )}
             </div>
 
-            <div className="pb-safe flex gap-2 pt-4">
+            <div className="pb-safe pt-4">
               <button
                 type="submit"
                 disabled={isSubmitting || !amount || isUploading}
-                className="btn-hero w-[70%] disabled:opacity-50"
+                className="btn-hero w-full disabled:opacity-50"
               >
                 {isSubmitting ? "Saving..." : "Record Payment"}
-              </button>
-              <button
-                type="button"
-                onClick={handleFullPayment}
-                disabled={isSubmitting || isUploading}
-                className="w-[30%] rounded-xl bg-emerald-600 py-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-              >
-                Record Full Paid
               </button>
             </div>
           </form>

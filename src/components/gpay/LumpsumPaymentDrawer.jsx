@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getImageUrls, isDataUrl } from "@/lib/image-url";
-import { compressImage } from "@/lib/image-compression";
+import { compressImage, compressForHD } from "@/lib/image-compression";
 import {
   PhotoGalleryViewer as ImageGalleryViewer,
 } from "@/components/PhotoViewer";
@@ -52,6 +52,7 @@ export function LumpsumPaymentDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [isHDMode, setIsHDMode] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
@@ -87,13 +88,18 @@ export function LumpsumPaymentDrawer({
 
     for (const file of filesToUpload) {
       try {
-        const compressedFile = await compressImage(file, {
-          maxWidth: 2048,
-          maxHeight: 2048,
-          quality: 0.9,
-          maxSizeKB: 800,
-          useWebP: false,
-        });
+        let compressedFile;
+        if (isHDMode) {
+          compressedFile = await compressForHD(file);
+        } else {
+          compressedFile = await compressImage(file, {
+            maxWidth: 2048,
+            maxHeight: 2048,
+            quality: 0.9,
+            maxSizeKB: 800,
+            useWebP: false,
+          });
+        }
 
         const formData = new FormData();
         formData.append("file", compressedFile);
@@ -332,35 +338,18 @@ export function LumpsumPaymentDrawer({
               )}
             </div>
 
-            {/* Quick Amount Chips */}
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: "Full", value: totalPending },
-                { label: "½", value: Math.round(totalPending / 2) },
-                { label: "¼", value: Math.round(totalPending / 4) },
-                ...(totalPending >= 10000 ? [{ label: "₹10K", value: 10000 }] : []),
-                ...(totalPending >= 25000 ? [{ label: "₹25K", value: 25000 }] : []),
-                ...(totalPending >= 50000 ? [{ label: "₹50K", value: 50000 }] : []),
-              ]
-                .filter((c) => c.value > 0 && c.value <= totalPending)
-                .map((chip) => (
-                  <button
-                    key={chip.label}
-                    type="button"
-                    onClick={() => setAmount(String(chip.value))}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 font-mono text-xs transition-colors",
-                      parsedAmount === chip.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted hover:bg-accent"
-                    )}
-                  >
-                    {chip.label === "Full" || chip.label === "½" || chip.label === "¼"
-                      ? `${chip.label} — ₹${chip.value.toLocaleString("en-IN")}`
-                      : chip.label}
-                  </button>
-                ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setAmount(String(totalPending))}
+              className={cn(
+                "rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
+                parsedAmount === totalPending
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-accent"
+              )}
+            >
+              Full — ₹{totalPending.toLocaleString("en-IN")}
+            </button>
 
             {/* Receipt Images */}
             <div>
@@ -449,9 +438,35 @@ export function LumpsumPaymentDrawer({
                   </div>
                 )}
               </div>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {receiptImages.length}/5 images — receipts will be attached to all paid bills
-              </p>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-[10px] text-muted-foreground">
+                  {receiptImages.length}/5 images • Tap to expand
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsHDMode(!isHDMode)}
+                  disabled={isUploading}
+                  className={cn(
+                    "flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-all",
+                    isHDMode
+                      ? "bg-amber-500 text-white shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      isHDMode ? "bg-white animate-pulse" : "bg-muted-foreground"
+                    )}
+                  />
+                  HD {isHDMode ? "ON" : "OFF"}
+                </button>
+              </div>
+              {isHDMode && (
+                <p className="text-[9px] text-amber-600 dark:text-amber-400">
+                  HD: Best quality (larger file)
+                </p>
+              )}
             </div>
 
             {/* Detailed Bills Preview */}

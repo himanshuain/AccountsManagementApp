@@ -1040,7 +1040,7 @@ export default function PersonChatPage() {
   const [editingPaymentTxn, setEditingPaymentTxn] = useState(null);
   const [isSubmittingPaymentEdit, setIsSubmittingPaymentEdit] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
+
 
   // Prevent body scroll when modals/sheets are open
   usePreventBodyScroll(
@@ -1797,34 +1797,31 @@ export default function PersonChatPage() {
         </div>
 
         {/* Search Bar */}
-        {showSearch && (
-          <div className="animate-slide-up border-t border-border px-4 py-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search transactions..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-muted pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-                autoFocus
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-accent"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
+        <div className="px-4 pb-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={`Search ${isSupplier ? "transactions" : "udhars"}...`}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="h-9 w-full rounded-xl border-0 bg-muted pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+            />
             {searchQuery && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {filteredTransactions.length} of {personTransactions.length} transactions
-              </p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-accent"
+              >
+                <X className="h-3 w-3" />
+              </button>
             )}
           </div>
-        )}
+          {searchQuery && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {filteredTransactions.length} of {personTransactions.length} results
+            </p>
+          )}
+        </div>
 
         {/* Summary Card */}
         <div className="px-4 pb-3">
@@ -2011,19 +2008,6 @@ export default function PersonChatPage() {
           >
             <Images className="h-3 w-3" />
             Bills
-          </button>
-
-          <button
-            onClick={() => setShowSearch(!showSearch)}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-              showSearch
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted hover:bg-accent"
-            )}
-          >
-            <Search className="h-3 w-3" />
-            Search
           </button>
 
           {/* PDF Export Button - Only for suppliers */}
