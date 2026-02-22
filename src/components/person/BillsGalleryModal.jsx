@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { X, Images, Loader2, Image as ImageIcon } from "lucide-react";
+import { X, Images, Loader2, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { resolveImageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ function GalleryImg({ src, alt }) {
 /**
  * Bills Gallery Modal - Shows all bills & receipts for transactions
  */
-export function BillsGalleryModal({ transactions, onClose, onViewImages }) {
+export function BillsGalleryModal({ transactions, onClose, onViewImages, onGoToBill }) {
   const allBills = useMemo(() => {
     const bills = [];
     transactions.forEach(txn => {
@@ -95,34 +95,41 @@ export function BillsGalleryModal({ transactions, onClose, onViewImages }) {
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {allBills.map((bill, idx) => (
-                <div
-                  key={`${bill.txnId}-${bill.index}`}
-                  onClick={() => {
-                    const txn = transactions.find(t => t.id === bill.txnId);
-                    const images = txn?.billImages || txn?.khataPhotos;
-                    if (images?.length > 0) {
-                      onViewImages(images, bill.index);
-                    }
-                  }}
-                  className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-muted transition-transform active:scale-95"
-                >
-                  <GalleryImg
-                    src={resolveImageUrl(bill.url)}
-                    alt={`Bill ${idx + 1}`}
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-green-700 px-2 pb-2 pt-4">
-                    <p className="font-mono text-sm font-semibold text-white">
-                      ₹{Number(bill.txnAmount).toLocaleString("en-IN")}
-                    </p>
-                    <p className="text-[11px] text-white/80">
-                      {format(parseISO(bill.txnDate), "dd MMM yyyy")}
-                    </p>
-                    {bill.txnDescription && (
-                      <p className="mt-0.5 truncate text-[10px] text-white/60">
-                        {bill.txnDescription}
+                <div key={`${bill.txnId}-${bill.index}`} className="flex flex-col gap-1.5 pb-2">
+                  <div
+                    onClick={() => {
+                      const txn = transactions.find(t => t.id === bill.txnId);
+                      const images = txn?.billImages || txn?.khataPhotos;
+                      if (images?.length > 0) {
+                        onViewImages(images, bill.index);
+                      }
+                    }}
+                    className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-muted transition-transform active:scale-95"
+                  >
+                    <GalleryImg src={resolveImageUrl(bill.url)} alt={`Bill ${idx + 1}`} />
+                    <div className="absolute inset-x-0 bottom-0 bg-green-700 px-2 pb-2 pt-4">
+                      <p className="font-mono text-sm font-semibold text-white">
+                        ₹{Number(bill.txnAmount).toLocaleString("en-IN")}
                       </p>
-                    )}
+                      <p className="text-[11px] text-white/80">
+                        {format(parseISO(bill.txnDate), "dd MMM yyyy")}
+                      </p>
+                      {bill.txnDescription && (
+                        <p className="mt-0.5 truncate text-[10px] text-white/60">
+                          {bill.txnDescription}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  {onGoToBill && (
+                    <button
+                      onClick={() => onGoToBill(bill.txnId)}
+                      className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent active:scale-95"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Go to Bill
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

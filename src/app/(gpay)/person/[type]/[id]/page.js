@@ -874,7 +874,7 @@ function TransactionDetailModal({
 
 // Transaction Bubble Component with Pay Button
 const TransactionBubble = React.forwardRef(function TransactionBubble(
-  { txn, isSupplier, onTap, onPay, isPaid, isHighlighted },
+  { txn, isSupplier, onTap, onPay, onViewImages, isPaid, isHighlighted },
   ref
 ) {
   // Support both supplier (billImages) and customer (khataPhotos) images
@@ -971,15 +971,21 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
               </p>
             )}
 
-            {/* Bills attached */}
+            {/* Bills attached — clickable to view images */}
             {hasImages && (
-              <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  onViewImages(images, 0);
+                }}
+                className="mt-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 text-xs text-primary transition-colors hover:bg-primary/10 active:scale-95"
+              >
                 <Receipt className="h-3.5 w-3.5" />
-                <span>
+                <span className="font-medium">
                   {images.length} {isSupplier ? "bill" : "photo"}
-                  {images.length > 1 ? "s" : ""}
+                  {images.length > 1 ? "s" : ""} — View
                 </span>
-              </div>
+              </button>
             )}
 
             {/* Date */}
@@ -1961,6 +1967,7 @@ export default function PersonChatPage() {
                       isHighlighted={highlightedTxn === txn.id}
                       onTap={setSelectedTransaction}
                       onPay={handleOpenPaymentForm}
+                      onViewImages={handleViewImages}
                     />
                   );
                 })}
@@ -2099,6 +2106,11 @@ export default function PersonChatPage() {
           transactions={personTransactions}
           onClose={() => setBillsGalleryOpen(false)}
           onViewImages={handleViewImages}
+          onGoToBill={txnId => {
+            setBillsGalleryOpen(false);
+            const txn = personTransactions.find(t => t.id === txnId);
+            if (txn) setSelectedTransaction(txn);
+          }}
         />
       )}
 
