@@ -12,7 +12,7 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -289,36 +289,25 @@ export function LumpsumPaymentDrawer({
       </button>
 
       {/* Lumpsum Payment Sheet */}
-      <Sheet
+      <DragCloseDrawer
         open={open}
         onOpenChange={(val) => {
-          // Don't close the sheet while the image viewer is open
           if (!val && imageViewerOpen) return;
           if (!isSubmitting) {
             setOpen(val);
             if (!val) resetForm();
           }
         }}
+        height="max-h-[90vh]"
       >
-        <SheetContent
-          side="bottom"
-          className="max-h-[90vh] overflow-y-auto rounded-t-2xl"
-          hideClose
-          onEscapeKeyDown={(e) => {
-            if (imageViewerOpen) e.preventDefault();
-          }}
-          onInteractOutside={(e) => {
-            if (imageViewerOpen) e.preventDefault();
-          }}
-        >
-          <SheetHeader className="pb-2">
-            <SheetTitle className="flex items-center gap-2">
+          <DrawerHeader className="px-4 pb-2">
+            <DrawerTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
               Pay Lumpsum
-            </SheetTitle>
-          </SheetHeader>
+            </DrawerTitle>
+          </DrawerHeader>
 
-          <div className="space-y-4 pb-8">
+          <div className="space-y-4 px-4 pb-8">
             {/* Total Pending */}
             <div className="rounded-xl bg-muted/50 p-4 text-center">
               <p className="text-xs text-muted-foreground">Total Pending</p>
@@ -657,8 +646,7 @@ export function LumpsumPaymentDrawer({
               </Button>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Image Gallery Viewer - rendered outside the Sheet to avoid close conflicts */}
       <ImageGalleryViewer

@@ -52,6 +52,7 @@
     "react-hook-form": "^7.68.0",
     "react-photo-view": "^1.2.7",
     "react-photoswipe-gallery": "^4.0.0",
+    "react-use-measure": "^2.1.7",
     "recharts": "^3.5.1",
     "resend": "^6.6.0",
     "sonner": "^2.0.7",

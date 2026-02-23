@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import {
   ChevronRight,
   IndianRupee,
@@ -278,25 +279,12 @@ function IncomeModal({ open, onClose }) {
     }
   };
 
-  if (!open) return null;
-
-  // Prevent modal from closing when delete dialog is open
-  const handleBackdropClick = () => {
-    if (!deleteItem) {
-      onClose();
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={handleBackdropClick}>
-      <div
-        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-card"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sticky top-0 z-10 flex justify-center bg-card py-3">
-          <div className="sheet-handle" />
-        </div>
-
+    <DragCloseDrawer
+      open={open}
+      onOpenChange={v => { if (!v && !deleteItem) onClose(); }}
+      height="max-h-[90vh]"
+    >
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Income Tracker</h2>
 
@@ -579,7 +567,6 @@ function IncomeModal({ open, onClose }) {
             </div>
           </div>
         </div>
-      </div>
 
       <DeleteConfirmDialog
         open={!!deleteItem}
@@ -592,7 +579,7 @@ function IncomeModal({ open, onClose }) {
             : ""
         }
       />
-    </div>
+    </DragCloseDrawer>
   );
 }
 
@@ -646,18 +633,8 @@ function ReportsModal({ open, onClose }) {
     };
   }, [transactions, udharList, incomeList]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div
-        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-card"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sticky top-0 z-10 flex justify-center bg-card py-3">
-          <div className="sheet-handle" />
-        </div>
-
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Reports</h2>
 
@@ -746,8 +723,7 @@ function ReportsModal({ open, onClose }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </DragCloseDrawer>
   );
 }
 
@@ -899,17 +875,8 @@ function BackupModal({ open, onClose }) {
     setCleanupLoading(false);
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div
-        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-3xl bg-card"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sticky top-0 z-10 flex justify-center bg-card py-3">
-          <div className="sheet-handle" />
-        </div>
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Backup & Export</h2>
 
@@ -1032,8 +999,7 @@ function BackupModal({ open, onClose }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </DragCloseDrawer>
   );
 }
 
@@ -1086,17 +1052,8 @@ function ChangePinModal({ open, onClose }) {
     setLoading(false);
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div
-        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 overscroll-contain rounded-t-3xl bg-card"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-center py-3">
-          <div className="sheet-handle" />
-        </div>
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="h-auto">
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Change PIN</h2>
 
@@ -1166,16 +1123,13 @@ function ChangePinModal({ open, onClose }) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </DragCloseDrawer>
   );
 }
 
 // Biometric Settings Modal
 function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAvailable }) {
   usePreventBodyScroll(open);
-
-  if (!open) return null;
 
   const handleToggle = key => {
     if (key === "enabled" && !settings.enabled) {
@@ -1190,19 +1144,8 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="animate-slide-up max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-card sm:max-w-md sm:rounded-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-center py-3 sm:hidden">
-          <div className="sheet-handle" />
-        </div>
-
-        <div className="pb-safe mb-16 p-4">
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[90vh]">
+        <div className="p-4">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="font-heading text-xl tracking-wide">Biometric Lock</h2>
             <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
@@ -1332,8 +1275,7 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </DragCloseDrawer>
   );
 }
 

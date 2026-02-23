@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 import { compressImage, compressForHD } from "@/lib/image-compression";
-import { getImageUrls, isDataUrl, isCdnConfigured } from "@/lib/image-url";
+import { getImageUrls, isDataUrl, isCdnConfigured, resolveImageUrl } from "@/lib/image-url";
 
 export function ImageUpload({
   value,
@@ -583,11 +583,15 @@ export function MultiImageUpload({
 function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
 
-  // Get the resolved URL - for base64, use as-is; otherwise use CDN URLs
-  const imageSrc = isBase64
+  const primarySrc = isBase64
     ? storageKey
     : urls.thumbnail || urls.src || urls.original || storageKey;
+
+  const fallbackSrc = isBase64 ? null : urls.original || resolveImageUrl(storageKey);
+
+  const imageSrc = useFallback && fallbackSrc ? fallbackSrc : primarySrc;
 
   if (hasError) {
     return (
@@ -600,7 +604,6 @@ function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
 
   return (
     <>
-      {/* LQIP blurred background - shows while thumbnail loads */}
       {!isBase64 && urls.lqip && !hasError && (
         <img
           src={urls.lqip}
@@ -612,7 +615,6 @@ function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
           )}
         />
       )}
-      {/* Thumbnail image */}
       <img
         src={imageSrc}
         alt={`Image ${index + 1}`}
@@ -621,7 +623,13 @@ function MultiImageThumbnail({ storageKey, urls, index, isBase64 }) {
           !isLoaded && !isBase64 ? "opacity-0" : "opacity-100"
         )}
         onLoad={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
+        onError={() => {
+          if (!useFallback && fallbackSrc && fallbackSrc !== primarySrc) {
+            setUseFallback(true);
+          } else {
+            setHasError(true);
+          }
+        }}
         loading="eager"
       />
     </>

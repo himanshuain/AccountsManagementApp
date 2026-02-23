@@ -1,49 +1,64 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { X, Images, Loader2, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { Images, ExternalLink, Receipt } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { resolveImageUrl } from "@/lib/image-url";
+import { SwipeCarousel } from "@/components/ui/swipe-carousel";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { cn } from "@/lib/utils";
 
-function GalleryImg({ src, alt }) {
-  const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
-
+function BillStripItem({ bill, isActive, onClick }) {
   return (
-    <>
-      {!loaded && !errored && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-shrink-0 flex-col items-center gap-0.5 rounded-xl px-3 py-2 transition-all",
+        isActive
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "bg-muted/60 text-muted-foreground hover:bg-muted"
       )}
-      {errored && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
-        </div>
-      )}
-      <img
-        src={src}
-        alt={alt}
-        className={cn(
-          "h-full w-full object-cover transition-opacity",
-          loaded && !errored ? "opacity-100" : "opacity-0"
-        )}
-        loading="eager"
-        onLoad={() => setLoaded(true)}
-        onError={() => setErrored(true)}
-      />
-    </>
+    >
+      <span className={cn("font-mono text-xs font-bold", isActive && "text-primary-foreground")}>
+        ₹{Number(bill.txnAmount).toLocaleString("en-IN")}
+      </span>
+      <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+        {format(parseISO(bill.txnDate), "dd MMM")}
+      </span>
+    </button>
   );
 }
 
 /**
- * Bills Gallery Modal - Shows all bills & receipts for transactions
+ * Bills Gallery Drawer - Shows all bills & receipts in a DragCloseDrawer
+ * with a SwipeCarousel and a quick-jump strip by date/amount.
  */
-export function BillsGalleryModal({ transactions, onClose, onViewImages, onGoToBill }) {
+export function BillsGalleryModal({
+  open,
+  onOpenChange,
+  transactions,
+  onClose,
+  onViewImages,
+  onGoToBill,
+}) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [jumpIdx, setJumpIdx] = useState(undefined);
+  const stripRef = useRef(null);
+  const itemRefs = useRef({});
+
+  const handleClose = useCallback(
+    (val) => {
+      if (onOpenChange) onOpenChange(val);
+      else if (!val && onClose) onClose();
+    },
+    [onOpenChange, onClose]
+  );
+
+  const isOpen = open !== undefined ? open : true;
+
   const allBills = useMemo(() => {
     const bills = [];
-    transactions.forEach(txn => {
+    (transactions || []).forEach((txn) => {
       const images = txn.billImages || txn.khataPhotos;
       if (images?.length > 0) {
         images.forEach((img, idx) => {
@@ -61,82 +76,128 @@ export function BillsGalleryModal({ transactions, onClose, onViewImages, onGoToB
     return bills;
   }, [transactions]);
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 pb-14 sm:items-center sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="animate-slide-up flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl bg-card sm:max-w-2xl sm:rounded-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-center py-3 sm:hidden">
-          <div className="sheet-handle" />
-        </div>
+  const current = allBills[currentIdx] || allBills[0];
 
-        <div className="border-b border-border px-4 pb-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-heading text-lg tracking-wide">All Bills & Receipts</h3>
-            <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+  const handleImageClick = useCallback(
+    (img, idx) => {
+      const bill = allBills[idx];
+      if (bill) {
+        const txn = (transactions || []).find((t) => t.id === bill.txnId);
+        const images = txn?.billImages || txn?.khataPhotos;
+        if (images?.length > 0) {
+          onViewImages?.(images, bill.index);
+        }
+      }
+    },
+    [allBills, transactions, onViewImages]
+  );
+
+  const handleStripTap = useCallback((idx) => {
+    setJumpIdx(idx);
+    setCurrentIdx(idx);
+  }, []);
+
+  useEffect(() => {
+    const el = itemRefs.current[currentIdx];
+    if (el && stripRef.current) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [currentIdx]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCurrentIdx(0);
+      setJumpIdx(undefined);
+    }
+  }, [isOpen]);
+
+  return (
+    <DragCloseDrawer open={isOpen} onOpenChange={handleClose} height="h-[90vh]">
+      <DrawerHeader className="border-b px-4 pb-3">
+        <div>
+          <DrawerTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            All Bills & Receipts
+          </DrawerTitle>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {allBills.length} image{allBills.length !== 1 ? "s" : ""}
           </p>
         </div>
+      </DrawerHeader>
 
-        <div className="pb-safe flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          {allBills.length === 0 ? (
-            <div className="py-12 text-center">
-              <Images className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">No bills attached yet</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {allBills.length === 0 ? (
+        <div className="py-16 text-center">
+          <Images className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <p className="text-muted-foreground">No bills attached yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3 pb-8">
+          {/* Carousel */}
+          <SwipeCarousel
+            images={allBills.map((b) => ({
+              src: resolveImageUrl(b.url),
+              alt: `Bill - ₹${Number(b.txnAmount).toLocaleString("en-IN")}`,
+            }))}
+            autoPlay={false}
+            aspectRatio="aspect-[4/3]"
+            showDots={false}
+            showGradientEdges={allBills.length > 1}
+            onSlideChange={setCurrentIdx}
+            onImageClick={handleImageClick}
+            activeIndex={jumpIdx}
+          />
+
+          {/* Quick-jump strip */}
+          {allBills.length > 1 && (
+            <div
+              ref={stripRef}
+              className="flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none"
+            >
               {allBills.map((bill, idx) => (
-                <div key={`${bill.txnId}-${bill.index}`} className="flex flex-col gap-1.5 pb-2">
-                  <div
-                    onClick={() => {
-                      const txn = transactions.find(t => t.id === bill.txnId);
-                      const images = txn?.billImages || txn?.khataPhotos;
-                      if (images?.length > 0) {
-                        onViewImages(images, bill.index);
-                      }
-                    }}
-                    className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-muted transition-transform active:scale-95"
-                  >
-                    <GalleryImg src={resolveImageUrl(bill.url)} alt={`Bill ${idx + 1}`} />
-                    <div className="absolute inset-x-0 bottom-0 bg-green-700 px-2 pb-2 pt-4">
-                      <p className="font-mono text-sm font-semibold text-white">
-                        ₹{Number(bill.txnAmount).toLocaleString("en-IN")}
-                      </p>
-                      <p className="text-[11px] text-white/80">
-                        {format(parseISO(bill.txnDate), "dd MMM yyyy")}
-                      </p>
-                      {bill.txnDescription && (
-                        <p className="mt-0.5 truncate text-[10px] text-white/60">
-                          {bill.txnDescription}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {onGoToBill && (
-                    <button
-                      onClick={() => onGoToBill(bill.txnId)}
-                      className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent active:scale-95"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Go to Bill
-                    </button>
-                  )}
+                <div key={`${bill.txnId}-${bill.index}`} ref={(el) => (itemRefs.current[idx] = el)}>
+                  <BillStripItem
+                    bill={bill}
+                    isActive={idx === currentIdx}
+                    onClick={() => handleStripTap(idx)}
+                  />
                 </div>
               ))}
             </div>
           )}
+
+          {/* Current bill info */}
+          {current && (
+            <div className="mx-4 flex items-center justify-between rounded-xl bg-muted/30 p-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-sm font-semibold">
+                  ₹{Number(current.txnAmount).toLocaleString("en-IN")}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {format(parseISO(current.txnDate), "dd MMM yyyy")}
+                </p>
+                {current.txnDescription && (
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                    {current.txnDescription}
+                  </p>
+                )}
+              </div>
+              {onGoToBill && (
+                <button
+                  onClick={() => {
+                    handleClose(false);
+                    onGoToBill(current.txnId);
+                  }}
+                  className="ml-3 flex flex-shrink-0 items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent active:scale-95"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Go to Bill
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+    </DragCloseDrawer>
   );
 }
 

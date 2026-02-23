@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,14 +141,9 @@ export function ProfileSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className={cn("flex h-[85vh] flex-col rounded-t-3xl p-0", className)}
-        hideClose
-      >
+    <DragCloseDrawer open={open} onOpenChange={onOpenChange} height="h-[85vh]" className={className}>
         {/* Header */}
-        <SheetHeader className="flex flex-shrink-0 flex-row items-center justify-between border-b p-4">
+        <div className="flex flex-shrink-0 flex-row items-center justify-between border-b p-4">
           <Button
             variant="ghost"
             size="icon"
@@ -182,7 +177,7 @@ export function ProfileSheet({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-        </SheetHeader>
+        </div>
 
         {/* Profile Content */}
         <div className="flex-1 overflow-y-auto">
@@ -309,8 +304,7 @@ export function ProfileSheet({
             )}
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+    </DragCloseDrawer>
   );
 }
 

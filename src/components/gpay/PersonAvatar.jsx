@@ -95,7 +95,6 @@ export function PersonAvatar({
           "flex items-center justify-center overflow-hidden rounded-full font-bold text-white",
           "hw-accelerate",
           "ring-2 ring-background",
-          // Dark mode arc reactor glow effect
           "dark:shadow-[0_0_10px_rgba(0,212,255,0.2)]",
           sizeClasses[size],
           !imageUrl && avatarColor
@@ -153,13 +152,9 @@ export function PersonAvatarWithName({
       <PersonAvatar name={name} image={image} size={size} />
 
       <div className="w-full text-center">
-        <p className="text-xs font-bold leading-tight line-clamp-2">
-          {name || "Unknown"}
-        </p>
+        <p className="text-xs font-bold leading-tight line-clamp-2">{name || "Unknown"}</p>
 
-        {subtitle && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1">{subtitle}</p>
-        )}
+        {subtitle && <p className="text-[10px] text-muted-foreground line-clamp-1">{subtitle}</p>}
 
         {amount !== undefined && (
           <span
@@ -216,9 +211,7 @@ export function PersonListItem({
     <div className="flex items-center gap-3 w-full">
       <PersonAvatar name={name} image={image} size="md" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-tight truncate">
-          {name || "Unknown"}
-        </p>
+        <p className="text-sm font-semibold leading-tight truncate">{name || "Unknown"}</p>
       </div>
       {amount !== undefined && (
         <span

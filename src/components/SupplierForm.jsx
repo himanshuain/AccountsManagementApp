@@ -6,7 +6,7 @@ import { Loader2, X, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -109,47 +109,41 @@ export function SupplierForm({
     }
   };
 
+  const isFormDirty = () => {
+    if (isDirty) return true;
+    if (profilePicture !== (initialData?.profilePicture || null)) return true;
+    if (upiQrCode !== (initialData?.upiQrCode || null)) return true;
+    return false;
+  };
+
+  const resetAndClose = () => {
+    reset();
+    setProfilePicture(initialData?.profilePicture || null);
+    setUpiQrCode(initialData?.upiQrCode || null);
+    onOpenChange(false);
+  };
+
   const handleClose = () => {
     if (!isSubmitting) {
-      // Check if form is dirty and show confirmation
-      if (
-        isDirty ||
-        profilePicture !== (initialData?.profilePicture || null) ||
-        upiQrCode !== (initialData?.upiQrCode || null)
-      ) {
+      if (isFormDirty()) {
         if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
           return;
         }
       }
-      reset();
-      setProfilePicture(initialData?.profilePicture || null);
-      setUpiQrCode(initialData?.upiQrCode || null);
-      onOpenChange(false);
+      resetAndClose();
     }
   };
 
-  // Handler for Sheet's onOpenChange - only close, don't interfere with opening
-  const handleSheetOpenChange = isOpen => {
-    if (!isOpen) {
-      handleClose();
-    }
+  const handleBeforeClose = async () => {
+    if (isSubmitting) return false;
+    if (!isFormDirty()) return true;
+    return confirm("You have unsaved changes. Are you sure you want to close?");
   };
 
   return (
-    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="flex h-[90vh] flex-col rounded-t-2xl p-0"
-        hideClose
-        onSwipeClose={handleClose}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pb-2 pt-3" data-drag-handle>
-          <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-        </div>
-
+    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
         {/* Header with action buttons */}
-        <SheetHeader className="border-b px-4 pb-3">
+        <div className="border-b px-4 pb-3">
           <div className="flex items-center justify-between gap-2">
             <Button
               variant="ghost"
@@ -161,7 +155,7 @@ export function SupplierForm({
               <X className="mr-1 h-4 w-4" />
               Cancel
             </Button>
-            <SheetTitle className="flex-1 text-center text-base font-semibold">{title}</SheetTitle>
+            <h3 className="flex-1 text-center text-base font-semibold">{title}</h3>
             <Button
               size="sm"
               onClick={handleSubmit(handleFormSubmit)}
@@ -178,9 +172,9 @@ export function SupplierForm({
               )}
             </Button>
           </div>
-        </SheetHeader>
+        </div>
 
-        <div className="pb-safe flex-1 overflow-y-auto px-6">
+        <div className="flex-1 overflow-y-auto px-6">
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
             {/* Offline warning */}
             {!isOnline && (
@@ -321,8 +315,7 @@ export function SupplierForm({
             <div className="h-8" />
           </form>
         </div>
-      </SheetContent>
-    </Sheet>
+    </DragCloseDrawer>
   );
 }
 

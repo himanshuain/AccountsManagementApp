@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -628,16 +628,17 @@ export function UdharList({
       />
 
       {/* Collect Sheet */}
-      <Sheet
+      <DragCloseDrawer
         open={depositSheetOpen}
         onOpenChange={open => {
           if (!open && !receiptViewerOpen) resetDepositForm();
           else setDepositSheetOpen(open);
         }}
+        height="h-[85vh]"
       >
-        <SheetContent side="top" className="h-auto max-h-[85vh] rounded-b-2xl p-0" hideClose>
-          <SheetHeader className="flex flex-row items-center justify-between border-b p-4">
-            <SheetTitle>Record Collect</SheetTitle>
+        <div className="flex h-full flex-col px-4">
+          <DrawerHeader className="flex flex-row items-center justify-between border-b p-4">
+            <DrawerTitle>Record Collect</DrawerTitle>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={resetDepositForm}>
                 Cancel
@@ -660,8 +661,8 @@ export function UdharList({
                 Save
               </Button>
             </div>
-          </SheetHeader>
-          <ScrollArea className="max-h-[calc(85vh-60px)]">
+          </DrawerHeader>
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-4 p-4">
               {/* Amount Summary */}
               {udharForDeposit && (
@@ -827,8 +828,8 @@ export function UdharList({
               </div>
             </div>
           </ScrollArea>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DragCloseDrawer>
 
       {/* Receipt Image Viewer */}
       <ImageViewer

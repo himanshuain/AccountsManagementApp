@@ -35,7 +35,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import { SwipeCarousel } from "@/components/ui/swipe-carousel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1606,7 +1607,7 @@ export default function SuppliersPage() {
       </Collapsible>
 
       {/* Supplier Detail Drawer */}
-      <Sheet
+      <DragCloseDrawer
         open={!!selectedSupplier}
         onOpenChange={open => {
           // Don't close if image viewer, bill gallery, or supplier form is open
@@ -1624,31 +1625,26 @@ export default function SuppliersPage() {
           }
           if (!open) setSelectedSupplier(null);
         }}
+        height="h-[90vh]"
       >
-        <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0" hideClose>
-          {selectedSupplier &&
-            (() => {
-              const supplierTransactions = transactions
-                .filter(t => t.supplierId === selectedSupplier.id)
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+        {selectedSupplier &&
+          (() => {
+            const supplierTransactions = transactions
+              .filter(t => t.supplierId === selectedSupplier.id)
+              .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-              const formatRelativeDate = dateStr => {
-                try {
-                  return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
-                } catch {
-                  return dateStr;
-                }
-              };
+            const formatRelativeDate = dateStr => {
+              try {
+                return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
+              } catch {
+                return dateStr;
+              }
+            };
 
-              return (
-                <>
-                  {/* Drag handle */}
-                  <div className="flex justify-center pb-2 pt-3" data-drag-handle>
-                    <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-                  </div>
-
-                  {/* Header with profile and actions */}
-                  <SheetHeader className="border-b px-4 pb-3">
+            return (
+              <>
+                {/* Header with profile and actions */}
+                <DrawerHeader className="border-b px-4 pb-3">
                     <div className="flex items-center gap-3">
                       {/* Profile Picture */}
                       <div
@@ -1684,9 +1680,9 @@ export default function SuppliersPage() {
 
                       {/* Name and info */}
                       <div className="min-w-0 flex-1">
-                        <SheetTitle className="truncate pb-2 text-xl font-bold">
+                        <DrawerTitle className="truncate pb-2 text-xl font-bold">
                           {selectedSupplier.companyName}
-                        </SheetTitle>
+                        </DrawerTitle>
                         {selectedSupplier.phone && (
                           <a
                             href={`tel:${selectedSupplier.phone}`}
@@ -1750,18 +1746,21 @@ export default function SuppliersPage() {
                         </DropdownMenu>
                       </div>
                     </div>
-                  </SheetHeader>
+                  </DrawerHeader>
                   <ScrollArea className="h-[calc(90vh-100px)] flex-1">
                     <div className="space-y-4 p-4">
                       {/* UPI QR Code if available */}
                       {selectedSupplier.upiQrCode && (
                         <div className="rounded-xl bg-muted/30 p-4 text-center">
                           <p className="mb-2 text-xs text-muted-foreground">UPI QR Code</p>
-                          <img
-                            src={resolveImageUrl(selectedSupplier.upiQrCode)}
-                            alt="UPI QR"
-                            className="mx-auto h-32 w-32 cursor-pointer rounded-lg transition-opacity hover:opacity-90"
-                            onClick={() => {
+                          <SwipeCarousel
+                            images={[resolveImageUrl(selectedSupplier.upiQrCode)]}
+                            autoPlay={false}
+                            aspectRatio="aspect-square"
+                            showDots={false}
+                            showGradientEdges={false}
+                            className="mx-auto max-w-[200px]"
+                            onImageClick={() => {
                               setImageViewerSrc(resolveImageUrl(selectedSupplier.upiQrCode));
                               setImageViewerOpen(true);
                             }}
@@ -2139,8 +2138,7 @@ export default function SuppliersPage() {
                 </>
               );
             })()}
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Image Viewer */}
       <ImageViewer
@@ -2246,16 +2244,10 @@ export default function SuppliersPage() {
       />
 
       {/* Payment Sheet */}
-      <Sheet open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen}>
-        <SheetContent side="top" className="h-auto max-h-[70vh] rounded-b-2xl p-0" hideClose>
-          {/* Drag handle */}
-          <div className="flex justify-center pb-2 pt-3" data-drag-handle>
-            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </div>
-
-          <SheetHeader className="px-4 pb-2">
-            <SheetTitle>Record Payment</SheetTitle>
-          </SheetHeader>
+      <DragCloseDrawer open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen} height="h-[70vh]">
+        <DrawerHeader className="px-4 pb-2">
+          <DrawerTitle>Record Payment</DrawerTitle>
+        </DrawerHeader>
 
           {transactionToPay &&
             (() => {
@@ -2372,23 +2364,16 @@ export default function SuppliersPage() {
                 </div>
               );
             })()}
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* PDF Export Sheet */}
-      <Sheet open={pdfExportSheetOpen} onOpenChange={setPdfExportSheetOpen}>
-        <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl p-0" hideClose>
-          {/* Drag handle */}
-          <div className="flex justify-center pb-2 pt-3" data-drag-handle>
-            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </div>
-
-          <SheetHeader className="border-b px-4 pb-3">
-            <SheetTitle className="text-lg">Export PDF Report</SheetTitle>
+      <DragCloseDrawer open={pdfExportSheetOpen} onOpenChange={setPdfExportSheetOpen} height="h-[70vh]">
+        <DrawerHeader className="border-b px-4 pb-3">
+          <DrawerTitle className="text-lg">Export PDF Report</DrawerTitle>
             <p className="text-sm text-muted-foreground">
               Select a vyapari to export their transaction report
             </p>
-          </SheetHeader>
+          </DrawerHeader>
 
           <ScrollArea className="h-[calc(70vh-100px)] flex-1">
             <div className="space-y-2 p-4">
@@ -2455,8 +2440,7 @@ export default function SuppliersPage() {
               })}
             </div>
           </ScrollArea>
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
     </div>
   );
 }

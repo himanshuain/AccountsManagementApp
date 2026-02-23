@@ -2,13 +2,17 @@
 
 import { use, useMemo, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Edit, Trash2, FileText, Image as ImageIcon } from "lucide-react";
+import { Edit, Trash2, FileText, Image as ImageIcon, CheckCircle2, Clock, Receipt } from "lucide-react";
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { TransactionForm } from "@/components/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { ImageGalleryViewer } from "@/components/PhotoViewer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { SwipeCarousel } from "@/components/ui/swipe-carousel";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/hooks/useHaptics";
@@ -48,7 +52,9 @@ export default function SupplierChatPage({ params }) {
   const [transactionToEdit, setTransactionToEdit] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
-  const [expandedBubbleId, setExpandedBubbleId] = useState(null);
+  const [billDrawerOpen, setBillDrawerOpen] = useState(false);
+  const [selectedBillItem, setSelectedBillItem] = useState(null);
+  const [selectedBillType, setSelectedBillType] = useState(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
@@ -255,9 +261,11 @@ export default function SupplierChatPage({ params }) {
     }
   };
 
-  const handleBubbleClick = txn => {
+  const handleBubbleClick = (item, type = "bill") => {
     haptics.light();
-    setExpandedBubbleId(expandedBubbleId === txn.id ? null : txn.id);
+    setSelectedBillItem(item);
+    setSelectedBillType(type);
+    setBillDrawerOpen(true);
   };
 
   // Menu items for header
@@ -338,64 +346,29 @@ export default function SupplierChatPage({ params }) {
                   paymentMethod={item.data.mode}
                   notes={item.data.notes}
                   hasImages={!!item.data.receiptUrl}
-                  onClick={
-                    item.data.receiptUrl
-                      ? () => handleViewImages([item.data.receiptUrl])
-                      : undefined
-                  }
+                  onClick={() => handleBubbleClick(item.data, "payment")}
                 />
               );
             }
 
             // Bill bubble
             const txn = item.data;
-            const isExpanded = expandedBubbleId === txn.id;
             const paidAmount = txn.paidAmount || 0;
 
             return (
-              <div key={txn.id} className="mb-2">
-                <ChatBubble
-                  type="bill"
-                  amount={txn.amount}
-                  description={txn.itemName || txn.description}
-                  date={txn.date}
-                  status={txn.paymentStatus}
-                  paidAmount={paidAmount}
-                  hasImages={txn.billImages?.length > 0}
-                  imageCount={txn.billImages?.length || 0}
-                  notes={txn.notes}
-                  onClick={() => handleBubbleClick(txn)}
-                />
-
-                {/* Expanded Actions */}
-                {isExpanded && (
-                  <div className="animate-fade-in mb-4 mt-1 flex justify-end gap-2">
-                    {txn.billImages?.length > 0 && (
-                      <button
-                        onClick={() => handleViewImages(txn.billImages)}
-                        className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium"
-                      >
-                        <ImageIcon className="h-3.5 w-3.5" />
-                        Photos
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleEditBill(txn)}
-                      className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBill(txn)}
-                      className="flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+              <ChatBubble
+                key={txn.id}
+                type="bill"
+                amount={txn.amount}
+                description={txn.itemName || txn.description}
+                date={txn.date}
+                status={txn.paymentStatus}
+                paidAmount={paidAmount}
+                hasImages={txn.billImages?.length > 0}
+                imageCount={txn.billImages?.length || 0}
+                notes={txn.notes}
+                onClick={() => handleBubbleClick(txn, "bill")}
+              />
             );
           })
         )}
@@ -456,6 +429,181 @@ export default function SupplierChatPage({ params }) {
         description="This action cannot be undone."
         itemName={transactionToDelete ? `₹${transactionToDelete.amount?.toLocaleString()}` : ""}
       />
+
+      {/* Bill Detail Drawer */}
+      <DragCloseDrawer
+        open={billDrawerOpen}
+        onOpenChange={(val) => {
+          if (!val && galleryOpen) return;
+          setBillDrawerOpen(val);
+        }}
+        height="h-[85vh]"
+      >
+        {selectedBillItem && selectedBillType === "bill" && (() => {
+          const txn = selectedBillItem;
+          const txnAmount = Number(txn.amount) || 0;
+          const paidAmt = Number(txn.paidAmount) || 0;
+          const pendingAmt = Math.max(0, txnAmount - paidAmt);
+          const isPaid = txn.paymentStatus === "paid";
+          const isPartial = txn.paymentStatus === "partial";
+          const billImages = txn.billImages || [];
+
+          return (
+            <div className="space-y-4 pb-8">
+              {billImages.length > 0 && (
+                <SwipeCarousel
+                  images={billImages.map(img => resolveImageUrl(img))}
+                  autoPlay={false}
+                  aspectRatio="aspect-[4/3]"
+                  showGradientEdges={false}
+                  onImageClick={(img, idx) => handleViewImages(billImages, idx)}
+                />
+              )}
+
+              {!billImages.length && (
+                <div className="flex items-center justify-center rounded-xl bg-muted/30 py-8">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Receipt className="h-10 w-10 opacity-50" />
+                    <span className="text-xs">No bill photos</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3 px-1">
+                <div className="text-center">
+                  <p className="font-mono text-3xl font-bold tracking-tight">
+                    ₹{txnAmount.toLocaleString("en-IN")}
+                  </p>
+                  <div className="mt-2 flex items-center justify-center gap-2">
+                    {isPaid ? (
+                      <Badge className="badge-paid gap-1 border-0">
+                        <CheckCircle2 className="h-3 w-3" /> Paid
+                      </Badge>
+                    ) : isPartial ? (
+                      <Badge className="gap-1 border-0 bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                        <Clock className="h-3 w-3" /> ₹{pendingAmt.toLocaleString("en-IN")} pending
+                      </Badge>
+                    ) : (
+                      <Badge className="badge-pending gap-1 border-0">
+                        <Clock className="h-3 w-3" /> Pending
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {(txn.itemName || txn.description || txn.notes) && (
+                  <div className="rounded-xl bg-muted/30 p-3">
+                    {(txn.itemName || txn.description) && (
+                      <p className="text-sm font-medium">{txn.itemName || txn.description}</p>
+                    )}
+                    {txn.notes && (
+                      <p className="mt-1 text-xs italic text-muted-foreground">&quot;{txn.notes}&quot;</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-3 text-sm">
+                  <span className="text-muted-foreground">Date</span>
+                  <span className="font-medium">
+                    {txn.date
+                      ? new Date(txn.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                      : "—"}
+                  </span>
+                </div>
+
+                {paidAmt > 0 && (
+                  <div className="flex items-center justify-between rounded-xl bg-muted/30 p-3 text-sm">
+                    <span className="text-muted-foreground">Paid</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      ₹{paidAmt.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1.5"
+                    onClick={() => { setBillDrawerOpen(false); handleEditBill(txn); }}
+                  >
+                    <Edit className="h-3.5 w-3.5" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="gap-1.5"
+                    onClick={() => { setBillDrawerOpen(false); handleDeleteBill(txn); }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {selectedBillItem && selectedBillType === "payment" && (() => {
+          const payment = selectedBillItem;
+          const receiptImages = payment.receiptUrl ? [payment.receiptUrl] : [];
+
+          return (
+            <div className="space-y-4 pb-8">
+              {receiptImages.length > 0 && (
+                <SwipeCarousel
+                  images={receiptImages.map(img => resolveImageUrl(img))}
+                  autoPlay={false}
+                  aspectRatio="aspect-[4/3]"
+                  showGradientEdges={false}
+                  onImageClick={(img, idx) => handleViewImages(receiptImages, idx)}
+                />
+              )}
+
+              {!receiptImages.length && (
+                <div className="flex items-center justify-center rounded-xl bg-muted/30 py-8">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Receipt className="h-10 w-10 opacity-50" />
+                    <span className="text-xs">No receipt photo</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3 px-1">
+                <div className="text-center">
+                  <p className="font-mono text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+                    +₹{payment.amount?.toLocaleString("en-IN")}
+                  </p>
+                  <Badge className="mt-2 badge-paid gap-1 border-0">
+                    <CheckCircle2 className="h-3 w-3" /> Payment Made
+                  </Badge>
+                </div>
+
+                {payment.notes && (
+                  <div className="rounded-xl bg-muted/30 p-3">
+                    <p className="text-xs italic text-muted-foreground">&quot;{payment.notes}&quot;</p>
+                  </div>
+                )}
+
+                {payment.mode && (
+                  <div className="flex items-center justify-between rounded-xl bg-muted/30 p-3 text-sm">
+                    <span className="text-muted-foreground">Method</span>
+                    <span className="font-medium">{payment.mode}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-3 text-sm">
+                  <span className="text-muted-foreground">Date</span>
+                  <span className="font-medium">
+                    {payment.date
+                      ? new Date(payment.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </DragCloseDrawer>
 
       {/* Image Gallery */}
       <ImageGalleryViewer

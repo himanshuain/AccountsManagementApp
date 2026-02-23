@@ -20,13 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -255,15 +249,17 @@ export function BackupManager({ open, onOpenChange }) {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-          <SheetHeader className="text-left">
-            <SheetTitle className="flex items-center gap-2">
-              <HardDrive className="h-5 w-5" />
-              Backup & Restore
-            </SheetTitle>
-            <SheetDescription>Download, email, or restore your shop data</SheetDescription>
-          </SheetHeader>
+      <DragCloseDrawer open={open} onOpenChange={onOpenChange} height="h-[85vh]">
+        <div className="px-4">
+        <DrawerHeader className="flex flex-col items-start gap-1 text-left">
+          <DrawerTitle className="flex items-center gap-2">
+            <HardDrive className="h-5 w-5" />
+            Backup & Restore
+          </DrawerTitle>
+          <p className="text-sm text-muted-foreground">
+            Download, email, or restore your shop data
+          </p>
+        </DrawerHeader>
 
           {/* Tab Navigation */}
           <div className="mt-4 flex gap-1 rounded-lg bg-muted p-1">
@@ -589,8 +585,8 @@ export function BackupManager({ open, onOpenChange }) {
               </div>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DragCloseDrawer>
 
       {/* Restore Confirmation Dialog */}
       <AlertDialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>

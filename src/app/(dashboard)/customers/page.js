@@ -57,14 +57,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import { SwipeCarousel } from "@/components/ui/swipe-carousel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -91,6 +85,61 @@ import { ImageViewer, ImageGalleryViewer } from "@/components/PhotoViewer";
 import { useProgressiveList, LoadMoreTrigger } from "@/hooks/useProgressiveList";
 import { haptics } from "@/hooks/useHaptics";
 import { resolveImageUrl } from "@/lib/image-url";
+
+function KhataPhotosCarousel({ photos, isOnline, onView, onDelete }) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const current = photos[currentIdx] || photos[0];
+
+  return (
+    <div className="space-y-4 mt-4">
+      <SwipeCarousel
+        images={photos.map(p => p.url)}
+        autoPlay={false}
+        aspectRatio="aspect-square"
+        showDots={photos.length > 1}
+        showGradientEdges={photos.length > 1}
+        onSlideChange={setCurrentIdx}
+        onImageClick={(img, idx) => onView(idx)}
+      />
+      {current && (
+        <div className="flex items-center justify-between px-2">
+          <div>
+            <p className="text-sm font-semibold">₹{current.amount?.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(current.date).toLocaleDateString("en-IN", {
+                day: "numeric", month: "short", year: "numeric",
+              })}
+            </p>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="gap-1.5" disabled={!isOnline}>
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this khata photo. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => onDelete(current)}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CustomersPage() {
   const searchParams = useSearchParams();
@@ -1762,45 +1811,22 @@ export default function CustomersPage() {
 
                           {/* Khata Photos */}
                           {customerKhataPhotos.length > 0 && (
-                            <div className="pb-2 pt-2">
+                            <div className="pb-2 pt-2" onClick={e => e.stopPropagation()}>
                               <p className="mb-2 text-xs font-medium text-muted-foreground">
                                 Khata Photos ({customerKhataPhotos.length})
                               </p>
-                              <div className="flex gap-2 overflow-x-auto pb-1">
-                                {customerKhataPhotos.slice(0, 6).map((photo, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border bg-muted"
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      setGalleryImages(customerKhataPhotos);
-                                      setGalleryInitialIndex(idx);
-                                      setGalleryViewerOpen(true);
-                                    }}
-                                  >
-                                    <img
-                                      src={photo.url}
-                                      alt={`Khata ${idx + 1}`}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                ))}
-                                {customerKhataPhotos.length > 6 && (
-                                  <div
-                                    className="flex h-16 w-16 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg bg-muted"
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      setGalleryImages(customerKhataPhotos);
-                                      setGalleryInitialIndex(0);
-                                      setGalleryViewerOpen(true);
-                                    }}
-                                  >
-                                    <span className="text-xs text-muted-foreground">
-                                      +{customerKhataPhotos.length - 6}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                              <SwipeCarousel
+                                images={customerKhataPhotos.map(p => p.url)}
+                                autoPlay={false}
+                                aspectRatio="aspect-[4/3]"
+                                showDots={customerKhataPhotos.length > 1}
+                                showGradientEdges={false}
+                                onImageClick={(img, idx) => {
+                                  setGalleryImages(customerKhataPhotos);
+                                  setGalleryInitialIndex(idx);
+                                  setGalleryViewerOpen(true);
+                                }}
+                              />
                             </div>
                           )}
 
@@ -2322,10 +2348,10 @@ export default function CustomersPage() {
       />
 
       {/* Quick Add Udhar Sheet - slides from top */}
-      <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-        <SheetContent side="top" className="flex flex-col rounded-b-2xl p-0" hideClose>
+      <DragCloseDrawer open={quickAddOpen} onOpenChange={setQuickAddOpen} height="h-[80vh]">
+        <div className="flex flex-col px-4">
           {/* Header with action buttons */}
-          <SheetHeader className="border-b px-4 py-3">
+          <DrawerHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -2341,9 +2367,9 @@ export default function CustomersPage() {
                 <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="flex-1 text-center text-base font-semibold">
+              <DrawerTitle className="flex-1 text-center text-base font-semibold">
                 Add Udhar
-              </SheetTitle>
+              </DrawerTitle>
               <Button
                 size="sm"
                 onClick={handleQuickAdd}
@@ -2365,7 +2391,7 @@ export default function CustomersPage() {
                 )}
               </Button>
             </div>
-          </SheetHeader>
+          </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
@@ -2476,19 +2502,13 @@ export default function CustomersPage() {
               </div>
             </div>
           </div>
-
-          {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
-            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DragCloseDrawer>
 
       {/* Quick Collect Sheet - slides from top */}
-      <Sheet open={quickCollectOpen} onOpenChange={setQuickCollectOpen}>
-        <SheetContent side="top" className="flex max-h-[80vh] flex-col rounded-b-2xl p-0" hideClose>
-          {/* Header with action buttons */}
-          <SheetHeader className="border-b px-4 py-3">
+      <DragCloseDrawer open={quickCollectOpen} onOpenChange={setQuickCollectOpen} height="h-[80vh]">
+        {/* Header with action buttons */}
+        <DrawerHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -2505,9 +2525,9 @@ export default function CustomersPage() {
                 <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="flex-1 text-center text-base font-semibold">
+              <DrawerTitle className="flex-1 text-center text-base font-semibold">
                 Collect Payment
-              </SheetTitle>
+              </DrawerTitle>
               <Button
                 size="sm"
                 onClick={handleQuickCollectSubmit}
@@ -2530,7 +2550,7 @@ export default function CustomersPage() {
                 )}
               </Button>
             </div>
-          </SheetHeader>
+          </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
@@ -2687,19 +2707,12 @@ export default function CustomersPage() {
               </div>
             </div>
           </div>
-
-          {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
-            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </div>
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Payment Sheet - slides from top */}
-      <Sheet open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <SheetContent side="top" className="flex max-h-[80vh] flex-col rounded-b-2xl p-0" hideClose>
-          {/* Header with action buttons */}
-          <SheetHeader className="border-b px-4 py-3">
+      <DragCloseDrawer open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} height="h-[80vh]">
+        {/* Header with action buttons */}
+        <DrawerHeader className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -2716,9 +2729,9 @@ export default function CustomersPage() {
                 <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="flex-1 text-center text-base font-semibold">
+              <DrawerTitle className="flex-1 text-center text-base font-semibold">
                 Record Payment
-              </SheetTitle>
+              </DrawerTitle>
               <Button
                 size="sm"
                 onClick={handleRecordPayment}
@@ -2748,7 +2761,7 @@ export default function CustomersPage() {
                 )}
               </Button>
             </div>
-          </SheetHeader>
+          </DrawerHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-4">
@@ -2990,16 +3003,10 @@ export default function CustomersPage() {
                 })()}
             </div>
           </div>
-
-          {/* Drag handle at bottom */}
-          <div className="flex justify-center pb-3 pt-2" data-drag-handle>
-            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </div>
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Customer Detail Drawer */}
-      <Sheet
+      <DragCloseDrawer
         open={!!selectedCustomer}
         onOpenChange={open => {
           // Don't close if image viewer, gallery viewer, khata photos sheet is open or was just closed
@@ -3016,17 +3023,12 @@ export default function CustomersPage() {
           }
           if (!open) setSelectedCustomer(null);
         }}
+        height="h-[85vh]"
       >
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
-          {selectedCustomer && (
-            <>
-              {/* Drag handle */}
-              <div className="flex justify-center pb-2 pt-3" data-drag-handle>
-                <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-              </div>
-
-              {/* Header with actions */}
-              <SheetHeader className="border-b px-4 pb-3">
+        {selectedCustomer && (
+          <>
+            {/* Header with actions */}
+            <DrawerHeader className="border-b px-4 pb-3">
                 <div className="flex items-center gap-3">
                   {/* Profile Picture */}
                   <Avatar
@@ -3050,9 +3052,9 @@ export default function CustomersPage() {
 
                   {/* Name and info */}
                   <div className="min-w-0 flex-1">
-                    <SheetTitle className="truncate text-xl font-bold">
+                    <DrawerTitle className="truncate text-xl font-bold">
                       {selectedCustomer.name}
-                    </SheetTitle>
+                    </DrawerTitle>
                     {selectedCustomer.phone && (
                       <a
                         href={`tel:${selectedCustomer.phone}`}
@@ -3100,7 +3102,7 @@ export default function CustomersPage() {
                     </Button>
                   </div>
                 </div>
-              </SheetHeader>
+              </DrawerHeader>
 
               <ScrollArea className="h-[calc(85vh-100px)] flex-1">
                 <div className="space-y-4 p-4">
@@ -3357,49 +3359,36 @@ export default function CustomersPage() {
                                 {/* Expanded Section */}
                                 {isExpanded && hasPayments && (
                                   <div className="border-t bg-primary/5 px-3 pb-3">
-                                    {/* Payment Receipts as thumbnails */}
-                                    {txn.payments?.some(p => p.receiptUrl) && (
-                                      <div className="pt-3">
-                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                          Payment Receipts (
-                                          {txn.payments.filter(p => p.receiptUrl).length})
-                                        </p>
-                                        <div className="flex gap-2 overflow-x-auto pb-2">
-                                          {txn.payments
-                                            .filter(p => p.receiptUrl)
-                                            .map((payment, idx, filteredPayments) => {
-                                              const receiptPhotos = filteredPayments.map(p => ({
-                                                url: resolveImageUrl(p.receiptUrl),
-                                                amount: p.amount,
-                                                date: p.date,
-                                                customerName: selectedCustomer?.name,
-                                                type: "receipt",
-                                              }));
-                                              return (
-                                                <div
-                                                  key={payment.id}
-                                                  className="relative h-14 w-14 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-green-200 bg-muted"
-                                                  onClick={e => {
-                                                    e.stopPropagation();
-                                                    setGalleryImages(receiptPhotos);
-                                                    setGalleryInitialIndex(idx);
-                                                    setGalleryViewerOpen(true);
-                                                  }}
-                                                >
-                                                  <img
-                                                    src={resolveImageUrl(payment.receiptUrl)}
-                                                    alt={`Receipt ${idx + 1}`}
-                                                    className="h-full w-full object-cover"
-                                                  />
-                                                  <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 py-0.5 text-center text-[9px] text-white">
-                                                    ₹{payment.amount?.toLocaleString()}
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
+                                    {/* Payment Receipts Carousel */}
+                                    {txn.payments?.some(p => p.receiptUrl) && (() => {
+                                      const filteredPayments = txn.payments.filter(p => p.receiptUrl);
+                                      const receiptPhotos = filteredPayments.map(p => ({
+                                        url: resolveImageUrl(p.receiptUrl),
+                                        amount: p.amount,
+                                        date: p.date,
+                                        customerName: selectedCustomer?.name,
+                                        type: "receipt",
+                                      }));
+                                      return (
+                                        <div className="pt-3">
+                                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                            Payment Receipts ({filteredPayments.length})
+                                          </p>
+                                          <SwipeCarousel
+                                            images={receiptPhotos.map(p => p.url)}
+                                            autoPlay={false}
+                                            aspectRatio="aspect-[4/3]"
+                                            showDots={receiptPhotos.length > 1}
+                                            showGradientEdges={false}
+                                            onImageClick={(img, idx) => {
+                                              setGalleryImages(receiptPhotos);
+                                              setGalleryInitialIndex(idx);
+                                              setGalleryViewerOpen(true);
+                                            }}
+                                          />
                                         </div>
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     <div className="pt-2">
                                       <p className="mb-2 text-xs font-medium text-muted-foreground">
@@ -3467,8 +3456,7 @@ export default function CustomersPage() {
               </ScrollArea>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Edit Customer Form */}
       {editingCustomer && (
@@ -3542,23 +3530,17 @@ export default function CustomersPage() {
       </AlertDialog>
 
       {/* Udhar Transactions Drawer */}
-      <Sheet open={udharDrawerOpen} onOpenChange={setUdharDrawerOpen}>
-        <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl p-0" hideClose>
-          {udharDrawerCustomer &&
-            (() => {
-              const customerTransactions = udharList
-                .filter(u => u.customerId === udharDrawerCustomer.id)
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+      <DragCloseDrawer open={udharDrawerOpen} onOpenChange={setUdharDrawerOpen} height="h-[90vh]">
+        {udharDrawerCustomer &&
+          (() => {
+            const customerTransactions = udharList
+              .filter(u => u.customerId === udharDrawerCustomer.id)
+              .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-              return (
-                <>
-                  {/* Drag handle */}
-                  <div className="flex justify-center pb-2 pt-3">
-                    <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-                  </div>
-
-                  {/* Header */}
-                  <SheetHeader className="border-b px-4 pb-3">
+            return (
+              <>
+                {/* Header */}
+                <DrawerHeader className="border-b px-4 pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={resolveImageUrl(udharDrawerCustomer.profilePicture)} />
@@ -3567,13 +3549,13 @@ export default function CustomersPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <SheetTitle className="text-lg">{udharDrawerCustomer.name}</SheetTitle>
+                        <DrawerTitle className="text-lg">{udharDrawerCustomer.name}</DrawerTitle>
                         <p className="text-sm text-muted-foreground">
                           {customerTransactions.length} transactions
                         </p>
                       </div>
                     </div>
-                  </SheetHeader>
+                  </DrawerHeader>
 
                   <ScrollArea className="h-[calc(90vh-120px)] flex-1">
                     <div className="space-y-3 p-4">
@@ -3700,94 +3682,71 @@ export default function CustomersPage() {
                                 {/* Expanded Section */}
                                 {isExpanded && (
                                   <div className="border-t bg-muted/20 px-4 pb-4">
-                                    {/* Khata Photos */}
+                                    {/* Khata Photos Carousel */}
                                     {(txn.khataPhotos?.length > 0 ||
-                                      txn.billImages?.length > 0) && (
-                                      <div className="pt-3">
-                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                          Khata Photos
-                                        </p>
-                                        <div className="flex gap-2 overflow-x-auto pb-1">
-                                          {[
-                                            ...(txn.khataPhotos || []),
-                                            ...(txn.billImages || []),
-                                          ].map((photo, idx) => {
-                                            const txnPhotos = [
-                                              ...(txn.khataPhotos || []),
-                                              ...(txn.billImages || []),
-                                            ].map(p => ({
-                                              url: resolveImageUrl(p),
-                                              amount: total,
-                                              date: txn.date,
-                                              customerName: selectedCustomer?.name,
-                                              type: "khata",
-                                            }));
-                                            return (
-                                              <div
-                                                key={idx}
-                                                className="h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border bg-muted"
-                                                onClick={e => {
-                                                  e.stopPropagation();
-                                                  setGalleryImages(txnPhotos);
-                                                  setGalleryInitialIndex(idx);
-                                                  setGalleryViewerOpen(true);
-                                                }}
-                                              >
-                                                <img
-                                                  src={resolveImageUrl(photo)}
-                                                  alt={`Khata ${idx + 1}`}
-                                                  className="h-full w-full object-cover"
-                                                />
-                                              </div>
-                                            );
-                                          })}
+                                      txn.billImages?.length > 0) && (() => {
+                                      const allPhotos = [
+                                        ...(txn.khataPhotos || []),
+                                        ...(txn.billImages || []),
+                                      ];
+                                      const txnPhotos = allPhotos.map(p => ({
+                                        url: resolveImageUrl(p),
+                                        amount: total,
+                                        date: txn.date,
+                                        customerName: selectedCustomer?.name,
+                                        type: "khata",
+                                      }));
+                                      return (
+                                        <div className="pt-3">
+                                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                            Khata Photos ({allPhotos.length})
+                                          </p>
+                                          <SwipeCarousel
+                                            images={txnPhotos.map(p => p.url)}
+                                            autoPlay={false}
+                                            aspectRatio="aspect-[4/3]"
+                                            showDots={txnPhotos.length > 1}
+                                            showGradientEdges={false}
+                                            onImageClick={(img, idx) => {
+                                              setGalleryImages(txnPhotos);
+                                              setGalleryInitialIndex(idx);
+                                              setGalleryViewerOpen(true);
+                                            }}
+                                          />
                                         </div>
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
-                                    {/* Payment Receipts */}
-                                    {txn.payments?.some(p => p.receiptUrl) && (
-                                      <div className="pt-3">
-                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                          Payment Receipts (
-                                          {txn.payments.filter(p => p.receiptUrl).length})
-                                        </p>
-                                        <div className="flex gap-2 overflow-x-auto pb-1">
-                                          {txn.payments
-                                            .filter(p => p.receiptUrl)
-                                            .map((payment, idx, filteredPayments) => {
-                                              const receiptPhotos = filteredPayments.map(p => ({
-                                                url: resolveImageUrl(p.receiptUrl),
-                                                amount: p.amount,
-                                                date: p.date,
-                                                customerName: selectedCustomer?.name,
-                                                type: "receipt",
-                                              }));
-                                              return (
-                                                <div
-                                                  key={payment.id}
-                                                  className="relative h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-green-200 bg-muted"
-                                                  onClick={e => {
-                                                    e.stopPropagation();
-                                                    setGalleryImages(receiptPhotos);
-                                                    setGalleryInitialIndex(idx);
-                                                    setGalleryViewerOpen(true);
-                                                  }}
-                                                >
-                                                  <img
-                                                    src={resolveImageUrl(payment.receiptUrl)}
-                                                    alt={`Receipt ${idx + 1}`}
-                                                    className="h-full w-full object-cover"
-                                                  />
-                                                  <div className="absolute bottom-0 left-0 right-0 bg-green-600/90 py-0.5 text-center text-[10px] text-white">
-                                                    ₹{payment.amount?.toLocaleString()}
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
+                                    {/* Payment Receipts Carousel */}
+                                    {txn.payments?.some(p => p.receiptUrl) && (() => {
+                                      const filteredPayments = txn.payments.filter(p => p.receiptUrl);
+                                      const receiptPhotos = filteredPayments.map(p => ({
+                                        url: resolveImageUrl(p.receiptUrl),
+                                        amount: p.amount,
+                                        date: p.date,
+                                        customerName: selectedCustomer?.name,
+                                        type: "receipt",
+                                      }));
+                                      return (
+                                        <div className="pt-3">
+                                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                            Payment Receipts ({filteredPayments.length})
+                                          </p>
+                                          <SwipeCarousel
+                                            images={receiptPhotos.map(p => p.url)}
+                                            autoPlay={false}
+                                            aspectRatio="aspect-[4/3]"
+                                            showDots={receiptPhotos.length > 1}
+                                            showGradientEdges={false}
+                                            onImageClick={(img, idx) => {
+                                              setGalleryImages(receiptPhotos);
+                                              setGalleryInitialIndex(idx);
+                                              setGalleryViewerOpen(true);
+                                            }}
+                                          />
                                         </div>
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     {/* Payment History */}
                                     {hasPayments && (
@@ -3895,11 +3854,10 @@ export default function CustomersPage() {
                 </>
               );
             })()}
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* All Receipts Sheet */}
-      <Sheet
+      <DragCloseDrawer
         open={allReceiptsSheetOpen}
         onOpenChange={open => {
           // Don't close if image viewer or gallery viewer is open or was just closed
@@ -3915,75 +3873,44 @@ export default function CustomersPage() {
           }
           setAllReceiptsSheetOpen(open);
         }}
+        height="h-[85vh]"
       >
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl p-0" hideClose>
-          <SheetHeader className="border-b p-4">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="flex items-center gap-2">
+        <DrawerHeader className="border-b p-4">
+          <div className="flex items-center justify-between">
+            <DrawerTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 All Receipts & Bills ({allReceipts.length})
-              </SheetTitle>
+              </DrawerTitle>
               <Button variant="ghost" size="icon" onClick={() => setAllReceiptsSheetOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(85vh-80px)]">
-            <div className="p-4">
-              {allReceipts.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground">
-                  <Receipt className="mx-auto mb-3 h-12 w-12 opacity-50" />
-                  <p>No receipts or bills found</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {allReceipts.map((receipt, idx) => (
-                    <div
-                      key={idx}
-                      className="relative cursor-pointer overflow-hidden rounded-xl border bg-muted transition-shadow hover:shadow-md"
-                      onClick={() => {
-                        setAllReceiptsGalleryImages(allReceipts.map(r => r.url));
-                        setAllReceiptsGalleryInitialIndex(idx);
-                        setAllReceiptsGalleryOpen(true);
-                      }}
-                    >
-                      <div className="aspect-square">
-                        <img
-                          src={receipt.url}
-                          alt={`${receipt.type} ${idx + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      {/* Info always visible */}
-                      <div className="border-t bg-card p-2">
-                        <p className="truncate text-xs font-medium">{receipt.customerName}</p>
-                        <div className="mt-0.5 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            ₹{receipt.amount?.toLocaleString()}
-                          </span>
-                          <Badge
-                            variant="secondary"
-                            className={`px-1.5 py-0 text-[10px] ${
-                              receipt.type === "receipt"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {receipt.type === "receipt" ? "Receipt" : "Khata"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+          </DrawerHeader>
+          <div className="p-4">
+            {allReceipts.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <Receipt className="mx-auto mb-3 h-12 w-12 opacity-50" />
+                <p>No receipts or bills found</p>
+              </div>
+            ) : (
+              <SwipeCarousel
+                images={allReceipts.map(r => ({ src: r.url, alt: `${r.type} - ₹${r.amount?.toLocaleString()} - ${r.customerName}` }))}
+                autoPlay={false}
+                aspectRatio="aspect-square"
+                showDots={allReceipts.length > 1}
+                showGradientEdges={allReceipts.length > 1}
+                onImageClick={(img, idx) => {
+                  setAllReceiptsGalleryImages(allReceipts.map(r => r.url));
+                  setAllReceiptsGalleryInitialIndex(idx);
+                  setAllReceiptsGalleryOpen(true);
+                }}
+              />
+            )}
+          </div>
+      </DragCloseDrawer>
 
       {/* Customer Khata Photos Sheet */}
-      <Sheet
+      <DragCloseDrawer
         open={khataPhotosSheetOpen}
         onOpenChange={open => {
           // Don't close if gallery viewer is open or was just closed
@@ -3993,90 +3920,35 @@ export default function CustomersPage() {
           }
           setKhataPhotosSheetOpen(open);
         }}
+        height="h-[85vh]"
       >
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-          <SheetHeader className="border-b pb-4">
-            <SheetTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              All Khata Photos ({selectedCustomerKhataPhotos.length})
-            </SheetTitle>
-            <SheetDescription>
-              Photos from all transactions for {selectedCustomer?.name}
-            </SheetDescription>
-          </SheetHeader>
-          <ScrollArea className="mt-4 h-[calc(85vh-120px)]">
-            <div className="grid grid-cols-2 gap-3 pr-4">
-              {selectedCustomerKhataPhotos.map((photo, index) => (
-                <div
-                  key={`${photo.udharId}-${photo.photoIndex}`}
-                  className="group relative aspect-square overflow-hidden rounded-xl bg-muted"
-                >
-                  <img
-                    src={photo.url}
-                    alt={`Khata photo ${index + 1}`}
-                    className="h-full w-full cursor-pointer object-cover transition-transform hover:scale-105"
-                    onClick={() => {
-                      setGalleryImages(selectedCustomerKhataPhotos);
-                      setGalleryInitialIndex(index);
-                      setGalleryViewerOpen(true);
-                    }}
-                  />
-                  {/* Overlay with info */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
-                    <p className="text-sm font-semibold text-white">
-                      ₹{photo.amount.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-white/80">
-                      {new Date(photo.date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  {/* Delete button */}
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute right-2 top-2 h-8 w-8 opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
-                        disabled={!isOnline}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete this khata photo. This action cannot be
-                          undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() => handleDeleteKhataPhoto(photo)}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              ))}
+        <DrawerHeader className="border-b pb-4">
+          <DrawerTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5" />
+            All Khata Photos ({selectedCustomerKhataPhotos.length})
+          </DrawerTitle>
+          <p className="text-sm text-muted-foreground">
+            Photos from all transactions for {selectedCustomer?.name}
+          </p>
+        </DrawerHeader>
+          {selectedCustomerKhataPhotos.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Camera className="mx-auto mb-3 h-12 w-12 opacity-50" />
+              <p>No khata photos yet</p>
             </div>
-            {selectedCustomerKhataPhotos.length === 0 && (
-              <div className="py-12 text-center text-muted-foreground">
-                <Camera className="mx-auto mb-3 h-12 w-12 opacity-50" />
-                <p>No khata photos yet</p>
-              </div>
-            )}
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+          ) : (
+            <KhataPhotosCarousel
+              photos={selectedCustomerKhataPhotos}
+              isOnline={isOnline}
+              onView={(idx) => {
+                setGalleryImages(selectedCustomerKhataPhotos);
+                setGalleryInitialIndex(idx);
+                setGalleryViewerOpen(true);
+              }}
+              onDelete={handleDeleteKhataPhoto}
+            />
+          )}
+      </DragCloseDrawer>
 
       {/* All Receipts Gallery Viewer */}
       <ImageGalleryViewer

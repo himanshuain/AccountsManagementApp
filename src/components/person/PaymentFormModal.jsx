@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   PhotoGalleryViewer as ImageGalleryViewer,
 } from "@/components/PhotoViewer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { getImageUrls, isDataUrl } from "@/lib/image-url";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
@@ -146,6 +147,16 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
     setReceiptImages(receiptImages.filter((_, i) => i !== index));
   };
 
+  const isFormDirty = () => {
+    return !!(amount || notes || receiptImages.length > 0 || isReturn || date !== today);
+  };
+
+  const handleBeforeClose = async () => {
+    if (isSubmitting) return false;
+    if (!isFormDirty()) return true;
+    return confirm("You have unsaved changes. Are you sure you want to close?");
+  };
+
   const handleSubmit = e => {
     e.preventDefault();
     const paymentAmount = Number(amount);
@@ -165,239 +176,227 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="animate-slide-up max-h-[90vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-card sm:max-w-md sm:rounded-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sticky top-0 flex justify-center bg-card py-3 sm:hidden">
-          <div className="sheet-handle" />
+    <DragCloseDrawer open={true} onOpenChange={v => { if (!v) onClose(); }} beforeClose={handleBeforeClose} height="h-auto">
+      <div className="px-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-heading text-lg tracking-wide">Record Payment</h3>
+          <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        <div className="p-4 pb-16">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-heading text-lg tracking-wide">Record Payment</h3>
-            <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        <div className="mb-4 rounded-xl bg-muted py-4 text-center">
+          <p className="mb-1 text-xs text-muted-foreground">Pending Amount</p>
+          <p className="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">
+            ₹{remainingAmount.toLocaleString("en-IN")}
+          </p>
+        </div>
 
-          <div className="mb-4 rounded-xl bg-muted py-4 text-center">
-            <p className="mb-1 text-xs text-muted-foreground">Pending Amount</p>
-            <p className="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400">
-              ₹{remainingAmount.toLocaleString("en-IN")}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">Payment Amount</label>
-              <div className="relative">
-                <IndianRupee className="absolute right-8 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={e => setAmount(e.target.value)}
-                  placeholder="0"
-                  className="input-hero pl-12 font-mono text-lg"
-                  autoFocus
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm text-muted-foreground">Payment Amount</label>
+            <div className="relative">
+              <IndianRupee className="absolute right-8 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0"
+                className="input-hero pl-12 font-mono text-lg"
+                autoFocus
+              />
             </div>
+          </div>
 
+          <button
+            type="button"
+            onClick={() => setAmount(String(remainingAmount))}
+            className={cn(
+              "rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
+              Number(amount) === remainingAmount
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-accent"
+            )}
+          >
+            Full — ₹{remainingAmount.toLocaleString("en-IN")}
+          </button>
+
+          <div>
+            <label className="mb-2 block text-sm text-muted-foreground">Payment Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={e => {
+                const selectedDate = e.target.value;
+                if (selectedDate > today) {
+                  setDate(today);
+                } else {
+                  setDate(selectedDate);
+                }
+              }}
+              max={today}
+              className="input-hero"
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+            <div>
+              <p className="text-sm font-medium">Return (GR)</p>
+              <p className="text-xs text-muted-foreground">Mark as goods return</p>
+            </div>
             <button
               type="button"
-              onClick={() => setAmount(String(remainingAmount))}
+              onClick={() => {
+                const newIsReturn = !isReturn;
+                setIsReturn(newIsReturn);
+                if (newIsReturn && !amount) {
+                  setAmount("0");
+                }
+              }}
               className={cn(
-                "rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
-                Number(amount) === remainingAmount
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-accent"
+                "relative h-6 w-11 rounded-full transition-colors",
+                isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
               )}
             >
-              Full — ₹{remainingAmount.toLocaleString("en-IN")}
-            </button>
-
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">Payment Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => {
-                  const selectedDate = e.target.value;
-                  if (selectedDate > today) {
-                    setDate(today);
-                  } else {
-                    setDate(selectedDate);
-                  }
-                }}
-                max={today}
-                className="input-hero"
-              />
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
-              <div>
-                <p className="text-sm font-medium">Return (GR)</p>
-                <p className="text-xs text-muted-foreground">Mark as goods return</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const newIsReturn = !isReturn;
-                  setIsReturn(newIsReturn);
-                  if (newIsReturn && !amount) {
-                    setAmount("0");
-                  }
-                }}
+              <div
                 className={cn(
-                  "relative h-6 w-11 rounded-full transition-colors",
-                  isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
+                  "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                  isReturn ? "translate-x-6" : "translate-x-1"
                 )}
-              >
-                <div
-                  className={cn(
-                    "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                    isReturn ? "translate-x-6" : "translate-x-1"
-                  )}
-                />
-              </button>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">Notes (optional)</label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={2}
-                placeholder="Payment notes..."
-                className="input-hero min-h-[60px] resize-none"
               />
-            </div>
+            </button>
+          </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">
-                Payment Receipts (optional)
-              </label>
+          <div>
+            <label className="mb-2 block text-sm text-muted-foreground">Notes (optional)</label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Payment notes..."
+              className="input-hero min-h-[60px] resize-none"
+            />
+          </div>
 
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isUploading || receiptImages.length >= 5}
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isUploading || receiptImages.length >= 5}
-              />
+          <div>
+            <label className="mb-2 block text-sm text-muted-foreground">
+              Payment Receipts (optional)
+            </label>
 
-              <div className="flex flex-wrap gap-2">
-                {receiptImages.map((img, idx) => {
-                  const urls = getImageUrls(img);
-                  const displayUrl = isDataUrl(img) ? img : urls.thumbnail || urls.src;
-                  return (
-                    <ReceiptThumbnail
-                      key={idx}
-                      src={displayUrl}
-                      idx={idx}
-                      onTap={handleImageTap}
-                      onRemove={handleRemoveImage}
-                    />
-                  );
-                })}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={isUploading || receiptImages.length >= 5}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={isUploading || receiptImages.length >= 5}
+            />
 
-                {receiptImages.length < 5 && (
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:bg-muted disabled:opacity-50"
-                    >
-                      {isUploading ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : (
-                        <>
-                          <Camera className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-[9px] text-muted-foreground">Camera</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => galleryInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:bg-muted disabled:opacity-50"
-                    >
-                      <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground">Gallery</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground">
-                  {receiptImages.length}/5 images • Tap to expand
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsHDMode(!isHDMode)}
-                  disabled={isUploading}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-all",
-                    isHDMode
-                      ? "bg-amber-500 text-white shadow-sm"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-2 w-2 rounded-full",
-                      isHDMode ? "bg-white animate-pulse" : "bg-muted-foreground"
-                    )}
+            <div className="flex flex-wrap gap-2">
+              {receiptImages.map((img, idx) => {
+                const urls = getImageUrls(img);
+                const displayUrl = isDataUrl(img) ? img : urls.thumbnail || urls.src;
+                return (
+                  <ReceiptThumbnail
+                    key={idx}
+                    src={displayUrl}
+                    idx={idx}
+                    onTap={handleImageTap}
+                    onRemove={handleRemoveImage}
                   />
-                  HD {isHDMode ? "ON" : "OFF"}
-                </button>
-              </div>
-              {isHDMode && (
-                <p className="text-[9px] text-amber-600 dark:text-amber-400">
-                  HD: Best quality (larger file)
-                </p>
+                );
+              })}
+
+              {receiptImages.length < 5 && (
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <>
+                        <Camera className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-[9px] text-muted-foreground">Camera</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[9px] text-muted-foreground">Gallery</span>
+                  </button>
+                </div>
               )}
             </div>
 
-            <div className="pb-safe pt-4">
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">
+                {receiptImages.length}/5 images • Tap to expand
+              </p>
               <button
-                type="submit"
-                disabled={isSubmitting || !amount || isUploading}
-                className="btn-hero w-full disabled:opacity-50"
+                type="button"
+                onClick={() => setIsHDMode(!isHDMode)}
+                disabled={isUploading}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-all",
+                  isHDMode
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
               >
-                {isSubmitting ? "Saving..." : "Record Payment"}
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    isHDMode ? "bg-white animate-pulse" : "bg-muted-foreground"
+                  )}
+                />
+                HD {isHDMode ? "ON" : "OFF"}
               </button>
             </div>
-          </form>
-        </div>
+            {isHDMode && (
+              <p className="text-[9px] text-amber-600 dark:text-amber-400">
+                HD: Best quality (larger file)
+              </p>
+            )}
+          </div>
 
-        <ImageGalleryViewer
-          images={receiptImages}
-          initialIndex={viewerIndex}
-          open={imageViewerOpen}
-          onOpenChange={setImageViewerOpen}
-        />
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={isSubmitting || !amount || isUploading}
+              className="btn-hero w-full disabled:opacity-50"
+            >
+              {isSubmitting ? "Saving..." : "Record Payment"}
+            </button>
+          </div>
+        </form>
       </div>
-    </div>
+
+      <ImageGalleryViewer
+        images={receiptImages}
+        initialIndex={viewerIndex}
+        open={imageViewerOpen}
+        onOpenChange={setImageViewerOpen}
+      />
+    </DragCloseDrawer>
   );
 }
 

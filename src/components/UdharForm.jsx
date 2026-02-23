@@ -7,7 +7,7 @@ import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -162,25 +162,35 @@ export function UdharForm({
     }
   };
 
+  const isFormDirty = () => {
+    if (isDirty) return true;
+    const original = initialData?.khataPhotos || [];
+    if (khataPhotos.length !== original.length) return true;
+    return khataPhotos.some((img, i) => img !== original[i]);
+  };
+
+  const resetAndClose = () => {
+    reset();
+    setKhataPhotos(initialData?.khataPhotos || []);
+    setSelectedCustomerId(initialData?.customerId || defaultCustomerId || "");
+    onOpenChange(false);
+  };
+
   const handleClose = () => {
     if (!isSubmitting) {
-      if (isDirty || khataPhotos.length > 0) {
+      if (isFormDirty()) {
         if (!confirm("You have unsaved changes. Are you sure you want to close?")) {
           return;
         }
       }
-      reset();
-      setKhataPhotos(initialData?.khataPhotos || []);
-      setSelectedCustomerId(initialData?.customerId || defaultCustomerId || "");
-      onOpenChange(false);
+      resetAndClose();
     }
   };
 
-  // Handler for Sheet's onOpenChange - only close, don't interfere with opening
-  const handleSheetOpenChange = isOpen => {
-    if (!isOpen) {
-      handleClose();
-    }
+  const handleBeforeClose = async () => {
+    if (isSubmitting) return false;
+    if (!isFormDirty()) return true;
+    return confirm("You have unsaved changes. Are you sure you want to close?");
   };
 
   const handleNewCustomer = async customerData => {
@@ -194,15 +204,9 @@ export function UdharForm({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={handleSheetOpenChange}>
-        <SheetContent side="bottom" className="flex h-[90vh] flex-col rounded-t-2xl p-0" hideClose>
-          {/* Drag handle */}
-          <div className="flex justify-center pb-2 pt-3" data-drag-handle>
-            <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
-          </div>
-
+      <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
           {/* Header with action buttons */}
-          <SheetHeader className="border-b px-4 pb-3">
+          <div className="border-b px-4 pb-3">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -214,9 +218,9 @@ export function UdharForm({
                 <X className="mr-1 h-4 w-4" />
                 Cancel
               </Button>
-              <SheetTitle className="flex-1 text-center text-base font-semibold">
+              <h3 className="flex-1 text-center text-base font-semibold">
                 {initialData ? "Edit Udhar" : title}
-              </SheetTitle>
+              </h3>
               <Button
                 size="sm"
                 onClick={handleSubmit(handleFormSubmit)}
@@ -233,9 +237,9 @@ export function UdharForm({
                 )}
               </Button>
             </div>
-          </SheetHeader>
+          </div>
 
-          <div className="pb-safe flex-1 overflow-y-auto px-6">
+          <div className="flex-1 overflow-y-auto px-6">
             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
               {!isOnline && (
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
@@ -444,8 +448,7 @@ export function UdharForm({
               <div className="h-8" />
             </form>
           </div>
-        </SheetContent>
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Customer Form Sheet */}
       <CustomerForm

@@ -5,13 +5,19 @@ import { useRouter } from "next/navigation";
 import {
   Search,
   SlidersHorizontal,
-  ArrowUpRight,
-  ArrowDownLeft,
   X,
   Store,
   Users,
+  ChevronDown,
 } from "lucide-react";
-import { format, parseISO, subMonths, isWithinInterval, startOfMonth, endOfMonth } from "date-fns";
+import {
+  format,
+  parseISO,
+  subMonths,
+  isWithinInterval,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -36,6 +42,130 @@ const TIME_FILTERS = [
   { id: "last-3-months", label: "Last 3 Months" },
 ];
 
+function TimelineItem({ txn, isLast, onClick }) {
+  const isPaid = txn.status === "paid";
+  const dateStr = format(parseISO(txn.time || txn.date), "dd MMM, h:mm a");
+  const label = txn.description || txn.itemName;
+
+  return (
+    <div
+      className="relative flex cursor-pointer gap-3 rounded-lg px-2 py-1.5 transition-colors active:bg-accent/40"
+      onClick={onClick}
+    >
+      {/* Timeline dot + line */}
+      <div className="flex flex-col items-center">
+        <div
+          className={cn(
+            "mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full",
+            isPaid ? "bg-emerald-500" : "bg-amber-500"
+          )}
+        />
+        {!isLast && <div className="mt-1 w-px flex-1 bg-border/60" />}
+      </div>
+
+      {/* Content */}
+      <div className={cn("min-w-0 flex-1", !isLast && "pb-3")}>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-xs text-muted-foreground">{dateStr}</p>
+          <p
+            className={cn(
+              "flex-shrink-0 font-mono text-sm font-semibold tabular-nums",
+              isPaid ? "amount-positive" : "amount-negative"
+            )}
+          >
+            ₹{txn.amount.toLocaleString("en-IN")}
+          </p>
+        </div>
+        {label && (
+          <p className="mt-0.5 truncate text-[13px] text-foreground/80">{label}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PersonHistoryCard({ person, onTimelineItemClick }) {
+  const [expanded, setExpanded] = useState(false);
+  const txnCount = person.transactions.length;
+
+  return (
+    <div className="border-b border-border">
+      {/* Person header */}
+      <div
+        className="flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors active:bg-accent/30"
+        onClick={() => setExpanded(prev => !prev)}
+      >
+        <PersonAvatar
+          name={person.name}
+          image={person.image}
+          size="md"
+          className="avatar-hero"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold leading-tight">{person.name}</p>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px]">
+            {person.type === "supplier" ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-500">
+                <Store className="h-2.5 w-2.5" /> Supplier
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 font-medium text-rose-500">
+                <Users className="h-2.5 w-2.5" /> Customer
+              </span>
+            )}
+            <span className="text-muted-foreground">{txnCount} bills</span>
+          </div>
+        </div>
+
+        <div className="flex flex-shrink-0 items-center gap-1.5">
+          <div className="text-right">
+            <p
+              className={cn(
+                "font-mono text-[15px] font-bold tabular-nums",
+                person.totalPending > 0 ? "amount-negative" : "amount-positive"
+              )}
+            >
+              ₹{(person.totalPending > 0
+                ? person.totalPending
+                : person.totalAmount
+              ).toLocaleString("en-IN")}
+            </p>
+            <span
+              className={cn(
+                "text-[10px] font-medium",
+                person.totalPending > 0 ? "status-pending" : "status-paid"
+              )}
+            >
+              {person.totalPending > 0 ? "Pending" : "All Paid"}
+            </span>
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground/60 transition-transform duration-200",
+              !expanded && "-rotate-90"
+            )}
+          />
+        </div>
+      </div>
+
+      {/* Expandable timeline */}
+      {expanded && (
+        <div className="animate-slide-up border-t border-border/40 bg-muted/10 px-4 pb-2 pt-2">
+          {person.transactions.map((txn, idx) => (
+            <TimelineItem
+              key={`${txn.type}-${txn.id}`}
+              txn={txn}
+              isLast={idx === person.transactions.length - 1}
+              onClick={() => onTimelineItemClick(txn)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,30 +173,24 @@ export default function HistoryPage() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Data hooks - fetchAll: true to load complete history
   const { suppliers } = useSuppliers();
   const { customers } = useCustomers();
   const { transactions } = useTransactions(null, { fetchAll: true });
   const { udharList } = useUdhar({ fetchAll: true });
 
-  // Helper to get latest activity timestamp (considers payments too)
   const getLatestActivity = item => {
     let latest = new Date(item.updatedAt || item.createdAt || item.date || 0).getTime();
-
-    // Check payment dates for more recent activity
     (item.payments || []).forEach(p => {
       const paymentTime = new Date(p.date || 0).getTime();
       if (paymentTime > latest) latest = paymentTime;
     });
-
     return latest;
   };
 
-  // Combine and filter all transactions
+  // Build flat transaction list (same as before for filtering)
   const allTransactions = useMemo(() => {
     const txns = [];
 
-    // Add supplier transactions
     transactions.forEach(t => {
       const supplier = suppliers.find(s => s.id === t.supplierId);
       const timeValue = t.date?.includes("T") ? t.date : t.createdAt || t.date;
@@ -82,12 +206,12 @@ export default function HistoryPage() {
         time: timeValue,
         lastActivity,
         description: t.description || t.itemName,
+        itemName: t.itemName,
         status: t.paymentStatus,
         isOutgoing: true,
       });
     });
 
-    // Add customer udhar
     udharList.forEach(u => {
       const customer = customers.find(c => c.id === u.customerId);
       const timeValue = u.date?.includes("T") ? u.date : u.createdAt || u.date;
@@ -102,13 +226,13 @@ export default function HistoryPage() {
         date: u.date,
         time: timeValue,
         lastActivity,
-        description: u.description,
-        status: u.status,
+        description: u.description || u.itemDescription,
+        itemName: u.itemDescription,
+        status: u.paymentStatus || u.status,
         isOutgoing: false,
       });
     });
 
-    // Sort by last activity (most recent modified/updated first)
     return txns.sort((a, b) => b.lastActivity - a.lastActivity);
   }, [transactions, udharList, suppliers, customers]);
 
@@ -116,7 +240,6 @@ export default function HistoryPage() {
   const filteredTransactions = useMemo(() => {
     let result = allTransactions;
 
-    // Type filter
     if (activeFilter === "suppliers") {
       result = result.filter(t => t.type === "supplier");
     } else if (activeFilter === "customers") {
@@ -127,7 +250,6 @@ export default function HistoryPage() {
       result = result.filter(t => t.status === "paid");
     }
 
-    // Time filter
     const now = new Date();
     if (timeFilter === "this-month") {
       const start = startOfMonth(now);
@@ -143,20 +265,17 @@ export default function HistoryPage() {
       result = result.filter(t => new Date(t.date) >= threeMonthsAgo);
     }
 
-    // Search filter (name, description, and amount)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
 
       result = result.filter(t => {
-        // Match by name or description
         if (
           t.personName?.toLowerCase().includes(query) ||
           t.description?.toLowerCase().includes(query)
         ) {
           return true;
         }
-        // Match by amount if search looks like a number
         if (!isNaN(numQuery)) {
           const amountStr = String(t.amount);
           return amountStr.includes(query.replace(/[₹,\s]/g, ""));
@@ -168,53 +287,60 @@ export default function HistoryPage() {
     return result;
   }, [allTransactions, activeFilter, timeFilter, searchQuery]);
 
-  // Group by month for display
-  const groupedTransactions = useMemo(() => {
-    const groups = {};
+  // Group filtered transactions by person
+  const personGroups = useMemo(() => {
+    const map = new Map();
 
     filteredTransactions.forEach(txn => {
-      const monthKey = format(parseISO(txn.date), "yyyy-MM");
-      const monthLabel = format(parseISO(txn.date), "MMMM yyyy");
-
-      if (!groups[monthKey]) {
-        groups[monthKey] = {
-          key: monthKey,
-          label: monthLabel,
+      const key = `${txn.type}-${txn.personId}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          personId: txn.personId,
+          type: txn.type,
+          name: txn.personName,
+          image: txn.personImage,
           transactions: [],
-          totalIn: 0,
-          totalOut: 0,
-        };
+          totalAmount: 0,
+          totalPending: 0,
+          latestActivity: 0,
+        });
       }
 
-      groups[monthKey].transactions.push(txn);
-
-      if (txn.isOutgoing) {
-        groups[monthKey].totalOut += txn.amount;
-      } else {
-        groups[monthKey].totalIn += txn.amount;
+      const group = map.get(key);
+      group.transactions.push(txn);
+      group.totalAmount += txn.amount;
+      if (txn.status !== "paid") {
+        group.totalPending += txn.amount;
+      }
+      if (txn.lastActivity > group.latestActivity) {
+        group.latestActivity = txn.lastActivity;
       }
     });
 
-    return Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
+    // Sort transactions within each person by date (newest first for timeline)
+    for (const group of map.values()) {
+      group.transactions.sort((a, b) => b.lastActivity - a.lastActivity);
+    }
+
+    // Sort persons by latest activity (most recent first)
+    return Array.from(map.values()).sort(
+      (a, b) => b.latestActivity - a.latestActivity
+    );
   }, [filteredTransactions]);
 
-  // Summary stats
   const stats = useMemo(() => {
-    const totalOut = filteredTransactions
-      .filter(t => t.isOutgoing)
-      .reduce((sum, t) => sum + t.amount, 0);
-    const totalIn = filteredTransactions
-      .filter(t => !t.isOutgoing)
-      .reduce((sum, t) => sum + t.amount, 0);
-    const pending = filteredTransactions
-      .filter(t => t.status !== "paid")
-      .reduce((sum, t) => sum + t.amount, 0);
+    const totalTxns = filteredTransactions.length;
+    const personCount = personGroups.length;
+    return { totalTxns, personCount };
+  }, [filteredTransactions, personGroups]);
 
-    return { totalOut, totalIn, pending, count: filteredTransactions.length };
-  }, [filteredTransactions]);
+  const hasActiveFilters =
+    activeFilter !== "all" || timeFilter !== "all" || searchQuery.trim();
 
-  // Check if any filters are active
-  const hasActiveFilters = activeFilter !== "all" || timeFilter !== "all" || searchQuery.trim();
+  const handleTimelineItemClick = txn => {
+    router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`);
+  };
 
   return (
     <div className="min-h-screen">
@@ -244,11 +370,12 @@ export default function HistoryPage() {
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
                 "relative flex-shrink-0 rounded-xl p-3 transition-colors",
-                showFilters ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
+                showFilters
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-accent"
               )}
             >
               <SlidersHorizontal className="h-5 w-5" />
-              {/* Active filter indicator */}
               {hasActiveFilters && !showFilters && (
                 <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-primary" />
               )}
@@ -259,7 +386,6 @@ export default function HistoryPage() {
         {/* Filter Chips */}
         {showFilters && (
           <div className="animate-slide-up space-y-3 border-b border-border px-4 py-3">
-            {/* Type filters */}
             <div>
               <p className="mb-2 text-xs text-muted-foreground">Type</p>
               <div className="flex flex-wrap gap-2 overflow-x-hidden">
@@ -280,7 +406,6 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            {/* Time filters */}
             <div>
               <p className="mb-2 text-xs text-muted-foreground">Time Period</p>
               <div className="flex flex-wrap gap-2 overflow-x-hidden">
@@ -301,7 +426,6 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            {/* Clear filters */}
             {hasActiveFilters && (
               <button
                 onClick={() => {
@@ -321,15 +445,21 @@ export default function HistoryPage() {
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground">{stats.count} transactions</span>
+              <span className="text-muted-foreground">
+                {stats.personCount} {stats.personCount === 1 ? "person" : "people"}
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="text-muted-foreground">
+                {stats.totalTxns} {stats.totalTxns === 1 ? "transaction" : "transactions"}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Transaction List */}
+      {/* Person-wise Transaction List */}
       <div className="overflow-y-auto overflow-x-hidden">
-        {groupedTransactions.length === 0 ? (
+        {personGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <p className="mb-2 text-muted-foreground">No transactions found</p>
             {hasActiveFilters && (
@@ -346,87 +476,12 @@ export default function HistoryPage() {
             )}
           </div>
         ) : (
-          groupedTransactions.map(group => (
-            <div key={group.key} className="bg-card/30 backdrop-blur-sm">
-              {/* Month Header */}
-              <div className="header-glass sticky top-0 z-10 flex items-center justify-between border-b border-border px-4 py-4">
-                <span className="font-heading text-lg tracking-wide">{group.label}</span>
-              </div>
-
-              {/* Transactions */}
-              <div className="divide-y divide-border">
-                {group.transactions.map(txn => (
-                  <div
-                    key={`${txn.type}-${txn.id}`}
-                    className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 active:scale-[0.99]"
-                    onClick={() =>
-                      router.push(`/person/${txn.type}/${txn.personId}?txnId=${txn.id}`)
-                    }
-                  >
-                    <PersonAvatar
-                      name={txn.personName}
-                      image={txn.personImage}
-                      size="md"
-                      className="avatar-hero"
-                    />
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-bold">{txn.personName}</p>
-                      </div>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {/* show supplier and customer with icon and color badge next to the date in one line */}
-                        {txn.type === "supplier" ? (
-                          <span className="text-green-500  inline-flex items-center gap-1">
-                            <Store className="h-2.5 w-2.5" /> Supplier
-                          </span>
-                        ) : (
-                          <span className="text-red-500 ">
-                            <Users className="h-2.5 w-2.5" /> Customer
-                          </span>
-                        )}
-                        {" • "}
-                        {format(parseISO(txn.time || txn.date), "dd MMM, h:mm a")}
-                      </p>
-                    </div>
-
-                    <div className="flex-shrink-0 text-right">
-                      <div className="flex items-center gap-1 font-mono font-semibold">
-                        {/* {txn.isOutgoing ? (
-                          <ArrowUpRight
-                            className={cn(
-                              "h-4 w-4",
-                              txn.status === "paid" ? "amount-positive" : "amount-negative"
-                            )}
-                          />
-                        ) : (
-                          <ArrowDownLeft
-                            className={cn(
-                              "h-4 w-4",
-                              txn.status === "paid" ? "amount-positive" : "amount-negative"
-                            )}
-                          />
-                        )} */}
-                        <span
-                          className={txn.status === "paid" ? "amount-positive" : "amount-negative"}
-                        >
-                          ₹{txn.amount.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                      {/* Status badge - Paid (green) or Pending (orange) */}
-                      <span
-                        className={cn(
-                          "text-[10px] font-medium",
-                          txn.status === "paid" ? "status-paid" : "status-pending"
-                        )}
-                      >
-                        {txn.status === "paid" ? "Paid" : "Pending"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          personGroups.map(person => (
+            <PersonHistoryCard
+              key={person.key}
+              person={person}
+              onTimelineItemClick={handleTimelineItemClick}
+            />
           ))
         )}
       </div>
