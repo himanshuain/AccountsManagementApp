@@ -315,10 +315,75 @@ export function BillGallery({ transactions, suppliers }) {
               draggable={false}
             />
 
-            {/* Swipe hint for mobile */}
-            {zoom === 1 && (
-              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 text-xs text-white/50">
-                <span>← Swipe to navigate →</span>
+            {/* Carousel dots */}
+            {zoom === 1 && allBills.length > 1 && (
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                <div className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-2 backdrop-blur-sm">
+                  {allBills.length <= 7 ? (
+                    allBills.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          const bill = allBills[idx];
+                          setSelectedImage(resolveImageUrl(bill.url));
+                          setSelectedTransaction(bill.transaction);
+                          setZoom(1);
+                          setPosition({ x: 0, y: 0 });
+                        }}
+                        className="transition-all duration-200"
+                        style={{
+                          width: idx === currentIndex ? 20 : 8,
+                          height: 8,
+                          borderRadius: 999,
+                          backgroundColor: idx === currentIndex
+                            ? "white"
+                            : "rgba(255,255,255,0.4)",
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <>
+                      {(() => {
+                        const maxDots = 7;
+                        const start = Math.min(
+                          Math.max(currentIndex - Math.floor(maxDots / 2), 0),
+                          allBills.length - maxDots
+                        );
+                        return (
+                          <>
+                            {start > 0 && <span className="text-[10px] text-white/40">•••</span>}
+                            {Array.from({ length: maxDots }, (_, i) => {
+                              const idx = start + i;
+                              const distance = Math.abs(idx - currentIndex);
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    const bill = allBills[idx];
+                                    setSelectedImage(resolveImageUrl(bill.url));
+                                    setSelectedTransaction(bill.transaction);
+                                    setZoom(1);
+                                    setPosition({ x: 0, y: 0 });
+                                  }}
+                                  className="transition-all duration-200"
+                                  style={{
+                                    width: idx === currentIndex ? 20 : distance <= 1 ? 8 : 6,
+                                    height: idx === currentIndex ? 8 : distance <= 1 ? 8 : 6,
+                                    borderRadius: 999,
+                                    backgroundColor: idx === currentIndex
+                                      ? "white"
+                                      : `rgba(255,255,255,${distance <= 1 ? 0.5 : 0.25})`,
+                                  }}
+                                />
+                              );
+                            })}
+                            {start + maxDots < allBills.length && <span className="text-[10px] text-white/40">•••</span>}
+                          </>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

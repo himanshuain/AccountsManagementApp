@@ -91,6 +91,60 @@ function ChevronDown({ className }) {
 }
 
 /**
+ * Carousel dot indicators for multi-image viewers.
+ * Shows up to MAX_VISIBLE dots with a sliding window for large sets.
+ */
+const MAX_VISIBLE_DOTS = 7;
+
+function CarouselDots({ total, current, onDotClick }) {
+  if (total <= 1) return null;
+
+  const showCompact = total > MAX_VISIBLE_DOTS;
+
+  let startIdx = 0;
+  if (showCompact) {
+    startIdx = Math.min(
+      Math.max(current - Math.floor(MAX_VISIBLE_DOTS / 2), 0),
+      total - MAX_VISIBLE_DOTS
+    );
+  }
+  const visibleCount = showCompact ? MAX_VISIBLE_DOTS : total;
+
+  return (
+    <div className="pointer-events-auto fixed bottom-[120px] left-0 right-0 z-[2147483647] flex justify-center">
+      <div className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-2 backdrop-blur-sm">
+        {showCompact && startIdx > 0 && (
+          <span className="text-[10px] text-white/40">•••</span>
+        )}
+        {Array.from({ length: visibleCount }, (_, i) => {
+          const idx = startIdx + i;
+          const isActive = idx === current;
+          const distance = Math.abs(idx - current);
+          return (
+            <button
+              key={idx}
+              onClick={() => onDotClick?.(idx)}
+              className="transition-all duration-200"
+              style={{
+                width: isActive ? 20 : distance <= 1 ? 8 : 6,
+                height: isActive ? 8 : distance <= 1 ? 8 : 6,
+                borderRadius: 999,
+                backgroundColor: isActive
+                  ? "white"
+                  : `rgba(255,255,255,${distance <= 1 ? 0.5 : 0.25})`,
+              }}
+            />
+          );
+        })}
+        {showCompact && startIdx + MAX_VISIBLE_DOTS < total && (
+          <span className="text-[10px] text-white/40">•••</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Custom broken/loading elements
  */
 function LoadingElement() {
@@ -537,6 +591,14 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         onClose={() => onOpenChange(false)}
         sizeLabel={sizeLabel}
       />
+      {/* Carousel dots */}
+      {normalizedImages.length > 1 && (
+        <CarouselDots
+          total={normalizedImages.length}
+          current={currentIndex}
+          onDotClick={setCurrentIndex}
+        />
+      )}
     </>
   );
 

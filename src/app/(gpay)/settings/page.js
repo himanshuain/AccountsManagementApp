@@ -1374,98 +1374,59 @@ export default function SettingsPage() {
       items: [
         {
           icon: IndianRupee,
-          label: "Income Tracker",
-          sublabel: isProtected("income") ? "🔒 Protected" : "Track daily & monthly income",
-          color: "amount-positive",
-          bgColor: "bg-emerald-500/20",
+          label: "Income",
+          sublabel: isProtected("income") ? "Protected" : "Track earnings",
+          iconColor: "text-emerald-600 dark:text-emerald-400",
+          bgColor: "bg-emerald-500/10 dark:bg-emerald-500/20",
+          borderColor: "border-emerald-500/20",
           onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
-          rightContent: isProtected("income") ? (
-            <Lock className="h-4 w-4 text-emerald-500" />
-          ) : null,
+          badge: isProtected("income") ? "lock" : null,
         },
         {
           icon: BarChart3,
           label: "Reports",
-          sublabel: isProtected("reports") ? "🔒 Protected" : "View analytics & insights",
-          color: "text-primary",
-          bgColor: "bg-primary/20",
+          sublabel: isProtected("reports") ? "Protected" : "Analytics",
+          iconColor: "text-blue-600 dark:text-blue-400",
+          bgColor: "bg-blue-500/10 dark:bg-blue-500/20",
+          borderColor: "border-blue-500/20",
           onClick: () => handleOpenProtectedModal("reports", setReportsModalOpen),
-          rightContent: isProtected("reports") ? <Lock className="h-4 w-4 text-primary" /> : null,
+          badge: isProtected("reports") ? "lock" : null,
         },
         {
           icon: Database,
-          label: "Backup & Export",
-          sublabel: "Manage your data & PDFs",
-          color: "status-pending",
-          bgColor: "bg-amber-500/20",
+          label: "Backup",
+          sublabel: "Export data",
+          iconColor: "text-amber-600 dark:text-amber-400",
+          bgColor: "bg-amber-500/10 dark:bg-amber-500/20",
+          borderColor: "border-amber-500/20",
           onClick: () => setBackupModalOpen(true),
         },
       ],
     },
     {
       section: "Appearance",
-      items: [
-        {
-          icon: isDark ? Moon : Sun,
-          label: "Theme",
-          sublabel: isDark ? "Iron Man (Dark)" : "Spider-Man (Light)",
-          color: isDark ? "text-amber-400" : "text-red-500",
-          bgColor: isDark ? "bg-amber-500/20" : "bg-red-500/20",
-          onClick: toggleTheme,
-          rightContent: (
-            <span className="text-xs text-muted-foreground">{isDark ? "🦾" : "🕷️"}</span>
-          ),
-        },
-        {
-          icon: showHeroBackground ? ImageIcon : EyeOff,
-          label: "Hero Background",
-          sublabel: showHeroBackground ? "Superhero art visible" : "Background art hidden",
-          color: showHeroBackground ? "text-primary" : "text-muted-foreground",
-          bgColor: showHeroBackground ? "bg-primary/20" : "bg-muted",
-          onClick: toggleHeroBackground,
-          rightContent: (
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation();
-                toggleHeroBackground();
-              }}
-              className={cn(
-                "relative h-6 w-11 rounded-full transition-colors",
-                showHeroBackground ? "bg-primary" : "bg-muted-foreground/30"
-              )}
-            >
-              <div
-                className={cn(
-                  "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                  showHeroBackground ? "translate-x-6" : "translate-x-1"
-                )}
-              />
-            </button>
-          ),
-        },
-      ],
+      custom: true,
     },
     {
       section: "Security",
       items: [
         {
           icon: Fingerprint,
-          label: "Biometric Lock",
-          sublabel: biometricSettings.enabled ? "🔒 Enabled" : "Protect sensitive data",
-          color: biometricSettings.enabled ? "text-emerald-500" : "text-muted-foreground",
-          bgColor: biometricSettings.enabled ? "bg-emerald-500/20" : "bg-muted",
+          label: "Biometric",
+          sublabel: biometricSettings.enabled ? "Enabled" : "Set up",
+          iconColor: biometricSettings.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500",
+          bgColor: biometricSettings.enabled ? "bg-emerald-500/10 dark:bg-emerald-500/20" : "bg-muted/50",
+          borderColor: biometricSettings.enabled ? "border-emerald-500/20" : "border-border",
           onClick: () => handleOpenProtectedModal("biometric-settings", setBiometricModalOpen),
-          rightContent: biometricSettings.enabled ? (
-            <Shield className="h-4 w-4 text-emerald-500" />
-          ) : null,
+          badge: biometricSettings.enabled ? "shield" : null,
         },
         {
           icon: Lock,
           label: "Change PIN",
-          sublabel: "Update your security PIN",
-          color: "text-muted-foreground",
-          bgColor: "bg-muted",
+          sublabel: "Update PIN",
+          iconColor: "text-slate-600 dark:text-slate-400",
+          bgColor: "bg-slate-500/10 dark:bg-slate-500/20",
+          borderColor: "border-slate-500/20",
           onClick: () => setChangePinModalOpen(true),
         },
       ],
@@ -1476,9 +1437,10 @@ export default function SettingsPage() {
         {
           icon: LogOut,
           label: "Logout",
-          sublabel: "Sign out of your account",
-          color: "text-destructive",
-          bgColor: "bg-destructive/20",
+          sublabel: "Sign out",
+          iconColor: "text-red-600 dark:text-red-400",
+          bgColor: "bg-red-500/10 dark:bg-red-500/20",
+          borderColor: "border-red-500/20",
           onClick: handleLogout,
         },
       ],
@@ -1500,48 +1462,296 @@ export default function SettingsPage() {
           <StorageInfo />
         </details>
 
-        {menuItems.map(section => (
-          <div key={section.section}>
-            <h2 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {section.section}
-            </h2>
-            <div className="theme-card divide-y divide-border overflow-hidden">
-              {section.items.map(item => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.label}
-                    role="button"
-                    tabIndex={0}
-                    onClick={item.onClick}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        item.onClick?.();
-                      }
-                    }}
-                    className="w-full text-left transition-colors hover:bg-accent/20"
+        {menuItems.map(section => {
+          if (section.custom) {
+            return (
+              <div key={section.section}>
+                <h2 className="mb-3 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {section.section}
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Theme Card */}
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    onClick={toggleTheme}
+                    className={cn(
+                      "relative overflow-hidden rounded-2xl border p-4 text-left",
+                      isDark
+                        ? "border-indigo-500/30 bg-gradient-to-br from-indigo-950/80 via-slate-900/60 to-violet-950/80"
+                        : "border-orange-300/40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50"
+                    )}
                   >
-                    <div className="flex items-center gap-3 p-4">
-                      <div
-                        className={`h-10 w-10 rounded-full ${item.bgColor} flex items-center justify-center`}
-                      >
-                        <Icon className={`h-5 w-5 ${item.color}`} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">{item.sublabel}</p>
-                      </div>
-                      {item.rightContent || (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      )}
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                      <AnimatePresence mode="wait">
+                        {isDark ? (
+                          <motion.div
+                            key="dark"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            {[...Array(5)].map((_, i) => (
+                              <motion.div
+                                key={i}
+                                className="absolute h-1 w-1 rounded-full bg-white"
+                                style={{
+                                  top: `${15 + i * 18}%`,
+                                  left: `${60 + (i % 3) * 12}%`,
+                                }}
+                                animate={{
+                                  opacity: [0.2, 0.8, 0.2],
+                                  scale: [0.8, 1.2, 0.8],
+                                }}
+                                transition={{
+                                  duration: 2 + i * 0.4,
+                                  repeat: Infinity,
+                                  delay: i * 0.3,
+                                }}
+                              />
+                            ))}
+                            <motion.div
+                              className="absolute right-3 top-3 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-300/30 to-violet-400/20"
+                              animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
+                              transition={{ duration: 4, repeat: Infinity }}
+                            />
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="light"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <motion.div
+                              className="absolute right-2 top-2 h-10 w-10 rounded-full bg-gradient-to-br from-amber-300/40 to-orange-300/30"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 3, repeat: Infinity }}
+                            />
+                            {[...Array(4)].map((_, i) => (
+                              <motion.div
+                                key={i}
+                                className="absolute bg-gradient-to-r from-amber-400/20 to-transparent"
+                                style={{
+                                  width: 30 + i * 8,
+                                  height: 1.5,
+                                  top: `${20 + i * 15}%`,
+                                  right: 8,
+                                  transformOrigin: "right center",
+                                  rotate: -45 + i * 30,
+                                }}
+                                animate={{ opacity: [0.3, 0.6, 0.3], scaleX: [0.7, 1, 0.7] }}
+                                transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                              />
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                );
-              })}
+
+                    <div className="relative z-10 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={isDark ? "moon" : "sun"}
+                            initial={{ rotate: -90, scale: 0, opacity: 0 }}
+                            animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                            exit={{ rotate: 90, scale: 0, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                            className={cn(
+                              "flex h-11 w-11 items-center justify-center rounded-xl",
+                              isDark ? "bg-indigo-500/20" : "bg-amber-400/20"
+                            )}
+                          >
+                            {isDark ? (
+                              <Moon className="h-6 w-6 text-indigo-300" />
+                            ) : (
+                              <Sun className="h-6 w-6 text-amber-500" />
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+                        <span className="text-lg">{isDark ? "🦾" : "🕷️"}</span>
+                      </div>
+                      <div>
+                        <p className={cn(
+                          "text-sm font-semibold",
+                          isDark ? "text-indigo-100" : "text-amber-900"
+                        )}>
+                          Theme
+                        </p>
+                        <p className={cn(
+                          "text-[11px]",
+                          isDark ? "text-indigo-300/70" : "text-amber-700/60"
+                        )}>
+                          {isDark ? "Iron Man" : "Spider-Man"}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.button>
+
+                  {/* Hero Art Card */}
+                  <motion.button
+                    whileTap={{ scale: 0.96 }}
+                    onClick={toggleHeroBackground}
+                    className={cn(
+                      "relative overflow-hidden rounded-2xl border p-4 text-left",
+                      showHeroBackground
+                        ? "border-violet-500/30 bg-gradient-to-br from-violet-500/15 via-fuchsia-500/10 to-pink-500/15"
+                        : "border-border bg-muted/40"
+                    )}
+                  >
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                      <AnimatePresence>
+                        {showHeroBackground && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <motion.div
+                              className="absolute -right-3 bottom-0 h-16 w-16 rounded-tl-3xl bg-gradient-to-tl from-violet-500/15 to-fuchsia-500/10"
+                              animate={{ scale: [1, 1.1, 1], rotate: [0, 3, 0] }}
+                              transition={{ duration: 5, repeat: Infinity }}
+                            />
+                            <motion.div
+                              className="absolute -left-2 top-6 h-10 w-10 rounded-full bg-gradient-to-br from-pink-400/15 to-violet-400/10"
+                              animate={{
+                                y: [0, -4, 0],
+                                x: [0, 2, 0],
+                              }}
+                              transition={{ duration: 4, repeat: Infinity }}
+                            />
+                            {[...Array(3)].map((_, i) => (
+                              <motion.div
+                                key={i}
+                                className="absolute h-0.5 w-0.5 rounded-full bg-violet-400/60"
+                                style={{
+                                  top: `${25 + i * 25}%`,
+                                  left: `${45 + i * 15}%`,
+                                }}
+                                animate={{
+                                  opacity: [0, 1, 0],
+                                  scale: [0.5, 1.5, 0.5],
+                                }}
+                                transition={{
+                                  duration: 1.5,
+                                  repeat: Infinity,
+                                  delay: i * 0.5,
+                                }}
+                              />
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={showHeroBackground ? "on" : "off"}
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.5, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 250, damping: 18 }}
+                            className={cn(
+                              "flex h-11 w-11 items-center justify-center rounded-xl",
+                              showHeroBackground ? "bg-violet-500/20" : "bg-muted"
+                            )}
+                          >
+                            {showHeroBackground ? (
+                              <ImageIcon className="h-6 w-6 text-violet-500 dark:text-violet-400" />
+                            ) : (
+                              <EyeOff className="h-6 w-6 text-muted-foreground" />
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+                        <span
+                          role="switch"
+                          aria-checked={showHeroBackground}
+                          onClick={e => { e.stopPropagation(); toggleHeroBackground(); }}
+                        >
+                          <motion.span
+                            className={cn(
+                              "flex h-6 w-11 items-center rounded-full px-0.5",
+                              showHeroBackground ? "bg-violet-500" : "bg-muted-foreground/30"
+                            )}
+                            layout
+                          >
+                            <motion.span
+                              className="h-5 w-5 rounded-full bg-white shadow-sm"
+                              layout
+                              animate={{ x: showHeroBackground ? 20 : 0 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                          </motion.span>
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Hero Art</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {showHeroBackground ? "Artwork visible" : "Background hidden"}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.button>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={section.section}>
+              <h2 className="mb-3 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {section.section}
+              </h2>
+              <div className="grid grid-cols-3 gap-3">
+                {section.items.map(item => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.button
+                      key={item.label}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={item.onClick}
+                      className={cn(
+                        "relative flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-all active:shadow-none",
+                        item.bgColor,
+                        item.borderColor
+                      )}
+                    >
+                      {item.badge && (
+                        <span className="absolute right-2 top-2 text-[10px]">
+                          {item.badge === "lock" ? (
+                            <Lock className="h-3 w-3 text-emerald-500" />
+                          ) : item.badge === "shield" ? (
+                            <Shield className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            item.badge
+                          )}
+                        </span>
+                      )}
+                      <div
+                        className={cn(
+                          "flex h-12 w-12 items-center justify-center rounded-xl",
+                          item.bgColor
+                        )}
+                      >
+                        <Icon className={cn("h-6 w-6", item.iconColor)} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold leading-tight">{item.label}</p>
+                        <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+                          {item.sublabel}
+                        </p>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <IncomeModal

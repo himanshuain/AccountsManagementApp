@@ -140,7 +140,7 @@ export function BillsGalleryModal({
             }))}
             autoPlay={false}
             aspectRatio="aspect-[4/3]"
-            showDots={false}
+            showDots={allBills.length > 1}
             showGradientEdges={allBills.length > 1}
             onSlideChange={setCurrentIdx}
             onImageClick={handleImageClick}
