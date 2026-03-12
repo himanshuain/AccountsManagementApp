@@ -2,6 +2,12 @@
 
 A modern, mobile-first web application for managing clothes shop suppliers, customers, transactions, and bills with secure cloud storage.
 
+## 🎬 Demo
+
+[![Watch Demo Video](https://img.shields.io/badge/🎬_Watch_Demo-Loom_Video-blueviolet?style=for-the-badge&logo=loom)](https://www.loom.com/share/83aac786ddb94234a9424f32c8c2cea7)
+
+---
+
 ## ✨ Features
 
 ### Core Features
