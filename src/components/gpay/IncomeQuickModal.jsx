@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { getLocalDate } from "@/lib/date-utils";
 
 /**
@@ -14,8 +14,6 @@ export function IncomeQuickModal({ open, onClose, onSubmit }) {
   const [onlineAmount, setOnlineAmount] = useState("");
   const [date, setDate] = useState(today);
   const [submitting, setSubmitting] = useState(false);
-
-  usePreventBodyScroll(open);
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -49,19 +47,9 @@ export function IncomeQuickModal({ open, onClose, onSubmit }) {
     setSubmitting(false);
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose}>
-      <div
-        className="pb-nav animate-slide-up absolute bottom-0 left-0 right-0 overscroll-contain rounded-t-3xl bg-card"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-center py-3">
-          <div className="sheet-handle" />
-        </div>
-
-        <div className="px-4 pb-6">
+    <BottomSheet open={open} onClose={onClose} detent="content">
+      <div className="px-4 pb-6 pb-nav">
           <h2 className="mb-4 font-heading text-xl tracking-wide">Add Income</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,9 +116,8 @@ export function IncomeQuickModal({ open, onClose, onSubmit }) {
               {submitting ? "Adding..." : "Add Income"}
             </button>
           </form>
-        </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 }
 

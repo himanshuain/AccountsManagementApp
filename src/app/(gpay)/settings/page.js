@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { BottomSheet, Sheet } from "@/components/ui/bottom-sheet";
 import {
   ChevronRight,
   IndianRupee,
@@ -281,11 +281,16 @@ function IncomeModal({ open, onClose }) {
   };
 
   return (
-    <DragCloseDrawer
-      open={open}
-      onOpenChange={v => { if (!v && !deleteItem) onClose(); }}
-      height="max-h-[90vh]"
+    <Sheet
+      isOpen={open}
+      onClose={() => { if (!deleteItem) onClose(); }}
+      snapPoints={[0, 0.6, 1]}
+      initialSnap={1}
+      modalEffectRootId="__next"
     >
+      <Sheet.Container>
+        <Sheet.Header />
+        <Sheet.Content>
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Income Tracker</h2>
 
@@ -568,6 +573,9 @@ function IncomeModal({ open, onClose }) {
             </div>
           </div>
         </div>
+        </Sheet.Content>
+      </Sheet.Container>
+      <Sheet.Backdrop onTap={() => { if (!deleteItem) onClose(); }} />
 
       <DeleteConfirmDialog
         open={!!deleteItem}
@@ -580,7 +588,7 @@ function IncomeModal({ open, onClose }) {
             : ""
         }
       />
-    </DragCloseDrawer>
+    </Sheet>
   );
 }
 
@@ -635,7 +643,16 @@ function ReportsModal({ open, onClose }) {
   }, [transactions, udharList, incomeList]);
 
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
+    <Sheet
+      isOpen={open}
+      onClose={onClose}
+      snapPoints={[0, 0.6, 1]}
+      initialSnap={1}
+      modalEffectRootId="__next"
+    >
+      <Sheet.Container>
+        <Sheet.Header />
+        <Sheet.Content>
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Reports</h2>
 
@@ -724,7 +741,10 @@ function ReportsModal({ open, onClose }) {
             </div>
           </div>
         </div>
-    </DragCloseDrawer>
+        </Sheet.Content>
+      </Sheet.Container>
+      <Sheet.Backdrop onTap={onClose} />
+    </Sheet>
   );
 }
 
@@ -951,7 +971,16 @@ function BackupModal({ open, onClose }) {
   };
 
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
+    <Sheet
+      isOpen={open}
+      onClose={onClose}
+      snapPoints={[0, 0.6, 1]}
+      initialSnap={1}
+      modalEffectRootId="__next"
+    >
+      <Sheet.Container>
+        <Sheet.Header />
+        <Sheet.Content>
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Backup & Export</h2>
 
@@ -1117,7 +1146,10 @@ function BackupModal({ open, onClose }) {
             </div>
           </div>
         </div>
-    </DragCloseDrawer>
+        </Sheet.Content>
+      </Sheet.Container>
+      <Sheet.Backdrop onTap={onClose} />
+    </Sheet>
   );
 }
 
@@ -1171,7 +1203,7 @@ function ChangePinModal({ open, onClose }) {
   };
 
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="h-auto">
+    <BottomSheet open={open} onClose={onClose} detent="content">
         <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Change PIN</h2>
 
@@ -1241,7 +1273,7 @@ function ChangePinModal({ open, onClose }) {
             </button>
           </div>
         </div>
-    </DragCloseDrawer>
+    </BottomSheet>
   );
 }
 
@@ -1262,7 +1294,16 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
   };
 
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[90vh]">
+    <Sheet
+      isOpen={open}
+      onClose={onClose}
+      snapPoints={[0, 0.6, 1]}
+      initialSnap={1}
+      modalEffectRootId="__next"
+    >
+      <Sheet.Container>
+        <Sheet.Header />
+        <Sheet.Content>
         <div className="p-4">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="font-heading text-xl tracking-wide">Biometric Lock</h2>
@@ -1393,7 +1434,10 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
             </div>
           </div>
         </div>
-    </DragCloseDrawer>
+        </Sheet.Content>
+      </Sheet.Container>
+      <Sheet.Backdrop onTap={onClose} />
+    </Sheet>
   );
 }
 

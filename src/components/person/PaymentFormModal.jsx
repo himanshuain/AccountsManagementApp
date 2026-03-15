@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   PhotoGalleryViewer as ImageGalleryViewer,
 } from "@/components/PhotoViewer";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { Sheet } from "@/components/ui/bottom-sheet";
 import { getImageUrls, isDataUrl } from "@/lib/image-url";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
@@ -151,10 +151,11 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
     return !!(amount || notes || receiptImages.length > 0 || isReturn || date !== today);
   };
 
-  const handleBeforeClose = async () => {
-    if (isSubmitting) return false;
-    if (!isFormDirty()) return true;
-    return confirm("You have unsaved changes. Are you sure you want to close?");
+  const handleCloseClick = () => {
+    if (isSubmitting) return;
+    if (isFormDirty() && !confirm("You have unsaved changes. Are you sure you want to close?"))
+      return;
+    onClose();
   };
 
   const handleSubmit = e => {
@@ -175,15 +176,26 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
     onSubmit(paymentAmount, date, false, receiptImages, notes, isReturn);
   };
 
+  const disableDismiss = isFormDirty() || isSubmitting;
+
   return (
-    <DragCloseDrawer open={true} onOpenChange={v => { if (!v) onClose(); }} beforeClose={handleBeforeClose} height="h-auto">
-      <div className="px-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-heading text-lg tracking-wide">Record Payment</h3>
-          <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <>
+      <Sheet
+        isOpen={true}
+        onClose={() => onClose()}
+        detent="content"
+        disableDismiss={disableDismiss}
+      >
+        <Sheet.Container>
+          <Sheet.Header />
+          <Sheet.Content>
+            <div className="px-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-heading text-lg tracking-wide">Record Payment</h3>
+                <button onClick={handleCloseClick} className="rounded-full p-2 transition-colors hover:bg-muted">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
         <div className="mb-4 rounded-xl bg-muted py-4 text-center">
           <p className="mb-1 text-xs text-muted-foreground">Pending Amount</p>
@@ -388,7 +400,11 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
             </button>
           </div>
         </form>
-      </div>
+            </div>
+          </Sheet.Content>
+        </Sheet.Container>
+        <Sheet.Backdrop onTap={!disableDismiss ? onClose : undefined} />
+      </Sheet>
 
       <ImageGalleryViewer
         images={receiptImages}
@@ -396,7 +412,7 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
         open={imageViewerOpen}
         onOpenChange={setImageViewerOpen}
       />
-    </DragCloseDrawer>
+    </>
   );
 }
 

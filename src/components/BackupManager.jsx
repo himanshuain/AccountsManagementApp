@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import { Sheet } from "@/components/ui/bottom-sheet";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -249,17 +249,20 @@ export function BackupManager({ open, onOpenChange }) {
 
   return (
     <>
-      <DragCloseDrawer open={open} onOpenChange={onOpenChange} height="h-[85vh]">
+      <Sheet isOpen={open} onClose={() => onOpenChange(false)} detent="default">
+        <Sheet.Container>
+          <Sheet.Header />
+          <Sheet.Content>
         <div className="px-4">
-        <DrawerHeader className="flex flex-col items-start gap-1 text-left">
-          <DrawerTitle className="flex items-center gap-2">
+        <div className="flex flex-col items-start gap-1 text-left">
+          <h3 className="flex items-center gap-2 text-base font-semibold">
             <HardDrive className="h-5 w-5" />
             Backup & Restore
-          </DrawerTitle>
+          </h3>
           <p className="text-sm text-muted-foreground">
             Download, email, or restore your shop data
           </p>
-        </DrawerHeader>
+        </div>
 
           {/* Tab Navigation */}
           <div className="mt-4 flex gap-1 rounded-lg bg-muted p-1">
@@ -586,7 +589,10 @@ export function BackupManager({ open, onOpenChange }) {
             )}
           </div>
         </div>
-      </DragCloseDrawer>
+          </Sheet.Content>
+        </Sheet.Container>
+        <Sheet.Backdrop onTap={() => onOpenChange(false)} />
+      </Sheet>
 
       {/* Restore Confirmation Dialog */}
       <AlertDialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>

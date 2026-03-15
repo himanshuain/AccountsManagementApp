@@ -6,7 +6,7 @@ import { Loader2, X, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { Sheet } from "@/components/ui/bottom-sheet";
 import { ImageUpload, MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -135,14 +135,11 @@ export function CustomerForm({
     }
   };
 
-  const handleBeforeClose = async () => {
-    if (isSubmitting) return false;
-    if (!isFormDirty()) return true;
-    return confirm("You have unsaved changes. Are you sure you want to close?");
-  };
-
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
+    <Sheet isOpen={open} onClose={resetAndClose} detent="default" disableDismiss={isFormDirty()}>
+      <Sheet.Container>
+        <Sheet.Header />
+        <Sheet.Content>
         {/* Header with action buttons */}
         <div className="border-b px-4 pb-3">
           <div className="flex items-center justify-between gap-2">
@@ -294,7 +291,10 @@ export function CustomerForm({
             <div className="h-8" />
           </form>
         </div>
-    </DragCloseDrawer>
+        </Sheet.Content>
+      </Sheet.Container>
+      <Sheet.Backdrop onTap={isFormDirty() ? undefined : resetAndClose} />
+    </Sheet>
   );
 }
 
