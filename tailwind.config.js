@@ -55,11 +55,11 @@ module.exports = {
           pink: "#FF4D6D",
           web: "#2D2D44",
         },
-        ironman: {
-          gold: "#B8860B",
-          red: "#8B0000",
-          cyan: "#00D4FF",
-          metal: "#2D1810",
+        claude: {
+          coral: "#D4734B",
+          surface: "#161618",
+          elevated: "#252527",
+          subtle: "#2A2A2D",
         },
         chart: {
           1: "hsl(var(--chart-1))",
@@ -77,8 +77,8 @@ module.exports = {
       backgroundImage: {
         "web-pattern": "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L30 60M0 30L60 30M0 0L60 60M60 0L0 60' stroke='%23E62429' stroke-width='0.5' fill='none' opacity='0.1'/%3E%3C/svg%3E\")",
         "hex-pattern": "url(\"data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z' fill='%23B8860B' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E\")",
-        "metallic-gradient": "linear-gradient(135deg, #2D1810 0%, #4A2A1F 25%, #2D1810 50%, #4A2A1F 75%, #2D1810 100%)",
-        "arc-glow": "radial-gradient(circle, rgba(0,212,255,0.3) 0%, rgba(0,212,255,0) 70%)",
+        "metallic-gradient": "linear-gradient(135deg, #161618 0%, #252527 25%, #161618 50%, #252527 75%, #161618 100%)",
+        "arc-glow": "radial-gradient(circle, rgba(212,115,75,0.2) 0%, rgba(212,115,75,0) 70%)",
       },
       animation: {
         glitch: "glitch 0.3s ease-in-out",
@@ -95,8 +95,8 @@ module.exports = {
           "80%": { transform: "translate(2px, -2px)" },
         },
         arcPulse: {
-          "0%, 100%": { boxShadow: "0 0 5px #00D4FF, 0 0 10px #00D4FF, 0 0 15px #00D4FF" },
-          "50%": { boxShadow: "0 0 10px #00D4FF, 0 0 20px #00D4FF, 0 0 30px #00D4FF" },
+          "0%, 100%": { boxShadow: "0 0 5px rgba(212,115,75,0.3), 0 0 10px rgba(212,115,75,0.15)" },
+          "50%": { boxShadow: "0 0 10px rgba(212,115,75,0.4), 0 0 20px rgba(212,115,75,0.2)" },
         },
         webSwing: {
           "0%": { transform: "translateY(-20px) rotate(-5deg)", opacity: "0" },

@@ -152,9 +152,9 @@ export function HeroBackground() {
                 <path
                   d="M28 0L56 14v28L28 56 0 42V14L28 0zm0 56L56 70v28L28 100 0 84V56l28-14z"
                   fill="none"
-                  stroke="#B8860B"
+                  stroke="#D4734B"
                   strokeWidth="0.5"
-                  opacity="0.15"
+                  opacity="0.08"
                 />
               </pattern>
             </defs>
@@ -282,18 +282,18 @@ export function HeroBackground() {
           >
             <defs>
               <linearGradient id="ironArmor" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#CC9A0B" stopOpacity="0.45" />
-                <stop offset="30%" stopColor="#8B0000" stopOpacity="0.4" />
-                <stop offset="70%" stopColor="#8B0000" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#CC9A0B" stopOpacity="0.3" />
+                <stop offset="0%" stopColor="#D4734B" stopOpacity="0.35" />
+                <stop offset="30%" stopColor="#A0543A" stopOpacity="0.3" />
+                <stop offset="70%" stopColor="#A0543A" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#D4734B" stopOpacity="0.2" />
               </linearGradient>
               <linearGradient id="ironGold" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#B8860B" stopOpacity="0.5" />
-                <stop offset="50%" stopColor="#FFD700" stopOpacity="0.45" />
-                <stop offset="100%" stopColor="#B8860B" stopOpacity="0.5" />
+                <stop offset="0%" stopColor="#D4734B" stopOpacity="0.4" />
+                <stop offset="50%" stopColor="#E8956E" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#D4734B" stopOpacity="0.4" />
               </linearGradient>
               <radialGradient id="arcReactor" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#00D4FF" stopOpacity="1">
+                <stop offset="0%" stopColor="#D4734B" stopOpacity="1">
                   <animate
                     attributeName="stop-opacity"
                     values="1;0.6;1"
@@ -301,7 +301,7 @@ export function HeroBackground() {
                     repeatCount="indefinite"
                   />
                 </stop>
-                <stop offset="40%" stopColor="#00D4FF" stopOpacity="0.6">
+                <stop offset="40%" stopColor="#D4734B" stopOpacity="0.6">
                   <animate
                     attributeName="stop-opacity"
                     values="0.6;0.3;0.6"
@@ -309,7 +309,7 @@ export function HeroBackground() {
                     repeatCount="indefinite"
                   />
                 </stop>
-                <stop offset="100%" stopColor="#00D4FF" stopOpacity="0" />
+                <stop offset="100%" stopColor="#D4734B" stopOpacity="0" />
               </radialGradient>
               <filter id="glow">
                 <feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -342,14 +342,14 @@ export function HeroBackground() {
               {/* Eye Slits - Glowing */}
               <path
                 d="M118 78 L142 72 L142 92 L118 98 Z"
-                fill="#00D4FF"
-                fillOpacity="0.8"
+                fill="#D4734B"
+                fillOpacity="0.7"
                 filter="url(#strongGlow)"
               />
               <path
                 d="M182 78 L158 72 L158 92 L182 98 Z"
-                fill="#00D4FF"
-                fillOpacity="0.8"
+                fill="#D4734B"
+                fillOpacity="0.7"
                 filter="url(#strongGlow)"
               />
 
@@ -363,20 +363,20 @@ export function HeroBackground() {
                 cy="190"
                 r="22"
                 fill="none"
-                stroke="#00D4FF"
+                stroke="#D4734B"
                 strokeWidth="2.5"
-                opacity="0.7"
+                opacity="0.6"
               />
-              <circle cx="150" cy="190" r="14" fill="#00D4FF" fillOpacity="0.6" />
+              <circle cx="150" cy="190" r="14" fill="#D4734B" fillOpacity="0.5" />
               <circle cx="150" cy="190" r="7" fill="#FFFFFF" fillOpacity="0.9">
                 <animate attributeName="r" values="7;9;7" dur="1s" repeatCount="indefinite" />
               </circle>
 
               {/* Chest Plates Lines */}
-              <path d="M105 155 L145 185" stroke="#B8860B" strokeWidth="2" opacity="0.4" />
-              <path d="M195 155 L155 185" stroke="#B8860B" strokeWidth="2" opacity="0.4" />
-              <path d="M98 225 L145 195" stroke="#B8860B" strokeWidth="1.5" opacity="0.35" />
-              <path d="M202 225 L155 195" stroke="#B8860B" strokeWidth="1.5" opacity="0.35" />
+              <path d="M105 155 L145 185" stroke="#D4734B" strokeWidth="2" opacity="0.3" />
+              <path d="M195 155 L155 185" stroke="#D4734B" strokeWidth="2" opacity="0.3" />
+              <path d="M98 225 L145 195" stroke="#D4734B" strokeWidth="1.5" opacity="0.25" />
+              <path d="M202 225 L155 195" stroke="#D4734B" strokeWidth="1.5" opacity="0.25" />
 
               {/* Left Arm - Repulsor pose */}
               <path
@@ -429,7 +429,7 @@ export function HeroBackground() {
             </g>
 
             {/* Armor Panel Lines */}
-            <g stroke="#B8860B" strokeWidth="0.8" fill="none" opacity="0.25">
+            <g stroke="#D4734B" strokeWidth="0.8" fill="none" opacity="0.15">
               <path d="M150 125 L150 290" />
               <path d="M115 160 L115 270" />
               <path d="M185 160 L185 270" />

@@ -67,45 +67,45 @@
     --theme-surface: 240 20% 95%;
   }
 
-  /* ========== IRON MAN MARK III THEME (Dark) ========== */
+  /* ========== CLAUDE DARK THEME ========== */
   .dark {
-    /* Core Colors - Metallic/Industrial with Red-Gold base */
-    --background: 8 45% 6%; /* #1A0D0A - Deep crimson black */
-    --foreground: 42 60% 88%; /* #F0E4C8 - Warm gold-white */
-    --card: 12 40% 11%; /* #2A1712 - Armor panel dark */
-    --card-foreground: 42 60% 88%;
-    --popover: 12 40% 11%;
-    --popover-foreground: 42 60% 88%;
+    /* Core Colors - Deep neutral dark, clean whites */
+    --background: 240 6% 4%; /* #0D0D0F - Near-black neutral */
+    --foreground: 240 5% 93%; /* #ECECEE - Clean bright white */
+    --card: 240 5% 9%; /* #161618 - Raised surface */
+    --card-foreground: 240 5% 93%;
+    --popover: 240 5% 9%;
+    --popover-foreground: 240 5% 93%;
 
-    /* Primary - Iron Man Gold */
-    --primary: 43 90% 42%; /* #CC9A0B - Brighter gold */
+    /* Primary - Warm Terracotta/Coral */
+    --primary: 16 60% 56%; /* #D4734B - Claude coral */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Armor Red */
-    --secondary: 0 85% 30%; /* #8E1414 - Armor red */
-    --secondary-foreground: 42 60% 88%;
+    /* Secondary - Dark surface */
+    --secondary: 240 3% 15%; /* #252527 */
+    --secondary-foreground: 240 5% 93%;
 
-    /* Accent - Arc Reactor Cyan */
-    --accent: 191 100% 50%; /* #00D4FF */
-    --accent-foreground: 8 45% 6%;
+    /* Accent - Same warm terracotta */
+    --accent: 16 60% 56%; /* #D4734B */
+    --accent-foreground: 240 6% 4%;
 
-    /* Muted - Gunmetal */
-    --muted: 12 25% 16%;
-    --muted-foreground: 30 20% 55%; /* #A08060 - Bronze tint */
+    /* Muted - Neutral dark gray */
+    --muted: 240 3% 15%; /* #252527 */
+    --muted-foreground: 240 4% 62%; /* #9B9BA3 - Medium gray */
 
     /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Border & Input - Gold tinted */
-    --border: 35 30% 22%;
-    --input: 12 25% 16%;
-    --ring: 43 90% 42%;
+    /* Border & Input - Very subtle */
+    --border: 240 4% 17%; /* #2A2A2D */
+    --input: 240 3% 15%;
+    --ring: 16 60% 56%;
 
     /* Charts */
-    --chart-1: 43 90% 42%;
-    --chart-2: 191 100% 50%;
-    --chart-3: 0 85% 30%;
+    --chart-1: 16 60% 56%;
+    --chart-2: 162 72% 46%;
+    --chart-3: 240 5% 65%;
     --chart-4: 142 76% 42%;
     --chart-5: 38 92% 50%;
 
@@ -114,8 +114,8 @@
     --warning: 38 92% 50%;
 
     /* Theme-specific */
-    --theme-glow: 191 100% 50%;
-    --theme-surface: 12 35% 14%;
+    --theme-glow: 16 60% 56%;
+    --theme-surface: 240 4% 12%;
   }
 }
 
@@ -209,33 +209,30 @@
   border-color: #e62429;
 }
 
-/* Iron Man Theme Colors */
-.text-iron-gold {
-  color: #b8860b;
+/* Claude Dark Theme Colors */
+.text-claude-coral {
+  color: #d4734b;
 }
-.text-iron-red {
-  color: #8b0000;
+.text-claude-gray {
+  color: #9b9ba3;
 }
-.text-iron-cyan {
-  color: #00d4ff;
+.text-claude-muted {
+  color: #6b6b73;
 }
-.bg-iron-gold {
-  background-color: #b8860b;
+.bg-claude-coral {
+  background-color: #d4734b;
 }
-.bg-iron-red {
-  background-color: #8b0000;
+.bg-claude-surface {
+  background-color: #161618;
 }
-.bg-iron-cyan {
-  background-color: #00d4ff;
+.bg-claude-elevated {
+  background-color: #252527;
 }
-.bg-iron-metal {
-  background-color: #2d1810;
+.border-claude-coral {
+  border-color: #d4734b;
 }
-.border-iron-gold {
-  border-color: #b8860b;
-}
-.border-iron-cyan {
-  border-color: #00d4ff;
+.border-claude-subtle {
+  border-color: #2a2a2d;
 }
 
 /* Semantic Colors */
@@ -259,11 +256,12 @@
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L30 60M0 30L60 30M0 0L60 60M60 0L0 60' stroke='%23E62429' stroke-width='0.5' fill='none' opacity='0.05'/%3E%3C/svg%3E");
 }
 
-/* Iron Man - Hexagonal Tech Pattern */
+/* Claude Dark - Subtle dot grid */
 .dark .bg-ironman-pattern,
 .bg-ironman-pattern.dark {
   background-color: hsl(var(--background));
-  background-image: url("data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z' fill='%23B8860B' fill-opacity='0.08' fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ============================================
@@ -271,26 +269,25 @@
    Note: Main character animations are in HeroBackground.jsx component
    ============================================ */
 
-/* Arc Reactor Glow Effect */
+/* Subtle Glow Effect */
 .arc-glow {
   box-shadow:
-    0 0 10px #00d4ff,
-    0 0 20px rgba(0, 212, 255, 0.5),
-    0 0 30px rgba(0, 212, 255, 0.3);
+    0 0 10px hsl(var(--primary) / 0.3),
+    0 0 20px hsl(var(--primary) / 0.15);
 }
 
 .arc-glow-sm {
   box-shadow:
-    0 0 5px #00d4ff,
-    0 0 10px rgba(0, 212, 255, 0.3);
+    0 0 5px hsl(var(--primary) / 0.2),
+    0 0 10px hsl(var(--primary) / 0.1);
 }
 
-/* Metallic Gradient */
+/* Elevated Surface Gradient */
 .metallic-surface {
   background: linear-gradient(
     135deg,
     hsl(var(--card)) 0%,
-    hsl(15 40% 18%) 50%,
+    hsl(var(--muted)) 50%,
     hsl(var(--card)) 100%
   );
 }
@@ -323,20 +320,19 @@
   animation: glitch 0.3s ease-in-out;
 }
 
-/* Arc Reactor Pulse - Iron Man */
+/* Soft Pulse */
 @keyframes arcPulse {
   0%,
   100% {
     box-shadow:
-      0 0 5px #00d4ff,
-      0 0 10px #00d4ff;
+      0 0 5px hsl(16 60% 56% / 0.3),
+      0 0 10px hsl(16 60% 56% / 0.15);
     opacity: 1;
   }
   50% {
     box-shadow:
-      0 0 15px #00d4ff,
-      0 0 30px #00d4ff,
-      0 0 45px rgba(0, 212, 255, 0.5);
+      0 0 10px hsl(16 60% 56% / 0.4),
+      0 0 20px hsl(16 60% 56% / 0.2);
     opacity: 0.9;
   }
 }
@@ -380,7 +376,7 @@
   animation: slideUp 0.3s ease-out forwards;
 }
 
-/* Metal Shine - Iron Man */
+/* Surface Shine */
 @keyframes metalShine {
   0% {
     background-position: 200% center;
@@ -391,7 +387,7 @@
 }
 
 .dark .metallic-shine {
-  background: linear-gradient(90deg, transparent 0%, rgba(184, 134, 11, 0.3) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, hsl(16 60% 56% / 0.1) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: metalShine 3s ease-in-out infinite;
 }
@@ -409,8 +405,8 @@
 }
 
 .dark .theme-card {
-  background: hsl(var(--card) / 0.85);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  background: hsl(var(--card) / 0.92);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .theme-card:hover {
@@ -423,12 +419,10 @@
   box-shadow: 0 4px 20px rgba(230, 36, 41, 0.15);
 }
 
-/* Dark mode - Gold/Cyan accent on hover */
+/* Dark mode - Coral accent on hover */
 .dark .theme-card:hover {
-  border-color: #b8860b;
-  box-shadow:
-    0 0 20px rgba(0, 212, 255, 0.2),
-    0 4px 20px rgba(184, 134, 11, 0.15);
+  border-color: hsl(16 60% 56% / 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* Primary Button - Theme Aware */
@@ -447,11 +441,9 @@
   box-shadow: 0 4px 20px rgba(230, 36, 41, 0.4);
 }
 
-/* Dark mode - Arc reactor effect */
+/* Dark mode - Subtle warm glow */
 .dark .btn-hero:hover {
-  box-shadow:
-    0 0 20px rgba(0, 212, 255, 0.5),
-    0 4px 20px rgba(184, 134, 11, 0.3);
+  box-shadow: 0 4px 20px hsl(16 60% 56% / 0.35);
 }
 
 .btn-hero:active {
@@ -486,11 +478,11 @@
   transform: scale(0.95);
 }
 
-/* Dark mode FAB glow */
+/* Dark mode FAB */
 .dark .fab-hero {
   box-shadow:
-    0 0 15px rgba(0, 212, 255, 0.4),
-    0 4px 20px rgba(0, 0, 0, 0.3);
+    0 0 12px hsl(16 60% 56% / 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* Avatar with Theme Ring */
@@ -504,8 +496,7 @@
 .dark .avatar-hero {
   box-shadow:
     0 0 0 2px hsl(var(--background)),
-    0 0 0 4px #b8860b,
-    0 0 10px rgba(0, 212, 255, 0.3);
+    0 0 0 4px hsl(var(--primary));
 }
 
 /* Progress Bar */
@@ -520,8 +511,7 @@
 }
 
 .dark .progress-hero-fill {
-  background: linear-gradient(90deg, #b8860b, #00d4ff);
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(16 60% 68%));
 }
 
 /* Input Fields */
@@ -540,9 +530,7 @@
 }
 
 .dark .input-hero:focus {
-  box-shadow:
-    0 0 0 2px #b8860b,
-    0 0 15px rgba(0, 212, 255, 0.2);
+  box-shadow: 0 0 0 2px hsl(var(--primary));
 }
 
 /* Date Input Fixes - prevent overflow */
@@ -677,7 +665,7 @@ input[type="datetime-local"] {
 }
 
 .dark .bottom-nav-item.active {
-  color: #00d4ff;
+  color: hsl(var(--primary));
 }
 
 /* ============================================
@@ -801,7 +789,7 @@ textarea,
 }
 
 .dark ::selection {
-  background: rgba(0, 212, 255, 0.3);
+  background: hsl(16 60% 56% / 0.3);
 }
 
 /* ============================================
@@ -846,12 +834,12 @@ textarea,
   }
 }
 
-/* Dark mode skeleton with gold tint */
+/* Dark mode skeleton */
 .dark .skeleton-hero {
   background: linear-gradient(
     90deg,
     hsl(var(--muted)) 25%,
-    rgba(184, 134, 11, 0.1) 50%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
     hsl(var(--muted)) 75%
   );
   background-size: 200% 100%;
@@ -938,6 +926,39 @@ button:active:not(:disabled),
 }
 
 /* ============================================
+   REACT-MODAL-SHEET OVERRIDES
+   Override default white inline styles with theme colors
+   ============================================ */
+
+.react-modal-sheet-backdrop {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.react-modal-sheet-container {
+  background-color: hsl(var(--card)) !important;
+  border-top-left-radius: 1.5rem !important;
+  border-top-right-radius: 1.5rem !important;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.dark .react-modal-sheet-container {
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.react-modal-sheet-header {
+  background-color: hsl(var(--card)) !important;
+}
+
+.react-modal-sheet-drag-indicator {
+  background-color: hsl(var(--muted-foreground) / 0.3) !important;
+}
+
+.react-modal-sheet-content {
+  background-color: hsl(var(--card)) !important;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 1.5rem) !important;
+}
+
+/* ============================================
    TOAST STYLES
    ============================================ */
 
@@ -948,9 +969,9 @@ button:active:not(:disabled),
 }
 
 .dark [data-sonner-toaster] [data-sonner-toast] {
-  --normal-bg: hsl(15 50% 12%);
-  --normal-border: rgba(184, 134, 11, 0.3);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+  --normal-bg: hsl(var(--card));
+  --normal-border: hsl(var(--border));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================
