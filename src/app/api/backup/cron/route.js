@@ -67,15 +67,13 @@ async function createBackupData(supabase) {
 
 /**
  * GET: Cron job endpoint for scheduled backups
- * This runs every 3 months and sends backup to configured email
+ * Runs daily at midnight and sends backup to configured email
  */
 export async function GET(request) {
   try {
-    // Verify cron secret (Vercel sends this header)
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    // Allow if no secret is set (development) or if it matches
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
@@ -87,10 +85,24 @@ export async function GET(request) {
       );
     }
 
-    const backupEmail = process.env.BACKUP_EMAIL;
+    const supabase = getServerClient();
+
+    let backupEmail = process.env.BACKUP_EMAIL;
+
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "backup_email")
+        .single();
+      if (data?.value) backupEmail = data.value;
+    } catch {
+      // app_settings table may not exist yet; fall back to env var
+    }
+
     if (!backupEmail) {
       return NextResponse.json(
-        { success: false, error: "BACKUP_EMAIL not configured" },
+        { success: false, error: "Backup email not configured. Set it in Settings > Backup or add BACKUP_EMAIL env var." },
         { status: 500 }
       );
     }
@@ -101,8 +113,6 @@ export async function GET(request) {
         { status: 500 }
       );
     }
-
-    const supabase = getServerClient();
 
     // Create backup data
     const { backup, counts } = await createBackupData(supabase);
@@ -121,11 +131,11 @@ export async function GET(request) {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">🗓️ Scheduled Shop Manager Backup</h2>
-          <p>Your quarterly automatic backup has been created successfully.</p>
+          <p>Your daily automatic backup has been created successfully.</p>
           
           <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4caf50;">
             <p style="margin: 0; color: #2e7d32;">
-              <strong>This is an automated backup</strong> sent every 3 months to ensure your data is safe.
+              <strong>This is an automated backup</strong> sent daily at midnight to ensure your data is safe.
             </p>
           </div>
           
@@ -151,7 +161,7 @@ export async function GET(request) {
           
           <p style="color: #999; font-size: 12px; margin-top: 30px;">
             Generated on ${format(new Date(), "dd MMMM yyyy 'at' hh:mm a")} | 
-            Next backup: ${format(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), "dd MMM yyyy")}
+            Next backup: tomorrow at midnight
           </p>
         </div>
       `,

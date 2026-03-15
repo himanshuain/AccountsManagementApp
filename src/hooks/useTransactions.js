@@ -296,8 +296,7 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
 
       const totalAmount = transaction.amount || 0;
       const currentPaid = transaction.paidAmount || 0;
-      // Return payments don't add to paid amount
-      const effectiveAmount = isReturn ? 0 : amount;
+      const effectiveAmount = amount;
       const newPaidAmount = currentPaid + effectiveAmount;
 
       // Support both single URL (string) and array of URLs
@@ -389,9 +388,8 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
       const newIsReturn =
         paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
 
-      // Calculate effective amounts (returns don't count toward paid)
-      const oldEffective = oldIsReturn ? 0 : oldAmount;
-      const newEffective = newIsReturn ? 0 : newAmount;
+      const oldEffective = oldAmount;
+      const newEffective = newAmount;
       const amountDiff = newEffective - oldEffective;
 
       // Update the payment

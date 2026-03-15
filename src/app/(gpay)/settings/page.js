@@ -39,6 +39,7 @@ import {
   Shield,
   MoreVertical,
   Percent,
+  Mail,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears } from "date-fns";
 import { toast } from "sonner";
@@ -732,6 +733,9 @@ function BackupModal({ open, onClose }) {
   const [loading, setLoading] = useState(false);
   const [cleanupAnalysis, setCleanupAnalysis] = useState(null);
   const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [backupEmail, setBackupEmail] = useState("");
+  const [autoBackupEmail, setAutoBackupEmail] = useState("");
+  const [savingAutoEmail, setSavingAutoEmail] = useState(false);
   const { suppliers = [] } = useSuppliers();
   const { transactions = [] } = useTransactions();
   const { customers = [] } = useCustomers();
@@ -739,12 +743,37 @@ function BackupModal({ open, onClose }) {
 
   usePreventBodyScroll(open);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("backup_email");
+    if (saved) setBackupEmail(saved);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      fetch("/api/settings?key=backup_email")
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data?.value) setAutoBackupEmail(res.data.value);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
+
   const handleBackup = async () => {
+    if (!backupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(backupEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    localStorage.setItem("backup_email", backupEmail);
     setLoading(true);
     try {
-      const response = await fetch("/api/backup", { method: "POST" });
+      const response = await fetch("/api/backup/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: backupEmail }),
+      });
       const result = await response.json();
-      if (result.success) toast.success("Backup created successfully");
+      if (result.success) toast.success(`Backup sent to ${backupEmail}`);
       else toast.error(result.error || "Backup failed");
     } catch {
       toast.error("Backup failed");
@@ -752,20 +781,53 @@ function BackupModal({ open, onClose }) {
     setLoading(false);
   };
 
+  const handleSaveAutoBackupEmail = async () => {
+    if (!autoBackupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(autoBackupEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setSavingAutoEmail(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "backup_email", value: autoBackupEmail }),
+      });
+      const data = await res.json();
+      if (data.success) toast.success("Auto-backup email saved");
+      else toast.error(data.error || "Failed to save");
+    } catch {
+      toast.error("Failed to save auto-backup email");
+    }
+    setSavingAutoEmail(false);
+  };
+
   const handleExport = async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/backup");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `backup-${format(new Date(), "yyyy-MM-dd")}.json`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+
+      const blob = new Blob([JSON.stringify(data.backup, null, 2)], { type: "application/json" });
+      const filename = `backup-${format(new Date(), "yyyy-MM-dd")}.json`;
+
+      if (navigator.share && /android|iphone|ipad/i.test(navigator.userAgent)) {
+        const file = new File([blob], filename, { type: "application/json" });
+        await navigator.share({ files: [file], title: "Shop Backup" });
+      } else {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
       toast.success("Backup downloaded");
-    } catch {
-      toast.error("Export failed");
+    } catch (e) {
+      if (e.name !== "AbortError") toast.error("Export failed");
     }
     setLoading(false);
   };
@@ -813,14 +875,27 @@ function BackupModal({ open, onClose }) {
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(zipBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `all_reports_${new Date().toISOString().slice(0, 10)}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const filename = `all_reports_${new Date().toISOString().slice(0, 10)}.zip`;
+
+      if (navigator.share && navigator.canShare && /android|iphone|ipad/i.test(navigator.userAgent)) {
+        const file = new File([zipBlob], filename, { type: "application/zip" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "All Reports" });
+        } else {
+          const url = URL.createObjectURL(zipBlob);
+          window.open(url, "_blank");
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+      } else {
+        const url = URL.createObjectURL(zipBlob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
       toast.success(`Exported ${exported} PDF reports as ZIP`);
     } catch (e) {
@@ -887,12 +962,21 @@ function BackupModal({ open, onClose }) {
               </div>
               <div>
                 <h3 className="font-medium">Cloud Backup</h3>
-                <p className="text-xs text-muted-foreground">Backup to email</p>
+                <p className="text-xs text-muted-foreground">Send backup to your email</p>
               </div>
+            </div>
+            <div className="mb-3 flex gap-2">
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={backupEmail}
+                onChange={e => setBackupEmail(e.target.value)}
+                className="input-hero flex-1 text-sm"
+              />
             </div>
             <button
               onClick={handleBackup}
-              disabled={loading}
+              disabled={loading || !backupEmail}
               className="btn-hero flex w-full items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
@@ -900,7 +984,7 @@ function BackupModal({ open, onClose }) {
               ) : (
                 <Upload className="h-5 w-5" />
               )}{" "}
-              Send Backup to email
+              Send Backup to Email
             </button>
           </div>
 
@@ -942,6 +1026,40 @@ function BackupModal({ open, onClose }) {
             >
               {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />} Download All Reports (ZIP)
             </button>
+          </div>
+
+          {/* Auto Backup Email Config */}
+          <div className="theme-card mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
+                <Mail className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Daily Auto Backup</h3>
+                <p className="text-xs text-muted-foreground">
+                  Automatic backup sent daily at 12:00 AM
+                </p>
+              </div>
+            </div>
+            <div className="mb-3 flex gap-2">
+              <input
+                type="email"
+                placeholder="Auto-backup email"
+                value={autoBackupEmail}
+                onChange={e => setAutoBackupEmail(e.target.value)}
+                className="input-hero flex-1 text-sm"
+              />
+              <button
+                onClick={handleSaveAutoBackupEmail}
+                disabled={savingAutoEmail || !autoBackupEmail}
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {savingAutoEmail ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enter the email where daily automatic backups will be sent.
+            </p>
           </div>
 
           {/* Storage Cleanup */}

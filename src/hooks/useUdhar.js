@@ -231,8 +231,7 @@ export function useUdhar({ fetchAll = false } = {}) {
 
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
       const currentPaid = udhar.paidAmount || (udhar.paidCash || 0) + (udhar.paidOnline || 0);
-      // Return payments don't add to paid amount
-      const effectiveAmount = isReturn ? 0 : amount;
+      const effectiveAmount = amount;
       const newPaidAmount = currentPaid + effectiveAmount;
 
       // Support both single URL (string) and array of URLs
@@ -325,9 +324,8 @@ export function useUdhar({ fetchAll = false } = {}) {
       const newIsReturn =
         paymentUpdates.isReturn !== undefined ? !!paymentUpdates.isReturn : oldIsReturn;
 
-      // Calculate effective amounts (returns don't count toward paid)
-      const oldEffective = oldIsReturn ? 0 : oldAmount;
-      const newEffective = newIsReturn ? 0 : newAmount;
+      const oldEffective = oldAmount;
+      const newEffective = newAmount;
       const amountDiff = newEffective - oldEffective;
 
       // Update the payment

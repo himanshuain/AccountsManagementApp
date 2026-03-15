@@ -373,8 +373,8 @@ export function BackupManager({ open, onOpenChange }) {
                         Automatic Backups
                       </h3>
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        Your data is automatically backed up and emailed every 3 months. Configure
-                        BACKUP_EMAIL in your environment to receive scheduled backups.
+                        Your data is automatically backed up and emailed daily at midnight.
+                        Configure the email in Settings &gt; Backup &amp; Export.
                       </p>
                     </div>
                   </div>
