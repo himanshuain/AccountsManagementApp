@@ -26,8 +26,9 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { useIncome } from "@/hooks/useIncome";
+import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
+
 import { PersonAvatarWithName, PersonListItem } from "@/components/gpay/PersonAvatar";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { IncomeQuickModal } from "@/components/gpay/IncomeQuickModal";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
@@ -88,6 +89,9 @@ export default function GPayHomePage() {
   const [suppliersExpanded, setSuppliersExpanded] = useState(true);
   const [customersExpanded, setCustomersExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(false);
+
+  // Prevent body scroll when modal is open
+  usePreventBodyScroll(addMenuOpen || incomeModalOpen);
 
   // Data hooks - fetchAll: true loads all data in one request for accurate calculations
   const { suppliers, addSupplier, loading: suppliersLoading } = useSuppliers();
@@ -758,19 +762,36 @@ export default function GPayHomePage() {
         <Plus className="h-6 w-6" />
       </motion.button>
 
-      {/* Add Menu Modal */}
-      <BottomSheet open={addMenuOpen} onClose={() => setAddMenuOpen(false)} detent="content">
-        <div className="mb-6 flex items-center justify-between px-4">
-          <h3 className="font-heading text-xl tracking-wide">Add New</h3>
-          <button
+      {/* Add Menu Modal - Fixed with proper bottom padding */}
+      <AnimatePresence>
+        {addMenuOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
             onClick={() => setAddMenuOpen(false)}
-            className="rounded-full p-2 transition-colors hover:bg-muted"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+            <motion.div
+              className="pb-nav w-full max-w-md rounded-t-3xl bg-card p-6"
+              onClick={e => e.stopPropagation()}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="font-heading text-xl tracking-wide">Add New</h3>
+                <button
+                  onClick={() => setAddMenuOpen(false)}
+                  className="rounded-full p-2 transition-colors hover:bg-muted"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-        <div className="grid grid-cols-2 gap-4 px-4 pb-6 pb-nav">
+              <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
                     setAddMenuOpen(false);
@@ -831,7 +852,10 @@ export default function GPayHomePage() {
                   <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
                 </button>
               </div>
-      </BottomSheet>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Forms */}
       <SupplierForm

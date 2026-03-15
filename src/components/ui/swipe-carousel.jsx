@@ -38,7 +38,6 @@ export function SwipeCarousel({
   showGradientEdges = true,
   className,
   aspectRatio = "aspect-video",
-  fillHeight = false,
   onImageClick,
   onSlideChange,
   activeIndex,
@@ -95,7 +94,7 @@ export function SwipeCarousel({
   if (count === 0) return null;
 
   return (
-    <div className={cn("relative overflow-hidden rounded-xl", fillHeight && "h-full", className)}>
+    <div className={cn("relative overflow-hidden rounded-xl", className)}>
       <motion.div
         drag={isSingle ? false : "x"}
         dragConstraints={{ left: 0, right: 0 }}
@@ -105,7 +104,6 @@ export function SwipeCarousel({
         onDragEnd={onDragEnd}
         className={cn(
           "flex items-center",
-          fillHeight && "h-full",
           !isSingle && "cursor-grab active:cursor-grabbing"
         )}
       >
@@ -116,7 +114,7 @@ export function SwipeCarousel({
             transition={SPRING_OPTIONS}
             className={cn(
               "w-full shrink-0 overflow-hidden rounded-xl bg-muted",
-              fillHeight ? "h-full" : aspectRatio
+              aspectRatio
             )}
             onClick={() => onImageClick?.(img, idx)}
           >

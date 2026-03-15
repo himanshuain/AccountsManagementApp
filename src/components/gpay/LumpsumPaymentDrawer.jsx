@@ -12,7 +12,7 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
-import { Sheet } from "@/components/ui/bottom-sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -289,22 +289,24 @@ export function LumpsumPaymentDrawer({
       </button>
 
       {/* Lumpsum Payment Sheet */}
-      <Sheet
-        isOpen={open}
-        onClose={() => {
-          setOpen(false);
-          resetForm();
+      <DragCloseDrawer
+        open={open}
+        onOpenChange={(val) => {
+          if (!val && imageViewerOpen) return;
+          if (!isSubmitting) {
+            setOpen(val);
+            if (!val) resetForm();
+          }
         }}
-        detent="default"
-        disableDismiss={imageViewerOpen || isSubmitting}
+        height="max-h-[90vh]"
       >
-        <Sheet.Container>
-          <Sheet.Header />
-          <Sheet.Content>
-          <div className="flex items-center gap-2 px-4 pb-2">
-            <Wallet className="h-5 w-5" />
-            <h3 className="text-base font-semibold">Pay Lumpsum</h3>
-          </div>
+          <DrawerHeader className="px-4 pb-2">
+            <DrawerTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Pay Lumpsum
+            </DrawerTitle>
+          </DrawerHeader>
+
           <div className="space-y-4 px-4 pb-8">
             {/* Total Pending */}
             <div className="rounded-xl bg-muted/50 p-4 text-center">
@@ -644,10 +646,7 @@ export function LumpsumPaymentDrawer({
               </Button>
             </div>
           </div>
-          </Sheet.Content>
-        </Sheet.Container>
-        <Sheet.Backdrop onTap={imageViewerOpen || isSubmitting ? undefined : () => { setOpen(false); resetForm(); }} />
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Image Gallery Viewer - rendered outside the Sheet to avoid close conflicts */}
       <ImageGalleryViewer

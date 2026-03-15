@@ -5,7 +5,7 @@ import { Images, ExternalLink, Receipt } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { resolveImageUrl } from "@/lib/image-url";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
-import { Sheet } from "@/components/ui/bottom-sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { cn } from "@/lib/utils";
 
 function BillStripItem({ bill, isActive, onClick }) {
@@ -30,7 +30,7 @@ function BillStripItem({ bill, isActive, onClick }) {
 }
 
 /**
- * Bills Gallery Drawer - Shows all bills & receipts in a full-screen Sheet
+ * Bills Gallery Drawer - Shows all bills & receipts in a DragCloseDrawer
  * with a SwipeCarousel and a quick-jump strip by date/amount.
  */
 export function BillsGalleryModal({
@@ -112,20 +112,19 @@ export function BillsGalleryModal({
   }, [isOpen]);
 
   return (
-    <Sheet isOpen={isOpen} onClose={() => handleClose(false)} detent="full">
-      <Sheet.Container>
-        <Sheet.Header>
-          <div className="border-b px-4 pb-3">
-            <div className="flex items-center gap-2 font-semibold">
-              <Receipt className="h-5 w-5" />
-              All Bills & Receipts
-            </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {allBills.length} image{allBills.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </Sheet.Header>
-        <Sheet.Content>
+    <DragCloseDrawer open={isOpen} onOpenChange={handleClose} height="h-[90vh]">
+      <DrawerHeader className="border-b px-4 pb-3">
+        <div>
+          <DrawerTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            All Bills & Receipts
+          </DrawerTitle>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {allBills.length} image{allBills.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </DrawerHeader>
+
       {allBills.length === 0 ? (
         <div className="py-16 text-center">
           <Images className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -198,10 +197,7 @@ export function BillsGalleryModal({
           )}
         </div>
       )}
-        </Sheet.Content>
-      </Sheet.Container>
-      <Sheet.Backdrop onTap={() => handleClose(false)} />
-    </Sheet>
+    </DragCloseDrawer>
   );
 }
 

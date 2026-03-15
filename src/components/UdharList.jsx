@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Sheet } from "@/components/ui/bottom-sheet";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -628,18 +628,17 @@ export function UdharList({
       />
 
       {/* Collect Sheet */}
-      <Sheet
-        isOpen={depositSheetOpen}
-        onClose={resetDepositForm}
-        detent="default"
-        disableDismiss={receiptViewerOpen}
+      <DragCloseDrawer
+        open={depositSheetOpen}
+        onOpenChange={open => {
+          if (!open && !receiptViewerOpen) resetDepositForm();
+          else setDepositSheetOpen(open);
+        }}
+        height="h-[85vh]"
       >
-        <Sheet.Container>
-          <Sheet.Header />
-          <Sheet.Content>
         <div className="flex h-full flex-col px-4">
-          <div className="flex flex-row items-center justify-between border-b p-4">
-            <h3 className="text-base font-semibold">Record Collect</h3>
+          <DrawerHeader className="flex flex-row items-center justify-between border-b p-4">
+            <DrawerTitle>Record Collect</DrawerTitle>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={resetDepositForm}>
                 Cancel
@@ -662,7 +661,7 @@ export function UdharList({
                 Save
               </Button>
             </div>
-          </div>
+          </DrawerHeader>
           <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-4 p-4">
               {/* Amount Summary */}
@@ -830,10 +829,7 @@ export function UdharList({
             </div>
           </ScrollArea>
         </div>
-          </Sheet.Content>
-        </Sheet.Container>
-        <Sheet.Backdrop onTap={receiptViewerOpen ? undefined : resetDepositForm} />
-      </Sheet>
+      </DragCloseDrawer>
 
       {/* Receipt Image Viewer */}
       <ImageViewer

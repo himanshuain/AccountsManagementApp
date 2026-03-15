@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/bottom-sheet";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,46 +141,44 @@ export function ProfileSheet({
   };
 
   return (
-    <Sheet isOpen={open} onClose={() => onOpenChange(false)} snapPoints={[0, 0.5, 1]} initialSnap={1} className={className}>
-      <Sheet.Container>
-        <Sheet.Header>
-          <div className="flex flex-shrink-0 flex-row items-center justify-between border-b p-4 w-full">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-9 w-9"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
+    <DragCloseDrawer open={open} onOpenChange={onOpenChange} height="h-[85vh]" className={className}>
+        {/* Header */}
+        <div className="flex flex-shrink-0 flex-row items-center justify-between border-b p-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onOpenChange(false)}
+            className="h-9 w-9"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {onEdit && (
-                  <DropdownMenuItem onClick={onEdit}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                )}
-                {onDelete && (
-                  <DropdownMenuItem
-                    onClick={onDelete}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </Sheet.Header>
-        <Sheet.Content>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onEdit && (
+                <DropdownMenuItem onClick={onEdit}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {onDelete && (
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {/* Profile Content */}
         <div className="flex-1 overflow-y-auto">
           {/* Avatar and Name */}
@@ -306,10 +304,7 @@ export function ProfileSheet({
             )}
           </div>
         </div>
-        </Sheet.Content>
-      </Sheet.Container>
-      <Sheet.Backdrop onTap={() => onOpenChange(false)} />
-    </Sheet>
+    </DragCloseDrawer>
   );
 }
 

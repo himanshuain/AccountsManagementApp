@@ -35,8 +35,7 @@ import {
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
-import { Sheet, BottomSheet } from "@/components/ui/bottom-sheet";
-import { useMotionValue, useTransform, motion } from "motion/react";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -248,33 +247,23 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
     return false;
   };
 
-  const isFormDirtyVal = isFormDirty();
-
-  const handleClose = () => {
-    if (isSubmitting) return;
-    if (!isFormDirtyVal) {
-      onClose();
-      return;
-    }
-    if (confirm("You have unsaved changes. Are you sure you want to close?")) {
-      onClose();
-    }
+  const handleBeforeClose = async () => {
+    if (isSubmitting) return false;
+    if (!isFormDirty()) return true;
+    return confirm("You have unsaved changes. Are you sure you want to close?");
   };
 
   return (
-    <Sheet isOpen={true} onClose={handleClose} detent="content" disableDismiss={isFormDirtyVal || isSubmitting}>
-      <Sheet.Container>
-        <Sheet.Header />
-        <Sheet.Content>
-          <div className="px-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-heading text-lg tracking-wide">Edit Payment</h3>
-              <button onClick={handleClose} className="rounded-full p-2 transition-colors hover:bg-muted">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+    <DragCloseDrawer open={true} onOpenChange={v => { if (!v) onClose(); }} beforeClose={handleBeforeClose} height="h-auto">
+      <div className="px-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-heading text-lg tracking-wide">Edit Payment</h3>
+          <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm text-muted-foreground">Payment Amount</label>
             <div className="relative">
@@ -465,7 +454,7 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
           <div className="flex gap-2 pt-4">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={onClose}
               className="flex-1 rounded-xl bg-muted py-3 font-medium"
             >
               Cancel
@@ -478,26 +467,20 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
               {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>
-            </form>
-          </div>
+        </form>
+      </div>
 
-          <ImageGalleryViewer
-            images={receiptImages}
-            initialIndex={viewerIndex}
-            open={imageViewerOpen}
-            onOpenChange={setImageViewerOpen}
-          />
-        </Sheet.Content>
-      </Sheet.Container>
-      <Sheet.Backdrop onTap={!isFormDirtyVal ? handleClose : undefined} />
-    </Sheet>
+      <ImageGalleryViewer
+        images={receiptImages}
+        initialIndex={viewerIndex}
+        open={imageViewerOpen}
+        onOpenChange={setImageViewerOpen}
+      />
+    </DragCloseDrawer>
   );
 }
 
 // Transaction Detail Modal — Carousel on top, drawer below (Instagram-style)
-const SNAP_POINTS = [0, 0.5, 1];
-const SCROLL_RANGE = 180;
-
 function TransactionDetailModal({
   txn,
   isSupplier,
@@ -512,32 +495,6 @@ function TransactionDetailModal({
   const [showPayments, setShowPayments] = useState(true);
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
   const [paymentToDelete, setPaymentToDelete] = useState(null);
-
-  const sheetRef = useRef(null);
-  const scrollRef = useRef(null);
-  const scrollY = useMotionValue(0);
-
-  const containerHeight = useTransform(scrollY, [0, SCROLL_RANGE], [320, 120]);
-  const imageWidth = useTransform(scrollY, [0, SCROLL_RANGE], ["100%", "28%"]);
-  const imageRadius = useTransform(scrollY, [0, SCROLL_RANGE], [12, 16]);
-  const summaryOpacity = useTransform(scrollY, [80, SCROLL_RANGE], [0, 1]);
-  const summaryX = useTransform(scrollY, [80, SCROLL_RANGE], [20, 0]);
-
-  useEffect(() => {
-    if (!txn) return;
-    let cleanup;
-    const id = setTimeout(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      const handler = () => scrollY.set(el.scrollTop);
-      el.addEventListener("scroll", handler, { passive: true });
-      cleanup = () => el.removeEventListener("scroll", handler);
-    }, 50);
-    return () => {
-      clearTimeout(id);
-      cleanup?.();
-    };
-  }, [txn, scrollY]);
 
   if (!txn) return null;
 
@@ -569,70 +526,43 @@ function TransactionDetailModal({
   };
 
   return (
-    <Sheet ref={sheetRef} isOpen={!!txn} onClose={onClose} snapPoints={SNAP_POINTS} initialSnap={1}>
-      <Sheet.Container>
-        <Sheet.Header />
-        <Sheet.Content
-          scrollRef={scrollRef}
-          disableScroll={(state) => state.currentSnap !== 2}
-          disableDrag={(state) => state.scrollPosition != null && state.scrollPosition !== "top"}
-        >
-          {/* Hero section — morphs from full-width image to thumb+details row */}
-          <motion.div
-            className="mx-4 mb-4 flex items-stretch gap-3"
-            style={{ height: containerHeight, overflow: "hidden", borderRadius: imageRadius }}
-          >
-            {hasImages ? (
-              <motion.div
-                className="shrink-0 overflow-hidden"
-                style={{ width: imageWidth, height: "100%" }}
-              >
-                <SwipeCarousel
-                  images={resolvedImages}
-                  onImageClick={(img, idx) => onViewImages(images, idx)}
-                  fillHeight
-                  showGradientEdges={false}
-                  autoPlay={false}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                className="shrink-0 flex flex-col items-center justify-center gap-2 bg-muted/50"
-                style={{ width: imageWidth, height: "100%" }}
-              >
-                <div className={cn("rounded-full p-4",
-                  isPaid ? "bg-emerald-500/20" : isSupplier ? "bg-rose-500/20" : "bg-amber-500/20")}>
-                  <Receipt className={cn("h-8 w-8",
-                    isPaid ? "text-emerald-400" : isSupplier ? "text-rose-400" : "text-amber-400")} />
-                </div>
-                <p className="font-mono text-2xl font-bold">₹{totalAmount.toLocaleString("en-IN")}</p>
-              </motion.div>
+    <DragCloseDrawer open={!!txn} onOpenChange={v => !v && onClose()} height="h-[92vh]">
+      {/* Image Carousel or Amount Hero */}
+      {hasImages ? (
+        <SwipeCarousel
+          images={resolvedImages}
+          onImageClick={(img, idx) => onViewImages(images, idx)}
+          className="mx-4 mb-4"
+          aspectRatio="aspect-[4/3]"
+          showGradientEdges={false}
+          autoPlay={false}
+        />
+      ) : (
+        <div className="mx-4 mb-4 flex aspect-[16/10] w-auto flex-col items-center justify-center gap-3 rounded-2xl bg-muted/50">
+          <div
+            className={cn(
+              "rounded-full p-5",
+              isPaid ? "bg-emerald-500/20" : isSupplier ? "bg-rose-500/20" : "bg-amber-500/20"
             )}
-
-            {/* Right-side summary — fades in as image compresses */}
-            <motion.div
-              className="min-w-0 flex-1 flex flex-col justify-center space-y-1 py-2"
-              style={{ opacity: summaryOpacity, x: summaryX }}
-            >
-              <p className="font-mono text-2xl font-bold">
-                ₹{(isPaid ? totalAmount : remainingAmount).toLocaleString("en-IN")}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {isPaid ? "Fully Paid" : "Pending"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {format(parseISO(txn.date), "dd MMM yyyy")}
-              </p>
-              {(txn.description || txn.itemName) && (
-                <p className="truncate text-sm">{txn.description || txn.itemName}</p>
+          >
+            <Receipt
+              className={cn(
+                "h-10 w-10",
+                isPaid ? "text-emerald-400" : isSupplier ? "text-rose-400" : "text-amber-400"
               )}
-              {paidAmount > 0 && !isPaid && (
-                <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-              )}
-            </motion.div>
-          </motion.div>
+            />
+          </div>
+          <p className="font-mono text-4xl font-bold">
+            ₹{totalAmount.toLocaleString("en-IN")}
+          </p>
+          {!isPaid && paidAmount > 0 && (
+            <p className="text-sm text-muted-foreground">₹{remainingAmount.toLocaleString("en-IN")} pending</p>
+          )}
+          {isPaid && <p className="text-sm font-medium text-emerald-400">Fully Paid</p>}
+        </div>
+      )}
 
-          {/* Amount card */}
+      {/* Amount card */}
       <div className="px-4">
         <div
           className={cn(
@@ -855,10 +785,7 @@ function TransactionDetailModal({
           Delete Transaction
         </button>
       </div>
-        </Sheet.Content>
-      </Sheet.Container>
-      <Sheet.Backdrop onTap={onClose} />
-    </Sheet>
+    </DragCloseDrawer>
   );
 }
 
@@ -2104,9 +2031,19 @@ export default function PersonChatPage() {
       />
 
       {/* Profile Sheet */}
-      <BottomSheet open={showProfile} onClose={() => setShowProfile(false)} detent="content">
-          {/* Avatar & Name */}
-          <div className="flex flex-col items-center py-6">
+      {showProfile && (
+        <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setShowProfile(false)}>
+          <div
+            className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto overflow-x-hidden overscroll-contain rounded-t-3xl bg-card"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center py-3">
+              <div className="sheet-handle" />
+            </div>
+
+            {/* Avatar & Name */}
+            <div className="flex flex-col items-center py-6">
               <div
                 className={cn(
                   "group relative cursor-pointer",
@@ -2203,7 +2140,9 @@ export default function PersonChatPage() {
                 )} */}
               </div>
             </div>
-      </BottomSheet>
+          </div>
+        </div>
+      )}
 
       {/* Forms */}
       {isSupplier ? (
