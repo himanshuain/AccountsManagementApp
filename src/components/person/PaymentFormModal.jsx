@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   PhotoGalleryViewer as ImageGalleryViewer,
 } from "@/components/PhotoViewer";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
 import { getImageUrls, isDataUrl } from "@/lib/image-url";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
@@ -176,14 +176,26 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
   };
 
   return (
-    <DragCloseDrawer open={true} onOpenChange={v => { if (!v) onClose(); }} beforeClose={handleBeforeClose} height="h-auto">
-      <div className="px-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-heading text-lg tracking-wide">Record Payment</h3>
-          <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <>
+    <Drawer
+      open={true}
+      onOpenChange={async v => {
+        if (!v) {
+          if (imageViewerOpen) return;
+          if (handleBeforeClose) {
+            const canClose = await handleBeforeClose();
+            if (!canClose) return;
+          }
+          onClose();
+        }
+      }}
+    >
+      <DrawerContent className="h-[80vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
+          <DrawerTitle>Record Payment</DrawerTitle>
+          <DrawerCloseButton onClick={onClose} />
+        </DrawerHeader>
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
 
         <div className="mb-4 rounded-xl bg-muted py-4 text-center">
           <p className="mb-1 text-xs text-muted-foreground">Pending Amount</p>
@@ -390,13 +402,16 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
         </form>
       </div>
 
-      <ImageGalleryViewer
-        images={receiptImages}
-        initialIndex={viewerIndex}
-        open={imageViewerOpen}
-        onOpenChange={setImageViewerOpen}
-      />
-    </DragCloseDrawer>
+      </DrawerContent>
+    </Drawer>
+
+    <ImageGalleryViewer
+      images={receiptImages}
+      initialIndex={viewerIndex}
+      open={imageViewerOpen}
+      onOpenChange={setImageViewerOpen}
+    />
+  </>
   );
 }
 

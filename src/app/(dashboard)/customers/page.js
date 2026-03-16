@@ -57,9 +57,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerCloseButton,
+} from "@/components/ui/drawer";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -2348,25 +2353,18 @@ export default function CustomersPage() {
       />
 
       {/* Quick Add Udhar Sheet - slides from top */}
-      <DragCloseDrawer open={quickAddOpen} onOpenChange={setQuickAddOpen} height="h-[80vh]">
-        <div className="flex flex-col px-4">
-          {/* Header with action buttons */}
-          <DrawerHeader className="border-b px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
+      <Drawer open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+        <DrawerContent className="h-[80vh]">
+        <DrawerHeader className="border-b px-4 py-3 shrink-0">
+          <div className="flex items-center justify-between gap-2">
+              <DrawerCloseButton
                 onClick={() => {
                   setQuickAddOpen(false);
                   setQuickAddAmount("");
                   setQuickAddBillImages([]);
                   setQuickAddNotes("");
                 }}
-                className="h-9 px-3"
-              >
-                <X className="mr-1 h-4 w-4" />
-                Cancel
-              </Button>
+              />
               <DrawerTitle className="flex-1 text-center text-base font-semibold">
                 Add Udhar
               </DrawerTitle>
@@ -2393,8 +2391,8 @@ export default function CustomersPage() {
             </div>
           </DrawerHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="space-y-4">
+          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+            <div className="space-y-4 py-4">
               {quickAddCustomer && (
                 <p className="text-center text-sm text-muted-foreground">
                   Adding Udhar for <strong>{quickAddCustomer.name}</strong>
@@ -2502,17 +2500,15 @@ export default function CustomersPage() {
               </div>
             </div>
           </div>
-        </div>
-      </DragCloseDrawer>
+        </DrawerContent>
+      </Drawer>
 
       {/* Quick Collect Sheet - slides from top */}
-      <DragCloseDrawer open={quickCollectOpen} onOpenChange={setQuickCollectOpen} height="h-[80vh]">
-        {/* Header with action buttons */}
-        <DrawerHeader className="border-b px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
+      <Drawer open={quickCollectOpen} onOpenChange={setQuickCollectOpen}>
+        <DrawerContent className="h-[80vh]">
+        <DrawerHeader className="border-b px-4 py-3 shrink-0">
+          <div className="flex items-center justify-between gap-2">
+              <DrawerCloseButton
                 onClick={() => {
                   setQuickCollectOpen(false);
                   setQuickCollectCustomer(null);
@@ -2520,11 +2516,7 @@ export default function CustomersPage() {
                   setQuickCollectReceipts([]);
                   setQuickCollectNotes("");
                 }}
-                className="h-9 px-3"
-              >
-                <X className="mr-1 h-4 w-4" />
-                Cancel
-              </Button>
+              />
               <DrawerTitle className="flex-1 text-center text-base font-semibold">
                 Collect Payment
               </DrawerTitle>
@@ -2549,11 +2541,11 @@ export default function CustomersPage() {
                   </>
                 )}
               </Button>
-            </div>
-          </DrawerHeader>
+          </div>
+        </DrawerHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="space-y-4">
+          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+            <div className="py-4 space-y-4">
               {quickCollectCustomer && (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                   <div className="flex justify-between text-sm">
@@ -2707,16 +2699,15 @@ export default function CustomersPage() {
               </div>
             </div>
           </div>
-      </DragCloseDrawer>
+        </DrawerContent>
+      </Drawer>
 
       {/* Payment Sheet - slides from top */}
-      <DragCloseDrawer open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} height="h-[80vh]">
-        {/* Header with action buttons */}
-        <DrawerHeader className="border-b px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
+      <Drawer open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DrawerContent className="h-[80vh]">
+        <DrawerHeader className="border-b px-4 py-3 shrink-0">
+          <div className="flex items-center justify-between gap-2">
+              <DrawerCloseButton
                 onClick={() => {
                   setPaymentDialogOpen(false);
                   setPaymentUdhar(null);
@@ -2724,11 +2715,7 @@ export default function CustomersPage() {
                   setPaymentReceipts([]);
                   setPaymentDate(new Date().toISOString().split("T")[0]);
                 }}
-                className="h-9 px-3"
-              >
-                <X className="mr-1 h-4 w-4" />
-                Cancel
-              </Button>
+              />
               <DrawerTitle className="flex-1 text-center text-base font-semibold">
                 Record Payment
               </DrawerTitle>
@@ -2760,11 +2747,11 @@ export default function CustomersPage() {
                   </>
                 )}
               </Button>
-            </div>
-          </DrawerHeader>
+          </div>
+        </DrawerHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="space-y-4">
+          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+            <div className="py-4 space-y-4">
               {paymentUdhar &&
                 (() => {
                   const totalAmount =
@@ -3003,10 +2990,11 @@ export default function CustomersPage() {
                 })()}
             </div>
           </div>
-      </DragCloseDrawer>
+        </DrawerContent>
+      </Drawer>
 
       {/* Customer Detail Drawer */}
-      <DragCloseDrawer
+      <Drawer
         open={!!selectedCustomer}
         onOpenChange={open => {
           // Don't close if image viewer, gallery viewer, khata photos sheet is open or was just closed
@@ -3023,13 +3011,12 @@ export default function CustomersPage() {
           }
           if (!open) setSelectedCustomer(null);
         }}
-        height="h-[85vh]"
       >
+        <DrawerContent className="h-[85vh]">
         {selectedCustomer && (
           <>
-            {/* Header with actions */}
-            <DrawerHeader className="border-b px-4 pb-3">
-                <div className="flex items-center gap-3">
+            <DrawerHeader className="border-b px-4 pb-3 shrink-0">
+              <div className="flex items-center gap-3">
                   {/* Profile Picture */}
                   <Avatar
                     className={cn(
@@ -3101,11 +3088,11 @@ export default function CustomersPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </DrawerHeader>
+              </div>
+            </DrawerHeader>
 
-              <ScrollArea className="h-[calc(85vh-100px)] flex-1">
-                <div className="space-y-4 p-4">
+              <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+                <div className="space-y-4 py-4">
                   {/* Address if available */}
                   {selectedCustomer.address && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -3451,12 +3438,13 @@ export default function CustomersPage() {
                         })}
                       </div>
                     )}
-                  </div>
                 </div>
-              </ScrollArea>
+              </div>
+            </div>
             </>
           )}
-      </DragCloseDrawer>
+        </DrawerContent>
+      </Drawer>
 
       {/* Edit Customer Form */}
       {editingCustomer && (
@@ -3530,7 +3518,8 @@ export default function CustomersPage() {
       </AlertDialog>
 
       {/* Udhar Transactions Drawer */}
-      <DragCloseDrawer open={udharDrawerOpen} onOpenChange={setUdharDrawerOpen} height="h-[90vh]">
+      <Drawer open={udharDrawerOpen} onOpenChange={setUdharDrawerOpen}>
+        <DrawerContent className="h-[90vh]">
         {udharDrawerCustomer &&
           (() => {
             const customerTransactions = udharList
@@ -3539,8 +3528,7 @@ export default function CustomersPage() {
 
             return (
               <>
-                {/* Header */}
-                <DrawerHeader className="border-b px-4 pb-3">
+                <DrawerHeader className="border-b px-4 pb-3 shrink-0">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={resolveImageUrl(udharDrawerCustomer.profilePicture)} />
@@ -3557,8 +3545,8 @@ export default function CustomersPage() {
                     </div>
                   </DrawerHeader>
 
-                  <ScrollArea className="h-[calc(90vh-120px)] flex-1">
-                    <div className="space-y-3 p-4">
+                  <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+                    <div className="space-y-3 py-4">
                       {customerTransactions.length === 0 ? (
                         <div className="py-8 text-center">
                           <Banknote className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
@@ -3850,14 +3838,15 @@ export default function CustomersPage() {
                         })
                       )}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </>
               );
             })()}
-      </DragCloseDrawer>
+        </DrawerContent>
+      </Drawer>
 
       {/* All Receipts Sheet */}
-      <DragCloseDrawer
+      <Drawer
         open={allReceiptsSheetOpen}
         onOpenChange={open => {
           // Don't close if image viewer or gallery viewer is open or was just closed
@@ -3873,17 +3862,16 @@ export default function CustomersPage() {
           }
           setAllReceiptsSheetOpen(open);
         }}
-        height="h-[85vh]"
       >
-        <DrawerHeader className="border-b p-4">
+        <DrawerContent className="h-[85vh]">
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+        <DrawerHeader className="border-b p-4 shrink-0">
           <div className="flex items-center justify-between">
             <DrawerTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 All Receipts & Bills ({allReceipts.length})
               </DrawerTitle>
-              <Button variant="ghost" size="icon" onClick={() => setAllReceiptsSheetOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <DrawerCloseButton onClick={() => setAllReceiptsSheetOpen(false)} />
             </div>
           </DrawerHeader>
           <div className="p-4">
@@ -3907,10 +3895,12 @@ export default function CustomersPage() {
               />
             )}
           </div>
-      </DragCloseDrawer>
+        </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Customer Khata Photos Sheet */}
-      <DragCloseDrawer
+      <Drawer
         open={khataPhotosSheetOpen}
         onOpenChange={open => {
           // Don't close if gallery viewer is open or was just closed
@@ -3920,9 +3910,10 @@ export default function CustomersPage() {
           }
           setKhataPhotosSheetOpen(open);
         }}
-        height="h-[85vh]"
       >
-        <DrawerHeader className="border-b pb-4">
+        <DrawerContent className="h-[85vh]">
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+        <DrawerHeader className="border-b pb-4 shrink-0">
           <DrawerTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
             All Khata Photos ({selectedCustomerKhataPhotos.length})
@@ -3948,7 +3939,9 @@ export default function CustomersPage() {
               onDelete={handleDeleteKhataPhoto}
             />
           )}
-      </DragCloseDrawer>
+        </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* All Receipts Gallery Viewer */}
       <ImageGalleryViewer

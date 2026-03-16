@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X, Check, Contact } from "lucide-react";
+import { Loader2, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { Drawer, DrawerContent, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
 import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -141,20 +141,25 @@ export function SupplierForm({
   };
 
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
+    <Drawer
+      open={open}
+      onOpenChange={async v => {
+        if (!v) {
+          if (handleBeforeClose) {
+            const canClose = await handleBeforeClose();
+            if (!canClose) return;
+          }
+          resetAndClose();
+        }
+      }}
+    >
+      <DrawerContent className="h-[90vh]">
+        <DrawerTitle className="sr-only">{initialData ? "Edit Supplier" : "Add Supplier"}</DrawerTitle>
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
         {/* Header with action buttons */}
-        <div className="border-b px-4 pb-3">
+        <div className="border-b pb-3">
           <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="h-9 px-3"
-            >
-              <X className="mr-1 h-4 w-4" />
-              Cancel
-            </Button>
+            <DrawerCloseButton onClick={handleClose} disabled={isSubmitting} />
             <h3 className="flex-1 text-center text-base font-semibold">{title}</h3>
             <Button
               size="sm"
@@ -174,8 +179,8 @@ export function SupplierForm({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
+        <div className="pt-4">
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
             {/* Offline warning */}
             {!isOnline && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
@@ -311,11 +316,11 @@ export function SupplierForm({
               </div>
             </div>
 
-            {/* Bottom padding for safe area */}
-            <div className="h-8" />
           </form>
         </div>
-    </DragCloseDrawer>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 

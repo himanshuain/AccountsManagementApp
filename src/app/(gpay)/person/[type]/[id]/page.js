@@ -35,7 +35,7 @@ import {
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
 
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -254,14 +254,26 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
   };
 
   return (
-    <DragCloseDrawer open={true} onOpenChange={v => { if (!v) onClose(); }} beforeClose={handleBeforeClose} height="h-auto">
-      <div className="px-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-heading text-lg tracking-wide">Edit Payment</h3>
-          <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <>
+    <Drawer
+      open={true}
+      onOpenChange={async v => {
+        if (!v) {
+          if (imageViewerOpen) return;
+          if (handleBeforeClose) {
+            const canClose = await handleBeforeClose();
+            if (!canClose) return;
+          }
+          onClose();
+        }
+      }}
+    >
+      <DrawerContent className="h-[80vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
+          <DrawerTitle>Edit Payment</DrawerTitle>
+          <DrawerCloseButton onClick={onClose} />
+        </DrawerHeader>
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -470,13 +482,16 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
         </form>
       </div>
 
-      <ImageGalleryViewer
-        images={receiptImages}
-        initialIndex={viewerIndex}
-        open={imageViewerOpen}
-        onOpenChange={setImageViewerOpen}
-      />
-    </DragCloseDrawer>
+      </DrawerContent>
+    </Drawer>
+
+    <ImageGalleryViewer
+      images={receiptImages}
+      initialIndex={viewerIndex}
+      open={imageViewerOpen}
+      onOpenChange={setImageViewerOpen}
+    />
+    </>
   );
 }
 
@@ -526,7 +541,13 @@ function TransactionDetailModal({
   };
 
   return (
-    <DragCloseDrawer open={!!txn} onOpenChange={v => !v && onClose()} height="h-[92vh]">
+    <Drawer open={!!txn} onOpenChange={v => !v && onClose()}>
+      <DrawerContent className="h-[92vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
+          <DrawerTitle>Transaction Details</DrawerTitle>
+          <DrawerCloseButton onClick={onClose} />
+        </DrawerHeader>
+        <div className="min-h-full overflow-y-auto overscroll-contain pb-8">
       {/* Image Carousel or Amount Hero */}
       {hasImages ? (
         <SwipeCarousel
@@ -785,7 +806,9 @@ function TransactionDetailModal({
           Delete Transaction
         </button>
       </div>
-    </DragCloseDrawer>
+      </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
@@ -2041,6 +2064,11 @@ export default function PersonChatPage() {
             <div className="flex justify-center py-3">
               <div className="sheet-handle" />
             </div>
+
+            <DrawerCloseButton
+              onClick={() => setShowProfile(false)}
+              className="absolute right-4 top-3 z-10"
+            />
 
             {/* Avatar & Name */}
             <div className="flex flex-col items-center py-6">

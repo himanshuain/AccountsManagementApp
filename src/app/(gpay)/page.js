@@ -10,7 +10,6 @@ import {
   ArrowDownAZ,
   Clock,
   IndianRupee,
-  X,
   Users,
   Store,
   ChevronDown,
@@ -34,6 +33,12 @@ import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerCloseButton,
+} from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
 import { getLocalDate } from "@/lib/date-utils";
@@ -749,6 +754,7 @@ export default function GPayHomePage() {
         </AnimatePresence>
       </section>
 
+
       {/* Quick Action FAB */}
       <motion.button
         onClick={() => setAddMenuOpen(true)}
@@ -762,100 +768,80 @@ export default function GPayHomePage() {
         <Plus className="h-6 w-6" />
       </motion.button>
 
-      {/* Add Menu Modal - Fixed with proper bottom padding */}
-      <AnimatePresence>
-        {addMenuOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
-            onClick={() => setAddMenuOpen(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.div
-              className="pb-nav w-full max-w-md rounded-t-3xl bg-card p-6"
-              onClick={e => e.stopPropagation()}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <h3 className="font-heading text-xl tracking-wide">Add New</h3>
-                <button
-                  onClick={() => setAddMenuOpen(false)}
-                  className="rounded-full p-2 transition-colors hover:bg-muted"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+      {/* Add Menu Drawer */}
+      <Drawer open={addMenuOpen} onOpenChange={setAddMenuOpen}>
+        <DrawerContent className="h-[55vh]">
+          <DrawerTitle className="sr-only">Add New</DrawerTitle>
+          <div className="min-h-full overflow-y-auto overscroll-contain px-6 pb-8">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="font-heading text-xl tracking-wide">Add New</h3>
+              <DrawerCloseButton onClick={() => setAddMenuOpen(false)} />
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    setSupplierFormOpen(true);
-                  }}
-                  className="theme-card p-4 text-left transition-colors hover:border-primary"
-                >
-                  <Store className="mb-2 h-8 w-8 text-primary" />
-                  <p className="font-medium">Supplier</p>
-                  <p className="text-xs text-muted-foreground">Add new vendor</p>
-                </button>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => {
+                  setAddMenuOpen(false);
+                  setSupplierFormOpen(true);
+                }}
+                className="theme-card p-4 text-left transition-colors hover:border-primary"
+              >
+                <Store className="mb-2 h-8 w-8 text-primary" />
+                <p className="font-medium">Supplier</p>
+                <p className="text-xs text-muted-foreground">Add new vendor</p>
+              </button>
 
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    setCustomerFormOpen(true);
-                  }}
-                  className="theme-card p-4 text-left transition-colors hover:border-primary"
-                >
-                  <Users className="mb-2 h-8 w-8 text-primary" />
-                  <p className="font-medium">Customer</p>
-                  <p className="text-xs text-muted-foreground">Add new customer</p>
-                </button>
+              <button
+                onClick={() => {
+                  setAddMenuOpen(false);
+                  setCustomerFormOpen(true);
+                }}
+                className="theme-card p-4 text-left transition-colors hover:border-primary"
+              >
+                <Users className="mb-2 h-8 w-8 text-primary" />
+                <p className="font-medium">Customer</p>
+                <p className="text-xs text-muted-foreground">Add new customer</p>
+              </button>
 
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    setTransactionFormOpen(true);
-                  }}
-                  className="theme-card p-4 text-left transition-colors hover:border-primary"
-                >
-                  <ArrowUpRight className="amount-negative mb-2 h-8 w-8" />
-                  <p className="font-medium">Bill</p>
-                  <p className="text-xs text-muted-foreground">Record purchase</p>
-                </button>
+              <button
+                onClick={() => {
+                  setAddMenuOpen(false);
+                  setTransactionFormOpen(true);
+                }}
+                className="theme-card p-4 text-left transition-colors hover:border-primary"
+              >
+                <ArrowUpRight className="amount-negative mb-2 h-8 w-8" />
+                <p className="font-medium">Bill</p>
+                <p className="text-xs text-muted-foreground">Record purchase</p>
+              </button>
 
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    setUdharFormOpen(true);
-                  }}
-                  className="theme-card p-4 text-left transition-colors hover:border-primary"
-                >
-                  <ArrowDownLeft className="status-pending mb-2 h-8 w-8" />
-                  <p className="font-medium">Udhar</p>
-                  <p className="text-xs text-muted-foreground">Record credit</p>
-                </button>
+              <button
+                onClick={() => {
+                  setAddMenuOpen(false);
+                  setUdharFormOpen(true);
+                }}
+                className="theme-card p-4 text-left transition-colors hover:border-primary"
+              >
+                <ArrowDownLeft className="status-pending mb-2 h-8 w-8" />
+                <p className="font-medium">Udhar</p>
+                <p className="text-xs text-muted-foreground">Record credit</p>
+              </button>
 
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    setIncomeModalOpen(true);
-                  }}
-                  className="theme-card col-span-2 p-4 text-left transition-colors hover:border-primary"
-                >
-                  <PiggyBank className="amount-positive mb-2 h-8 w-8" />
-                  <p className="font-medium">Income</p>
-                  <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <button
+                onClick={() => {
+                  setAddMenuOpen(false);
+                  setIncomeModalOpen(true);
+                }}
+                className="theme-card col-span-2 p-4 text-left transition-colors hover:border-primary"
+              >
+                <PiggyBank className="amount-positive mb-2 h-8 w-8" />
+                <p className="font-medium">Income</p>
+                <p className="text-xs text-muted-foreground">Record daily or monthly income</p>
+              </button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Forms */}
       <SupplierForm

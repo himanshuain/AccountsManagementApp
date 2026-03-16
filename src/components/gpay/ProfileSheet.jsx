@@ -10,14 +10,13 @@ import {
   CreditCard,
   MessageSquare,
   Check,
-  ChevronLeft,
   MoreVertical,
   Edit,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,46 +140,41 @@ export function ProfileSheet({
   };
 
   return (
-    <DragCloseDrawer open={open} onOpenChange={onOpenChange} height="h-[85vh]" className={className}>
-        {/* Header */}
-        <div className="flex flex-shrink-0 flex-row items-center justify-between border-b p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onOpenChange(false)}
-            className="h-9 w-9"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onEdit && (
-                <DropdownMenuItem onClick={onEdit}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-              )}
-              {onDelete && (
-                <DropdownMenuItem
-                  onClick={onDelete}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className={cn("h-[85vh]", className)}>
+        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
+          <DrawerTitle>Profile</DrawerTitle>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onEdit && (
+                  <DropdownMenuItem onClick={onEdit}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem
+                    onClick={onDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DrawerCloseButton onClick={() => onOpenChange(false)} />
+          </div>
+        </DrawerHeader>
 
         {/* Profile Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-full overflow-y-auto overscroll-contain pb-8">
           {/* Avatar and Name */}
           <div className="flex flex-col items-center py-6">
             <PersonAvatar name={name} image={person.profilePicture} size="xl" />
@@ -304,7 +298,8 @@ export function ProfileSheet({
             )}
           </div>
         </div>
-    </DragCloseDrawer>
+      </DrawerContent>
+    </Drawer>
   );
 }
 

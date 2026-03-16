@@ -9,7 +9,13 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { UdharForm } from "@/components/UdharForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { ImageGalleryViewer } from "@/components/PhotoViewer";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerCloseButton,
+} from "@/components/ui/drawer";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -478,14 +484,16 @@ export default function CustomerChatPage({ params }) {
       />
 
       {/* Collect Payment Drawer */}
-      <DragCloseDrawer
+      <Drawer
         open={collectSheetOpen}
         onOpenChange={setCollectSheetOpen}
-        height="h-[85vh]"
       >
-        <DrawerHeader className="pb-4">
+        <DrawerContent className="h-[85vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
           <DrawerTitle>Collect Payment</DrawerTitle>
+          <DrawerCloseButton onClick={() => setCollectSheetOpen(false)} />
         </DrawerHeader>
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
 
         {collectUdhar && (
             <div className="space-y-4 pb-6">
@@ -533,7 +541,9 @@ export default function CustomerChatPage({ params }) {
               </div>
             </div>
           )}
-      </DragCloseDrawer>
+        </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Delete Confirmation */}
       <DeleteConfirmDialog
@@ -550,14 +560,19 @@ export default function CustomerChatPage({ params }) {
       />
 
       {/* Bill Detail Drawer */}
-      <DragCloseDrawer
+      <Drawer
         open={billDrawerOpen}
         onOpenChange={(val) => {
           if (!val && galleryOpen) return;
           setBillDrawerOpen(val);
         }}
-        height="h-[85vh]"
       >
+        <DrawerContent className="h-[85vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
+          <DrawerTitle>Bill Details</DrawerTitle>
+          <DrawerCloseButton onClick={() => setBillDrawerOpen(false)} />
+        </DrawerHeader>
+        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
         {selectedBillItem && selectedBillType === "udhar" && (() => {
           const udhar = selectedBillItem;
           const udharAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
@@ -734,7 +749,9 @@ export default function CustomerChatPage({ params }) {
             </div>
           );
         })()}
-      </DragCloseDrawer>
+        </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Image Gallery */}
       <ImageGalleryViewer

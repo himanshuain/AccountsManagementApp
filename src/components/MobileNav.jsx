@@ -24,13 +24,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerCloseButton,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -227,16 +227,16 @@ export function MobileNav() {
       <div className="fixed left-0 right-0 top-0 z-40 border-b bg-card/95 backdrop-blur-sm lg:hidden">
         {/* Header row */}
         <div className="flex h-14 items-center gap-2 px-3">
-          <Sheet>
-            <SheetTrigger asChild>
+          <Drawer direction="left">
+            <DrawerTrigger asChild>
               <Button variant="ghost" size="icon" className="shrink-0">
                 <Menu className="h-5 w-5" />
               </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-              <SheetHeader className="p-0">
-                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              </SheetHeader>
+            </DrawerTrigger>
+            <DrawerContent className="left-0 top-0 bottom-0 right-auto h-full w-72 max-w-[85vw] rounded-none rounded-r-[10px] shadow-2xl p-0 [&_[data-drawer-handle]]:hidden">
+              <DrawerHeader className="p-0 sr-only">
+                <DrawerTitle>Navigation Menu</DrawerTitle>
+              </DrawerHeader>
 
               {/* Mobile Menu Content */}
               <div className="flex h-full flex-col">
@@ -249,7 +249,7 @@ export function MobileNav() {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 space-y-1 px-4 py-4">
+                <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-4">
                   {navItems.map(item => {
                     const isActive =
                       pathname === item.href ||
@@ -389,8 +389,8 @@ export function MobileNav() {
                   </Button>
                 </div>
               </div>
-            </SheetContent>
-          </Sheet>
+            </DrawerContent>
+          </Drawer>
 
           {/* Full width search bar */}
           <GlobalSearch className="flex-1" />
@@ -437,21 +437,28 @@ export function MobileNav() {
       </nav>
 
       {/* Change Password Sheet */}
-      <DragCloseDrawer
+      <Drawer
         open={passwordSheetOpen}
         onOpenChange={open => {
           if (!open) resetPasswordForm();
           else setPasswordSheetOpen(open);
         }}
-        height="h-[85vh]"
       >
-        <div className="px-4">
-          <DrawerHeader className="pb-4 text-left">
+        <DrawerContent className="h-[85vh]">
+          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+          <DrawerHeader className="relative pb-4 text-left">
             <DrawerTitle className="flex items-center gap-2">
               <Key className="h-5 w-5" />
               Change Password
             </DrawerTitle>
             <p className="text-sm text-muted-foreground">Enter your current password and choose a new one</p>
+            <DrawerCloseButton
+              onClick={() => {
+                resetPasswordForm();
+                setPasswordSheetOpen(false);
+              }}
+              className="absolute right-0 top-0"
+            />
           </DrawerHeader>
 
           <div className="space-y-4 py-4">
@@ -556,8 +563,9 @@ export function MobileNav() {
               )}
             </Button>
           </div>
-        </div>
-      </DragCloseDrawer>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Backup Manager Sheet */}
       <BackupManager open={backupSheetOpen} onOpenChange={setBackupSheetOpen} />

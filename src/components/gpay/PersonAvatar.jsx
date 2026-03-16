@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
 
@@ -134,7 +135,7 @@ export function PersonAvatar({
 
 /**
  * Avatar with name below (for grid layout)
- * Supports both onClick and href (Link) for navigation
+ * Supports both onClick and href (Link) for navigation with tap animation
  */
 export function PersonAvatarWithName({
   name,
@@ -147,25 +148,29 @@ export function PersonAvatarWithName({
   href,
   className,
 }) {
+  const avatarEl = <PersonAvatar name={name} image={image} size={size} />;
+  const nameEl = (
+    <p className="text-xs font-bold leading-tight line-clamp-2">{name || "Unknown"}</p>
+  );
+  const amountEl =
+    amount !== undefined ? (
+      <span
+        className={cn(
+          "mt-1 inline-block rounded-md bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] font-semibold",
+          amountColor || "amount-pending"
+        )}
+      >
+        ₹{amount.toLocaleString("en-IN")}
+      </span>
+    ) : null;
+
   const content = (
     <>
-      <PersonAvatar name={name} image={image} size={size} />
-
+      {avatarEl}
       <div className="w-full text-center">
-        <p className="text-xs font-bold leading-tight line-clamp-2">{name || "Unknown"}</p>
-
+        {nameEl}
         {subtitle && <p className="text-[10px] text-muted-foreground line-clamp-1">{subtitle}</p>}
-
-        {amount !== undefined && (
-          <span
-            className={cn(
-              "mt-1 inline-block rounded-md bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] font-semibold",
-              amountColor || "amount-pending"
-            )}
-          >
-            ₹{amount.toLocaleString("en-IN")}
-          </span>
-        )}
+        {amount !== undefined && amountEl}
       </div>
     </>
   );
@@ -173,30 +178,38 @@ export function PersonAvatarWithName({
   const sharedClasses = cn(
     "flex flex-col items-center gap-1.5 p-2 px-1",
     "w-[88px] h-[120px]",
-    "active:scale-95 transition-transform cursor-pointer",
+    "transition-transform cursor-pointer",
     "rounded-2xl hover:bg-accent/20",
     className
   );
 
-  // Use Link for navigation with prefetch
   if (href) {
     return (
-      <Link href={href} className={sharedClasses} prefetch={true}>
-        {content}
-      </Link>
+      <motion.div
+        whileTap={{ scale: 0.92 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      >
+        <Link href={href} className={sharedClasses} prefetch={true}>
+          {content}
+        </Link>
+      </motion.div>
     );
   }
 
-  // Fallback to div with onClick
   return (
-    <div className={sharedClasses} onClick={onClick}>
+    <motion.div
+      className={sharedClasses}
+      onClick={onClick}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+    >
       {content}
-    </div>
+    </motion.div>
   );
 }
 
 /**
- * List-style person row for modern home page layout
+ * List-style person row for modern home page layout with tap animation
  */
 export function PersonListItem({
   name,
@@ -207,44 +220,59 @@ export function PersonListItem({
   onClick,
   className,
 }) {
+  const avatarEl = <PersonAvatar name={name} image={image} size="md" />;
+  const nameEl = (
+    <p className="text-sm font-semibold leading-tight truncate">{name || "Unknown"}</p>
+  );
+  const amountEl =
+    amount !== undefined ? (
+      <span
+        className={cn(
+          "flex-shrink-0 font-mono text-sm font-bold tabular-nums",
+          amountColor || "amount-pending"
+        )}
+      >
+        ₹{amount.toLocaleString("en-IN")}
+      </span>
+    ) : null;
+
   const content = (
     <div className="flex items-center gap-3 w-full">
-      <PersonAvatar name={name} image={image} size="md" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-tight truncate">{name || "Unknown"}</p>
-      </div>
-      {amount !== undefined && (
-        <span
-          className={cn(
-            "flex-shrink-0 font-mono text-sm font-bold tabular-nums",
-            amountColor || "amount-pending"
-          )}
-        >
-          ₹{amount.toLocaleString("en-IN")}
-        </span>
-      )}
+      {avatarEl}
+      <div className="min-w-0 flex-1">{nameEl}</div>
+      {amount !== undefined && amountEl}
     </div>
   );
 
   const sharedClasses = cn(
     "flex items-center w-full rounded-xl px-3 py-2.5",
-    "active:scale-[0.98] transition-all cursor-pointer",
+    "transition-all cursor-pointer",
     "hover:bg-accent/30",
     className
   );
 
   if (href) {
     return (
-      <Link href={href} className={sharedClasses} prefetch={true}>
-        {content}
-      </Link>
+      <motion.div
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      >
+        <Link href={href} className={sharedClasses} prefetch={true}>
+          {content}
+        </Link>
+      </motion.div>
     );
   }
 
   return (
-    <div className={sharedClasses} onClick={onClick}>
+    <motion.div
+      className={sharedClasses}
+      onClick={onClick}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+    >
       {content}
-    </div>
+    </motion.div>
   );
 }
 

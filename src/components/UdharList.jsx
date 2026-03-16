@@ -34,8 +34,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerCloseButton,
+} from "@/components/ui/drawer";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -628,16 +633,15 @@ export function UdharList({
       />
 
       {/* Collect Sheet */}
-      <DragCloseDrawer
+      <Drawer
         open={depositSheetOpen}
         onOpenChange={open => {
           if (!open && !receiptViewerOpen) resetDepositForm();
           else setDepositSheetOpen(open);
         }}
-        height="h-[85vh]"
       >
-        <div className="flex h-full flex-col px-4">
-          <DrawerHeader className="flex flex-row items-center justify-between border-b p-4">
+        <DrawerContent className="h-[85vh]">
+        <DrawerHeader className="flex flex-row items-center justify-between border-b p-4 shrink-0">
             <DrawerTitle>Record Collect</DrawerTitle>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={resetDepositForm}>
@@ -660,10 +664,11 @@ export function UdharList({
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save
               </Button>
+              <DrawerCloseButton onClick={resetDepositForm} />
             </div>
           </DrawerHeader>
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="space-y-4 p-4">
+          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+            <div className="space-y-4 py-4">
               {/* Amount Summary */}
               {udharForDeposit && (
                 <div className="space-y-1 rounded-lg bg-muted/50 p-3">
@@ -827,9 +832,9 @@ export function UdharList({
                 )}
               </div>
             </div>
-          </ScrollArea>
-        </div>
-      </DragCloseDrawer>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Receipt Image Viewer */}
       <ImageViewer
