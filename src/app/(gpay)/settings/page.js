@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
-import { Drawer, DrawerContent, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import {
   ChevronRight,
   IndianRupee,
@@ -281,13 +281,12 @@ function IncomeModal({ open, onClose }) {
   };
 
   return (
-    <Drawer
+    <DragCloseDrawer
       open={open}
       onOpenChange={v => { if (!v && !deleteItem) onClose(); }}
+      height="max-h-[90vh]"
     >
-      <DrawerContent className="h-[90vh]">
-        <DrawerTitle className="sr-only">Income Tracker</DrawerTitle>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+        <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Income Tracker</h2>
 
           {/* Summary Cards */}
@@ -581,8 +580,7 @@ function IncomeModal({ open, onClose }) {
             : ""
         }
       />
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 
@@ -637,10 +635,8 @@ function ReportsModal({ open, onClose }) {
   }, [transactions, udharList, incomeList]);
 
   return (
-    <Drawer open={open} onOpenChange={v => !v && onClose()}>
-      <DrawerContent className="h-[85vh]">
-        <DrawerTitle className="sr-only">Reports</DrawerTitle>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
+        <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Reports</h2>
 
           {/* <div className={cn("p-4 rounded-xl mb-6", stats.netPosition >= 0 ? "bg-emerald-500/20" : "bg-red-500/20")}>
@@ -728,8 +724,7 @@ function ReportsModal({ open, onClose }) {
             </div>
           </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 
@@ -956,10 +951,8 @@ function BackupModal({ open, onClose }) {
   };
 
   return (
-    <Drawer open={open} onOpenChange={v => !v && onClose()}>
-      <DrawerContent className="h-[85vh]">
-        <DrawerTitle className="sr-only">Backup & Export</DrawerTitle>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
+        <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Backup & Export</h2>
 
           <div className="theme-card mb-4 p-4">
@@ -1124,8 +1117,7 @@ function BackupModal({ open, onClose }) {
             </div>
           </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 
@@ -1179,10 +1171,8 @@ function ChangePinModal({ open, onClose }) {
   };
 
   return (
-    <Drawer open={open} onOpenChange={v => !v && onClose()}>
-      <DrawerContent className="h-[60vh]">
-        <DrawerTitle className="sr-only">Change PIN</DrawerTitle>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="h-auto">
+        <div className="px-4 pb-6">
           <h2 className="mb-6 font-heading text-2xl tracking-wide">Change PIN</h2>
 
           <div className="space-y-4">
@@ -1251,8 +1241,7 @@ function ChangePinModal({ open, onClose }) {
             </button>
           </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 
@@ -1273,13 +1262,13 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
   };
 
   return (
-    <Drawer open={open} onOpenChange={v => !v && onClose()}>
-      <DrawerContent className="h-[60vh]">
-        <DrawerTitle className="sr-only">Biometric Lock</DrawerTitle>
-        <div className="min-h-full overflow-y-auto overscroll-contain p-4 pb-8">
-          <div className="relative mb-6 flex items-center justify-between">
+    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[90vh]">
+        <div className="p-4">
+          <div className="mb-6 flex items-center justify-between">
             <h2 className="font-heading text-xl tracking-wide">Biometric Lock</h2>
-            <DrawerCloseButton onClick={onClose} className="absolute right-0 top-0" />
+            <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
           {!isAvailable && (
@@ -1404,8 +1393,7 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
             </div>
           </div>
         </div>
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 

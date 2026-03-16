@@ -35,12 +35,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
 import {
   DropdownMenu,
@@ -49,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1611,7 +1607,7 @@ export default function SuppliersPage() {
       </Collapsible>
 
       {/* Supplier Detail Drawer */}
-      <Drawer
+      <DragCloseDrawer
         open={!!selectedSupplier}
         onOpenChange={open => {
           // Don't close if image viewer, bill gallery, or supplier form is open
@@ -1629,9 +1625,8 @@ export default function SuppliersPage() {
           }
           if (!open) setSelectedSupplier(null);
         }}
+        height="h-[90vh]"
       >
-        <DrawerContent className="h-[90vh]">
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
         {selectedSupplier &&
           (() => {
             const supplierTransactions = transactions
@@ -1752,7 +1747,8 @@ export default function SuppliersPage() {
                       </div>
                     </div>
                   </DrawerHeader>
-                  <div className="space-y-4">
+                  <ScrollArea className="h-[calc(90vh-100px)] flex-1">
+                    <div className="space-y-4 p-4">
                       {/* UPI QR Code if available */}
                       {selectedSupplier.upiQrCode && (
                         <div className="rounded-xl bg-muted/30 p-4 text-center">
@@ -2137,13 +2133,12 @@ export default function SuppliersPage() {
                           <p className="text-sm">{selectedSupplier.notes}</p>
                         </div>
                       )}
-                  </div>
+                    </div>
+                  </ScrollArea>
                 </>
               );
             })()}
-        </div>
-        </DrawerContent>
-      </Drawer>
+      </DragCloseDrawer>
 
       {/* Image Viewer */}
       <ImageViewer
@@ -2249,10 +2244,8 @@ export default function SuppliersPage() {
       />
 
       {/* Payment Sheet */}
-      <Drawer open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen}>
-        <DrawerContent className="h-[70vh]">
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
-        <DrawerHeader className="px-0 pb-2">
+      <DragCloseDrawer open={paymentSheetOpen} onOpenChange={setPaymentSheetOpen} height="h-[70vh]">
+        <DrawerHeader className="px-4 pb-2">
           <DrawerTitle>Record Payment</DrawerTitle>
         </DrawerHeader>
 
@@ -2371,22 +2364,19 @@ export default function SuppliersPage() {
                 </div>
               );
             })()}
-        </div>
-        </DrawerContent>
-      </Drawer>
+      </DragCloseDrawer>
 
       {/* PDF Export Sheet */}
-      <Drawer open={pdfExportSheetOpen} onOpenChange={setPdfExportSheetOpen}>
-        <DrawerContent className="h-[70vh]">
-        <DrawerHeader className="border-b px-4 pb-3 shrink-0">
+      <DragCloseDrawer open={pdfExportSheetOpen} onOpenChange={setPdfExportSheetOpen} height="h-[70vh]">
+        <DrawerHeader className="border-b px-4 pb-3">
           <DrawerTitle className="text-lg">Export PDF Report</DrawerTitle>
             <p className="text-sm text-muted-foreground">
               Select a vyapari to export their transaction report
             </p>
           </DrawerHeader>
 
-          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
-            <div className="space-y-2 py-4">
+          <ScrollArea className="h-[calc(70vh-100px)] flex-1">
+            <div className="space-y-2 p-4">
               {suppliersWithStats.map(supplier => {
                 const supplierTransactions = transactions.filter(t => t.supplierId === supplier.id);
                 return (
@@ -2449,9 +2439,8 @@ export default function SuppliersPage() {
                 );
               })}
             </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+          </ScrollArea>
+      </DragCloseDrawer>
     </div>
   );
 }

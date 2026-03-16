@@ -41,13 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerCloseButton,
-} from "@/components/ui/drawer";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { BackupManager } from "./BackupManager";
 
 const navItems = [
@@ -350,16 +344,16 @@ export function Sidebar() {
       </div>
 
       {/* Change Password Sheet */}
-      <Drawer
+      <DragCloseDrawer
         open={passwordSheetOpen}
         onOpenChange={open => {
           if (!open) resetPasswordForm();
           else setPasswordSheetOpen(open);
         }}
+        height="h-auto"
       >
-        <DrawerContent className="h-[85vh]">
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
-        <DrawerHeader className="relative flex flex-col items-start gap-1 pb-4 text-left">
+        <div className="px-4">
+        <DrawerHeader className="flex flex-col items-start gap-1 pb-4 text-left">
           <DrawerTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
             Change Password
@@ -367,13 +361,6 @@ export function Sidebar() {
           <p className="text-sm text-muted-foreground">
             Enter your current password and choose a new one
           </p>
-          <DrawerCloseButton
-            onClick={() => {
-              resetPasswordForm();
-              setPasswordSheetOpen(false);
-            }}
-            className="absolute right-0 top-0"
-          />
         </DrawerHeader>
 
           <div className="space-y-4 py-4">
@@ -479,8 +466,7 @@ export function Sidebar() {
             </Button>
           </div>
         </div>
-        </DrawerContent>
-      </Drawer>
+      </DragCloseDrawer>
 
       {/* Backup Manager Sheet */}
       <BackupManager open={backupSheetOpen} onOpenChange={setBackupSheetOpen} />

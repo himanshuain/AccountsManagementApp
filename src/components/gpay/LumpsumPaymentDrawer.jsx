@@ -12,13 +12,7 @@ import {
   Check,
   AlertCircle,
 } from "lucide-react";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerCloseButton,
-} from "@/components/ui/drawer";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -295,7 +289,7 @@ export function LumpsumPaymentDrawer({
       </button>
 
       {/* Lumpsum Payment Sheet */}
-      <Drawer
+      <DragCloseDrawer
         open={open}
         onOpenChange={(val) => {
           if (!val && imageViewerOpen) return;
@@ -304,20 +298,16 @@ export function LumpsumPaymentDrawer({
             if (!val) resetForm();
           }
         }}
+        height="max-h-[90vh]"
       >
-        <DrawerContent className="h-[90vh]">
-          <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
+          <DrawerHeader className="px-4 pb-2">
             <DrawerTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
               Pay Lumpsum
             </DrawerTitle>
-            <DrawerCloseButton
-              onClick={() => { setOpen(false); resetForm(); }}
-            />
           </DrawerHeader>
-          <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
 
-          <div className="space-y-4">
+          <div className="space-y-4 px-4 pb-8">
             {/* Total Pending */}
             <div className="rounded-xl bg-muted/50 p-4 text-center">
               <p className="text-xs text-muted-foreground">Total Pending</p>
@@ -656,9 +646,7 @@ export function LumpsumPaymentDrawer({
               </Button>
             </div>
           </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      </DragCloseDrawer>
 
       {/* Image Gallery Viewer - rendered outside the Sheet to avoid close conflicts */}
       <ImageGalleryViewer

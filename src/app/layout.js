@@ -73,7 +73,6 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
         className={`${bebasNeue.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${permanentMarker.variable} ${geistSans.variable} ${geistMono.variable} font-body antialiased`}
       >
-        <div vaul-drawer-wrapper="" className="min-h-screen bg-background">
         <QueryProvider>
           <ThemeProvider
             attribute="class"
@@ -90,7 +89,6 @@ export default function RootLayout({ children }) {
             </MuiProvider>
           </ThemeProvider>
         </QueryProvider>
-        </div>
       </body>
     </html>
   );

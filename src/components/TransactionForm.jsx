@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, Check, Expand } from "lucide-react";
+import { Loader2, X, Check, Expand } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Drawer, DrawerContent, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { Switch } from "@/components/ui/switch";
 import { MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
@@ -299,25 +299,20 @@ export function TransactionForm({
   };
 
   return (
-    <Drawer
-      open={open}
-      onOpenChange={async v => {
-        if (!v) {
-          if (handleBeforeClose) {
-            const canClose = await handleBeforeClose();
-            if (!canClose) return;
-          }
-          resetAndClose();
-        }
-      }}
-    >
-      <DrawerContent className="h-[90vh]">
-        <DrawerTitle className="sr-only">Record Transaction</DrawerTitle>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
         {/* Header with action buttons */}
-        <div className="border-b pb-3">
+        <div className="border-b px-4 pb-3">
           <div className="flex items-center justify-between gap-2">
-            <DrawerCloseButton onClick={handleClose} disabled={isSubmitting} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="h-9 px-3"
+            >
+              <X className="mr-1 h-4 w-4" />
+              Cancel
+            </Button>
             <h3 className="flex-1 text-center text-base font-semibold">
               {initialData ? "Edit Transaction" : title}
             </h3>
@@ -339,8 +334,8 @@ export function TransactionForm({
           </div>
         </div>
 
-        <div className="pt-4">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+        <div className="flex-1 overflow-y-auto px-6">
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
             {/* Offline warning */}
             {!isOnline && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
@@ -638,11 +633,11 @@ export function TransactionForm({
               />
             </div>
 
+            {/* Bottom padding for safe area */}
+            <div className="h-8" />
           </form>
         </div>
-        </div>
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 

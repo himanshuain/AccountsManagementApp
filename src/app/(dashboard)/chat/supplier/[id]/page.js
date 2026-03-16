@@ -9,7 +9,7 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { TransactionForm } from "@/components/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { ImageGalleryViewer } from "@/components/PhotoViewer";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerCloseButton } from "@/components/ui/drawer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -431,19 +431,14 @@ export default function SupplierChatPage({ params }) {
       />
 
       {/* Bill Detail Drawer */}
-      <Drawer
+      <DragCloseDrawer
         open={billDrawerOpen}
         onOpenChange={(val) => {
           if (!val && galleryOpen) return;
           setBillDrawerOpen(val);
         }}
+        height="h-[85vh]"
       >
-        <DrawerContent className="h-[85vh]">
-        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
-          <DrawerTitle>Bill Details</DrawerTitle>
-          <DrawerCloseButton onClick={() => setBillDrawerOpen(false)} />
-        </DrawerHeader>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
         {selectedBillItem && selectedBillType === "bill" && (() => {
           const txn = selectedBillItem;
           const txnAmount = Number(txn.amount) || 0;
@@ -608,9 +603,7 @@ export default function SupplierChatPage({ params }) {
             </div>
           );
         })()}
-        </div>
-        </DrawerContent>
-      </Drawer>
+      </DragCloseDrawer>
 
       {/* Image Gallery */}
       <ImageGalleryViewer

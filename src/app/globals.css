@@ -669,60 +669,6 @@ input[type="datetime-local"] {
 }
 
 /* ============================================
-   GLASSY CLOSE BUTTON — water ripple
-   ============================================ */
-
-@keyframes glassy-ripple {
-  0% {
-    transform: scale(0);
-    opacity: 0.45;
-  }
-  100% {
-    transform: scale(2.8);
-    opacity: 0;
-  }
-}
-
-.glassy-close-btn {
-  @apply relative flex items-center justify-center overflow-hidden rounded-full
-    border border-white/[0.08] backdrop-blur-xl transition-all duration-300;
-  background: hsl(var(--muted) / 0.55);
-  box-shadow:
-    0 2px 8px hsl(var(--background) / 0.18),
-    inset 0 1px 0 hsl(var(--foreground) / 0.04);
-}
-
-.dark .glassy-close-btn {
-  background: hsl(var(--foreground) / 0.08);
-  border-color: hsl(var(--foreground) / 0.10);
-  box-shadow:
-    0 2px 10px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 hsl(var(--foreground) / 0.06);
-}
-
-.glassy-close-btn:hover {
-  background: hsl(var(--muted) / 0.75);
-  border-color: hsl(var(--foreground) / 0.10);
-}
-
-.dark .glassy-close-btn:hover {
-  background: hsl(var(--foreground) / 0.14);
-  border-color: hsl(var(--foreground) / 0.15);
-}
-
-.glassy-close-btn .ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: hsl(var(--foreground) / 0.12);
-  pointer-events: none;
-  animation: glassy-ripple 0.55s ease-out forwards;
-}
-
-.dark .glassy-close-btn .ripple {
-  background: hsl(var(--foreground) / 0.18);
-}
-
-/* ============================================
    UTILITY CLASSES
    ============================================ */
 

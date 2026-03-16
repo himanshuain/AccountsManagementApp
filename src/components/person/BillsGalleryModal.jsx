@@ -5,13 +5,7 @@ import { Images, ExternalLink, Receipt } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { resolveImageUrl } from "@/lib/image-url";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerCloseButton,
-} from "@/components/ui/drawer";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { cn } from "@/lib/utils";
 
 function BillStripItem({ bill, isActive, onClick }) {
@@ -36,7 +30,7 @@ function BillStripItem({ bill, isActive, onClick }) {
 }
 
 /**
- * Bills Gallery Drawer - Shows all bills & receipts in a Drawer
+ * Bills Gallery Drawer - Shows all bills & receipts in a DragCloseDrawer
  * with a SwipeCarousel and a quick-jump strip by date/amount.
  */
 export function BillsGalleryModal({
@@ -118,21 +112,18 @@ export function BillsGalleryModal({
   }, [isOpen]);
 
   return (
-    <Drawer open={isOpen} onOpenChange={handleClose}>
-      <DrawerContent className="h-[90vh]">
-        <DrawerHeader className="flex flex-row items-center justify-between border-b px-4 pb-3 shrink-0">
-          <div>
-            <DrawerTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              All Bills & Receipts
-            </DrawerTitle>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {allBills.length} image{allBills.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <DrawerCloseButton onClick={() => handleClose(false)} />
-        </DrawerHeader>
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+    <DragCloseDrawer open={isOpen} onOpenChange={handleClose} height="h-[90vh]">
+      <DrawerHeader className="border-b px-4 pb-3">
+        <div>
+          <DrawerTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            All Bills & Receipts
+          </DrawerTitle>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {allBills.length} image{allBills.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </DrawerHeader>
 
       {allBills.length === 0 ? (
         <div className="py-16 text-center">
@@ -206,9 +197,7 @@ export function BillsGalleryModal({
           )}
         </div>
       )}
-        </div>
-      </DrawerContent>
-    </Drawer>
+    </DragCloseDrawer>
   );
 }
 

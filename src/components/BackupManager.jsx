@@ -20,12 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -254,9 +249,8 @@ export function BackupManager({ open, onOpenChange }) {
 
   return (
     <>
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="h-[85vh]">
-        <div className="min-h-full overflow-y-auto overscroll-contain px-4 pb-8">
+      <DragCloseDrawer open={open} onOpenChange={onOpenChange} height="h-[85vh]">
+        <div className="px-4">
         <DrawerHeader className="flex flex-col items-start gap-1 text-left">
           <DrawerTitle className="flex items-center gap-2">
             <HardDrive className="h-5 w-5" />
@@ -305,7 +299,7 @@ export function BackupManager({ open, onOpenChange }) {
           </div>
 
           {/* Tab Content */}
-          <div className="mt-4">
+          <div className="mt-4 flex-1 overflow-y-auto pb-6">
             {/* Backup Tab */}
             {activeTab === "backup" && (
               <div className="space-y-6">
@@ -592,8 +586,7 @@ export function BackupManager({ open, onOpenChange }) {
             )}
           </div>
         </div>
-        </DrawerContent>
-      </Drawer>
+      </DragCloseDrawer>
 
       {/* Restore Confirmation Dialog */}
       <AlertDialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>
