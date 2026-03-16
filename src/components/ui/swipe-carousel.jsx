@@ -1,12 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, useMotionValue } from "motion/react";
 import { cn } from "@/lib/utils";
 
 const ONE_SECOND = 1000;
 const AUTO_DELAY = ONE_SECOND * 10;
 const DRAG_BUFFER = 50;
+
+// Resize ImageKit URLs for carousel display to avoid mobile decode limits.
+// Full-res originals (4000px+) can exceed iOS Safari's pixel budget and
+// silently fail to render, while desktop browsers handle them fine.
+function optimizeForCarousel(src) {
+  if (!src || typeof src !== "string") return src;
+  if (src.startsWith("data:")) return src;
+  if (!src.includes("ik.imagekit.io")) return src;
+  try {
+    const url = new URL(src);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length < 2) return src;
+    const id = parts[0];
+    const hasTransform = parts[1]?.startsWith("tr:");
+    const filePath = hasTransform ? parts.slice(2).join("/") : parts.slice(1).join("/");
+    url.pathname = `/${id}/tr:w-800,q-80,f-auto/${filePath}`;
+    return url.toString();
+  } catch {
+    return src;
+  }
+}
 
 const SPRING_OPTIONS = {
   type: "spring",
@@ -53,8 +74,13 @@ export function SwipeCarousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
-  const normalizedImages = images.map((img) =>
-    typeof img === "string" ? { src: img } : img
+  const normalizedImages = useMemo(
+    () =>
+      images.map((img) => {
+        const raw = typeof img === "string" ? { src: img } : img;
+        return { ...raw, src: optimizeForCarousel(raw.src) };
+      }),
+    [images]
   );
 
   const count = normalizedImages.length;
@@ -113,7 +139,7 @@ export function SwipeCarousel({
             animate={{ scale: isSingle ? 1 : imgIndex === idx ? 0.95 : 0.85 }}
             transition={SPRING_OPTIONS}
             className={cn(
-              "w-full shrink-0 overflow-hidden rounded-xl bg-muted",
+              "relative w-full shrink-0 overflow-hidden rounded-xl bg-muted",
               aspectRatio
             )}
             onClick={() => onImageClick?.(img, idx)}
@@ -122,8 +148,9 @@ export function SwipeCarousel({
             <img
               src={img.src}
               alt={img.alt || `Image ${idx + 1}`}
-              className="h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
               loading={idx === 0 ? "eager" : "lazy"}
+              decoding="async"
               draggable={false}
             />
           </motion.div>
