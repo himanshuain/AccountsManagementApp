@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, X, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,13 @@ import { ImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { useContactPicker } from "@/hooks/useContactPicker";
+import {
+  addSessionStorageKeys,
+  clearSessionStorageKeys,
+  deleteStorageKeysClient,
+  drainSessionStorageKeysForCancel,
+  removeSessionStorageKeys,
+} from "@/lib/orphan-upload-cleanup";
 
 export function SupplierForm({
   open,
@@ -21,6 +28,8 @@ export function SupplierForm({
 }) {
   const isOnline = useOnlineStatus();
   const { isSupported: contactPickerSupported, isPicking, pickContact } = useContactPicker();
+  const sessionUploadKeysRef = useRef(new Set());
+  const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [upiQrCode, setUpiQrCode] = useState(initialData?.upiQrCode || null);
@@ -63,6 +72,18 @@ export function SupplierForm({
     }
   };
 
+  useEffect(() => {
+    if (!open) {
+      sessionScopeRef.current = "";
+      return;
+    }
+    const scope = String(initialData?.id ?? "new");
+    if (sessionScopeRef.current !== scope) {
+      sessionScopeRef.current = scope;
+      sessionUploadKeysRef.current.clear();
+    }
+  }, [open, initialData?.id]);
+
   // Update form when dialog opens
   useEffect(() => {
     if (open) {
@@ -98,6 +119,7 @@ export function SupplierForm({
         profilePicture,
         upiQrCode,
       });
+      clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setProfilePicture(null);
       setUpiQrCode(null);
@@ -117,6 +139,7 @@ export function SupplierForm({
   };
 
   const resetAndClose = () => {
+    deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
     setProfilePicture(initialData?.profilePicture || null);
     setUpiQrCode(initialData?.upiQrCode || null);
@@ -193,6 +216,10 @@ export function SupplierForm({
                   aspectRatio="square"
                   disabled={!isOnline}
                   onUploadingChange={setUploadingProfile}
+                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                  onSessionStorageKeysRemoved={keys =>
+                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                  }
                   folder="suppliers"
                 />
               </div>
@@ -278,6 +305,10 @@ export function SupplierForm({
                     aspectRatio="square"
                     disabled={!isOnline}
                     onUploadingChange={setUploadingUpiQr}
+                    onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                    onSessionStorageKeysRemoved={keys =>
+                      removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                    }
                     folder="qr-codes"
                   />
                 </div>

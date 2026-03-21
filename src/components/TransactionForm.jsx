@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2, X, Check, Expand } from "lucide-react";
@@ -15,6 +15,13 @@ import { Separator } from "@/components/ui/separator";
 import { PhotoGalleryViewer } from "./PhotoViewer";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
+import {
+  addSessionStorageKeys,
+  clearSessionStorageKeys,
+  deleteStorageKeysClient,
+  drainSessionStorageKeysForCancel,
+  removeSessionStorageKeys,
+} from "@/lib/orphan-upload-cleanup";
 
 // Stable empty array reference to prevent infinite re-renders
 const EMPTY_ARRAY = [];
@@ -37,6 +44,8 @@ export function TransactionForm({
     [initialBillImages]
   );
   const isOnline = useOnlineStatus();
+  const sessionUploadKeysRef = useRef(new Set());
+  const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billImages, setBillImages] = useState(initialData?.billImages || []);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -73,6 +82,18 @@ export function TransactionForm({
       setBillImages(stableInitialBillImages);
     }
   }, [open, stableInitialBillImages]);
+
+  useEffect(() => {
+    if (!open) {
+      sessionScopeRef.current = "";
+      return;
+    }
+    const scope = String(initialData?.id ?? "new");
+    if (sessionScopeRef.current !== scope) {
+      sessionScopeRef.current = scope;
+      sessionUploadKeysRef.current.clear();
+    }
+  }, [open, initialData?.id]);
 
   // Reset form state when opening
   useEffect(() => {
@@ -255,6 +276,7 @@ export function TransactionForm({
           paidAmount: existingPaidAmount,
         }),
       });
+      clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setBillImages([]);
       setPendingFiles([]);
@@ -277,6 +299,7 @@ export function TransactionForm({
   };
 
   const resetAndClose = () => {
+    deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
     setBillImages(initialData?.billImages || []);
     setPendingFiles([]);
@@ -517,6 +540,10 @@ export function TransactionForm({
                   maxImages={5}
                   disabled={!isOnline}
                   onUploadingChange={setIsUploadingBills}
+                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                  onSessionStorageKeysRemoved={keys =>
+                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                  }
                   folder="bills"
                 />
               )}

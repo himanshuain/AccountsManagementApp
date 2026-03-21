@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, UserPlus, X, Check } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
@@ -13,6 +13,13 @@ import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 import { resolveImageUrl } from "@/lib/image-url";
+import {
+  addSessionStorageKeys,
+  clearSessionStorageKeys,
+  deleteStorageKeysClient,
+  drainSessionStorageKeysForCancel,
+  removeSessionStorageKeys,
+} from "@/lib/orphan-upload-cleanup";
 
 export function UdharForm({
   open,
@@ -26,6 +33,8 @@ export function UdharForm({
   title = "Add Udhar",
 }) {
   const isOnline = useOnlineStatus();
+  const sessionUploadKeysRef = useRef(new Set());
+  const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [khataPhotos, setKhataPhotos] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId || "");
@@ -56,6 +65,18 @@ export function UdharForm({
   } = useForm({
     defaultValues: defaultFormValues,
   });
+
+  useEffect(() => {
+    if (!open) {
+      sessionScopeRef.current = "";
+      return;
+    }
+    const scope = String(initialData?.id ?? "new");
+    if (sessionScopeRef.current !== scope) {
+      sessionScopeRef.current = scope;
+      sessionUploadKeysRef.current.clear();
+    }
+  }, [open, initialData?.id]);
 
   // Handle initialData changes - separate effect for better reactivity
   useEffect(() => {
@@ -151,6 +172,7 @@ export function UdharForm({
         cashAmount: Number(data.amount) || 0,
         onlineAmount: 0,
       });
+      clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setKhataPhotos([]);
       setSelectedCustomerId(defaultCustomerId || "");
@@ -170,8 +192,10 @@ export function UdharForm({
   };
 
   const resetAndClose = () => {
+    const initialKhata = initialData?.khataPhotos || [];
+    deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
-    setKhataPhotos(initialData?.khataPhotos || []);
+    setKhataPhotos(initialKhata);
     setSelectedCustomerId(initialData?.customerId || defaultCustomerId || "");
     onOpenChange(false);
   };
@@ -380,6 +404,10 @@ export function UdharForm({
                   maxImages={5}
                   disabled={!isOnline}
                   onUploadingChange={setIsUploadingKhata}
+                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                  onSessionStorageKeysRemoved={keys =>
+                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                  }
                   folder="khata"
                 />
               </div>

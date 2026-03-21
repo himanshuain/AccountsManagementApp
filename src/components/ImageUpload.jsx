@@ -7,6 +7,17 @@ import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { getImageUrls, isDataUrl, resolveImageUrl } from "@/lib/image-url";
+import { isDeletableStorageKey } from "@/lib/orphan-upload-cleanup";
+
+function notifySessionKeysAdded(onSessionStorageKeysAdded, keys) {
+  const deletable = keys.filter(isDeletableStorageKey);
+  if (deletable.length > 0) onSessionStorageKeysAdded?.(deletable);
+}
+
+function notifySessionKeysRemoved(onSessionStorageKeysRemoved, keys) {
+  const deletable = keys.filter(isDeletableStorageKey);
+  if (deletable.length > 0) onSessionStorageKeysRemoved?.(deletable);
+}
 
 /** POST /api/upload with XMLHttpRequest so upload progress is available. */
 function uploadFormDataWithProgress(formData, onProgress) {
@@ -86,6 +97,10 @@ export function ImageUpload({
   aspectRatio = "square",
   disabled = false,
   onUploadingChange,
+  /** Called with deletable storage keys after each successful upload (for cancel cleanup). */
+  onSessionStorageKeysAdded,
+  /** Called when a storage key is removed from the field (before R2 delete). */
+  onSessionStorageKeysRemoved,
   folder = "general",
   showHDToggle = true, // Show HD toggle by default
 }) {
@@ -193,6 +208,7 @@ export function ImageUpload({
 
       const storageKey = result.storageKey || result.url;
       onChange?.(storageKey);
+      notifySessionKeysAdded(onSessionStorageKeysAdded, [storageKey]);
       setPreview(storageKey);
       setUploadPhase("success");
       setUploadProgress(100);
@@ -213,6 +229,8 @@ export function ImageUpload({
 
   const handleRemove = async e => {
     e.stopPropagation();
+
+    notifySessionKeysRemoved(onSessionStorageKeysRemoved, value ? [value] : []);
 
     // If the current value is a storage key (not data URL), delete it from R2
     if (value && typeof value === "string" && !isDataUrl(value)) {
@@ -427,6 +445,8 @@ export function MultiImageUpload({
   maxImages = 5,
   disabled = false,
   onUploadingChange,
+  onSessionStorageKeysAdded,
+  onSessionStorageKeysRemoved,
   folder = "general",
   onImageTap, // Optional callback when image is tapped (index) => void
   showHDToggle = true, // Show HD toggle by default
@@ -534,6 +554,7 @@ export function MultiImageUpload({
 
     if (newKeys.length > 0) {
       onChange?.([...value, ...newKeys]);
+      notifySessionKeysAdded(onSessionStorageKeysAdded, newKeys);
     }
 
     setUploadingState(false);
@@ -570,6 +591,7 @@ export function MultiImageUpload({
 
   const handleRemove = async index => {
     const removedKey = value[index];
+    notifySessionKeysRemoved(onSessionStorageKeysRemoved, removedKey ? [removedKey] : []);
 
     // If the removed item is a storage key (not data URL), delete it from R2
     if (removedKey && typeof removedKey === "string" && !isDataUrl(removedKey)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2, X, Check, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,13 @@ import { ImageUpload, MultiImageUpload } from "./ImageUpload";
 import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { useContactPicker } from "@/hooks/useContactPicker";
+import {
+  addSessionStorageKeys,
+  clearSessionStorageKeys,
+  deleteStorageKeysClient,
+  drainSessionStorageKeysForCancel,
+  removeSessionStorageKeys,
+} from "@/lib/orphan-upload-cleanup";
 
 export function CustomerForm({
   open,
@@ -24,6 +31,8 @@ export function CustomerForm({
 }) {
   const isOnline = useOnlineStatus();
   const { isSupported: contactPickerSupported, isPicking, pickContact } = useContactPicker();
+  const sessionUploadKeysRef = useRef(new Set());
+  const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profilePicture, setProfilePicture] = useState(initialData?.profilePicture || null);
   const [khataPhotos, setKhataPhotos] = useState(
@@ -66,6 +75,18 @@ export function CustomerForm({
   };
 
   useEffect(() => {
+    if (!open) {
+      sessionScopeRef.current = "";
+      return;
+    }
+    const scope = String(initialData?.id ?? "new");
+    if (sessionScopeRef.current !== scope) {
+      sessionScopeRef.current = scope;
+      sessionUploadKeysRef.current.clear();
+    }
+  }, [open, initialData?.id]);
+
+  useEffect(() => {
     if (open) {
       if (initialData) {
         setProfilePicture(initialData.profilePicture || null);
@@ -96,6 +117,7 @@ export function CustomerForm({
         profilePicture,
         khataPhotos,
       });
+      clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setProfilePicture(null);
       setKhataPhotos([]);
@@ -118,9 +140,11 @@ export function CustomerForm({
   };
 
   const resetAndClose = () => {
+    const initialKhata = getInitialKhataPhotos();
+    deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
     setProfilePicture(initialData?.profilePicture || null);
-    setKhataPhotos(getInitialKhataPhotos());
+    setKhataPhotos(initialKhata);
     onOpenChange(false);
   };
 
@@ -193,6 +217,10 @@ export function CustomerForm({
                   aspectRatio="square"
                   disabled={!isOnline}
                   onUploadingChange={setUploadingProfile}
+                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                  onSessionStorageKeysRemoved={keys =>
+                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                  }
                   folder="customers"
                 />
               </div>
