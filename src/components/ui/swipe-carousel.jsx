@@ -2,15 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion, useMotionValue } from "motion/react";
+import { Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ONE_SECOND = 1000;
 const AUTO_DELAY = ONE_SECOND * 10;
 const DRAG_BUFFER = 50;
 
-// Resize ImageKit URLs for carousel display to avoid mobile decode limits.
-// Full-res originals (4000px+) can exceed iOS Safari's pixel budget and
-// silently fail to render, while desktop browsers handle them fine.
+// Resize ImageKit URLs for carousel display to avoid mobile decode limits on very large originals.
 function optimizeForCarousel(src) {
   if (!src || typeof src !== "string") return src;
   if (src.startsWith("data:")) return src;
@@ -76,12 +75,18 @@ export function SwipeCarousel({
 
   const normalizedImages = useMemo(
     () =>
-      images.map((img) => {
+      images.map(img => {
         const raw = typeof img === "string" ? { src: img } : img;
         return { ...raw, src: optimizeForCarousel(raw.src) };
       }),
     [images]
   );
+
+  const [failedByIndex, setFailedByIndex] = useState({});
+
+  useEffect(() => {
+    setFailedByIndex({});
+  }, [images]);
 
   const count = normalizedImages.length;
   const isSingle = count <= 1;
@@ -144,15 +149,25 @@ export function SwipeCarousel({
             )}
             onClick={() => onImageClick?.(img, idx)}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img.src}
-              alt={img.alt || `Image ${idx + 1}`}
-              className="absolute inset-0 h-full w-full object-cover"
-              loading={idx === 0 ? "eager" : "lazy"}
-              decoding="async"
-              draggable={false}
-            />
+            {failedByIndex[idx] ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted px-4 text-center">
+                <ImageIcon className="h-10 w-10 text-muted-foreground/45" aria-hidden />
+                <p className="text-xs text-muted-foreground">
+                  Image missing or unavailable. Re-attach the photo when editing this entry.
+                </p>
+              </div>
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={img.src}
+                alt={img.alt || `Image ${idx + 1}`}
+                className="absolute inset-0 h-full w-full object-cover"
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding="async"
+                draggable={false}
+                onError={() => setFailedByIndex(prev => ({ ...prev, [idx]: true }))}
+              />
+            )}
           </motion.div>
         ))}
       </motion.div>

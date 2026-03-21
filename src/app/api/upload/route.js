@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { uploadToR2, generateStorageKey, isR2Configured } from "@/lib/r2-storage";
+import { uploadToR2, generateStorageKey, isR2Configured, existsInR2 } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +163,15 @@ export async function POST(request) {
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error || "Upload failed" },
+        { status: 500 }
+      );
+    }
+
+    const verified = await existsInR2(result.storageKey);
+    if (!verified) {
+      console.error("[Upload] PutObject succeeded but object not readable:", result.storageKey);
+      return NextResponse.json(
+        { success: false, error: "Upload could not be verified. Please try again." },
         { status: 500 }
       );
     }

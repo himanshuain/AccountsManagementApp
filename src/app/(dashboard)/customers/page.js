@@ -643,7 +643,7 @@ export default function CustomersPage() {
         amount: Number(quickAddAmount),
         date: new Date().toISOString().split("T")[0],
         notes: quickAddNotes,
-        billImages: quickAddBillImages,
+        khataPhotos: quickAddBillImages,
       });
 
       if (result.success) {
@@ -679,6 +679,7 @@ export default function CustomersPage() {
         const compressedFile = await compressImage(file);
         const formData = new FormData();
         formData.append("file", compressedFile);
+        formData.append("folder", "bills");
 
         const response = await fetch("/api/upload", {
           method: "POST",
@@ -686,11 +687,24 @@ export default function CustomersPage() {
         });
 
         if (response.ok) {
-          const { url } = await response.json();
-          uploadedUrls.push(url);
+          const result = await response.json();
+          uploadedUrls.push(result.storageKey || result.url);
+        } else {
+          let message = "Upload failed";
+          try {
+            const errBody = await response.json();
+            if (errBody?.error) message = errBody.error;
+          } catch {
+            /* ignore */
+          }
+          toast.error(message);
         }
       }
-      setQuickAddBillImages(prev => [...prev, ...uploadedUrls]);
+      if (uploadedUrls.length > 0) {
+        setQuickAddBillImages(prev => [...prev, ...uploadedUrls]);
+      } else if (files.length > 0) {
+        toast.error("No bill photos were uploaded.");
+      }
     } catch (error) {
       console.error("Error uploading bill images:", error);
       toast.error("Failed to upload images");
@@ -2480,7 +2494,7 @@ export default function CustomersPage() {
                     {quickAddBillImages.map((url, idx) => (
                       <div key={idx} className="relative aspect-square">
                         <img
-                          src={url}
+                          src={resolveImageUrl(url)}
                           alt={`Bill ${idx + 1}`}
                           className="h-full w-full rounded-lg object-cover"
                         />

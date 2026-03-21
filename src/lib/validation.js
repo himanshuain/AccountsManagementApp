@@ -81,20 +81,106 @@ export const imageArraySchema = z
   .optional()
   .nullable();
 
-// JSONB payments array
+/**
+ * Persisted image reference only — no data:/blob: (must be uploaded to R2 first).
+ */
+export const storedImageRefSchema = z
+  .string()
+  .min(1)
+  .max(2000)
+  .refine(val => !val.startsWith("data:") && !val.startsWith("blob:"), {
+    message: "Images must be uploaded to storage first (no data: or blob: URLs)",
+  })
+  .refine(
+    val => {
+      const isStorageKey =
+        /^[a-zA-Z0-9_\-\/\.]+$/.test(val) && !val.startsWith("http") && !val.startsWith("data:");
+      const isHttp = val.startsWith("http://") || val.startsWith("https://");
+      return isStorageKey || isHttp;
+    },
+    { message: "Invalid stored image reference" }
+  );
+
+export const transactionBillImagesSchema = z
+  .array(storedImageRefSchema)
+  .max(10, "Too many bill images")
+  .optional()
+  .nullable();
+
+/** Customer / udhar photo arrays (larger limit than transaction bills) */
+export const persistedImageArraySchema = z
+  .array(storedImageRefSchema)
+  .max(50, "Too many images")
+  .optional()
+  .nullable();
+
+/** Optional cleared image: null, or a persisted storage/http ref */
+export const persistedSingleImageFieldSchema = z.preprocess(val => {
+  if (val === "") return null;
+  return val;
+}, z.union([z.null(), storedImageRefSchema]).optional());
+
+/**
+ * One payment row — receipt URLs must be persisted refs (uploaded to R2 / ImageKit).
+ */
+export const paymentRecordSchema = z
+  .object({
+    id: z.string().max(120).optional().nullable(),
+    amount: z.union([z.string(), z.number()]).optional().nullable(),
+    date: z.string().max(80).optional().nullable(),
+    mode: paymentModeSchema.optional().nullable(),
+    notes: textSchema,
+    isFinalPayment: z.boolean().optional(),
+    isReturn: z.boolean().optional(),
+    receiptUrl: persistedSingleImageFieldSchema,
+    receiptUrls: z.array(storedImageRefSchema).max(20).optional().nullable(),
+  })
+  .passthrough();
+
+// JSONB payments array (transactions + udhar)
 export const paymentsArraySchema = z
-  .array(
-    z.object({
-      amount: amountSchema,
-      date: dateSchema,
-      mode: paymentModeSchema,
-      notes: textSchema,
-      isFinalPayment: z.boolean().optional(),
-    })
-  )
+  .array(paymentRecordSchema)
   .max(100, "Too many payment records")
   .optional()
   .nullable();
+
+/**
+ * Validates persisted image fields on partial PUT bodies. Mutates `body` in place with parsed values.
+ */
+export function validatePersistedImagesOnPutBody(body) {
+  if (!body || typeof body !== "object") return { ok: true };
+
+  const formatZodError = err =>
+    err.errors.map(e => (e.path.length ? `${e.path.join(".")}: ${e.message}` : e.message)).join("; ");
+
+  if (Object.prototype.hasOwnProperty.call(body, "billImages")) {
+    const r = transactionBillImagesSchema.safeParse(body.billImages);
+    if (!r.success) return { ok: false, error: formatZodError(r.error) };
+    body.billImages = r.data;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "khataPhotos")) {
+    const r = persistedImageArraySchema.safeParse(body.khataPhotos);
+    if (!r.success) return { ok: false, error: formatZodError(r.error) };
+    body.khataPhotos = r.data;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, "payments")) {
+    const r = paymentsArraySchema.safeParse(body.payments);
+    if (!r.success) return { ok: false, error: formatZodError(r.error) };
+    body.payments = r.data;
+  }
+
+  for (const key of ["profilePicture", "khataPhoto", "upiQrCode", "billImage"]) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      const r = persistedSingleImageFieldSchema.safeParse(body[key]);
+      if (!r.success) return { ok: false, error: `${key}: ${r.error.errors.map(e => e.message).join("; ")}` };
+      body[key] = r.data;
+    }
+  }
+
+  return { ok: true };
+}
 
 // ==================== ENTITY SCHEMAS ====================
 
@@ -108,8 +194,8 @@ export const supplierSchema = z.object({
   gstNumber: z.string().max(20).optional().nullable(),
   address: longTextSchema,
   upiId: z.string().max(100).optional().nullable(),
-  upiQrCode: imageUrlSchema,
-  profilePicture: imageUrlSchema,
+  upiQrCode: persistedSingleImageFieldSchema,
+  profilePicture: persistedSingleImageFieldSchema,
   notes: longTextSchema,
 });
 
@@ -126,7 +212,7 @@ export const transactionSchema = z.object({
   dueDate: dateSchema,
   payments: paymentsArraySchema,
   notes: longTextSchema,
-  billImages: imageArraySchema,
+  billImages: transactionBillImagesSchema,
 });
 
 // Customer validation schema
@@ -135,9 +221,9 @@ export const customerSchema = z.object({
   name: nameSchema,
   phone: phoneSchema,
   address: longTextSchema,
-  profilePicture: imageUrlSchema,
-  khataPhoto: imageUrlSchema,
-  khataPhotos: imageArraySchema,
+  profilePicture: persistedSingleImageFieldSchema,
+  khataPhoto: persistedSingleImageFieldSchema,
+  khataPhotos: persistedImageArraySchema,
   totalPending: amountSchema,
 });
 
@@ -154,7 +240,8 @@ export const udharSchema = z.object({
   paidOnline: amountSchema,
   paymentStatus: paymentStatusSchema,
   payments: paymentsArraySchema,
-  khataPhotos: imageArraySchema,
+  khataPhotos: persistedImageArraySchema,
+  billImage: persistedSingleImageFieldSchema,
   itemDescription: longTextSchema,
   notes: longTextSchema,
 });
@@ -224,6 +311,7 @@ const validationSchemas = {
   udharSchema,
   incomeSchema,
   validateBody,
+  validatePersistedImagesOnPutBody,
   validateUUID,
   sanitizeString,
 };

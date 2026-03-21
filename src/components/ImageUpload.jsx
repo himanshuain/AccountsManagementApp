@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { Upload, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -98,19 +99,20 @@ export function ImageUpload({
         onChange?.(storageKey);
         setPreview(storageKey);
       } else {
-        // Keep local preview for offline mode
-        const localUrl = await new Promise(resolve => {
-          const r = new FileReader();
-          r.onload = e => resolve(e.target.result);
-          r.readAsDataURL(compressedFile);
-        });
-        onChange?.(localUrl);
-        setPreview(localUrl);
+        let message = "Upload failed. Check your connection and try again.";
+        try {
+          const errBody = await response.json();
+          if (errBody?.error) message = errBody.error;
+        } catch {
+          /* ignore */
+        }
+        toast.error(message);
+        setPreview(value || null);
       }
     } catch (error) {
       console.error("Upload failed:", error);
-      // Keep local preview for offline mode
-      onChange?.(preview);
+      toast.error("Upload failed. Check your connection and try again.");
+      setPreview(value || null);
     } finally {
       setUploadingState(false);
     }
@@ -342,6 +344,7 @@ export function MultiImageUpload({
 
     setUploadingState(true);
     const newKeys = [];
+    let failCount = 0;
 
     for (const file of filesToUpload) {
       try {
@@ -359,14 +362,6 @@ export function MultiImageUpload({
           });
         }
 
-        // Create local preview first
-        const localUrl = await new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onload = e => resolve(e.target.result);
-          reader.readAsDataURL(compressedFile);
-        });
-
-        // Try to upload
         const formData = new FormData();
         formData.append("file", compressedFile);
         formData.append("folder", folder);
@@ -379,20 +374,35 @@ export function MultiImageUpload({
 
           if (response.ok) {
             const result = await response.json();
-            // Store the storage key (not the full URL)
             newKeys.push(result.storageKey || result.url);
           } else {
-            newKeys.push(localUrl);
+            failCount += 1;
+            let message = "Could not upload a photo.";
+            try {
+              const errBody = await response.json();
+              if (errBody?.error) message = errBody.error;
+            } catch {
+              /* ignore */
+            }
+            toast.error(message);
           }
         } catch {
-          newKeys.push(localUrl);
+          failCount += 1;
+          toast.error("Could not upload a photo. Check your connection.");
         }
       } catch (error) {
         console.error("File processing failed:", error);
+        failCount += 1;
+        toast.error("Could not process a photo.");
       }
     }
 
-    onChange?.([...value, ...newKeys]);
+    if (newKeys.length > 0) {
+      onChange?.([...value, ...newKeys]);
+    }
+    if (failCount > 0 && newKeys.length === 0) {
+      toast.error("No photos were uploaded. Fix the issue above, then try again.");
+    }
     setUploadingState(false);
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";

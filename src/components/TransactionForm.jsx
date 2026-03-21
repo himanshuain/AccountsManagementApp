@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { Loader2, X, Check, Expand } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,31 @@ export function TransactionForm({
     return new File([u8arr], filename, { type: mime });
   };
 
+  /** Storage key or http(s) URL only — never data:/blob: in the database */
+  const isPersistableBillRef = s =>
+    typeof s === "string" &&
+    s.length > 0 &&
+    !s.startsWith("data:") &&
+    !s.startsWith("blob:") &&
+    (s.startsWith("http://") ||
+      s.startsWith("https://") ||
+      (/^[a-zA-Z0-9_\-/.]+$/.test(s) && !s.startsWith("http")));
+
+  const uploadBillFile = async file => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "bills");
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || "Bill photo upload failed");
+    }
+    return payload.storageKey || payload.url;
+  };
+
   const handleFormSubmit = async data => {
     if (!selectedSupplierId || !isOnline) {
       return;
@@ -151,72 +177,51 @@ export function TransactionForm({
 
     setIsSubmitting(true);
     try {
-      let uploadedUrls = [];
+      const billStorageKeys = [];
 
-      // Upload pending files (from file picker)
       if (pendingFiles.length > 0) {
         for (const file of pendingFiles) {
           try {
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const response = await fetch("/api/upload", {
-              method: "POST",
-              body: formData,
-            });
-
-            if (response.ok) {
-              const { url } = await response.json();
-              uploadedUrls.push(url);
-            } else {
-              const localUrl = await new Promise(resolve => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.readAsDataURL(file);
-              });
-              uploadedUrls.push(localUrl);
-            }
-          } catch (error) {
-            console.error("File upload failed:", error);
+            const key = await uploadBillFile(file);
+            billStorageKeys.push(key);
+          } catch (e) {
+            console.error("Bill upload failed:", e);
+            toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
+            return;
           }
         }
-      }
-
-      // Upload base64 images (from camera capture) that haven't been uploaded yet
-      if (pendingFiles.length === 0 && billImages.length > 0) {
+      } else if (billImages.length > 0) {
         for (let i = 0; i < billImages.length; i++) {
           const img = billImages[i];
-          // Check if this is a base64 data URL that needs uploading
+          if (!img) continue;
           if (img.startsWith("data:")) {
             try {
               const file = base64ToFile(img, `bill-${Date.now()}-${i}.jpg`);
-              const formData = new FormData();
-              formData.append("file", file);
-
-              const response = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-              });
-
-              if (response.ok) {
-                const { url } = await response.json();
-                uploadedUrls.push(url);
-              } else {
-                // If upload fails, we can't use the base64 - it's too large for DB
-                console.error("Failed to upload camera image");
-              }
-            } catch (error) {
-              console.error("Camera image upload failed:", error);
+              const key = await uploadBillFile(file);
+              billStorageKeys.push(key);
+            } catch (e) {
+              console.error("Bill upload failed:", e);
+              toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
+              return;
             }
+          } else if (isPersistableBillRef(img)) {
+            billStorageKeys.push(img);
+          } else if (img.startsWith("blob:")) {
+            toast.error("Bill previews are still loading. Wait a moment and save again.");
+            return;
           } else {
-            // Already a URL, keep it
-            uploadedUrls.push(img);
+            toast.error("Invalid bill photo. Remove it and add the photo again.");
+            return;
           }
         }
       }
 
-      const finalBillImages =
-        uploadedUrls.length > 0 ? uploadedUrls : billImages.filter(img => !img.startsWith("data:"));
+      if (billStorageKeys.some(k => typeof k === "string" && (k.startsWith("data:") || k.startsWith("blob:")))) {
+        toast.error("Bill photos must finish uploading before save.");
+        return;
+      }
+
+      const finalBillImages = billStorageKeys;
 
       // Calculate payment status based on existing payments and new amount
       const newAmount = Number(data.amount) || 0;

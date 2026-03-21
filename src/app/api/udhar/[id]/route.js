@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { deleteImagesFromStorage, collectUdharImages } from "@/lib/imagekit-server";
+import { validatePersistedImagesOnPutBody } from "@/lib/validation";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -89,6 +90,12 @@ export async function PUT(request, { params }) {
 
     const { id } = await params;
     const body = await request.json();
+
+    const imageValidation = validatePersistedImagesOnPutBody(body);
+    if (!imageValidation.ok) {
+      return NextResponse.json({ success: false, error: imageValidation.error }, { status: 400 });
+    }
+
     const supabase = getServerClient();
 
     // Get the current udhar to find customer ID and check for image changes
