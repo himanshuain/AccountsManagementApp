@@ -1,13 +1,82 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { toast } from "sonner";
-import { Upload, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Check, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 import { compressImage, compressForHD } from "@/lib/image-compression";
-import { getImageUrls, isDataUrl, isCdnConfigured, resolveImageUrl } from "@/lib/image-url";
+import { getImageUrls, isDataUrl, resolveImageUrl } from "@/lib/image-url";
+
+/** POST /api/upload with XMLHttpRequest so upload progress is available. */
+function uploadFormDataWithProgress(formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload");
+    xhr.timeout = 120000;
+    xhr.upload.onprogress = event => {
+      if (!onProgress) return;
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      } else {
+        onProgress(null);
+      }
+    };
+    xhr.onload = () => {
+      let body = {};
+      try {
+        body = JSON.parse(xhr.responseText || "{}");
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(body);
+      } else {
+        reject(new Error(body.error || `Upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error — check your connection."));
+    xhr.ontimeout = () => reject(new Error("Upload timed out. Try again."));
+    xhr.send(formData);
+  });
+}
+
+/** @param {{ phase: 'idle'|'compressing'|'uploading'|'success'|'error'; progress: number|null; label?: string; errorMessage?: string }} props */
+function UploadStatusBar({ phase, progress, label, errorMessage }) {
+  if (phase === "idle") return null;
+
+  return (
+    <div className="mt-2 space-y-1.5" role="status" aria-live="polite">
+      {(phase === "compressing" || phase === "uploading") && (
+        <>
+          <p className="text-xs text-muted-foreground">{label || (phase === "compressing" ? "Preparing image…" : "Uploading…")}</p>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            {phase === "compressing" || progress === null ? (
+              <div className="h-full w-full rounded-full bg-primary/30 animate-pulse" />
+            ) : (
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-150 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            )}
+          </div>
+          {phase === "uploading" && progress !== null && (
+            <p className="text-[10px] tabular-nums text-muted-foreground">{progress}%</p>
+          )}
+        </>
+      )}
+      {phase === "success" && (
+        <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {label || "Upload complete"}
+        </p>
+      )}
+      {phase === "error" && errorMessage && (
+        <p className="text-xs font-medium leading-snug text-destructive">{errorMessage}</p>
+      )}
+    </div>
+  );
+}
 
 export function ImageUpload({
   value,
@@ -26,13 +95,35 @@ export function ImageUpload({
   const [optimizedUrls, setOptimizedUrls] = useState({ src: "", lqip: "", medium: "" });
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isHDMode, setIsHDMode] = useState(false); // HD mode toggle state
+  const [uploadPhase, setUploadPhase] = useState("idle");
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadLabel, setUploadLabel] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const successTimerRef = useRef(null);
 
   const setUploadingState = state => {
     setIsUploading(state);
     onUploadingChange?.(state);
   };
+
+  const scheduleResetStatus = useCallback(() => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => {
+      setUploadPhase("idle");
+      setUploadProgress(null);
+      setUploadLabel("");
+      setUploadError("");
+      successTimerRef.current = null;
+    }, 3500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   // Sync preview with value and get optimized URLs
   useEffect(() => {
@@ -57,10 +148,17 @@ export function ImageUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+    setUploadError("");
+    setUploadPhase("compressing");
+    setUploadLabel("Optimizing image…");
+    setUploadProgress(null);
     setUploadingState(true);
 
     try {
-      // Use HD compression if enabled, otherwise use standard compression
       let compressedFile;
       if (isHDMode) {
         compressedFile = await compressForHD(file);
@@ -75,43 +173,38 @@ export function ImageUpload({
         });
       }
 
-      // Create local preview from compressed file
       const reader = new FileReader();
-      reader.onload = e => {
-        setPreview(e.target.result);
+      reader.onload = ev => {
+        setPreview(ev.target.result);
       };
       reader.readAsDataURL(compressedFile);
 
-      // Upload compressed file
+      setUploadPhase("uploading");
+      setUploadLabel("Uploading…");
+      setUploadProgress(0);
+
       const formData = new FormData();
       formData.append("file", compressedFile);
       formData.append("folder", folder);
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const result = await uploadFormDataWithProgress(formData, pct => {
+        setUploadProgress(pct);
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        // Store the storage key (not the full URL)
-        const storageKey = result.storageKey || result.url;
-        onChange?.(storageKey);
-        setPreview(storageKey);
-      } else {
-        let message = "Upload failed. Check your connection and try again.";
-        try {
-          const errBody = await response.json();
-          if (errBody?.error) message = errBody.error;
-        } catch {
-          /* ignore */
-        }
-        toast.error(message);
-        setPreview(value || null);
-      }
+      const storageKey = result.storageKey || result.url;
+      onChange?.(storageKey);
+      setPreview(storageKey);
+      setUploadPhase("success");
+      setUploadProgress(100);
+      setUploadLabel("Image uploaded successfully");
+      scheduleResetStatus();
     } catch (error) {
       console.error("Upload failed:", error);
-      toast.error("Upload failed. Check your connection and try again.");
+      const message = error?.message || "Upload failed. Check your connection and try again.";
+      setUploadPhase("error");
+      setUploadProgress(null);
+      setUploadLabel("");
+      setUploadError(message);
       setPreview(value || null);
     } finally {
       setUploadingState(false);
@@ -137,6 +230,14 @@ export function ImageUpload({
 
     setPreview(null);
     onChange?.(null);
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+    setUploadPhase("idle");
+    setUploadProgress(null);
+    setUploadLabel("");
+    setUploadError("");
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
@@ -302,6 +403,13 @@ export function ImageUpload({
         )}
       </div>
 
+      <UploadStatusBar
+        phase={uploadPhase}
+        progress={uploadProgress}
+        label={uploadLabel}
+        errorMessage={uploadError}
+      />
+
       {/* Image Viewer - pass original URL for full quality */}
       <ImageViewer
         src={optimizedUrls.original || preview}
@@ -327,13 +435,34 @@ export function MultiImageUpload({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [isHDMode, setIsHDMode] = useState(false); // HD mode toggle state
+  const [uploadPhase, setUploadPhase] = useState("idle");
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadLabel, setUploadLabel] = useState("");
+  const [resultSuccess, setResultSuccess] = useState(null);
+  const [resultError, setResultError] = useState(null);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const multiTimerRef = useRef(null);
 
   const setUploadingState = state => {
     setIsUploading(state);
     onUploadingChange?.(state);
   };
+
+  const clearMultiResultLater = useCallback(() => {
+    if (multiTimerRef.current) clearTimeout(multiTimerRef.current);
+    multiTimerRef.current = setTimeout(() => {
+      setResultSuccess(null);
+      setResultError(null);
+      multiTimerRef.current = null;
+    }, 4500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (multiTimerRef.current) clearTimeout(multiTimerRef.current);
+    };
+  }, []);
 
   const handleFilesSelect = async (e, fromCamera = false) => {
     const files = Array.from(e.target.files || []);
@@ -341,14 +470,31 @@ export function MultiImageUpload({
 
     const remainingSlots = maxImages - value.length;
     const filesToUpload = files.slice(0, remainingSlots);
+    const n = filesToUpload.length;
+    if (n === 0) return;
 
+    if (multiTimerRef.current) {
+      clearTimeout(multiTimerRef.current);
+      multiTimerRef.current = null;
+    }
+    setResultSuccess(null);
+    setResultError(null);
     setUploadingState(true);
-    const newKeys = [];
-    let failCount = 0;
+    setUploadPhase("compressing");
+    setUploadLabel(n > 1 ? `Preparing ${n} images…` : "Preparing image…");
+    setUploadProgress(null);
 
-    for (const file of filesToUpload) {
+    const newKeys = [];
+    const errors = [];
+
+    for (let i = 0; i < n; i++) {
+      const file = filesToUpload[i];
       try {
-        // Use HD compression if enabled, otherwise use standard compression
+        if (n > 1) {
+          setUploadPhase("compressing");
+          setUploadLabel(`Preparing image ${i + 1} of ${n}…`);
+        }
+
         let compressedFile;
         if (isHDMode) {
           compressedFile = await compressForHD(file);
@@ -362,48 +508,62 @@ export function MultiImageUpload({
           });
         }
 
+        setUploadPhase("uploading");
+        setUploadLabel(n > 1 ? `Uploading image ${i + 1} of ${n}…` : "Uploading…");
+        setUploadProgress(0);
+
         const formData = new FormData();
         formData.append("file", compressedFile);
         formData.append("folder", folder);
 
-        try {
-          const response = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            newKeys.push(result.storageKey || result.url);
-          } else {
-            failCount += 1;
-            let message = "Could not upload a photo.";
-            try {
-              const errBody = await response.json();
-              if (errBody?.error) message = errBody.error;
-            } catch {
-              /* ignore */
-            }
-            toast.error(message);
+        const result = await uploadFormDataWithProgress(formData, pct => {
+          if (pct === null) {
+            setUploadProgress(null);
+            return;
           }
-        } catch {
-          failCount += 1;
-          toast.error("Could not upload a photo. Check your connection.");
-        }
+          const overall = Math.round(((i + pct / 100) / n) * 100);
+          setUploadProgress(overall);
+        });
+
+        newKeys.push(result.storageKey || result.url);
       } catch (error) {
-        console.error("File processing failed:", error);
-        failCount += 1;
-        toast.error("Could not process a photo.");
+        console.error("Upload failed:", error);
+        errors.push(error?.message || "Could not upload a photo.");
       }
     }
 
     if (newKeys.length > 0) {
       onChange?.([...value, ...newKeys]);
     }
-    if (failCount > 0 && newKeys.length === 0) {
-      toast.error("No photos were uploaded. Fix the issue above, then try again.");
-    }
+
     setUploadingState(false);
+    setUploadPhase("idle");
+    setUploadProgress(null);
+    setUploadLabel("");
+
+    if (newKeys.length > 0 && errors.length === 0) {
+      setResultSuccess(
+        n > 1 ? `Successfully uploaded ${newKeys.length} images.` : "Image uploaded successfully."
+      );
+      setResultError(null);
+      clearMultiResultLater();
+    } else if (newKeys.length > 0 && errors.length > 0) {
+      setResultSuccess(`Uploaded ${newKeys.length} of ${n} image(s).`);
+      setResultError(
+        errors.length === 1
+          ? errors[0]
+          : `${errors[0]} (${errors.length - 1} more failed)`
+      );
+      clearMultiResultLater();
+    } else if (errors.length > 0) {
+      setResultSuccess(null);
+      setResultError(
+        errors.length === 1
+          ? errors[0]
+          : `No images uploaded. ${errors[0]} (${errors.length - 1} more errors.)`
+      );
+      clearMultiResultLater();
+    }
     if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (galleryInputRef.current) galleryInputRef.current.value = "";
   };
@@ -575,6 +735,27 @@ export function MultiImageUpload({
           <p className="text-[10px] text-amber-600 dark:text-amber-400">
             HD mode: Images will be uploaded in high quality (larger file size)
           </p>
+        )}
+
+        <UploadStatusBar
+          phase={uploadPhase === "idle" ? "idle" : uploadPhase}
+          progress={uploadProgress}
+          label={uploadLabel}
+          errorMessage=""
+        />
+
+        {(resultSuccess || resultError) && uploadPhase === "idle" && !isUploading && (
+          <div className="space-y-1.5" role="status" aria-live="polite">
+            {resultSuccess && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {resultSuccess}
+              </p>
+            )}
+            {resultError && (
+              <p className="text-xs font-medium leading-snug text-destructive">{resultError}</p>
+            )}
+          </div>
         )}
       </div>
 
