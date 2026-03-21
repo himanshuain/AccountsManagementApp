@@ -794,140 +794,175 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   { txn, isSupplier, onTap, onPay, onViewImages, isPaid, isHighlighted },
   ref
 ) {
-  // Support both supplier (billImages) and customer (khataPhotos) images
-  const images = isSupplier ? txn.billImages : txn.khataPhotos;
-  const hasImages = images?.length > 0;
+  const images = isSupplier
+    ? txn.billImages || []
+    : [...(txn.khataPhotos || []), ...(txn.billImages || [])];
+  const hasImages = images.length > 0;
   const totalAmount = Number(txn.amount) || 0;
   const paidAmount =
     Number(txn.paidAmount) ||
     (txn.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const remainingAmount = Math.max(0, totalAmount - paidAmount);
   const hasPartialPayment = paidAmount > 0 && !isPaid;
-  // const paidPercentage = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+
+  const firstImageRef = images[0];
+  const thumbUrls = firstImageRef
+    ? getImageUrls(firstImageRef, { width: 240, height: 240, quality: 75 })
+    : null;
+  const thumbSrc =
+    thumbUrls?.thumbnail ||
+    thumbUrls?.medium ||
+    thumbUrls?.src ||
+    (firstImageRef ? resolveImageUrl(firstImageRef) : "");
+
+  let dateLine = "";
+  try {
+    dateLine = format(parseISO(txn.date), "dd MMM yyyy");
+    if (txn.createdAt) {
+      dateLine += ` · ${format(parseISO(txn.createdAt), "h:mm a")}`;
+    }
+  } catch {
+    dateLine = txn.date || "";
+  }
+
+  const photoWord = isSupplier ? "bill" : "photo";
+  const photoWordPlural = isSupplier ? "bills" : "photos";
 
   return (
     <div
       ref={ref}
       className={cn(
-        "flex justify-end transition-all duration-500",
+        "mb-5 w-full transition-all duration-500",
         isHighlighted &&
-          "animate-pulse rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background"
+          "rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background"
       )}
     >
-      <div className="mb-6 min-w-[240px] max-w-[85%]">
-        <div
-          onClick={() => onTap(txn)}
-          className={cn(
-            "cursor-pointer overflow-hidden rounded-2xl transition-all duration-200",
-            "bg-card shadow-sm border border-border/50",
-            "active:scale-[0.98]",
-            "rounded-br-sm"
-          )}
-        >
-          {/* Colored top accent bar */}
-          <div
-            className={cn(
-              "h-1",
-              isPaid ? "bg-emerald-500" : isSupplier ? "bg-rose-500" : "bg-amber-500"
-            )}
-          />
-
-          <div className="p-3">
-            {/* Pending — hero number */}
-            <div className="mb-1">
-              {isPaid ? (
-                <p className="flex items-center gap-1.5 font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  Paid
-                </p>
-              ) : (
-                <p
-                  className={cn(
-                    "font-mono text-2xl font-extrabold tabular-nums tracking-tight",
-                    isSupplier
-                      ? "text-rose-600 dark:text-rose-400"
-                      : "text-amber-600 dark:text-amber-400"
-                  )}
-                >
-                  ₹{remainingAmount.toLocaleString("en-IN")}
-                </p>
-              )}
-            </div>
-
-            {/* Total & paid context line */}
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              {hasPartialPayment ? (
-                <>
-                  <span>of ₹{totalAmount.toLocaleString("en-IN")}</span>
-                  <span>·</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">
-                    ₹{paidAmount.toLocaleString("en-IN")} paid
-                  </span>
-                </>
-              ) : !isPaid ? (
-                <span>Total Pending</span>
-              ) : (
-                <span>₹{totalAmount.toLocaleString("en-IN")}</span>
-              )}
-            </div>
-
-            {/* Progress bar for partial payments */}
-            {hasPartialPayment && (
-              <div className="mt-2">
-                <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-              </div>
-            )}
-
-            {/* Divider */}
-            <div className="my-2.5 border-t border-border/50" />
-
-            {/* Description */}
-            {(txn.description || txn.itemName || txn.itemDescription) && (
-              <p className="line-clamp-2 text-sm font-medium text-foreground">
-                {txn.description || txn.itemName || txn.itemDescription}
-              </p>
-            )}
-
-            {/* Bills attached — clickable to view images */}
-            {hasImages && (
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  onViewImages(images, 0);
-                }}
-                className="mt-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 text-xs text-primary transition-colors hover:bg-primary/10 active:scale-95"
-              >
-                <Receipt className="h-3.5 w-3.5" />
-                <span className="font-medium">
-                  {images.length} {isSupplier ? "bill" : "photo"}
-                  {images.length > 1 ? "s" : ""} — View
+      <div className="flex gap-3">
+        <div className="relative h-[120px] w-[96px] shrink-0 self-start">
+          {hasImages && thumbSrc ? (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onViewImages(images, 0);
+              }}
+              className="relative block h-full w-full overflow-hidden rounded-xl border border-border/60 bg-muted text-left shadow-sm outline-none ring-offset-background transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <LoadingImg
+                src={thumbSrc}
+                alt={isSupplier ? "Bill" : "Photo"}
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+              {images.length > 1 && (
+                <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+                  +{images.length - 1}
                 </span>
-              </button>
-            )}
-
-            {/* Date */}
-            <p className="mt-2 text-right text-[10px] text-muted-foreground">
-              {format(parseISO(txn.date), "dd MMM yyyy")}
-              {txn.createdAt && ` • ${format(parseISO(txn.createdAt), "h:mm a")}`}
-            </p>
-          </div>
+              )}
+            </button>
+          ) : (
+            <div
+              className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border/70 bg-muted/25 px-1 text-center text-muted-foreground"
+              aria-hidden
+            >
+              {isSupplier ? (
+                <Receipt className="h-7 w-7 opacity-35" />
+              ) : (
+                <ImageIcon className="h-7 w-7 opacity-35" />
+              )}
+              <span className="text-[9px] font-medium leading-tight opacity-70">
+                No {photoWord}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Pay Button */}
-        {!isPaid && (
-          <div className="mt-2 flex justify-end">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div
+            onClick={() => onTap(txn)}
+            className="cursor-pointer overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-transform active:scale-[0.99]"
+          >
+            <div
+              className={cn(
+                "h-1 w-full",
+                isPaid ? "bg-emerald-500" : isSupplier ? "bg-rose-500" : "bg-amber-500"
+              )}
+            />
+            <div className="p-3">
+              <div className="mb-1">
+                {isPaid ? (
+                  <p className="flex items-center gap-1.5 font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    <Check className="h-4 w-4" />
+                    Paid
+                  </p>
+                ) : (
+                  <p
+                    className={cn(
+                      "font-mono text-2xl font-extrabold tabular-nums tracking-tight",
+                      isSupplier
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    )}
+                  >
+                    ₹{remainingAmount.toLocaleString("en-IN")}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                {hasPartialPayment ? (
+                  <>
+                    <span>of ₹{totalAmount.toLocaleString("en-IN")}</span>
+                    <span>·</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      ₹{paidAmount.toLocaleString("en-IN")} paid
+                    </span>
+                  </>
+                ) : !isPaid ? (
+                  <span>Total pending</span>
+                ) : (
+                  <span>₹{totalAmount.toLocaleString("en-IN")}</span>
+                )}
+              </div>
+              {hasPartialPayment && (
+                <div className="mt-2">
+                  <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
+                </div>
+              )}
+              <div className="my-2.5 border-t border-border/50" />
+              {(txn.description || txn.itemName || txn.itemDescription) && (
+                <p className="line-clamp-2 text-sm font-medium text-foreground">
+                  {txn.description || txn.itemName || txn.itemDescription}
+                </p>
+              )}
+              {hasImages && images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onViewImages(images, 0);
+                  }}
+                  className="mt-2 text-left text-xs font-medium text-primary hover:underline"
+                >
+                  View all {images.length} {photoWordPlural}
+                </button>
+              )}
+              <p className="mt-2 text-[10px] text-muted-foreground">{dateLine}</p>
+            </div>
+          </div>
+          {!isPaid && (
             <button
+              type="button"
               onClick={e => {
                 e.stopPropagation();
                 onPay(txn);
               }}
-              className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 active:scale-[0.99]"
             >
               <CreditCard className="h-4 w-4" />
               {isSupplier ? "Pay" : "Receive"} ₹{remainingAmount.toLocaleString("en-IN")}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
