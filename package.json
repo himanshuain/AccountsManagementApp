@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:lan": "node scripts/dev-lan.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -62,6 +63,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "qrcode-terminal": "^0.12.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "eslint-config-prettier": "^10.0.1",
