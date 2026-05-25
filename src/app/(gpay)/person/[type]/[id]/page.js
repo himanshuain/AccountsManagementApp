@@ -20,6 +20,7 @@ import {
   Calendar,
   FileText,
   CreditCard,
+  Wallet,
   Clock,
   ChevronDown,
   ChevronUp,
@@ -762,8 +763,7 @@ function TransactionDetailModal({
                                     : "text-emerald-600 dark:text-emerald-400"
                                 )}
                               >
-                                {payment.isReturn ? "" : "+"}₹
-                                {(Number(payment.amount) || 0).toLocaleString("en-IN")}
+                                ₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
                               </p>
                             </div>
                             <p className="text-xs text-muted-foreground">
@@ -954,7 +954,7 @@ function LumpsumChildRow({ entry, onGoToBill }) {
       onClick={() => onGoToBill(entry.txnId)}
       className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2.5 text-left transition-colors hover:bg-muted/70 active:scale-[0.99]"
     >
-      <span className="flex items-center gap-1 text-xs font-medium text-primary">
+      <span className="flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400">
         View bill
         <ChevronRight className="h-3.5 w-3.5" />
       </span>
@@ -1002,27 +1002,24 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
                 : "text-emerald-600 dark:text-emerald-400"
             )}
           >
-            {payment.isReturn ? "" : "+"}₹{amount.toLocaleString("en-IN")}
+            ₹{amount.toLocaleString("en-IN")}
           </p>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {payment.isReturn && (
-            <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-              Goods return
-            </span>
-          )}
-          {payment.mode && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-              {payment.mode}
-            </span>
-          )}
-          {payment.notes && !isLumpsumLine && (
-            <span className="line-clamp-1 text-[10px] text-muted-foreground">{payment.notes}</span>
-          )}
-        </div>
+        {(payment.isReturn || (payment.notes && !isLumpsumLine)) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {payment.isReturn && (
+              <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                Goods return
+              </span>
+            )}
+            {payment.notes && !isLumpsumLine && (
+              <span className="line-clamp-1 text-[10px] text-muted-foreground">{payment.notes}</span>
+            )}
+          </div>
+        )}
 
-        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400">
           View bill
           <ChevronRight className="h-3.5 w-3.5" />
         </p>
@@ -1038,7 +1035,6 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
     0
   );
   const displayTotal = group.lumpsumTotal ?? allocatedTotal;
-  const firstPayment = group.children[0]?.payment;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
@@ -1047,14 +1043,14 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
         onClick={onToggle}
         className="flex w-full items-start gap-3 p-3.5 text-left transition-colors hover:bg-accent/40 active:scale-[0.99]"
       >
-        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-          <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+          <Wallet className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Paid on
+                Lumpsum paid on
               </p>
               <p className="text-sm font-medium text-foreground">
                 <DateWithRelative
@@ -1086,11 +1082,6 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
               />
             </div>
           </div>
-          {firstPayment?.mode && (
-            <span className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-              {firstPayment.mode}
-            </span>
-          )}
         </div>
       </button>
 
@@ -2286,16 +2277,16 @@ export default function PersonChatPage() {
                 : "border-emerald-500/30 bg-emerald-500/5"
             )}
           >
-            {/* Pending — the hero number */}
-            <div className="px-4 pt-4 pb-2 text-center">
+            {/* Pending — label beside amount */}
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
               {totals.pending > 0 ? (
                 <>
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                     {isSupplier ? "You Owe" : "They Owe"}
                   </p>
                   <p
                     className={cn(
-                      "font-mono text-3xl font-extrabold tabular-nums tracking-tight",
+                      "font-mono text-2xl font-extrabold tabular-nums tracking-tight sm:text-3xl",
                       isSupplier
                         ? "text-rose-600 dark:text-rose-400"
                         : "text-amber-600 dark:text-amber-400"
@@ -2306,10 +2297,10 @@ export default function PersonChatPage() {
                 </>
               ) : (
                 <>
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
-                  <p className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                  <p className="font-mono text-xl font-extrabold text-emerald-600 dark:text-emerald-400 sm:text-2xl">
                     ✓ All Paid
                   </p>
                 </>

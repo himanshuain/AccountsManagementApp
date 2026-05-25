@@ -3,11 +3,11 @@
 import { format } from "date-fns";
 import { parseFlexibleDate, getRelativeDayLabel } from "@/lib/date-utils";
 
-const RELATIVE_SUBTLE_CLASS = "text-muted-foreground/45";
+const TIME_RELATIVE_CLASS = "text-[11px] text-muted-foreground/50";
 
 /**
  * Renders date, optional time, then relative label (Today, Yesterday, …).
- * Order: date · time · relative — time and relative use a subtler color.
+ * Order: date · time · relative — time and relative are smaller and muted.
  */
 export function DateWithRelative({
   date,
@@ -15,7 +15,7 @@ export function DateWithRelative({
   timeFormat,
   timeFrom,
   className,
-  relativeClassName = RELATIVE_SUBTLE_CLASS,
+  timeRelativeClassName = TIME_RELATIVE_CLASS,
 }) {
   const d = parseFlexibleDate(date);
   const timeSource = parseFlexibleDate(timeFrom || date);
@@ -24,20 +24,21 @@ export function DateWithRelative({
   const relative = getRelativeDayLabel(d || timeSource);
   const showDate = !!d;
   const showTime = !!timeFormat && !!timeSource;
+  const sep = <span className={timeRelativeClassName}> · </span>;
 
   return (
     <span className={className}>
       {showDate && <span>{format(d, dateFormat)}</span>}
       {showTime && (
         <>
-          {showDate && <span> · </span>}
-          <span className={relativeClassName}>{format(timeSource, timeFormat)}</span>
+          {showDate && sep}
+          <span className={timeRelativeClassName}>{format(timeSource, timeFormat)}</span>
         </>
       )}
       {relative && (
         <>
-          {(showDate || showTime) && <span> · </span>}
-          <span className={relativeClassName}>{relative}</span>
+          {(showDate || showTime) && sep}
+          <span className={timeRelativeClassName}>{relative}</span>
         </>
       )}
     </span>
