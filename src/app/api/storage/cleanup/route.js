@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { deleteMultipleFromR2, isR2Configured } from "@/lib/r2-storage";
+import { collectAllDatabaseImageRefs } from "@/lib/collect-database-images";
+import { normalizeToStorageKey, isStorageKey } from "@/lib/image-url";
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
@@ -54,92 +56,14 @@ async function listAllR2Files() {
   return allFiles;
 }
 
-/**
- * Collect all image references from the database
- */
-async function collectAllDatabaseImages() {
-  const supabase = getServerClient();
-  const allImages = new Set();
-
-  // Helper to add images from various fields
-  const addImage = (value) => {
-    if (value && typeof value === "string" && !value.startsWith("data:")) {
-      allImages.add(value);
-    }
-  };
-
-  const addImagesFromArray = (arr) => {
-    if (Array.isArray(arr)) {
-      arr.forEach(addImage);
-    }
-  };
-
-  const addImagesFromPayments = (payments) => {
-    if (Array.isArray(payments)) {
-      payments.forEach(payment => {
-        addImage(payment.receiptUrl);
-        addImage(payment.receipt_url);
-        addImage(payment.receiptKey);
-        addImage(payment.receipt_key);
-        addImagesFromArray(payment.receiptUrls);
-        addImagesFromArray(payment.receipt_urls);
-      });
-    }
-  };
-
-  // 1. Get all customer images
-  const { data: customers } = await supabase
-    .from("customers")
-    .select("profile_picture, khata_photo, khata_photos");
-
-  if (customers) {
-    customers.forEach(c => {
-      addImage(c.profile_picture);
-      addImage(c.khata_photo);
-      addImagesFromArray(c.khata_photos);
-    });
+/** R2 object key is referenced if it appears in the DB index (key or legacy URL form). */
+function isR2KeyReferenced(r2Key, dbRefs) {
+  if (dbRefs.has(r2Key)) return true;
+  for (const ref of dbRefs) {
+    const normalized = normalizeToStorageKey(ref);
+    if (normalized === r2Key && isStorageKey(normalized)) return true;
   }
-
-  // 2. Get all supplier images
-  const { data: suppliers } = await supabase
-    .from("suppliers")
-    .select("profile_picture, upi_qr_code, logo, photos");
-
-  if (suppliers) {
-    suppliers.forEach(s => {
-      addImage(s.profile_picture);
-      addImage(s.upi_qr_code);
-      addImage(s.logo);
-      addImagesFromArray(s.photos);
-    });
-  }
-
-  // 3. Get all transaction images
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select("bill_images, payments");
-
-  if (transactions) {
-    transactions.forEach(t => {
-      addImagesFromArray(t.bill_images);
-      addImagesFromPayments(t.payments);
-    });
-  }
-
-  // 4. Get all udhar images
-  const { data: udhars } = await supabase
-    .from("udhar")
-    .select("khata_photos, bill_image, payments");
-
-  if (udhars) {
-    udhars.forEach(u => {
-      addImage(u.bill_image);
-      addImagesFromArray(u.khata_photos);
-      addImagesFromPayments(u.payments);
-    });
-  }
-
-  return allImages;
+  return false;
 }
 
 /**
@@ -169,11 +93,11 @@ export async function GET(request) {
     console.log(`[Cleanup] Found ${r2Files.length} files in R2`);
 
     // Get all image references from database
-    const dbImages = await collectAllDatabaseImages();
+    const dbImages = await collectAllDatabaseImageRefs();
     console.log(`[Cleanup] Found ${dbImages.size} image references in database`);
 
     // Find orphaned files (in R2 but not in database)
-    const orphanedFiles = r2Files.filter(file => !dbImages.has(file));
+    const orphanedFiles = r2Files.filter(file => !isR2KeyReferenced(file, dbImages));
     console.log(`[Cleanup] Found ${orphanedFiles.length} orphaned files`);
 
     // Group orphaned files by folder for better visibility
@@ -244,11 +168,11 @@ export async function POST(request) {
     console.log(`[Cleanup] Found ${r2Files.length} files in R2`);
 
     // Get all image references from database
-    const dbImages = await collectAllDatabaseImages();
+    const dbImages = await collectAllDatabaseImageRefs();
     console.log(`[Cleanup] Found ${dbImages.size} image references in database`);
 
     // Find orphaned files
-    const orphanedFiles = r2Files.filter(file => !dbImages.has(file));
+    const orphanedFiles = r2Files.filter(file => !isR2KeyReferenced(file, dbImages));
     console.log(`[Cleanup] Found ${orphanedFiles.length} orphaned files to delete`);
 
     if (orphanedFiles.length === 0) {

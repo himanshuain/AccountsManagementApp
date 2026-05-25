@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { deleteImagesFromStorage, collectUdharImages } from "@/lib/imagekit-server";
+import {
+  buildImageRefIndex,
+  findRemovedImageRefs,
+  isImageRefInIndex,
+  isSameImageRef,
+} from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
 
 // Helper to convert camelCase to snake_case
@@ -128,47 +134,34 @@ export async function PUT(request, { params }) {
     if (currentUdhar) {
       const imagesToDelete = [];
 
-      // Check if bill image was replaced
-      if (currentUdhar.bill_image && currentUdhar.bill_image !== record.bill_image) {
+      if (
+        currentUdhar.bill_image &&
+        !isSameImageRef(currentUdhar.bill_image, record.bill_image)
+      ) {
         imagesToDelete.push(currentUdhar.bill_image);
       }
 
-      // Check for removed khata photos
-      const oldKhataPhotos = currentUdhar.khata_photos || [];
-      const newKhataPhotos = record.khata_photos || [];
-      oldKhataPhotos.forEach(photo => {
-        if (!newKhataPhotos.includes(photo)) {
-          imagesToDelete.push(photo);
-        }
-      });
+      imagesToDelete.push(
+        ...findRemovedImageRefs(currentUdhar.khata_photos || [], record.khata_photos || [])
+      );
 
-      // Check for removed payment receipts
       const oldPayments = currentUdhar.payments || [];
       const newPayments = record.payments || [];
-
-      // Collect all receipt URLs from new payments (single and array)
-      const newReceiptUrls = new Set();
+      const newReceiptRefs = [];
       newPayments.forEach(p => {
-        if (p.receiptUrl || p.receipt_url) {
-          newReceiptUrls.add(p.receiptUrl || p.receipt_url);
-        }
-        const receipts = p.receiptUrls || p.receipt_urls || [];
-        receipts.forEach(url => newReceiptUrls.add(url));
+        if (p.receiptUrl || p.receipt_url) newReceiptRefs.push(p.receiptUrl || p.receipt_url);
+        newReceiptRefs.push(...(p.receiptUrls || p.receipt_urls || []));
       });
+      const newReceiptIndex = buildImageRefIndex(newReceiptRefs);
 
-      // Find removed receipts from old payments
       oldPayments.forEach(payment => {
-        // Check single receipt URL
         const receiptUrl = payment.receiptUrl || payment.receipt_url;
-        if (receiptUrl && !newReceiptUrls.has(receiptUrl)) {
+        if (receiptUrl && !isImageRefInIndex(receiptUrl, newReceiptIndex)) {
           imagesToDelete.push(receiptUrl);
         }
-        // Check receipt URLs array
         const oldReceipts = payment.receiptUrls || payment.receipt_urls || [];
         oldReceipts.forEach(url => {
-          if (url && !newReceiptUrls.has(url)) {
-            imagesToDelete.push(url);
-          }
+          if (url && !isImageRefInIndex(url, newReceiptIndex)) imagesToDelete.push(url);
         });
       });
 

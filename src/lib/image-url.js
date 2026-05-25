@@ -296,6 +296,54 @@ export function normalizeToStorageKey(value) {
 }
 
 /**
+ * All comparable forms of an image ref (storage key + legacy URL).
+ * Used so cleanup / diff logic matches keys and full URLs for the same file.
+ */
+export function getComparableImageRefs(value) {
+  if (!value || typeof value !== "string" || isDataUrl(value)) return [];
+
+  const refs = new Set();
+  if (isStorageKey(value)) refs.add(value);
+  if (value.startsWith("http://") || value.startsWith("https://")) refs.add(value);
+
+  const key = normalizeToStorageKey(value);
+  if (key && isStorageKey(key)) refs.add(key);
+
+  return [...refs];
+}
+
+/** Build a Set of all comparable refs from a list of image values */
+export function buildImageRefIndex(values) {
+  const index = new Set();
+  for (const v of values || []) {
+    getComparableImageRefs(v).forEach(r => index.add(r));
+  }
+  return index;
+}
+
+/** True if ref (any form) appears in the index built from buildImageRefIndex */
+export function isImageRefInIndex(ref, index) {
+  return getComparableImageRefs(ref).some(r => index.has(r));
+}
+
+/** Refs present in oldList but not in newList (URL vs storage-key safe) */
+export function findRemovedImageRefs(oldList, newList) {
+  const newIndex = buildImageRefIndex(newList);
+  const removed = [];
+  for (const old of oldList || []) {
+    if (!isImageRefInIndex(old, newIndex)) removed.push(old);
+  }
+  return removed;
+}
+
+/** True when two refs point at the same stored file (key vs legacy URL) */
+export function isSameImageRef(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return isImageRefInIndex(a, buildImageRefIndex([b]));
+}
+
+/**
  * Process an array of image values, normalizing and resolving each
  * @param {string[]} values - Array of storage keys or URLs
  * @returns {Object[]} Array of {storageKey, url} objects
@@ -323,5 +371,10 @@ export default {
   getImageUrls,
   generateSrcSet,
   normalizeToStorageKey,
+  getComparableImageRefs,
+  buildImageRefIndex,
+  isImageRefInIndex,
+  findRemovedImageRefs,
+  isSameImageRef,
   processImageArray,
 };

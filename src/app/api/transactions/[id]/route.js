@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { deleteImagesFromStorage, collectTransactionImages } from "@/lib/imagekit-server";
+import {
+  buildImageRefIndex,
+  findRemovedImageRefs,
+  isImageRefInIndex,
+} from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
 
 // Helper to convert camelCase to snake_case
@@ -110,44 +115,31 @@ export async function PUT(request, { params }) {
 
     // Clean up old images that were removed (best-effort, non-blocking)
     if (existingTransaction) {
-      const imagesToDelete = [];
+      const imagesToDelete = [
+        ...findRemovedImageRefs(
+          existingTransaction.bill_images || [],
+          record.bill_images || []
+        ),
+      ];
 
-      // Check for removed bill images
-      const oldBillImages = existingTransaction.bill_images || [];
-      const newBillImages = record.bill_images || [];
-      oldBillImages.forEach(img => {
-        if (!newBillImages.includes(img)) {
-          imagesToDelete.push(img);
-        }
-      });
-
-      // Check for removed payment receipts
       const oldPayments = existingTransaction.payments || [];
       const newPayments = record.payments || [];
-
-      // Collect all receipt URLs from new payments (single and array)
-      const newReceiptUrls = new Set();
+      const newReceiptRefs = [];
       newPayments.forEach(p => {
-        if (p.receiptUrl || p.receipt_url) {
-          newReceiptUrls.add(p.receiptUrl || p.receipt_url);
-        }
-        const receipts = p.receiptUrls || p.receipt_urls || [];
-        receipts.forEach(url => newReceiptUrls.add(url));
+        if (p.receiptUrl || p.receipt_url) newReceiptRefs.push(p.receiptUrl || p.receipt_url);
+        newReceiptRefs.push(...(p.receiptUrls || p.receipt_urls || []));
+        if (p.receiptKey || p.receipt_key) newReceiptRefs.push(p.receiptKey || p.receipt_key);
       });
+      const newReceiptIndex = buildImageRefIndex(newReceiptRefs);
 
-      // Find removed receipts from old payments
       oldPayments.forEach(payment => {
-        // Check single receipt URL
         const receiptUrl = payment.receiptUrl || payment.receipt_url;
-        if (receiptUrl && !newReceiptUrls.has(receiptUrl)) {
+        if (receiptUrl && !isImageRefInIndex(receiptUrl, newReceiptIndex)) {
           imagesToDelete.push(receiptUrl);
         }
-        // Check receipt URLs array
         const oldReceipts = payment.receiptUrls || payment.receipt_urls || [];
         oldReceipts.forEach(url => {
-          if (url && !newReceiptUrls.has(url)) {
-            imagesToDelete.push(url);
-          }
+          if (url && !isImageRefInIndex(url, newReceiptIndex)) imagesToDelete.push(url);
         });
       });
 

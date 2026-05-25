@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
-import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { collectAllDatabaseImageRefs } from "@/lib/collect-database-images";
+import { extractStorageKeyFromUrl, getComparableImageRefs, isImageKitUrl } from "@/lib/image-url";
 
 export const dynamic = "force-dynamic";
 
+function isImageKitFileUsed(file, dbRefs) {
+  if (!file?.url) return false;
+  if (dbRefs.has(file.url)) return true;
+
+  const fileRefs = getComparableImageRefs(file.url);
+  if (fileRefs.some(r => dbRefs.has(r))) return true;
+
+  if (isImageKitUrl(file.url)) {
+    const key = extractStorageKeyFromUrl(file.url);
+    if (key && dbRefs.has(key)) return true;
+  }
+
+  return false;
+}
+
 /**
- * Clean up orphaned images from ImageKit that are not linked to any data
- * This helps reduce storage costs by removing unused images
+ * Clean up orphaned images from ImageKit media library (legacy direct uploads).
+ * R2-backed images are not listed here; use /api/storage/cleanup for R2.
  */
 export async function POST(request) {
   try {
@@ -25,49 +42,7 @@ export async function POST(request) {
       });
     }
 
-    // Get all image URLs used in the app
-    const usedImageUrls = new Set();
-    const supabase = getServerClient();
-
-    // Collect images from customers
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("profilePicture, khataPhotos");
-
-    customers?.forEach(customer => {
-      if (customer.profilePicture) usedImageUrls.add(customer.profilePicture);
-      if (customer.khataPhotos) {
-        customer.khataPhotos.forEach(url => usedImageUrls.add(url));
-      }
-    });
-
-    // Collect images from suppliers
-    const { data: suppliers } = await supabase.from("suppliers").select("logo, photos");
-
-    suppliers?.forEach(supplier => {
-      if (supplier.logo) usedImageUrls.add(supplier.logo);
-      if (supplier.photos) {
-        supplier.photos.forEach(url => usedImageUrls.add(url));
-      }
-    });
-
-    // Collect images from transactions
-    const { data: transactions } = await supabase.from("transactions").select("billImages");
-
-    transactions?.forEach(transaction => {
-      if (transaction.billImages) {
-        transaction.billImages.forEach(url => usedImageUrls.add(url));
-      }
-    });
-
-    // Collect images from udhar
-    const { data: udharList } = await supabase.from("udhar").select("billImage");
-
-    udharList?.forEach(udhar => {
-      if (udhar.billImage) usedImageUrls.add(udhar.billImage);
-    });
-
-    // Get all files from ImageKit
+    const usedImageRefs = await collectAllDatabaseImageRefs();
     const authString = Buffer.from(`${privateKey}:`).toString("base64");
 
     const filesResponse = await fetch("https://api.imagekit.io/v1/files?limit=1000", {
@@ -81,13 +56,8 @@ export async function POST(request) {
     }
 
     const files = await filesResponse.json();
+    const orphanedFiles = files.filter(file => !isImageKitFileUsed(file, usedImageRefs));
 
-    // Find orphaned files
-    const orphanedFiles = files.filter(file => {
-      return !usedImageUrls.has(file.url);
-    });
-
-    // Delete orphaned files
     let deletedCount = 0;
     const errors = [];
 
@@ -114,7 +84,7 @@ export async function POST(request) {
       success: true,
       data: {
         totalFilesScanned: files.length,
-        usedImagesCount: usedImageUrls.size,
+        usedImagesCount: usedImageRefs.size,
         orphanedFilesFound: orphanedFiles.length,
         deletedCount,
         errors: errors.length > 0 ? errors : undefined,
@@ -150,46 +120,7 @@ export async function GET(request) {
       });
     }
 
-    // Get all image URLs used in the app
-    const usedImageUrls = new Set();
-    const supabase = getServerClient();
-
-    // Collect images from all tables
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("profilePicture, khataPhotos");
-
-    customers?.forEach(customer => {
-      if (customer.profilePicture) usedImageUrls.add(customer.profilePicture);
-      if (customer.khataPhotos) {
-        customer.khataPhotos.forEach(url => usedImageUrls.add(url));
-      }
-    });
-
-    const { data: suppliers } = await supabase.from("suppliers").select("logo, photos");
-
-    suppliers?.forEach(supplier => {
-      if (supplier.logo) usedImageUrls.add(supplier.logo);
-      if (supplier.photos) {
-        supplier.photos.forEach(url => usedImageUrls.add(url));
-      }
-    });
-
-    const { data: transactions } = await supabase.from("transactions").select("billImages");
-
-    transactions?.forEach(transaction => {
-      if (transaction.billImages) {
-        transaction.billImages.forEach(url => usedImageUrls.add(url));
-      }
-    });
-
-    const { data: udharList } = await supabase.from("udhar").select("billImage");
-
-    udharList?.forEach(udhar => {
-      if (udhar.billImage) usedImageUrls.add(udhar.billImage);
-    });
-
-    // Get all files from ImageKit
+    const usedImageRefs = await collectAllDatabaseImageRefs();
     const authString = Buffer.from(`${privateKey}:`).toString("base64");
 
     const filesResponse = await fetch("https://api.imagekit.io/v1/files?limit=1000", {
@@ -203,20 +134,14 @@ export async function GET(request) {
     }
 
     const files = await filesResponse.json();
-
-    // Find orphaned files
-    const orphanedFiles = files.filter(file => {
-      return !usedImageUrls.has(file.url);
-    });
-
-    // Calculate potential savings
+    const orphanedFiles = files.filter(file => !isImageKitFileUsed(file, usedImageRefs));
     const totalOrphanedSize = orphanedFiles.reduce((sum, file) => sum + (file.size || 0), 0);
 
     return NextResponse.json({
       success: true,
       data: {
         totalFilesInStorage: files.length,
-        usedImagesCount: usedImageUrls.size,
+        usedImagesCount: usedImageRefs.size,
         orphanedFilesCount: orphanedFiles.length,
         potentialSavings: formatBytes(totalOrphanedSize),
         potentialSavingsBytes: totalOrphanedSize,

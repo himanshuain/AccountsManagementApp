@@ -63,9 +63,25 @@ import { getLocalDate } from "@/lib/date-utils";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, BillsGalleryModal } from "@/components/person";
 
-function LoadingImg({ src, alt, className, onClick, loading = "eager" }) {
+function LoadingImg({ src, alt, className, onClick, loading = "eager", fallbackSrc }) {
+  const [activeSrc, setActiveSrc] = useState(src);
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
+
+  useEffect(() => {
+    setActiveSrc(src);
+    setLoaded(false);
+    setErrored(false);
+  }, [src]);
+
+  const handleError = () => {
+    if (fallbackSrc && activeSrc !== fallbackSrc) {
+      setActiveSrc(fallbackSrc);
+      setLoaded(false);
+      return;
+    }
+    setErrored(true);
+  };
 
   return (
     <>
@@ -75,12 +91,15 @@ function LoadingImg({ src, alt, className, onClick, loading = "eager" }) {
         </div>
       )}
       {errored && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1 text-center">
           <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+          <span className="text-[8px] font-medium leading-tight text-muted-foreground/60">
+            Unavailable
+          </span>
         </div>
       )}
       <img
-        src={src}
+        src={activeSrc}
         alt={alt}
         className={cn(
           className,
@@ -89,7 +108,7 @@ function LoadingImg({ src, alt, className, onClick, loading = "eager" }) {
         )}
         loading={loading}
         onLoad={() => setLoaded(true)}
-        onError={() => setErrored(true)}
+        onError={handleError}
         onClick={onClick}
       />
     </>
@@ -809,11 +828,12 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   const thumbUrls = firstImageRef
     ? getImageUrls(firstImageRef, { width: 240, height: 240, quality: 75 })
     : null;
+  const thumbFallback = firstImageRef ? resolveImageUrl(firstImageRef) : "";
   const thumbSrc =
     thumbUrls?.thumbnail ||
     thumbUrls?.medium ||
     thumbUrls?.src ||
-    (firstImageRef ? resolveImageUrl(firstImageRef) : "");
+    thumbFallback;
 
   let dateLine = "";
   try {
@@ -850,6 +870,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
             >
               <LoadingImg
                 src={thumbSrc}
+                fallbackSrc={thumbFallback !== thumbSrc ? thumbFallback : undefined}
                 alt={isSupplier ? "Bill" : "Photo"}
                 loading="lazy"
                 className="h-full w-full object-cover"

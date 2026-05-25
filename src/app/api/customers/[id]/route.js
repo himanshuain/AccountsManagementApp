@@ -5,6 +5,7 @@ import {
   collectCustomerImages,
   collectUdharImages,
 } from "@/lib/imagekit-server";
+import { findRemovedImageRefs, isSameImageRef } from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
 
 // Helper to convert camelCase to snake_case
@@ -107,28 +108,23 @@ export async function PUT(request, { params }) {
     if (existingCustomer) {
       const imagesToDelete = [];
 
-      // Check if profile picture was replaced
       if (
         existingCustomer.profile_picture &&
-        existingCustomer.profile_picture !== record.profile_picture
+        !isSameImageRef(existingCustomer.profile_picture, record.profile_picture)
       ) {
         imagesToDelete.push(existingCustomer.profile_picture);
       }
 
-      // Check if khata photo was replaced
-      if (existingCustomer.khata_photo && existingCustomer.khata_photo !== record.khata_photo) {
+      if (
+        existingCustomer.khata_photo &&
+        !isSameImageRef(existingCustomer.khata_photo, record.khata_photo)
+      ) {
         imagesToDelete.push(existingCustomer.khata_photo);
       }
 
-      // Check for removed khata photos from array
-      if (existingCustomer.khata_photos && Array.isArray(existingCustomer.khata_photos)) {
-        const newKhataPhotos = record.khata_photos || [];
-        existingCustomer.khata_photos.forEach(photo => {
-          if (!newKhataPhotos.includes(photo)) {
-            imagesToDelete.push(photo);
-          }
-        });
-      }
+      imagesToDelete.push(
+        ...findRemovedImageRefs(existingCustomer.khata_photos || [], record.khata_photos || [])
+      );
 
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {
