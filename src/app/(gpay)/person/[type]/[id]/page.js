@@ -31,6 +31,9 @@ import {
   Expand,
   Search,
   Loader2,
+  ChevronRight,
+  ArrowUpWideNarrow,
+  ArrowDownWideNarrow,
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -808,6 +811,139 @@ function TransactionDetailModal({
   );
 }
 
+/** @param {'oldest' | 'newest'} order */
+function sortTransactionsChronologically(list, order = "oldest") {
+  const cmp = (a, b) => {
+    const dateDiff = new Date(a.date) - new Date(b.date);
+    if (dateDiff !== 0) return dateDiff;
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeA - timeB;
+  };
+  const sorted = [...list].sort(cmp);
+  return order === "newest" ? sorted.reverse() : sorted;
+}
+
+function getBillLabel(txn) {
+  const text = txn.description || txn.itemName || txn.itemDescription || txn.notes;
+  if (text) return text;
+  try {
+    return `Bill · ${format(parseISO(txn.date), "dd MMM yyyy")}`;
+  } catch {
+    return "Bill";
+  }
+}
+
+/** Flat payment rows for supplier profile → Payments tab */
+function buildSupplierPaymentLedger(transactions) {
+  const entries = [];
+  for (const txn of transactions) {
+    const payments = txn.payments || [];
+    const billLabel = getBillLabel(txn);
+    const billAmount = Number(txn.amount) || 0;
+    for (let i = 0; i < payments.length; i++) {
+      const payment = payments[i];
+      if (!payment?.date && payment?.amount == null) continue;
+      entries.push({
+        key: `${txn.id}-${payment.id || i}`,
+        payment,
+        txnId: txn.id,
+        billLabel,
+        billAmount,
+        billDate: txn.date,
+      });
+    }
+  }
+  return entries.sort(
+    (a, b) => new Date(b.payment.date || 0) - new Date(a.payment.date || 0)
+  );
+}
+
+function SupplierPaymentLedger({ entries, onGoToBill }) {
+  if (entries.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <CreditCard className="mb-4 h-12 w-12 text-muted-foreground/50" />
+        <p className="text-muted-foreground">No payments recorded yet</p>
+        <p className="mt-1 max-w-xs text-sm text-muted-foreground/70">
+          Payments you record on a bill will show up here
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map(entry => {
+        const { payment, txnId } = entry;
+        const amount = Number(payment.amount) || 0;
+        let payDateLabel = "";
+        try {
+          payDateLabel = format(parseISO(payment.date), "dd MMM yyyy · h:mm a");
+        } catch {
+          payDateLabel = payment.date || "";
+        }
+
+        return (
+          <button
+            key={entry.key}
+            type="button"
+            onClick={() => onGoToBill(txnId)}
+            className="flex w-full items-start gap-3 rounded-2xl border border-border/50 bg-card p-3.5 text-left shadow-sm transition-colors hover:bg-accent/40 active:scale-[0.99]"
+          >
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+              <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Paid on
+                  </p>
+                  <p className="text-sm font-medium text-foreground">{payDateLabel}</p>
+                </div>
+                <p
+                  className={cn(
+                    "shrink-0 font-mono text-base font-bold tabular-nums",
+                    payment.isReturn
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-emerald-600 dark:text-emerald-400"
+                  )}
+                >
+                  {payment.isReturn ? "" : "+"}₹{amount.toLocaleString("en-IN")}
+                </p>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {payment.isReturn && (
+                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                    Goods return
+                  </span>
+                )}
+                {payment.mode && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                    {payment.mode}
+                  </span>
+                )}
+                {payment.notes && (
+                  <span className="line-clamp-1 text-[10px] text-muted-foreground">
+                    {payment.notes}
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+                View bill
+                <ChevronRight className="h-3.5 w-3.5" />
+              </p>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Transaction Bubble Component with Pay Button
 const TransactionBubble = React.forwardRef(function TransactionBubble(
   { txn, isSupplier, onTap, onPay, onViewImages, isPaid, isHighlighted },
@@ -1023,6 +1159,8 @@ export default function PersonChatPage() {
   const [editingPaymentTxn, setEditingPaymentTxn] = useState(null);
   const [isSubmittingPaymentEdit, setIsSubmittingPaymentEdit] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [profileTab, setProfileTab] = useState("bills");
+  const [billsSortOrder, setBillsSortOrder] = useState("newest");
 
 
   // Prevent body scroll when modals/sheets are open
@@ -1118,6 +1256,13 @@ export default function PersonChatPage() {
     });
   }, [personTransactions, searchQuery]);
 
+  const sortedFilteredTransactions = useMemo(
+    () => sortTransactionsChronologically(filteredTransactions, billsSortOrder),
+    [filteredTransactions, billsSortOrder]
+  );
+
+  const showBillsSort = !isSupplier || profileTab === "bills";
+
   // Calculate totals - including partial payments
   const totals = useMemo(() => {
     const total = personTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -1166,7 +1311,7 @@ export default function PersonChatPage() {
     const groups = [];
     let currentDate = null;
 
-    filteredTransactions.forEach(txn => {
+    sortedFilteredTransactions.forEach(txn => {
       const txnDate = parseISO(txn.date);
 
       if (!currentDate || !isSameDay(currentDate, txnDate)) {
@@ -1181,7 +1326,49 @@ export default function PersonChatPage() {
     });
 
     return groups;
-  }, [filteredTransactions]);
+  }, [sortedFilteredTransactions]);
+
+  const supplierPaymentLedger = useMemo(() => {
+    if (!isSupplier) return [];
+    return buildSupplierPaymentLedger(personTransactions);
+  }, [isSupplier, personTransactions]);
+
+  const filteredPaymentLedger = useMemo(() => {
+    if (!searchQuery.trim()) return supplierPaymentLedger;
+    const query = searchQuery.toLowerCase().trim();
+    const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
+    return supplierPaymentLedger.filter(entry => {
+      const { payment, billLabel, billAmount, billDate } = entry;
+      if (String(payment.amount || "").includes(query)) return true;
+      if (billLabel.toLowerCase().includes(query)) return true;
+      if ((payment.notes || "").toLowerCase().includes(query)) return true;
+      if (!isNaN(numQuery) && (Number(payment.amount) === numQuery || billAmount === numQuery)) {
+        return true;
+      }
+      try {
+        if (format(parseISO(payment.date), "dd MMM yyyy").toLowerCase().includes(query)) {
+          return true;
+        }
+        if (format(parseISO(billDate), "dd MMM yyyy").toLowerCase().includes(query)) {
+          return true;
+        }
+      } catch {
+        /* ignore */
+      }
+      return false;
+    });
+  }, [supplierPaymentLedger, searchQuery]);
+
+  const scrollToTransaction = useCallback(txnId => {
+    setProfileTab("bills");
+    setSearchQuery("");
+    setSelectedTransaction(null);
+    setTimeout(() => {
+      txnRefs.current[txnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedTxn(txnId);
+      setTimeout(() => setHighlightedTxn(null), 3000);
+    }, 150);
+  }, []);
 
   // Track if we've already processed the highlight to prevent re-triggering on refresh
   const highlightProcessedRef = useRef(false);
@@ -1206,14 +1393,14 @@ export default function PersonChatPage() {
         setTimeout(() => setHighlightedTxn(null), 3000);
       }, 300);
     } else if (scrollRef.current && !highlightTxnId && personTransactions.length > 0) {
-      // Scroll to bottom if no highlight (newest transactions are at bottom)
       setTimeout(() => {
         if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          scrollRef.current.scrollTop =
+            billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
         }
       }, 100);
     }
-  }, [personTransactions.length, highlightTxnId]);
+  }, [personTransactions.length, highlightTxnId, billsSortOrder]);
 
   // Keep selectedTransaction in sync with updated data from personTransactions
   useEffect(() => {
@@ -1298,41 +1485,33 @@ export default function PersonChatPage() {
   const justAddedRef = useRef(false);
 
   // Scroll to bottom helper - more reliable version
-  const scrollToBottom = useCallback(() => {
+  const scrollToNewTransaction = useCallback(() => {
     justAddedRef.current = true;
-    // Use multiple attempts to ensure scroll happens after DOM update
     const doScroll = () => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          top: scrollRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }
+      if (!scrollRef.current) return;
+      const top =
+        billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top, behavior: "smooth" });
     };
-    // First attempt after short delay
     setTimeout(doScroll, 100);
-    // Second attempt after longer delay (after data updates)
     setTimeout(doScroll, 500);
-    // Third attempt using requestAnimationFrame for next paint
     requestAnimationFrame(() => {
       requestAnimationFrame(doScroll);
     });
-  }, []);
+  }, [billsSortOrder]);
 
   // Scroll to bottom when new transactions are added
   useEffect(() => {
     if (justAddedRef.current && personTransactions.length > 0) {
       justAddedRef.current = false;
       setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTo({
-            top: scrollRef.current.scrollHeight,
-            behavior: "smooth",
-          });
-        }
+        if (!scrollRef.current) return;
+        const top =
+          billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
+        scrollRef.current.scrollTo({ top, behavior: "smooth" });
       }, 300);
     }
-  }, [personTransactions.length]);
+  }, [personTransactions.length, billsSortOrder]);
 
   // Handle add transaction
   const handleAddTransaction = async data => {
@@ -1340,7 +1519,7 @@ export default function PersonChatPage() {
     if (result.success) {
       toast.success("Transaction added");
       setTransactionFormOpen(false);
-      scrollToBottom(); // Scroll to show new transaction
+      scrollToNewTransaction();
     } else {
       toast.error(result.error || "Failed to add");
     }
@@ -1352,7 +1531,7 @@ export default function PersonChatPage() {
     if (result.success) {
       toast.success("Udhar added");
       setUdharFormOpen(false);
-      scrollToBottom(); // Scroll to show new udhar
+      scrollToNewTransaction();
     } else {
       toast.error(result.error || "Failed to add");
     }
@@ -1781,30 +1960,113 @@ export default function PersonChatPage() {
 
         {/* Search Bar */}
         <div className="px-4 pb-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={`Search ${isSupplier ? "transactions" : "udhars"}...`}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="h-9 w-full rounded-xl border-0 bg-muted pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            {searchQuery && (
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={
+                  isSupplier && profileTab === "payments"
+                    ? "Search payments or bills..."
+                    : `Search ${isSupplier ? "transactions" : "udhars"}...`
+                }
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="h-9 w-full rounded-xl border-0 bg-muted pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-accent"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {showBillsSort && personTransactions.length > 0 && (
               <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-accent"
+                type="button"
+                onClick={() =>
+                  setBillsSortOrder(prev => (prev === "newest" ? "oldest" : "newest"))
+                }
+                className={cn(
+                  "flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-2.5 text-xs font-medium transition-colors hover:bg-accent",
+                  billsSortOrder === "newest"
+                    ? "text-primary ring-2 ring-primary/30"
+                    : "text-muted-foreground"
+                )}
+                aria-label={
+                  billsSortOrder === "newest"
+                    ? "Sort by newest, tap for oldest"
+                    : "Sort by oldest, tap for newest"
+                }
               >
-                <X className="h-3 w-3" />
+                {billsSortOrder === "newest" ? (
+                  <ArrowDownWideNarrow className="h-4 w-4 shrink-0" />
+                ) : (
+                  <ArrowUpWideNarrow className="h-4 w-4 shrink-0" />
+                )}
+                <span className="whitespace-nowrap">
+                  Sort by {billsSortOrder === "newest" ? "newest" : "oldest"}
+                </span>
               </button>
             )}
           </div>
           {searchQuery && (
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {filteredTransactions.length} of {personTransactions.length} results
+              {isSupplier && profileTab === "payments"
+                ? `${filteredPaymentLedger.length} of ${supplierPaymentLedger.length} payments`
+                : `${filteredTransactions.length} of ${personTransactions.length} results`}
             </p>
           )}
         </div>
+
+        {/* Supplier profile tabs */}
+        {isSupplier && (
+          <div className="px-4 pb-2">
+            <div className="flex rounded-xl bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setProfileTab("bills")}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors",
+                  profileTab === "bills"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Receipt className="h-4 w-4" />
+                Bills
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfileTab("payments")}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors",
+                  profileTab === "payments"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <CreditCard className="h-4 w-4" />
+                Payments
+                {supplierPaymentLedger.length > 0 && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                      profileTab === "payments"
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                        : "bg-muted-foreground/15 text-muted-foreground"
+                    )}
+                  >
+                    {supplierPaymentLedger.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Summary Card */}
         <div className="px-4 pb-3">
@@ -1875,12 +2137,31 @@ export default function PersonChatPage() {
 
       </header>
 
-      {/* Chat Messages */}
+      {/* Bills list or payment ledger */}
       <div
         ref={scrollRef}
         className="mb-nav flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4"
       >
-        {groupedByDate.length === 0 ? (
+        {isSupplier && profileTab === "payments" ? (
+          searchQuery && filteredPaymentLedger.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Search className="mb-4 h-12 w-12 text-muted-foreground/50" />
+              <p className="mb-2 text-muted-foreground">No payments found</p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="text-sm font-medium text-primary"
+              >
+                Clear search
+              </button>
+            </div>
+          ) : (
+            <SupplierPaymentLedger
+              entries={filteredPaymentLedger}
+              onGoToBill={scrollToTransaction}
+            />
+          )
+        ) : groupedByDate.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center py-20">
             {searchQuery ? (
               <>
@@ -2081,8 +2362,7 @@ export default function PersonChatPage() {
         onViewImages={handleViewImages}
         onGoToBill={txnId => {
           setBillsGalleryOpen(false);
-          const txn = personTransactions.find(t => t.id === txnId);
-          if (txn) setSelectedTransaction(txn);
+          scrollToTransaction(txnId);
         }}
       />
 
