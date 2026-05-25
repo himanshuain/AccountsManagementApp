@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Images, ExternalLink, Receipt } from "lucide-react";
-import { format, parseISO } from "date-fns";
 import { resolveImageUrl } from "@/lib/image-url";
+import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { SwipeCarousel } from "@/components/ui/swipe-carousel";
 import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ function BillStripItem({ bill, isActive, onClick }) {
         ₹{Number(bill.txnAmount).toLocaleString("en-IN")}
       </span>
       <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
-        {format(parseISO(bill.txnDate), "dd MMM")}
+        <DateWithRelative date={bill.txnDate} dateFormat="dd MMM" />
       </span>
     </button>
   );
@@ -173,7 +173,7 @@ export function BillsGalleryModal({
                   ₹{Number(current.txnAmount).toLocaleString("en-IN")}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  {format(parseISO(current.txnDate), "dd MMM yyyy")}
+                  <DateWithRelative date={current.txnDate} dateFormat="dd MMM yyyy" />
                 </p>
                 {current.txnDescription && (
                   <p className="mt-0.5 truncate text-[10px] text-muted-foreground">

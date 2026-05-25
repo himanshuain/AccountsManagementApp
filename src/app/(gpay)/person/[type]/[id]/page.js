@@ -62,7 +62,8 @@ import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
-import { getLocalDate } from "@/lib/date-utils";
+import { getLocalDate, formatDateWithRelative, parseFlexibleDate } from "@/lib/date-utils";
+import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, BillsGalleryModal } from "@/components/person";
 
@@ -640,7 +641,9 @@ function TransactionDetailModal({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Date</p>
-            <p className="font-medium">{format(parseISO(txn.date), "dd MMMM yyyy")}</p>
+            <p className="font-medium">
+              <DateWithRelative date={txn.date} dateFormat="dd MMMM yyyy" />
+            </p>
           </div>
         </div>
 
@@ -721,7 +724,9 @@ function TransactionDetailModal({
                                 {payment.isReturn ? "" : "+"}₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
                               </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">{format(parseISO(payment.date), "dd MMM yyyy")}</p>
+                            <p className="text-xs text-muted-foreground">
+                              <DateWithRelative date={payment.date} dateFormat="dd MMM yyyy" />
+                            </p>
                           </div>
                           {payment.notes && <p className="mt-0.5 break-words text-xs text-muted-foreground">{payment.notes}</p>}
 
@@ -828,7 +833,7 @@ function getBillLabel(txn) {
   const text = txn.description || txn.itemName || txn.itemDescription || txn.notes;
   if (text) return text;
   try {
-    return `Bill · ${format(parseISO(txn.date), "dd MMM yyyy")}`;
+    return `Bill · ${formatDateWithRelative(txn.date, "dd MMM yyyy")}`;
   } catch {
     return "Bill";
   }
@@ -877,12 +882,6 @@ function SupplierPaymentLedger({ entries, onGoToBill }) {
       {entries.map(entry => {
         const { payment, txnId } = entry;
         const amount = Number(payment.amount) || 0;
-        let payDateLabel = "";
-        try {
-          payDateLabel = format(parseISO(payment.date), "dd MMM yyyy · h:mm a");
-        } catch {
-          payDateLabel = payment.date || "";
-        }
 
         return (
           <button
@@ -900,7 +899,13 @@ function SupplierPaymentLedger({ entries, onGoToBill }) {
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Paid on
                   </p>
-                  <p className="text-sm font-medium text-foreground">{payDateLabel}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    <DateWithRelative
+                      date={payment.date}
+                      dateFormat="dd MMM yyyy"
+                      timeFormat="h:mm a"
+                    />
+                  </p>
                 </div>
                 <p
                   className={cn(
@@ -971,14 +976,17 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
     thumbUrls?.src ||
     thumbFallback;
 
-  let dateLine = "";
-  try {
-    dateLine = format(parseISO(txn.date), "dd MMM yyyy");
-    if (txn.createdAt) {
-      dateLine += ` · ${format(parseISO(txn.createdAt), "h:mm a")}`;
+  let dateLine = formatDateWithRelative(txn.date, "dd MMM yyyy");
+  if (!dateLine && txn.date) dateLine = txn.date;
+  if (txn.createdAt) {
+    try {
+      const created = parseFlexibleDate(txn.createdAt);
+      if (created) {
+        dateLine += ` · ${format(created, "h:mm a")}`;
+      }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    dateLine = txn.date || "";
   }
 
   const photoWord = isSupplier ? "bill" : "photo";
@@ -2200,7 +2208,7 @@ export default function PersonChatPage() {
               {/* Date Separator */}
               <div className="mb-4 flex items-center justify-center">
                 <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                  {format(group.date, "dd MMM yyyy")}
+                  <DateWithRelative date={group.date} dateFormat="dd MMM yyyy" />
                 </span>
               </div>
 
