@@ -62,7 +62,7 @@ import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
-import { getLocalDate, formatDateWithRelative, parseFlexibleDate } from "@/lib/date-utils";
+import { getLocalDate, formatDateWithRelative } from "@/lib/date-utils";
 import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, BillsGalleryModal } from "@/components/person";
@@ -277,7 +277,14 @@ function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
   };
 
   return (
-    <DragCloseDrawer open={true} onOpenChange={v => { if (!v) onClose(); }} beforeClose={handleBeforeClose} height="h-auto">
+    <DragCloseDrawer
+      open={true}
+      onOpenChange={v => {
+        if (!v) onClose();
+      }}
+      beforeClose={handleBeforeClose}
+      height="h-auto"
+    >
       <div className="px-4">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-heading text-lg tracking-wide">Edit Payment</h3>
@@ -575,11 +582,11 @@ function TransactionDetailModal({
               )}
             />
           </div>
-          <p className="font-mono text-4xl font-bold">
-            ₹{totalAmount.toLocaleString("en-IN")}
-          </p>
+          <p className="font-mono text-4xl font-bold">₹{totalAmount.toLocaleString("en-IN")}</p>
           {!isPaid && paidAmount > 0 && (
-            <p className="text-sm text-muted-foreground">₹{remainingAmount.toLocaleString("en-IN")} pending</p>
+            <p className="text-sm text-muted-foreground">
+              ₹{remainingAmount.toLocaleString("en-IN")} pending
+            </p>
           )}
           {isPaid && <p className="text-sm font-medium text-emerald-400">Fully Paid</p>}
         </div>
@@ -600,8 +607,12 @@ function TransactionDetailModal({
           <div className="px-4 pb-2 pt-4 text-center">
             {isPaid ? (
               <>
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Status</p>
-                <p className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">✓ Paid</p>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Status
+                </p>
+                <p className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                  ✓ Paid
+                </p>
               </>
             ) : (
               <>
@@ -611,7 +622,9 @@ function TransactionDetailModal({
                 <p
                   className={cn(
                     "font-mono text-3xl font-extrabold tabular-nums tracking-tight",
-                    isSupplier ? "text-rose-600 dark:text-rose-400" : "text-amber-600 dark:text-amber-400"
+                    isSupplier
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-amber-600 dark:text-amber-400"
                   )}
                 >
                   ₹{remainingAmount.toLocaleString("en-IN")}
@@ -621,8 +634,12 @@ function TransactionDetailModal({
           </div>
           {paidAmount > 0 && (
             <div className="flex items-center justify-between border-t border-border/30 px-4 py-2">
-              <span className="text-xs text-muted-foreground">Total ₹{totalAmount.toLocaleString("en-IN")}</span>
-              <span className="text-xs text-emerald-600 dark:text-emerald-400">Paid ₹{paidAmount.toLocaleString("en-IN")}</span>
+              <span className="text-xs text-muted-foreground">
+                Total ₹{totalAmount.toLocaleString("en-IN")}
+              </span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                Paid ₹{paidAmount.toLocaleString("en-IN")}
+              </span>
             </div>
           )}
           {paidAmount > 0 && !isPaid && (
@@ -654,7 +671,9 @@ function TransactionDetailModal({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{isSupplier ? "Item" : "Description"}</p>
-              <p className="font-medium">{txn.description || txn.itemName || txn.itemDescription}</p>
+              <p className="font-medium">
+                {txn.description || txn.itemName || txn.itemDescription}
+              </p>
             </div>
           </div>
         )}
@@ -699,7 +718,9 @@ function TransactionDetailModal({
           {showPayments && (
             <div className="mt-3 space-y-2">
               {payments.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted-foreground">No payments recorded yet</p>
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No payments recorded yet
+                </p>
               ) : (
                 [...payments]
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -708,27 +729,46 @@ function TransactionDetailModal({
                     const hasReceipts = receipts.length > 0;
 
                     return (
-                      <div key={payment.id || idx} className="group flex items-start gap-3 rounded-xl bg-muted/50 p-3">
+                      <div
+                        key={payment.id || idx}
+                        className="group flex items-start gap-3 rounded-xl bg-muted/50 p-3"
+                      >
                         <div className="flex flex-col items-center pt-1">
                           <div className="h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
-                          {idx < payments.length - 1 && <div className="mt-1 min-h-[40px] w-0.5 flex-1 bg-emerald-500/30" />}
+                          {idx < payments.length - 1 && (
+                            <div className="mt-1 min-h-[40px] w-0.5 flex-1 bg-emerald-500/30" />
+                          )}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               {payment.isReturn && (
-                                <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">GR</span>
+                                <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                                  GR
+                                </span>
                               )}
-                              <p className={cn("font-mono font-semibold", payment.isReturn ? "text-blue-600 dark:text-blue-400" : "text-emerald-600 dark:text-emerald-400")}>
-                                {payment.isReturn ? "" : "+"}₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
+                              <p
+                                className={cn(
+                                  "font-mono font-semibold",
+                                  payment.isReturn
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                                )}
+                              >
+                                {payment.isReturn ? "" : "+"}₹
+                                {(Number(payment.amount) || 0).toLocaleString("en-IN")}
                               </p>
                             </div>
                             <p className="text-xs text-muted-foreground">
                               <DateWithRelative date={payment.date} dateFormat="dd MMM yyyy" />
                             </p>
                           </div>
-                          {payment.notes && <p className="mt-0.5 break-words text-xs text-muted-foreground">{payment.notes}</p>}
+                          {payment.notes && (
+                            <p className="mt-0.5 break-words text-xs text-muted-foreground">
+                              {payment.notes}
+                            </p>
+                          )}
 
                           {hasReceipts && (
                             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -738,7 +778,11 @@ function TransactionDetailModal({
                                   onClick={() => onViewImages(receipts, rIdx)}
                                   className="relative h-12 w-12 cursor-pointer overflow-hidden rounded-lg bg-muted transition-opacity hover:opacity-80"
                                 >
-                                  <LoadingImg src={resolveImageUrl(receipt)} alt={`Receipt ${rIdx + 1}`} className="h-full w-full object-cover" />
+                                  <LoadingImg
+                                    src={resolveImageUrl(receipt)}
+                                    alt={`Receipt ${rIdx + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
                                 </div>
                               ))}
                               <div className="ml-1 self-center text-[10px] text-muted-foreground">
@@ -748,11 +792,17 @@ function TransactionDetailModal({
                           )}
 
                           <div className="mt-2 flex items-center gap-2">
-                            <button onClick={() => onEditPayment?.(payment)} className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-accent">
+                            <button
+                              onClick={() => onEditPayment?.(payment)}
+                              className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs transition-colors hover:bg-accent"
+                            >
                               <Pencil className="h-3 w-3" />
                               Edit
                             </button>
-                            <button onClick={() => setPaymentToDelete(payment)} className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-1 text-xs text-destructive transition-colors hover:bg-destructive/20">
+                            <button
+                              onClick={() => setPaymentToDelete(payment)}
+                              className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-1 text-xs text-destructive transition-colors hover:bg-destructive/20"
+                            >
                               <Trash2 className="h-3 w-3" />
                               Delete
                             </button>
@@ -761,11 +811,19 @@ function TransactionDetailModal({
                           {paymentToDelete?.id === payment.id && (
                             <div className="animate-slide-up mt-3 rounded-xl border border-destructive/20 bg-destructive/10 p-3">
                               <p className="mb-2 text-sm font-medium text-destructive">
-                                Delete payment of ₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}?
+                                Delete payment of ₹
+                                {(Number(payment.amount) || 0).toLocaleString("en-IN")}?
                               </p>
-                              <p className="mb-3 text-xs text-muted-foreground">This action cannot be undone.</p>
+                              <p className="mb-3 text-xs text-muted-foreground">
+                                This action cannot be undone.
+                              </p>
                               <div className="flex gap-2">
-                                <button onClick={() => setPaymentToDelete(null)} className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-medium">Cancel</button>
+                                <button
+                                  onClick={() => setPaymentToDelete(null)}
+                                  className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-medium"
+                                >
+                                  Cancel
+                                </button>
                                 <button
                                   onClick={() => handleDeletePayment(payment.id)}
                                   disabled={deletingPaymentId === payment.id}
@@ -798,14 +856,20 @@ function TransactionDetailModal({
           </button>
         )}
         <button
-          onClick={() => { onClose(); onEdit(txn); }}
+          onClick={() => {
+            onClose();
+            onEdit(txn);
+          }}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted px-4 py-3 font-medium transition-colors hover:bg-accent"
         >
           <Pencil className="h-5 w-5" />
           Edit Transaction
         </button>
         <button
-          onClick={() => { onClose(); onDelete(txn); }}
+          onClick={() => {
+            onClose();
+            onDelete(txn);
+          }}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 font-medium text-destructive transition-colors hover:bg-destructive/20"
         >
           <Trash2 className="h-5 w-5" />
@@ -859,9 +923,20 @@ function buildSupplierPaymentLedger(transactions) {
       });
     }
   }
-  return entries.sort(
-    (a, b) => new Date(b.payment.date || 0) - new Date(a.payment.date || 0)
-  );
+  return entries;
+}
+
+/** @param {'oldest' | 'newest'} order */
+function sortPaymentLedgerChronologically(entries, order = "oldest") {
+  const cmp = (a, b) => {
+    const dateDiff = new Date(a.payment.date || 0) - new Date(b.payment.date || 0);
+    if (dateDiff !== 0) return dateDiff;
+    const billDiff = new Date(a.billDate || 0) - new Date(b.billDate || 0);
+    if (billDiff !== 0) return billDiff;
+    return String(a.key).localeCompare(String(b.key));
+  };
+  const sorted = [...entries].sort(cmp);
+  return order === "newest" ? sorted.reverse() : sorted;
 }
 
 function SupplierPaymentLedger({ entries, onGoToBill }) {
@@ -904,6 +979,7 @@ function SupplierPaymentLedger({ entries, onGoToBill }) {
                       date={payment.date}
                       dateFormat="dd MMM yyyy"
                       timeFormat="h:mm a"
+                      timeFrom={payment.date}
                     />
                   </p>
                 </div>
@@ -970,24 +1046,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
     ? getImageUrls(firstImageRef, { width: 240, height: 240, quality: 75 })
     : null;
   const thumbFallback = firstImageRef ? resolveImageUrl(firstImageRef) : "";
-  const thumbSrc =
-    thumbUrls?.thumbnail ||
-    thumbUrls?.medium ||
-    thumbUrls?.src ||
-    thumbFallback;
-
-  let dateLine = formatDateWithRelative(txn.date, "dd MMM yyyy");
-  if (!dateLine && txn.date) dateLine = txn.date;
-  if (txn.createdAt) {
-    try {
-      const created = parseFlexibleDate(txn.createdAt);
-      if (created) {
-        dateLine += ` · ${format(created, "h:mm a")}`;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
+  const thumbSrc = thumbUrls?.thumbnail || thumbUrls?.medium || thumbUrls?.src || thumbFallback;
 
   const photoWord = isSupplier ? "bill" : "photo";
   const photoWordPlural = isSupplier ? "bills" : "photos";
@@ -997,8 +1056,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
       ref={ref}
       className={cn(
         "mb-5 w-full transition-all duration-500",
-        isHighlighted &&
-          "rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background"
+        isHighlighted && "rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background"
       )}
     >
       <div className="flex gap-3">
@@ -1111,7 +1169,14 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                   View all {images.length} {photoWordPlural}
                 </button>
               )}
-              <p className="mt-2 text-[10px] text-muted-foreground">{dateLine}</p>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                <DateWithRelative
+                  date={txn.date}
+                  dateFormat="dd MMM yyyy"
+                  timeFormat={txn.createdAt ? "h:mm a" : undefined}
+                  timeFrom={txn.createdAt || txn.date}
+                />
+              </p>
             </div>
           </div>
           {!isPaid && (
@@ -1169,7 +1234,6 @@ export default function PersonChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [profileTab, setProfileTab] = useState("bills");
   const [billsSortOrder, setBillsSortOrder] = useState("newest");
-
 
   // Prevent body scroll when modals/sheets are open
   usePreventBodyScroll(
@@ -1269,8 +1333,6 @@ export default function PersonChatPage() {
     [filteredTransactions, billsSortOrder]
   );
 
-  const showBillsSort = !isSupplier || profileTab === "bills";
-
   // Calculate totals - including partial payments
   const totals = useMemo(() => {
     const total = personTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -1299,7 +1361,8 @@ export default function PersonChatPage() {
       .filter(t => (t.paymentStatus || t.status) !== "paid")
       .map(t => {
         const amount = Number(t.amount) || 0;
-        const paid = Number(t.paidAmount) ||
+        const paid =
+          Number(t.paidAmount) ||
           (t.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
         return {
           id: t.id,
@@ -1341,11 +1404,16 @@ export default function PersonChatPage() {
     return buildSupplierPaymentLedger(personTransactions);
   }, [isSupplier, personTransactions]);
 
+  const sortedPaymentLedger = useMemo(
+    () => sortPaymentLedgerChronologically(supplierPaymentLedger, billsSortOrder),
+    [supplierPaymentLedger, billsSortOrder]
+  );
+
   const filteredPaymentLedger = useMemo(() => {
-    if (!searchQuery.trim()) return supplierPaymentLedger;
+    if (!searchQuery.trim()) return sortedPaymentLedger;
     const query = searchQuery.toLowerCase().trim();
     const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
-    return supplierPaymentLedger.filter(entry => {
+    return sortedPaymentLedger.filter(entry => {
       const { payment, billLabel, billAmount, billDate } = entry;
       if (String(payment.amount || "").includes(query)) return true;
       if (billLabel.toLowerCase().includes(query)) return true;
@@ -1365,7 +1433,13 @@ export default function PersonChatPage() {
       }
       return false;
     });
-  }, [supplierPaymentLedger, searchQuery]);
+  }, [sortedPaymentLedger, searchQuery]);
+
+  const showListSort = isSupplier
+    ? profileTab === "payments"
+      ? supplierPaymentLedger.length > 0
+      : personTransactions.length > 0
+    : personTransactions.length > 0;
 
   const scrollToTransaction = useCallback(txnId => {
     setProfileTab("bills");
@@ -1497,8 +1571,7 @@ export default function PersonChatPage() {
     justAddedRef.current = true;
     const doScroll = () => {
       if (!scrollRef.current) return;
-      const top =
-        billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
+      const top = billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
       scrollRef.current.scrollTo({ top, behavior: "smooth" });
     };
     setTimeout(doScroll, 100);
@@ -1514,8 +1587,7 @@ export default function PersonChatPage() {
       justAddedRef.current = false;
       setTimeout(() => {
         if (!scrollRef.current) return;
-        const top =
-          billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
+        const top = billsSortOrder === "newest" ? 0 : scrollRef.current.scrollHeight;
         scrollRef.current.scrollTo({ top, behavior: "smooth" });
       }, 300);
     }
@@ -1612,7 +1684,7 @@ export default function PersonChatPage() {
 
   // Handle lumpsum payment across multiple bills
   const handleLumpsumPay = useCallback(
-    async (payments) => {
+    async payments => {
       for (const payment of payments) {
         let result;
         if (isSupplier) {
@@ -1992,12 +2064,10 @@ export default function PersonChatPage() {
                 </button>
               )}
             </div>
-            {showBillsSort && personTransactions.length > 0 && (
+            {showListSort && (
               <button
                 type="button"
-                onClick={() =>
-                  setBillsSortOrder(prev => (prev === "newest" ? "oldest" : "newest"))
-                }
+                onClick={() => setBillsSortOrder(prev => (prev === "newest" ? "oldest" : "newest"))}
                 className={cn(
                   "flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-2.5 text-xs font-medium transition-colors hover:bg-accent",
                   billsSortOrder === "newest"
@@ -2016,7 +2086,7 @@ export default function PersonChatPage() {
                   <ArrowUpWideNarrow className="h-4 w-4 shrink-0" />
                 )}
                 <span className="whitespace-nowrap">
-                  Sort by {billsSortOrder === "newest" ? "newest" : "oldest"}
+                  Sorted by {billsSortOrder === "newest" ? "newest" : "oldest"}
                 </span>
               </button>
             )}
@@ -2142,7 +2212,6 @@ export default function PersonChatPage() {
             )}
           </div>
         </div>
-
       </header>
 
       {/* Bills list or payment ledger */}
