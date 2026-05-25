@@ -290,7 +290,15 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
 
   // Record a partial payment for a transaction
   const recordPayment = useCallback(
-    async (id, amount, receiptUrls = null, paymentDate = null, notes = "", isReturn = false) => {
+    async (
+      id,
+      amount,
+      receiptUrls = null,
+      paymentDate = null,
+      notes = "",
+      isReturn = false,
+      lumpsum = null
+    ) => {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return { success: false, error: "Transaction not found" };
 
@@ -306,14 +314,22 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
           : [receiptUrls]
         : [];
 
+      const paidAt = paymentDate || lumpsum?.lumpsumPaidAt || new Date().toISOString();
       const newPayment = {
         id: crypto.randomUUID(),
         amount: amount,
-        date: paymentDate || new Date().toISOString(),
+        date: paidAt,
         receiptUrl: receipts[0] || null, // Keep for backward compatibility
         receiptUrls: receipts, // New field for multiple receipts
         notes: notes || "",
         isReturn: isReturn,
+        ...(lumpsum?.lumpsumId
+          ? {
+              lumpsumId: lumpsum.lumpsumId,
+              lumpsumTotal: lumpsum.lumpsumTotal ?? null,
+              lumpsumPaidAt: lumpsum.lumpsumPaidAt || paidAt,
+            }
+          : {}),
       };
 
       const updates = {

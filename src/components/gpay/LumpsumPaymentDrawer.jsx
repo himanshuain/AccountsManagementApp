@@ -198,6 +198,8 @@ export function LumpsumPaymentDrawer({
 
     try {
       const lumpsumTag = `Paid in Lumpsum of ₹${parsedAmount.toLocaleString("en-IN")}`;
+      const lumpsumId = crypto.randomUUID();
+      const lumpsumPaidAt = new Date().toISOString();
       const payments = [];
       let remaining = parsedAmount;
 
@@ -215,6 +217,9 @@ export function LumpsumPaymentDrawer({
           amount: payAmount,
           receiptUrls: receiptImages.length > 0 ? receiptImages : null,
           notes: lumpsumTag,
+          lumpsumId,
+          lumpsumTotal: parsedAmount,
+          lumpsumPaidAt,
         });
       }
 

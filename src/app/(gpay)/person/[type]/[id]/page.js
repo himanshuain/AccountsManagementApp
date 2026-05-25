@@ -63,6 +63,12 @@ import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { cn } from "@/lib/utils";
 import { getLocalDate, formatDateWithRelative } from "@/lib/date-utils";
+import {
+  groupPaymentLedgerEntries,
+  filterPaymentLedgerGroups,
+  countPaymentLedgerEntries,
+  isLumpsumPayment,
+} from "@/lib/payment-ledger";
 import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, BillsGalleryModal } from "@/components/person";
@@ -939,8 +945,179 @@ function sortPaymentLedgerChronologically(entries, order = "oldest") {
   return order === "newest" ? sorted.reverse() : sorted;
 }
 
-function SupplierPaymentLedger({ entries, onGoToBill }) {
-  if (entries.length === 0) {
+function LumpsumChildRow({ entry, onGoToBill }) {
+  const amount = Number(entry.payment.amount) || 0;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onGoToBill(entry.txnId)}
+      className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2.5 text-left transition-colors hover:bg-muted/70 active:scale-[0.99]"
+    >
+      <span className="flex items-center gap-1 text-xs font-medium text-primary">
+        View bill
+        <ChevronRight className="h-3.5 w-3.5" />
+      </span>
+      <span className="shrink-0 font-mono text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+        ₹{amount.toLocaleString("en-IN")}
+      </span>
+    </button>
+  );
+}
+
+function PaymentLedgerEntryCard({ entry, onGoToBill }) {
+  const { payment, txnId } = entry;
+  const amount = Number(payment.amount) || 0;
+  const isLumpsumLine = isLumpsumPayment(payment);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onGoToBill(txnId)}
+      className="flex w-full items-start gap-3 rounded-2xl border border-border/50 bg-card p-3.5 text-left shadow-sm transition-colors hover:bg-accent/40 active:scale-[0.99]"
+    >
+      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+        <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Paid on
+            </p>
+            <p className="text-sm font-medium text-foreground">
+              <DateWithRelative
+                date={payment.date}
+                dateFormat="dd MMM yyyy"
+                timeFormat="h:mm a"
+                timeFrom={payment.date}
+              />
+            </p>
+          </div>
+          <p
+            className={cn(
+              "shrink-0 font-mono text-base font-bold tabular-nums",
+              payment.isReturn
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-emerald-600 dark:text-emerald-400"
+            )}
+          >
+            {payment.isReturn ? "" : "+"}₹{amount.toLocaleString("en-IN")}
+          </p>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {payment.isReturn && (
+            <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+              Goods return
+            </span>
+          )}
+          {payment.mode && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+              {payment.mode}
+            </span>
+          )}
+          {payment.notes && !isLumpsumLine && (
+            <span className="line-clamp-1 text-[10px] text-muted-foreground">{payment.notes}</span>
+          )}
+        </div>
+
+        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+          View bill
+          <ChevronRight className="h-3.5 w-3.5" />
+        </p>
+      </div>
+    </button>
+  );
+}
+
+function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
+  const billCount = group.children.length;
+  const allocatedTotal = group.children.reduce(
+    (sum, e) => sum + (Number(e.payment.amount) || 0),
+    0
+  );
+  const displayTotal = group.lumpsumTotal ?? allocatedTotal;
+  const firstPayment = group.children[0]?.payment;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start gap-3 p-3.5 text-left transition-colors hover:bg-accent/40 active:scale-[0.99]"
+      >
+        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+          <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Paid on
+              </p>
+              <p className="text-sm font-medium text-foreground">
+                <DateWithRelative
+                  date={group.date}
+                  dateFormat="dd MMM yyyy"
+                  timeFormat="h:mm a"
+                  timeFrom={group.date}
+                />
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {billCount} bill{billCount !== 1 ? "s" : ""}
+                {allocatedTotal !== displayTotal && (
+                  <span>
+                    {" "}
+                    · ₹{allocatedTotal.toLocaleString("en-IN")} allocated
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <p className="font-mono text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                ₹{displayTotal.toLocaleString("en-IN")}
+              </p>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform",
+                  expanded && "rotate-180"
+                )}
+              />
+            </div>
+          </div>
+          {firstPayment?.mode && (
+            <span className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+              {firstPayment.mode}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="space-y-2 border-t border-border/50 bg-muted/20 px-3 py-3">
+          {group.children.map(entry => (
+            <LumpsumChildRow key={entry.key} entry={entry} onGoToBill={onGoToBill} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SupplierPaymentLedger({ groups, onGoToBill }) {
+  const [expandedLumpsum, setExpandedLumpsum] = useState(() => new Set());
+
+  const toggleLumpsum = useCallback(groupKey => {
+    setExpandedLumpsum(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  }, []);
+
+  if (groups.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <CreditCard className="mb-4 h-12 w-12 text-muted-foreground/50" />
@@ -954,71 +1131,24 @@ function SupplierPaymentLedger({ entries, onGoToBill }) {
 
   return (
     <div className="space-y-2">
-      {entries.map(entry => {
-        const { payment, txnId } = entry;
-        const amount = Number(payment.amount) || 0;
-
+      {groups.map(group => {
+        if (group.type === "single") {
+          return (
+            <PaymentLedgerEntryCard
+              key={group.entry.key}
+              entry={group.entry}
+              onGoToBill={onGoToBill}
+            />
+          );
+        }
         return (
-          <button
-            key={entry.key}
-            type="button"
-            onClick={() => onGoToBill(txnId)}
-            className="flex w-full items-start gap-3 rounded-2xl border border-border/50 bg-card p-3.5 text-left shadow-sm transition-colors hover:bg-accent/40 active:scale-[0.99]"
-          >
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-              <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Paid on
-                  </p>
-                  <p className="text-sm font-medium text-foreground">
-                    <DateWithRelative
-                      date={payment.date}
-                      dateFormat="dd MMM yyyy"
-                      timeFormat="h:mm a"
-                      timeFrom={payment.date}
-                    />
-                  </p>
-                </div>
-                <p
-                  className={cn(
-                    "shrink-0 font-mono text-base font-bold tabular-nums",
-                    payment.isReturn
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-emerald-600 dark:text-emerald-400"
-                  )}
-                >
-                  {payment.isReturn ? "" : "+"}₹{amount.toLocaleString("en-IN")}
-                </p>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {payment.isReturn && (
-                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-                    Goods return
-                  </span>
-                )}
-                {payment.mode && (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-                    {payment.mode}
-                  </span>
-                )}
-                {payment.notes && (
-                  <span className="line-clamp-1 text-[10px] text-muted-foreground">
-                    {payment.notes}
-                  </span>
-                )}
-              </div>
-
-              <p className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
-                View bill
-                <ChevronRight className="h-3.5 w-3.5" />
-              </p>
-            </div>
-          </button>
+          <LumpsumPaymentGroupCard
+            key={group.groupKey}
+            group={group}
+            expanded={expandedLumpsum.has(group.groupKey)}
+            onToggle={() => toggleLumpsum(group.groupKey)}
+            onGoToBill={onGoToBill}
+          />
         );
       })}
     </div>
@@ -1409,31 +1539,20 @@ export default function PersonChatPage() {
     [supplierPaymentLedger, billsSortOrder]
   );
 
+  const groupedPaymentLedger = useMemo(
+    () => groupPaymentLedgerEntries(sortedPaymentLedger),
+    [sortedPaymentLedger]
+  );
+
   const filteredPaymentLedger = useMemo(() => {
-    if (!searchQuery.trim()) return sortedPaymentLedger;
-    const query = searchQuery.toLowerCase().trim();
-    const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
-    return sortedPaymentLedger.filter(entry => {
-      const { payment, billLabel, billAmount, billDate } = entry;
-      if (String(payment.amount || "").includes(query)) return true;
-      if (billLabel.toLowerCase().includes(query)) return true;
-      if ((payment.notes || "").toLowerCase().includes(query)) return true;
-      if (!isNaN(numQuery) && (Number(payment.amount) === numQuery || billAmount === numQuery)) {
-        return true;
-      }
-      try {
-        if (format(parseISO(payment.date), "dd MMM yyyy").toLowerCase().includes(query)) {
-          return true;
-        }
-        if (format(parseISO(billDate), "dd MMM yyyy").toLowerCase().includes(query)) {
-          return true;
-        }
-      } catch {
-        /* ignore */
-      }
-      return false;
-    });
-  }, [sortedPaymentLedger, searchQuery]);
+    const formatLedgerDate = (date, fmt) => format(parseISO(date), fmt);
+    return filterPaymentLedgerGroups(groupedPaymentLedger, searchQuery, formatLedgerDate);
+  }, [groupedPaymentLedger, searchQuery]);
+
+  const filteredPaymentCount = useMemo(
+    () => countPaymentLedgerEntries(filteredPaymentLedger),
+    [filteredPaymentLedger]
+  );
 
   const showListSort = isSupplier
     ? profileTab === "payments"
@@ -1686,15 +1805,23 @@ export default function PersonChatPage() {
   const handleLumpsumPay = useCallback(
     async payments => {
       for (const payment of payments) {
+        const lumpsum = payment.lumpsumId
+          ? {
+              lumpsumId: payment.lumpsumId,
+              lumpsumTotal: payment.lumpsumTotal,
+              lumpsumPaidAt: payment.lumpsumPaidAt,
+            }
+          : null;
         let result;
         if (isSupplier) {
           result = await recordTransactionPayment(
             payment.id,
             payment.amount,
             payment.receiptUrls,
-            null,
+            payment.lumpsumPaidAt || null,
             payment.notes,
-            false
+            false,
+            lumpsum
           );
         } else {
           result = await recordUdharPayment(
@@ -1702,8 +1829,9 @@ export default function PersonChatPage() {
             payment.amount,
             payment.receiptUrls,
             payment.notes,
-            null,
-            false
+            payment.lumpsumPaidAt || null,
+            false,
+            lumpsum
           );
         }
         if (!result?.success) {
@@ -2094,7 +2222,7 @@ export default function PersonChatPage() {
           {searchQuery && (
             <p className="mt-1.5 text-xs text-muted-foreground">
               {isSupplier && profileTab === "payments"
-                ? `${filteredPaymentLedger.length} of ${supplierPaymentLedger.length} payments`
+                ? `${filteredPaymentCount} of ${supplierPaymentLedger.length} payments`
                 : `${filteredTransactions.length} of ${personTransactions.length} results`}
             </p>
           )}
@@ -2220,7 +2348,7 @@ export default function PersonChatPage() {
         className="mb-nav flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4"
       >
         {isSupplier && profileTab === "payments" ? (
-          searchQuery && filteredPaymentLedger.length === 0 ? (
+          searchQuery && filteredPaymentCount === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Search className="mb-4 h-12 w-12 text-muted-foreground/50" />
               <p className="mb-2 text-muted-foreground">No payments found</p>
@@ -2234,7 +2362,7 @@ export default function PersonChatPage() {
             </div>
           ) : (
             <SupplierPaymentLedger
-              entries={filteredPaymentLedger}
+              groups={filteredPaymentLedger}
               onGoToBill={scrollToTransaction}
             />
           )

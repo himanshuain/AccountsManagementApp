@@ -7,7 +7,7 @@ const RELATIVE_SUBTLE_CLASS = "text-muted-foreground/45";
 
 /**
  * Renders date, optional time, then relative label (Today, Yesterday, …).
- * Order: date · time · relative — relative uses a subtler color.
+ * Order: date · time · relative — time and relative use a subtler color.
  */
 export function DateWithRelative({
   date,
@@ -31,7 +31,7 @@ export function DateWithRelative({
       {showTime && (
         <>
           {showDate && <span> · </span>}
-          <span>{format(timeSource, timeFormat)}</span>
+          <span className={relativeClassName}>{format(timeSource, timeFormat)}</span>
         </>
       )}
       {relative && (

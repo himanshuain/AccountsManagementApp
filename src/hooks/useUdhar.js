@@ -225,7 +225,15 @@ export function useUdhar({ fetchAll = false } = {}) {
   );
 
   const recordDeposit = useCallback(
-    async (id, amount, receiptUrls = null, notes = null, paymentDate = null, isReturn = false) => {
+    async (
+      id,
+      amount,
+      receiptUrls = null,
+      notes = null,
+      paymentDate = null,
+      isReturn = false,
+      lumpsum = null
+    ) => {
       const udhar = udharList.find(u => u.id === id);
       if (!udhar) return { success: false, error: "Record not found" };
 
@@ -241,14 +249,22 @@ export function useUdhar({ fetchAll = false } = {}) {
           : [receiptUrls]
         : [];
 
+      const paidAt = paymentDate || lumpsum?.lumpsumPaidAt || new Date().toISOString();
       const newPayment = {
         id: crypto.randomUUID(),
         amount: amount,
-        date: paymentDate || new Date().toISOString(),
+        date: paidAt,
         receiptUrl: receipts[0] || null, // Keep for backward compatibility
         receiptUrls: receipts, // New field for multiple receipts
         notes: notes,
         isReturn: isReturn,
+        ...(lumpsum?.lumpsumId
+          ? {
+              lumpsumId: lumpsum.lumpsumId,
+              lumpsumTotal: lumpsum.lumpsumTotal ?? null,
+              lumpsumPaidAt: lumpsum.lumpsumPaidAt || paidAt,
+            }
+          : {}),
       };
 
       const updates = {

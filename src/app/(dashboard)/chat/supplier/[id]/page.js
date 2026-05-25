@@ -246,13 +246,21 @@ export default function SupplierChatPage({ params }) {
 
   const handleLumpsumPay = async (payments) => {
     for (const payment of payments) {
+      const lumpsum = payment.lumpsumId
+        ? {
+            lumpsumId: payment.lumpsumId,
+            lumpsumTotal: payment.lumpsumTotal,
+            lumpsumPaidAt: payment.lumpsumPaidAt,
+          }
+        : null;
       const result = await recordPayment(
         payment.id,
         payment.amount,
         payment.receiptUrls,
-        null,
+        payment.lumpsumPaidAt || null,
         payment.notes,
-        false
+        false,
+        lumpsum
       );
       if (!result.success) {
         toast.error(`Failed to record payment for one of the bills`);
