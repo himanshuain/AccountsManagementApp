@@ -37,6 +37,7 @@ import { UdharForm } from "@/components/UdharForm";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
 import { getLocalDate } from "@/lib/date-utils";
+import { getSupplierPurchaseStats } from "@/lib/transaction-amounts";
 
 // Filter Chip Component
 function FilterChip({ active, onClick, children, icon: Icon }) {
@@ -70,6 +71,14 @@ const FILTER_OPTIONS = [
   { id: "customer", label: "Customers", icon: Users },
 ];
 
+const SUPPLIER_PERIOD_OPTIONS = [
+  { id: "all", label: "All time" },
+  { id: "1year", label: "1 year" },
+  { id: "6months", label: "6 months" },
+  { id: "3months", label: "3 months" },
+  { id: "1month", label: "1 month" },
+];
+
 export default function GPayHomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,6 +98,8 @@ export default function GPayHomePage() {
   const [suppliersExpanded, setSuppliersExpanded] = useState(true);
   const [customersExpanded, setCustomersExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(false);
+  const [supplierSpendingExpanded, setSupplierSpendingExpanded] = useState(true);
+  const [supplierPeriod, setSupplierPeriod] = useState("all");
 
   // Prevent body scroll when modal is open
   usePreventBodyScroll(addMenuOpen || incomeModalOpen);
@@ -316,6 +327,11 @@ export default function GPayHomePage() {
     };
   }, [statsData, allPeople, suppliers.length, customers.length]);
 
+  const supplierPurchaseStats = useMemo(
+    () => getSupplierPurchaseStats(transactions, supplierPeriod),
+    [transactions, supplierPeriod]
+  );
+
   // Handlers
   const handleAddSupplier = async data => {
     const result = await addSupplier(data);
@@ -475,8 +491,106 @@ export default function GPayHomePage() {
         )}
       </div>
 
+      {/* Supplier purchase & payments */}
+      <section className="px-4 pt-4 pb-1">
+        <button
+          type="button"
+          onClick={() => setSupplierSpendingExpanded(!supplierSpendingExpanded)}
+          className="mb-2 flex w-full items-center justify-between gap-2"
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/15">
+              <Store className="h-3.5 w-3.5 text-rose-500" />
+            </div>
+            <div className="min-w-0 text-left">
+              <h2 className="text-sm font-semibold">Supplier spending</h2>
+              {!supplierSpendingExpanded && !transactionsLoading && (
+                <p className="truncate font-mono text-[11px] tabular-nums text-muted-foreground">
+                  Purchases ₹{supplierPurchaseStats.totalPurchase.toLocaleString("en-IN")} · Paid ₹
+                  {supplierPurchaseStats.totalPaid.toLocaleString("en-IN")}
+                </p>
+              )}
+            </div>
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              supplierSpendingExpanded && "rotate-180"
+            )}
+          />
+        </button>
+
+        <AnimatePresence initial={false}>
+          {supplierSpendingExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+                <p className="mb-3 text-[10px] text-muted-foreground">
+                  Purchase total vs amount paid
+                </p>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {SUPPLIER_PERIOD_OPTIONS.map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSupplierPeriod(opt.id);
+                      }}
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+                        supplierPeriod === opt.id
+                          ? "bg-rose-600 text-white"
+                          : "bg-muted/80 text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-background/60 px-3 py-2.5">
+                    <p className="text-[10px] font-medium text-muted-foreground">Total purchases</p>
+                    {transactionsLoading ? (
+                      <div className="skeleton-hero mt-1 h-6 w-20 rounded" />
+                    ) : (
+                      <p className="font-mono text-base font-bold tabular-nums text-foreground">
+                        ₹{supplierPurchaseStats.totalPurchase.toLocaleString("en-IN")}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">Cost of goods / bills</p>
+                  </div>
+                  <div className="rounded-xl bg-background/60 px-3 py-2.5">
+                    <p className="text-[10px] font-medium text-muted-foreground">Total paid</p>
+                    {transactionsLoading ? (
+                      <div className="skeleton-hero mt-1 h-6 w-20 rounded" />
+                    ) : (
+                      <p className="font-mono text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        ₹{supplierPurchaseStats.totalPaid.toLocaleString("en-IN")}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">Payments to suppliers</p>
+                  </div>
+                </div>
+                {!transactionsLoading && supplierPurchaseStats.transactionCount > 0 && (
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                    {supplierPurchaseStats.transactionCount} transaction
+                    {supplierPurchaseStats.transactionCount !== 1 ? "s" : ""} in this period
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
       {/* Stats Summary */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-2 pb-2">
         <div className="grid grid-cols-2 gap-3">
           <motion.div
             className="relative overflow-hidden rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3.5"
