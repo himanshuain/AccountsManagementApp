@@ -98,7 +98,7 @@ export default function GPayHomePage() {
   const [suppliersExpanded, setSuppliersExpanded] = useState(true);
   const [customersExpanded, setCustomersExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(false);
-  const [supplierSpendingExpanded, setSupplierSpendingExpanded] = useState(true);
+  const [supplierSpendingExpanded, setSupplierSpendingExpanded] = useState(false);
   const [supplierPeriod, setSupplierPeriod] = useState("all");
 
   // Prevent body scroll when modal is open
@@ -163,8 +163,10 @@ export default function GPayHomePage() {
       const pendingAmount = customerUdhar
         .filter(u => u.status !== "paid")
         .reduce((sum, u) => {
-          const amount = Number(u.amount) || (Number(u.cashAmount) || 0) + (Number(u.onlineAmount) || 0);
-          const paid = Number(u.paidAmount) || (Number(u.paidCash) || 0) + (Number(u.paidOnline) || 0);
+          const amount =
+            Number(u.amount) || (Number(u.cashAmount) || 0) + (Number(u.onlineAmount) || 0);
+          const paid =
+            Number(u.paidAmount) || (Number(u.paidCash) || 0) + (Number(u.paidOnline) || 0);
           return sum + Math.max(0, amount - paid);
         }, 0);
 
@@ -720,7 +722,10 @@ export default function GPayHomePage() {
               {isLoading ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5">
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5"
+                    >
                       <div className="skeleton-hero h-12 w-12 rounded-full" />
                       <div className="flex-1 space-y-1.5">
                         <div className="skeleton-hero h-3.5 w-28 rounded" />
@@ -809,7 +814,10 @@ export default function GPayHomePage() {
               {isLoading ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5">
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5"
+                    >
                       <div className="skeleton-hero h-12 w-12 rounded-full" />
                       <div className="flex-1 space-y-1.5">
                         <div className="skeleton-hero h-3.5 w-28 rounded" />

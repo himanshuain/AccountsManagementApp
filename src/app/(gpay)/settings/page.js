@@ -8,14 +8,10 @@ import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import {
   ChevronRight,
   IndianRupee,
-  BarChart3,
   Download,
   Upload,
   LogOut,
   Database,
-  Wallet,
-  TrendingUp,
-  PiggyBank,
   RefreshCw,
   Cloud,
   HardDrive,
@@ -33,7 +29,6 @@ import {
   Smartphone,
   Eye,
   EyeOff,
-  TrendingDown,
   ImageIcon,
   Fingerprint,
   Shield,
@@ -584,150 +579,6 @@ function IncomeModal({ open, onClose }) {
   );
 }
 
-// Reports Modal Component
-function ReportsModal({ open, onClose }) {
-  const { transactions = [] } = useTransactions();
-  const { udharList = [] } = useUdhar();
-  const { incomeList = [] } = useIncome();
-
-  usePreventBodyScroll(open);
-
-  const stats = useMemo(() => {
-    const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const txns = transactions || [];
-    const udhars = udharList || [];
-    const income = incomeList || [];
-
-    const totalPurchases = txns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const paidPurchases = txns
-      .filter(t => t.paymentStatus === "paid" || t.paymentStatus === "partial")
-      .reduce((sum, t) => sum + (Number(t.paidAmount) || 0), 0);
-    const pendingPurchases = totalPurchases - paidPurchases;
-
-    const totalUdhar = udhars.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
-    const paidUdhar = udhars
-      .filter(u => u.paymentStatus === "paid" || u.paymentStatus === "partial")
-      .reduce((sum, u) => sum + (Number(u.paidAmount) || 0), 0);
-    const pendingUdhar = totalUdhar - paidUdhar;
-
-    const calcIncomeTotal = list =>
-      list.reduce((sum, i) => {
-        const cash = Number(i.cashAmount) || 0;
-        const online = Number(i.onlineAmount) || 0;
-        return sum + (Number(i.amount) || cash + online);
-      }, 0);
-
-    const totalIncome = calcIncomeTotal(income);
-    const monthlyIncome = calcIncomeTotal(income.filter(i => new Date(i.date) >= thisMonth));
-
-    return {
-      totalPurchases,
-      paidPurchases,
-      pendingPurchases,
-      totalUdhar,
-      paidUdhar,
-      pendingUdhar,
-      totalIncome,
-      monthlyIncome,
-      netPosition: pendingUdhar - pendingPurchases,
-    };
-  }, [transactions, udharList, incomeList]);
-
-  return (
-    <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
-        <div className="px-4 pb-6">
-          <h2 className="mb-6 font-heading text-2xl tracking-wide">Reports</h2>
-
-          {/* <div className={cn("p-4 rounded-xl mb-6", stats.netPosition >= 0 ? "bg-emerald-500/20" : "bg-red-500/20")}>
-            <p className="text-sm text-muted-foreground">Net Position</p>
-            <p className={cn("text-3xl font-bold font-mono", stats.netPosition >= 0 ? "amount-positive" : "amount-negative")}>
-              {stats.netPosition >= 0 ? "+" : ""}₹{Math.abs(stats.netPosition).toLocaleString("en-IN")}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.netPosition >= 0 ? "Customers owe you more than you owe suppliers" : "You owe suppliers more than customers owe you"}
-            </p>
-          </div> */}
-
-          <div className="theme-card mb-4 p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-destructive" />
-              <h3 className="font-medium">Supplier Purchases</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-mono text-lg font-bold">
-                  ₹{stats.totalPurchases.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Paid</p>
-                <p className="amount-positive font-mono text-lg font-bold">
-                  ₹{stats.paidPurchases.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="amount-pending font-mono text-lg font-bold">
-                  ₹{stats.pendingPurchases.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="theme-card mb-4 p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <Wallet className="amount-positive h-5 w-5" />
-              <h3 className="font-medium">Customer Udhar</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-mono text-lg font-bold">
-                  ₹{stats.totalUdhar.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Received</p>
-                <p className="amount-positive font-mono text-lg font-bold">
-                  ₹{stats.paidUdhar.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="amount-pending font-mono text-lg font-bold">
-                  ₹{stats.pendingUdhar.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="theme-card p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <PiggyBank className="h-5 w-5 text-primary" />
-              <h3 className="font-medium">Income</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">This Month</p>
-                <p className="font-mono text-lg font-bold text-primary">
-                  ₹{stats.monthlyIncome.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-mono text-lg font-bold">
-                  ₹{stats.totalIncome.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-    </DragCloseDrawer>
-  );
-}
-
 // Backup Modal Component
 function BackupModal({ open, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -1252,10 +1103,10 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
   const handleToggle = key => {
     if (key === "enabled" && !settings.enabled) {
       // When enabling, also enable protection for both sections by default
-      updateSettings({ enabled: true, protectIncome: true, protectReports: true });
+      updateSettings({ enabled: true, protectIncome: true });
     } else if (key === "enabled" && settings.enabled) {
       // When disabling, disable all protections
-      updateSettings({ enabled: false, protectIncome: false, protectReports: false });
+      updateSettings({ enabled: false, protectIncome: false });
     } else {
       updateSettings({ [key]: !settings[key] });
     }
@@ -1357,28 +1208,6 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
                       />
                     </button>
                   </div>
-
-                  {/* Reports */}
-                  <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
-                    <div className="flex items-center gap-3">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Reports</span>
-                    </div>
-                    <button
-                      onClick={() => handleToggle("protectReports")}
-                      className={cn(
-                        "relative h-6 w-10 rounded-full transition-colors",
-                        settings.protectReports ? "bg-emerald-500" : "bg-muted-foreground/30"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                          settings.protectReports ? "translate-x-5" : "translate-x-1"
-                        )}
-                      />
-                    </button>
-                  </div>
                 </motion.div>
               </AnimatePresence>
             )}
@@ -1403,7 +1232,6 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
-  const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
   const [biometricModalOpen, setBiometricModalOpen] = useState(false);
@@ -1499,16 +1327,6 @@ export default function SettingsPage() {
           borderColor: "border-emerald-500/20",
           onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
           badge: isProtected("income") ? "lock" : null,
-        },
-        {
-          icon: BarChart3,
-          label: "Reports",
-          sublabel: isProtected("reports") ? "Protected" : "Analytics",
-          iconColor: "text-blue-600 dark:text-blue-400",
-          bgColor: "bg-blue-500/10 dark:bg-blue-500/20",
-          borderColor: "border-blue-500/20",
-          onClick: () => handleOpenProtectedModal("reports", setReportsModalOpen),
-          badge: isProtected("reports") ? "lock" : null,
         },
         {
           icon: Database,
@@ -1875,10 +1693,6 @@ export default function SettingsPage() {
       <IncomeModal
         open={incomeModalOpen}
         onClose={() => handleCloseProtectedModal("income", setIncomeModalOpen)}
-      />
-      <ReportsModal
-        open={reportsModalOpen}
-        onClose={() => handleCloseProtectedModal("reports", setReportsModalOpen)}
       />
       <BackupModal open={backupModalOpen} onClose={() => setBackupModalOpen(false)} />
       <ChangePinModal open={changePinModalOpen} onClose={() => setChangePinModalOpen(false)} />
