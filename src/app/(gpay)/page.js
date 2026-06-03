@@ -105,8 +105,8 @@ export default function GPayHomePage() {
   usePreventBodyScroll(addMenuOpen || incomeModalOpen);
 
   // Data hooks - fetchAll: true loads all data in one request for accurate calculations
-  const { suppliers, addSupplier, loading: suppliersLoading } = useSuppliers();
-  const { customers, addCustomer, loading: customersLoading } = useCustomers();
+  const { suppliers, addSupplier, loading: suppliersLoading } = useSuppliers({ fetchAll: true });
+  const { customers, addCustomer, loading: customersLoading } = useCustomers({ fetchAll: true });
   const {
     transactions,
     addTransaction,
@@ -256,8 +256,14 @@ export default function GPayHomePage() {
       const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
 
       result = result.filter(p => {
+        const phoneDigits = (p.phone || "").replace(/\D/g, "");
+        const queryDigits = query.replace(/\D/g, "");
         // Match by name or phone
-        if (p.name?.toLowerCase().includes(query) || p.phone?.includes(query)) {
+        if (
+          p.name?.toLowerCase().includes(query) ||
+          p.phone?.includes(searchQuery.trim()) ||
+          (queryDigits && phoneDigits.includes(queryDigits))
+        ) {
           return true;
         }
         // Match by amount if search is a number
@@ -298,8 +304,13 @@ export default function GPayHomePage() {
     if (!query) return [];
 
     return allPeople
-      .filter(p => p.name?.toLowerCase().includes(query) || p.phone?.includes(query))
-      .slice(0, 6);
+      .filter(
+        p =>
+          p.name?.toLowerCase().includes(query) ||
+          p.phone?.includes(searchQuery.trim()) ||
+          p.phone?.replace(/\D/g, "").includes(query.replace(/\D/g, ""))
+      )
+      .slice(0, 12);
   }, [allPeople, searchQuery]);
 
   // Statistics - Use API data for accurate totals, fall back to loaded data
@@ -746,33 +757,18 @@ export default function GPayHomePage() {
                   </button>
                 </div>
               ) : (
-                <motion.div
-                  className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.02 } },
-                  }}
-                >
+                <div className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40">
                   {suppliersList.map(person => (
-                    <motion.div
+                    <PersonListItem
                       key={`supplier-${person.id}`}
-                      variants={{
-                        hidden: { opacity: 0, x: -10 },
-                        visible: { opacity: 1, x: 0 },
-                      }}
-                    >
-                      <PersonListItem
-                        name={person.name}
-                        image={person.image}
-                        amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                        amountColor="amount-negative"
-                        href={`/person/supplier/${person.id}`}
-                      />
-                    </motion.div>
+                      name={person.name}
+                      image={person.image}
+                      amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
+                      amountColor="amount-negative"
+                      href={`/person/supplier/${person.id}`}
+                    />
                   ))}
-                </motion.div>
+                </div>
               )}
             </motion.div>
           )}
@@ -838,33 +834,18 @@ export default function GPayHomePage() {
                   </button>
                 </div>
               ) : (
-                <motion.div
-                  className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.02 } },
-                  }}
-                >
+                <div className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40">
                   {customersList.map(person => (
-                    <motion.div
+                    <PersonListItem
                       key={`customer-${person.id}`}
-                      variants={{
-                        hidden: { opacity: 0, x: -10 },
-                        visible: { opacity: 1, x: 0 },
-                      }}
-                    >
-                      <PersonListItem
-                        name={person.name}
-                        image={person.image}
-                        amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                        amountColor="text-amber-600 dark:text-amber-400"
-                        href={`/person/customer/${person.id}`}
-                      />
-                    </motion.div>
+                      name={person.name}
+                      image={person.image}
+                      amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
+                      amountColor="text-amber-600 dark:text-amber-400"
+                      href={`/person/customer/${person.id}`}
+                    />
                   ))}
-                </motion.div>
+                </div>
               )}
             </motion.div>
           )}

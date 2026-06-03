@@ -1,26 +1,48 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
+import {
+  snapshotEntityCaches,
+  restoreEntityCaches,
+  prependEntityToCaches,
+  replaceEntityInCaches,
+  patchEntityInCaches,
+  removeEntityFromCaches,
+} from "@/lib/entity-list-cache";
 
 const SUPPLIERS_KEY = ["suppliers"];
 const TRANSACTIONS_KEY = ["transactions"];
 const STATS_KEY = ["stats"];
 
-export function useSuppliers() {
+/**
+ * @param {Object} options
+ * @param {boolean} options.fetchAll - If true, fetches all suppliers in one request (home page, search)
+ */
+export function useSuppliers({ fetchAll = false } = {}) {
   const queryClient = useQueryClient();
 
-  // Fetch suppliers with pagination using infinite query
-  const {
-    data,
-    isLoading: loading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const queryKey = fetchAll ? [...SUPPLIERS_KEY, { fetchAll }] : SUPPLIERS_KEY;
+
+  const allDataQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const response = await fetch("/api/suppliers?limit=0");
+      if (!response.ok) {
+        throw new Error("Failed to fetch suppliers");
+      }
+      const result = await response.json();
+      return result.data || [];
+    },
+    enabled: fetchAll,
+    staleTime: CACHE_SETTINGS.STALE_TIME,
+    retry: CACHE_SETTINGS.RETRY_COUNT,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  const paginatedQuery = useInfiniteQuery({
     queryKey: SUPPLIERS_KEY,
     queryFn: async ({ pageParam = 1 }) => {
       const response = await fetch(`/api/suppliers?page=${pageParam}&limit=${PAGE_SIZE.SUPPLIERS}`);
@@ -40,20 +62,45 @@ export function useSuppliers() {
       return undefined;
     },
     initialPageParam: 1,
+    enabled: !fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
   });
 
-  // Flatten all pages into a single array for backward compatibility
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = fetchAll
+    ? {
+        data: allDataQuery.data,
+        isLoading: allDataQuery.isLoading,
+        error: allDataQuery.error,
+        refetch: allDataQuery.refetch,
+        fetchNextPage: () => {},
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      }
+    : paginatedQuery;
+
   const suppliers = useMemo(() => {
+    if (fetchAll) {
+      return data || [];
+    }
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page.data);
-  }, [data]);
+  }, [data, fetchAll]);
 
-  // Get total count from the first page's pagination (all pages have same total)
   const totalCount = useMemo(() => {
+    if (fetchAll) {
+      return suppliers.length;
+    }
     return data?.pages?.[0]?.pagination?.total ?? suppliers.length;
-  }, [data, suppliers.length]);
+  }, [data, suppliers.length, fetchAll]);
 
   // Add supplier mutation with optimistic update
   const addMutation = useMutation({
@@ -71,29 +118,27 @@ export function useSuppliers() {
     },
     onMutate: async newSupplier => {
       await queryClient.cancelQueries({ queryKey: SUPPLIERS_KEY });
-      const previousData = queryClient.getQueryData(SUPPLIERS_KEY);
+      const snapshot = snapshotEntityCaches(queryClient, SUPPLIERS_KEY);
+      const tempId = `temp-${Date.now()}`;
       const optimisticSupplier = {
         ...newSupplier,
-        id: `temp-${Date.now()}`,
+        id: tempId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      queryClient.setQueryData(SUPPLIERS_KEY, old => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page, idx) =>
-            idx === 0 ? { ...page, data: [optimisticSupplier, ...page.data] } : page
-          ),
-        };
-      });
-      return { previousData };
+      prependEntityToCaches(queryClient, SUPPLIERS_KEY, optimisticSupplier);
+      return { snapshot, tempId };
     },
-    onError: (err, newSupplier, context) => {
-      queryClient.setQueryData(SUPPLIERS_KEY, context?.previousData);
+    onSuccess: (result, _vars, context) => {
+      const created = result?.data;
+      if (created?.id && context?.tempId) {
+        replaceEntityInCaches(queryClient, SUPPLIERS_KEY, context.tempId, created);
+      }
+    },
+    onError: (_err, _vars, context) => {
+      restoreEntityCaches(queryClient, SUPPLIERS_KEY, context?.snapshot);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
@@ -114,23 +159,12 @@ export function useSuppliers() {
     },
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: SUPPLIERS_KEY });
-      const previousData = queryClient.getQueryData(SUPPLIERS_KEY);
-      queryClient.setQueryData(SUPPLIERS_KEY, old => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map(page => ({
-            ...page,
-            data: page.data.map(s =>
-              s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
-            ),
-          })),
-        };
-      });
-      return { previousData };
+      const snapshot = snapshotEntityCaches(queryClient, SUPPLIERS_KEY);
+      patchEntityInCaches(queryClient, SUPPLIERS_KEY, id, updates);
+      return { snapshot };
     },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(SUPPLIERS_KEY, context?.previousData);
+    onError: (_err, _vars, context) => {
+      restoreEntityCaches(queryClient, SUPPLIERS_KEY, context?.snapshot);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
@@ -152,21 +186,12 @@ export function useSuppliers() {
     },
     onMutate: async id => {
       await queryClient.cancelQueries({ queryKey: SUPPLIERS_KEY });
-      const previousData = queryClient.getQueryData(SUPPLIERS_KEY);
-      queryClient.setQueryData(SUPPLIERS_KEY, old => {
-        if (!old?.pages) return old;
-        return {
-          ...old,
-          pages: old.pages.map(page => ({
-            ...page,
-            data: page.data.filter(s => s.id !== id),
-          })),
-        };
-      });
-      return { previousData };
+      const snapshot = snapshotEntityCaches(queryClient, SUPPLIERS_KEY);
+      removeEntityFromCaches(queryClient, SUPPLIERS_KEY, id);
+      return { snapshot };
     },
-    onError: (err, id, context) => {
-      queryClient.setQueryData(SUPPLIERS_KEY, context?.previousData);
+    onError: (_err, _id, context) => {
+      restoreEntityCaches(queryClient, SUPPLIERS_KEY, context?.snapshot);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });

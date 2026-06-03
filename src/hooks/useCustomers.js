@@ -1,25 +1,45 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
+import {
+  snapshotEntityCaches,
+  restoreEntityCaches,
+  prependEntityToCaches,
+  replaceEntityInCaches,
+} from "@/lib/entity-list-cache";
 
 const CUSTOMERS_KEY = ["customers"];
 const STATS_KEY = ["stats"];
 
-export function useCustomers() {
+/**
+ * @param {Object} options
+ * @param {boolean} options.fetchAll - If true, fetches all customers in one request (home page, search)
+ */
+export function useCustomers({ fetchAll = false } = {}) {
   const queryClient = useQueryClient();
 
-  // Fetch customers with pagination using infinite query
-  const {
-    data,
-    isLoading: loading,
-    error,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const queryKey = fetchAll ? [...CUSTOMERS_KEY, { fetchAll }] : CUSTOMERS_KEY;
+
+  const allDataQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const response = await fetch("/api/customers?limit=0");
+      if (!response.ok) {
+        throw new Error("Failed to fetch customers");
+      }
+      const result = await response.json();
+      return result.data || [];
+    },
+    enabled: fetchAll,
+    staleTime: CACHE_SETTINGS.STALE_TIME,
+    retry: CACHE_SETTINGS.RETRY_COUNT,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+
+  const paginatedQuery = useInfiniteQuery({
     queryKey: CUSTOMERS_KEY,
     queryFn: async ({ pageParam = 1 }) => {
       const response = await fetch(`/api/customers?page=${pageParam}&limit=${PAGE_SIZE.CUSTOMERS}`);
@@ -39,22 +59,47 @@ export function useCustomers() {
       return undefined;
     },
     initialPageParam: 1,
+    enabled: !fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
   });
 
-  // Flatten all pages into a single array for backward compatibility
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = fetchAll
+    ? {
+        data: allDataQuery.data,
+        isLoading: allDataQuery.isLoading,
+        error: allDataQuery.error,
+        refetch: allDataQuery.refetch,
+        fetchNextPage: () => {},
+        hasNextPage: false,
+        isFetchingNextPage: false,
+      }
+    : paginatedQuery;
+
   const customers = useMemo(() => {
+    if (fetchAll) {
+      return data || [];
+    }
     if (!data?.pages) return [];
     return data.pages.flatMap(page => page.data);
-  }, [data]);
+  }, [data, fetchAll]);
 
-  // Get total count from the first page's pagination
   const totalCount = useMemo(() => {
+    if (fetchAll) {
+      return customers.length;
+    }
     return data?.pages?.[0]?.pagination?.total ?? customers.length;
-  }, [data, customers.length]);
+  }, [data, customers.length, fetchAll]);
 
-  // Add customer mutation - directly to cloud
+  // Add customer mutation with cache update for home (fetchAll) and paginated lists
   const addMutation = useMutation({
     mutationFn: async customerData => {
       const response = await fetch("/api/customers", {
@@ -68,8 +113,29 @@ export function useCustomers() {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+    onMutate: async newCustomer => {
+      await queryClient.cancelQueries({ queryKey: CUSTOMERS_KEY });
+      const snapshot = snapshotEntityCaches(queryClient, CUSTOMERS_KEY);
+      const tempId = `temp-${Date.now()}`;
+      const optimisticCustomer = {
+        ...newCustomer,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      prependEntityToCaches(queryClient, CUSTOMERS_KEY, optimisticCustomer);
+      return { snapshot, tempId };
+    },
+    onSuccess: (result, _vars, context) => {
+      const created = result?.data;
+      if (created?.id && context?.tempId) {
+        replaceEntityInCaches(queryClient, CUSTOMERS_KEY, context.tempId, created);
+      }
+    },
+    onError: (_err, _vars, context) => {
+      restoreEntityCaches(queryClient, CUSTOMERS_KEY, context?.snapshot);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
