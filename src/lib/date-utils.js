@@ -6,6 +6,9 @@ import {
   isYesterday,
   differenceInCalendarDays,
   startOfDay,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
 } from "date-fns";
 
 /**
@@ -87,6 +90,17 @@ export function getMonthOptions() {
  * @param {Array<{date: string}>} list - Array of items with date property
  * @returns {Array<{value: string, label: string}>} Array of month options sorted newest first
  */
+/**
+ * All calendar dates in a month (YYYY-MM-DD), oldest first
+ * @param {string} monthKey - Month in yyyy-MM format
+ * @returns {string[]}
+ */
+export function getDaysInMonth(monthKey) {
+  const start = startOfMonth(parseISO(`${monthKey}-01T12:00:00`));
+  const end = endOfMonth(start);
+  return eachDayOfInterval({ start, end }).map(d => format(d, "yyyy-MM-dd"));
+}
+
 export function getAvailableMonths(list) {
   const monthsSet = new Set();
   list.forEach(item => {

@@ -54,7 +54,7 @@ import { getLocalDate, getMonthOptions, getAvailableMonths } from "@/lib/date-ut
 import { CHART_DURATION_OPTIONS, INCOME_FILTER_OPTIONS, ITEMS_PER_PAGE } from "@/lib/constants";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { InfiniteScrollTrigger } from "@/components/InfiniteScrollTrigger";
-import { IncomeItem, IncomeChart, StorageInfo } from "@/components/settings";
+import { IncomeItem, IncomeChart, BulkIncomeForm, StorageInfo } from "@/components/settings";
 
 // Income Modal Component
 function IncomeModal({ open, onClose }) {
@@ -459,6 +459,20 @@ function IncomeModal({ open, onClose }) {
               </div>
             </div>
           </details>
+
+          {/* Bulk Add Income — month-wise grid */}
+          <details className="group">
+            <summary className="my-2 cursor-pointer list-none flex items-center gap-1 text-sm font-medium text-muted-foreground">
+              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+              Bulk Add (Month-wise)
+            </summary>
+            <BulkIncomeForm
+              incomeList={incomeList}
+              addIncome={addIncome}
+              updateIncome={updateIncome}
+            />
+          </details>
+
           {/* Filter Chips */}
           <div className="my-4">
             <div className="scrollbar-none flex gap-2 overflow-x-auto pb-2">

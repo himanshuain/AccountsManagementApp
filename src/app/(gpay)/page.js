@@ -113,7 +113,7 @@ export default function GPayHomePage() {
     loading: transactionsLoading,
   } = useTransactions(null, { fetchAll: true });
   const { udharList, addUdhar, loading: udharLoading } = useUdhar({ fetchAll: true });
-  const { addIncome } = useIncome();
+  const { addIncome, updateIncome, incomeList } = useIncome();
 
   // Fetch aggregated stats from API (totals without loading all data)
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -995,6 +995,8 @@ export default function GPayHomePage() {
         open={incomeModalOpen}
         onClose={() => setIncomeModalOpen(false)}
         onSubmit={addIncome}
+        incomeList={incomeList}
+        updateIncome={updateIncome}
       />
     </div>
   );
