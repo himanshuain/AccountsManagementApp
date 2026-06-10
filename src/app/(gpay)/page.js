@@ -351,6 +351,9 @@ export default function GPayHomePage() {
     if (result.success) {
       toast.success("Supplier added");
       setSupplierFormOpen(false);
+      if (result.data?.id) {
+        router.push(`/person/supplier/${result.data.id}`);
+      }
     } else {
       toast.error(result.error || "Failed to add supplier");
     }
@@ -361,6 +364,9 @@ export default function GPayHomePage() {
     if (result.success) {
       toast.success("Customer added");
       setCustomerFormOpen(false);
+      if (result.data?.id) {
+        router.push(`/person/customer/${result.data.id}`);
+      }
     } else {
       toast.error(result.error || "Failed to add customer");
     }

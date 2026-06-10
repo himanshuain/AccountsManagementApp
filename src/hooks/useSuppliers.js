@@ -203,8 +203,8 @@ export function useSuppliers({ fetchAll = false } = {}) {
   const addSupplier = useCallback(
     async supplierData => {
       try {
-        await addMutation.mutateAsync(supplierData);
-        return { success: true };
+        const result = await addMutation.mutateAsync(supplierData);
+        return { success: true, data: result.data };
       } catch (err) {
         return { success: false, error: err.message };
       }
