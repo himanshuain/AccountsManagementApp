@@ -46,6 +46,7 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
+import { usePersonProfile } from "@/hooks/usePersonProfile";
 
 import { PersonAvatar } from "@/components/gpay/PersonAvatar";
 import { TransactionForm } from "@/components/TransactionForm";
@@ -1391,14 +1392,13 @@ export default function PersonChatPage() {
   } = useUdhar({ fetchAll: true });
 
   const isSupplier = type === "supplier";
+  const listLoading = isSupplier ? suppliersLoading : customersLoading;
 
-  // Get person data
-  const person = useMemo(() => {
-    if (isSupplier) {
-      return suppliers.find(s => s.id === id);
-    }
-    return customers.find(c => c.id === id);
-  }, [isSupplier, suppliers, customers, id]);
+  const { person, loading: personLoading } = usePersonProfile(type, id, {
+    suppliers,
+    customers,
+    listLoading,
+  });
 
   // Get transactions for this person (sorted oldest first for chat view)
   // For same-date transactions, sort by createdAt timestamp (newest at bottom)
@@ -1976,7 +1976,7 @@ export default function PersonChatPage() {
   );
 
   // Check loading and not found states
-  const isLoading = isSupplier ? suppliersLoading : customersLoading;
+  const isLoading = personLoading;
 
   // Show loading skeleton while data is being fetched or during deletion
   if (isLoading || isDeleting) {
