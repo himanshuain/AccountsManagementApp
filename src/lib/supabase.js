@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { resilientFetch } from "@/lib/resilient-fetch";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -7,14 +8,23 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // This should ONLY be used in API routes, never exposed to the client
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+const clientOptions = {
+  global: {
+    fetch: resilientFetch,
+  },
+};
+
 // Client for public/anonymous access (subject to RLS policies)
-export const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
+export const supabase = supabaseUrl
+  ? createClient(supabaseUrl, supabaseAnonKey, clientOptions)
+  : null;
 
 // Admin client for server-side operations (bypasses RLS)
 // Use this in API routes for protected operations
 export const supabaseAdmin =
   supabaseUrl && supabaseServiceRoleKey
     ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+        ...clientOptions,
         auth: {
           autoRefreshToken: false,
           persistSession: false,
