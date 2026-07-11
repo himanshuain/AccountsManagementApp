@@ -8,6 +8,11 @@ import {
   restoreEntityCaches,
   prependEntityToCaches,
   replaceEntityInCaches,
+  patchEntityInCaches,
+  removeEntityFromCaches,
+  seedPersonProfileCache,
+  upsertEntityInCaches,
+  getPersonProfileKey,
 } from "@/lib/entity-list-cache";
 
 const CUSTOMERS_KEY = ["customers"];
@@ -16,8 +21,9 @@ const STATS_KEY = ["stats"];
 /**
  * @param {Object} options
  * @param {boolean} options.fetchAll - If true, fetches all customers in one request (home page, search)
+ * @param {boolean} options.enabled - If false, skips all network work
  */
-export function useCustomers({ fetchAll = false } = {}) {
+export function useCustomers({ fetchAll = false, enabled = true } = {}) {
   const queryClient = useQueryClient();
 
   const queryKey = fetchAll ? [...CUSTOMERS_KEY, { fetchAll }] : CUSTOMERS_KEY;
@@ -32,7 +38,7 @@ export function useCustomers({ fetchAll = false } = {}) {
       const result = await response.json();
       return result.data || [];
     },
-    enabled: fetchAll,
+    enabled: enabled && fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
     refetchOnWindowFocus: true,
@@ -59,7 +65,7 @@ export function useCustomers({ fetchAll = false } = {}) {
       return undefined;
     },
     initialPageParam: 1,
-    enabled: !fetchAll,
+    enabled: enabled && !fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
   });
@@ -128,8 +134,13 @@ export function useCustomers({ fetchAll = false } = {}) {
     },
     onSuccess: (result, _vars, context) => {
       const created = result?.data;
-      if (created?.id && context?.tempId) {
-        replaceEntityInCaches(queryClient, CUSTOMERS_KEY, context.tempId, created);
+      if (created?.id) {
+        if (context?.tempId) {
+          replaceEntityInCaches(queryClient, CUSTOMERS_KEY, context.tempId, created);
+        } else {
+          upsertEntityInCaches(queryClient, CUSTOMERS_KEY, created);
+        }
+        seedPersonProfileCache(queryClient, "customer", created);
       }
     },
     onError: (_err, _vars, context) => {
@@ -140,7 +151,7 @@ export function useCustomers({ fetchAll = false } = {}) {
     },
   });
 
-  // Update customer mutation - directly to cloud
+  // Update customer mutation with optimistic update
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }) => {
       const response = await fetch(`/api/customers/${id}`, {
@@ -154,13 +165,29 @@ export function useCustomers({ fetchAll = false } = {}) {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: CUSTOMERS_KEY });
+      const snapshot = snapshotEntityCaches(queryClient, CUSTOMERS_KEY);
+      patchEntityInCaches(queryClient, CUSTOMERS_KEY, id, updates);
+      return { snapshot };
+    },
+    onError: (_err, _vars, context) => {
+      restoreEntityCaches(queryClient, CUSTOMERS_KEY, context?.snapshot);
+    },
+    onSuccess: result => {
+      const updated = result?.data;
+      if (updated?.id) {
+        upsertEntityInCaches(queryClient, CUSTOMERS_KEY, updated);
+        seedPersonProfileCache(queryClient, "customer", updated);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
   });
 
-  // Delete customer mutation - directly to cloud
+  // Delete customer mutation with optimistic update
   const deleteMutation = useMutation({
     mutationFn: async id => {
       const response = await fetch(`/api/customers/${id}`, {
@@ -172,7 +199,21 @@ export function useCustomers({ fetchAll = false } = {}) {
       }
       return id;
     },
-    onSuccess: () => {
+    onMutate: async id => {
+      await queryClient.cancelQueries({ queryKey: CUSTOMERS_KEY });
+      const snapshot = snapshotEntityCaches(queryClient, CUSTOMERS_KEY);
+      removeEntityFromCaches(queryClient, CUSTOMERS_KEY, id);
+      return { snapshot };
+    },
+    onError: (_err, _id, context) => {
+      restoreEntityCaches(queryClient, CUSTOMERS_KEY, context?.snapshot);
+    },
+    onSuccess: deletedId => {
+      if (deletedId) {
+        queryClient.removeQueries({ queryKey: getPersonProfileKey("customer", deletedId) });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
     },
@@ -229,9 +270,11 @@ export function useCustomers({ fetchAll = false } = {}) {
 
   const getCustomerById = useCallback(
     id => {
-      return customers.find(c => c.id === id) || null;
+      const fromList = customers.find(c => c.id === id);
+      if (fromList) return fromList;
+      return queryClient.getQueryData(getPersonProfileKey("customer", id)) || null;
     },
-    [customers]
+    [customers, queryClient]
   );
 
   const refresh = useCallback(() => {

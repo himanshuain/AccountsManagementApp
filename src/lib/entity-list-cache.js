@@ -4,6 +4,63 @@ export function getFetchAllKey(baseKey) {
   return [...baseKey, { fetchAll: true }];
 }
 
+/** @param {"supplier"|"customer"} type @param {string} id */
+export function getPersonProfileKey(type, id) {
+  return ["person-profile", type, id];
+}
+
+/** @param {QueryClient} queryClient @param {"supplier"|"customer"} type @param {object} entity */
+export function seedPersonProfileCache(queryClient, type, entity) {
+  if (!entity?.id) return;
+  queryClient.setQueryData(getPersonProfileKey(type, entity.id), entity);
+}
+
+function bootstrapPaginatedCache(entity) {
+  return {
+    pages: [{ data: [entity], pagination: { page: 1, hasMore: false } }],
+    pageParams: [1],
+  };
+}
+
+function normalizePagesWithEntity(pages, entity) {
+  if (!Array.isArray(pages) || pages.length === 0) {
+    return bootstrapPaginatedCache(entity).pages;
+  }
+
+  const cleanedPages = pages.map(page => ({
+    ...page,
+    data: (page.data || []).filter(item => item.id !== entity.id),
+  }));
+
+  cleanedPages[0] = {
+    ...cleanedPages[0],
+    data: [entity, ...cleanedPages[0].data],
+  };
+
+  return cleanedPages;
+}
+
+/** @param {QueryClient} queryClient @param {string[]} baseKey @param {object} entity */
+export function upsertEntityInCaches(queryClient, baseKey, entity) {
+  if (!entity?.id) return;
+
+  const fetchAllKey = getFetchAllKey(baseKey);
+  queryClient.setQueryData(fetchAllKey, old => {
+    const list = Array.isArray(old) ? old : [];
+    return [entity, ...list.filter(e => e.id !== entity.id)];
+  });
+
+  queryClient.setQueryData(baseKey, old => {
+    if (!old?.pages) {
+      return bootstrapPaginatedCache(entity);
+    }
+    return {
+      ...old,
+      pages: normalizePagesWithEntity(old.pages, entity),
+    };
+  });
+}
+
 /** @param {QueryClient} queryClient */
 export function snapshotEntityCaches(queryClient, baseKey) {
   return {
@@ -24,18 +81,15 @@ export function prependEntityToCaches(queryClient, baseKey, entity) {
   const fetchAllKey = getFetchAllKey(baseKey);
   queryClient.setQueryData(fetchAllKey, old => {
     const list = Array.isArray(old) ? old : [];
-    if (list.some(e => e.id === entity.id)) return list;
-    return [entity, ...list];
+    return [entity, ...list.filter(e => e.id !== entity.id)];
   });
   queryClient.setQueryData(baseKey, old => {
-    if (!old?.pages) return old;
+    if (!old?.pages) {
+      return bootstrapPaginatedCache(entity);
+    }
     return {
       ...old,
-      pages: old.pages.map((page, idx) =>
-        idx === 0
-          ? { ...page, data: [entity, ...page.data.filter(e => e.id !== entity.id)] }
-          : page
-      ),
+      pages: normalizePagesWithEntity(old.pages, entity),
     };
   });
 }
@@ -45,20 +99,19 @@ export function replaceEntityInCaches(queryClient, baseKey, tempId, entity) {
   const fetchAllKey = getFetchAllKey(baseKey);
   queryClient.setQueryData(fetchAllKey, old => {
     if (!Array.isArray(old)) return old;
-    const hasTemp = old.some(e => e.id === tempId);
-    if (!hasTemp) {
-      return [entity, ...old.filter(e => e.id !== entity.id)];
-    }
-    return old.map(e => (e.id === tempId ? entity : e));
+    return [entity, ...old.filter(e => e.id !== tempId && e.id !== entity.id)];
   });
   queryClient.setQueryData(baseKey, old => {
-    if (!old?.pages) return old;
+    if (!old?.pages) {
+      return bootstrapPaginatedCache(entity);
+    }
+    const filteredPages = old.pages.map(page => ({
+      ...page,
+      data: page.data.filter(e => e.id !== tempId && e.id !== entity.id),
+    }));
     return {
       ...old,
-      pages: old.pages.map(page => ({
-        ...page,
-        data: page.data.map(e => (e.id === tempId ? entity : e)),
-      })),
+      pages: normalizePagesWithEntity(filteredPages, entity),
     };
   });
 }

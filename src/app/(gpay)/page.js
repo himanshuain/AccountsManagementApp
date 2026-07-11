@@ -17,7 +17,6 @@ import {
   PiggyBank,
   ArrowUpRight,
   ArrowDownLeft,
-  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,7 +27,7 @@ import { useUdhar } from "@/hooks/useUdhar";
 import { useIncome } from "@/hooks/useIncome";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 
-import { PersonAvatarWithName, PersonListItem } from "@/components/gpay/PersonAvatar";
+import { PersonListItem } from "@/components/gpay/PersonAvatar";
 import { IncomeQuickModal } from "@/components/gpay/IncomeQuickModal";
 import { SupplierForm } from "@/components/SupplierForm";
 import { CustomerForm } from "@/components/CustomerForm";
@@ -97,7 +96,6 @@ export default function GPayHomePage() {
   // Section collapse states
   const [suppliersExpanded, setSuppliersExpanded] = useState(true);
   const [customersExpanded, setCustomersExpanded] = useState(true);
-  const [recentExpanded, setRecentExpanded] = useState(false);
   const [supplierSpendingExpanded, setSupplierSpendingExpanded] = useState(false);
   const [supplierPeriod, setSupplierPeriod] = useState("all");
 
@@ -232,14 +230,6 @@ export default function GPayHomePage() {
 
     return result;
   }, [allPeople, sortBy]);
-
-  // Recently accessed people (based on last activity, limited to 6)
-  const recentPeople = useMemo(() => {
-    return [...allPeople]
-      .filter(p => p.lastActivity)
-      .sort((a, b) => new Date(b.lastActivity) - new Date(a.lastActivity))
-      .slice(0, 6);
-  }, [allPeople]);
 
   // Apply filters and sorting (kept for backward compatibility)
   const filteredAndSortedPeople = useMemo(() => {
@@ -649,60 +639,6 @@ export default function GPayHomePage() {
           </motion.div>
         </div>
       </div>
-
-      {/* Recently Accessed Section */}
-      {recentPeople.length > 0 && (
-        <section className="px-4 pt-2 pb-1">
-          <button
-            onClick={() => setRecentExpanded(!recentExpanded)}
-            className="mb-2 flex w-full items-center justify-between"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
-                <History className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <h2 className="text-sm font-semibold">Recent</h2>
-            </div>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform",
-                recentExpanded && "rotate-180"
-              )}
-            />
-          </button>
-
-          <AnimatePresence>
-            {recentExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-2">
-                  {recentPeople.map(person => (
-                    <div key={`recent-${person.type}-${person.id}`} className="flex-shrink-0">
-                      <PersonAvatarWithName
-                        name={person.name}
-                        image={person.image}
-                        amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                        amountColor={
-                          person.type === "supplier"
-                            ? "amount-negative"
-                            : "text-amber-600 dark:text-amber-400"
-                        }
-                        href={`/person/${person.type}/${person.id}`}
-                        size="lg"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </section>
-      )}
 
       {/* Suppliers Section */}
       <section className="mt-4 px-4">

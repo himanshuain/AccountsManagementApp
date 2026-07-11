@@ -6,6 +6,7 @@ import { Edit, Trash2, FileText, Image as ImageIcon, CheckCircle2, Clock, Receip
 import useSuppliers from "@/hooks/useSuppliers";
 import useTransactions from "@/hooks/useTransactions";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { usePersonProfile } from "@/hooks/usePersonProfile";
 import { TransactionForm } from "@/components/TransactionForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { ImageGalleryViewer } from "@/components/PhotoViewer";
@@ -36,7 +37,7 @@ export default function SupplierChatPage({ params }) {
   const isOnline = useOnlineStatus();
   const chatContainerRef = useRef(null);
 
-  const { suppliers, updateSupplier, deleteSupplier } = useSuppliers();
+  const { suppliers, loading: suppliersLoading, updateSupplier, deleteSupplier } = useSuppliers();
   const {
     transactions,
     addTransaction,
@@ -46,7 +47,13 @@ export default function SupplierChatPage({ params }) {
     markFullPaid,
   } = useTransactions(null, { fetchAll: true });
 
-  // State
+  const {
+    person: supplier,
+    loading: supplierLoading,
+    notFound: supplierNotFound,
+    error: supplierError,
+  } = usePersonProfile("supplier", id, { suppliers, listLoading: suppliersLoading });
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
@@ -58,11 +65,6 @@ export default function SupplierChatPage({ params }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
-
-  // Get supplier
-  const supplier = useMemo(() => {
-    return suppliers.find(s => s.id === id);
-  }, [suppliers, id]);
 
   // Get supplier's transactions
   const supplierTransactions = useMemo(() => {
@@ -302,7 +304,23 @@ export default function SupplierChatPage({ params }) {
     },
   ];
 
-  if (!supplier) {
+  if (supplierLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Loading supplier...</p>
+      </div>
+    );
+  }
+
+  if (supplierError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Failed to load supplier.</p>
+      </div>
+    );
+  }
+
+  if (supplierNotFound || !supplier) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Supplier not found</p>

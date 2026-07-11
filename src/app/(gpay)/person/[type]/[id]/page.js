@@ -1367,9 +1367,15 @@ export default function PersonChatPage() {
       profileImageViewerOpen
   );
 
+  const isSupplier = type === "supplier";
+
   // Data hooks - fetchAll: true ensures we load all transactions for accurate filtering
-  const { suppliers, loading: suppliersLoading, updateSupplier, deleteSupplier } = useSuppliers();
-  const { customers, loading: customersLoading, updateCustomer, deleteCustomer } = useCustomers();
+  const { suppliers, loading: suppliersLoading, updateSupplier, deleteSupplier } = useSuppliers({
+    enabled: isSupplier,
+  });
+  const { customers, loading: customersLoading, updateCustomer, deleteCustomer } = useCustomers({
+    enabled: !isSupplier,
+  });
   const {
     transactions,
     addTransaction,
@@ -1391,14 +1397,17 @@ export default function PersonChatPage() {
     deletePayment: deleteUdharPayment,
   } = useUdhar({ fetchAll: true });
 
-  const isSupplier = type === "supplier";
   const listLoading = isSupplier ? suppliersLoading : customersLoading;
 
-  const { person, loading: personLoading } = usePersonProfile(type, id, {
-    suppliers,
-    customers,
-    listLoading,
-  });
+  const { person, loading: personLoading, notFound, error: personError } = usePersonProfile(
+    type,
+    id,
+    {
+      suppliers,
+      customers,
+      listLoading,
+    }
+  );
 
   // Get transactions for this person (sorted oldest first for chat view)
   // For same-date transactions, sort by createdAt timestamp (newest at bottom)
@@ -2046,8 +2055,31 @@ export default function PersonChatPage() {
     );
   }
 
-  // Only show "not found" when data has loaded and person doesn't exist
-  if (!person) {
+  if (personError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-muted-foreground">Failed to load person.</p>
+        <p className="text-sm text-muted-foreground">{personError}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.back()}
+            className="rounded-lg border border-border px-4 py-2 font-medium"
+          >
+            Go Back
+          </button>
+          <button
+            onClick={() => router.push("/")}
+            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show "not found" when resolution finished and entity truly missing
+  if (notFound || !person) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Person not found</p>
@@ -2158,26 +2190,26 @@ export default function PersonChatPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="px-4 pb-2">
-          <div className="flex items-center gap-2">
+        <div className="px-4 pb-1.5">
+          <div className="flex items-center gap-1.5">
             <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder={
                   isSupplier && profileTab === "payments"
-                    ? "Search payments or bills..."
-                    : `Search ${isSupplier ? "transactions" : "udhars"}...`
+                    ? "Search payments..."
+                    : `Search ${isSupplier ? "bills" : "udhars"}...`
                 }
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="h-9 w-full rounded-xl border-0 bg-muted pl-9 pr-8 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                className="h-8 w-full rounded-lg border-0 bg-muted pl-8 pr-7 text-xs outline-none focus:ring-2 focus:ring-primary/50"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-accent"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 transition-colors hover:bg-accent"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -2188,9 +2220,9 @@ export default function PersonChatPage() {
                 type="button"
                 onClick={() => setBillsSortOrder(prev => (prev === "newest" ? "oldest" : "newest"))}
                 className={cn(
-                  "flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-muted px-2.5 text-xs font-medium transition-colors hover:bg-accent",
+                  "flex h-8 shrink-0 items-center gap-1 rounded-lg bg-muted px-2 text-[11px] font-medium transition-colors hover:bg-accent",
                   billsSortOrder === "newest"
-                    ? "text-primary ring-2 ring-primary/30"
+                    ? "text-primary ring-1 ring-primary/30"
                     : "text-muted-foreground"
                 )}
                 aria-label={
@@ -2200,18 +2232,18 @@ export default function PersonChatPage() {
                 }
               >
                 {billsSortOrder === "newest" ? (
-                  <ArrowDownWideNarrow className="h-4 w-4 shrink-0" />
+                  <ArrowDownWideNarrow className="h-3.5 w-3.5 shrink-0" />
                 ) : (
-                  <ArrowUpWideNarrow className="h-4 w-4 shrink-0" />
+                  <ArrowUpWideNarrow className="h-3.5 w-3.5 shrink-0" />
                 )}
                 <span className="whitespace-nowrap">
-                  Sorted by {billsSortOrder === "newest" ? "newest" : "oldest"}
+                  {billsSortOrder === "newest" ? "Newest" : "Oldest"}
                 </span>
               </button>
             )}
           </div>
           {searchQuery && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
+            <p className="mt-1 text-[10px] text-muted-foreground">
               {isSupplier && profileTab === "payments"
                 ? `${filteredPaymentCount} of ${supplierPaymentLedger.length} payments`
                 : `${filteredTransactions.length} of ${personTransactions.length} results`}
@@ -2221,37 +2253,37 @@ export default function PersonChatPage() {
 
         {/* Supplier profile tabs */}
         {isSupplier && (
-          <div className="px-4 pb-2">
-            <div className="flex rounded-xl bg-muted p-1">
+          <div className="px-4 pb-1.5">
+            <div className="flex rounded-lg bg-muted p-0.5">
               <button
                 type="button"
                 onClick={() => setProfileTab("bills")}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors",
+                  "flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-colors",
                   profileTab === "bills"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Receipt className="h-4 w-4" />
+                <Receipt className="h-3.5 w-3.5" />
                 Bills
               </button>
               <button
                 type="button"
                 onClick={() => setProfileTab("payments")}
                 className={cn(
-                  "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors",
+                  "flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-colors",
                   profileTab === "payments"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <CreditCard className="h-4 w-4" />
+                <CreditCard className="h-3.5 w-3.5" />
                 Payments
                 {supplierPaymentLedger.length > 0 && (
                   <span
                     className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                      "rounded-full px-1 py-px text-[9px] font-semibold tabular-nums",
                       profileTab === "payments"
                         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
                         : "bg-muted-foreground/15 text-muted-foreground"
@@ -2266,10 +2298,10 @@ export default function PersonChatPage() {
         )}
 
         {/* Summary Card */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2">
           <div
             className={cn(
-              "overflow-hidden rounded-2xl border",
+              "overflow-hidden rounded-xl border",
               totals.pending > 0
                 ? isSupplier
                   ? "border-rose-500/30 bg-rose-500/5"
@@ -2278,15 +2310,15 @@ export default function PersonChatPage() {
             )}
           >
             {/* Pending — label beside amount */}
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <div className="flex items-center justify-between gap-2 px-3 py-2">
               {totals.pending > 0 ? (
                 <>
-                  <p className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     {isSupplier ? "You Owe" : "They Owe"}
                   </p>
                   <p
                     className={cn(
-                      "font-mono text-2xl font-extrabold tabular-nums tracking-tight sm:text-3xl",
+                      "font-mono text-lg font-extrabold tabular-nums tracking-tight",
                       isSupplier
                         ? "text-rose-600 dark:text-rose-400"
                         : "text-amber-600 dark:text-amber-400"
@@ -2297,10 +2329,10 @@ export default function PersonChatPage() {
                 </>
               ) : (
                 <>
-                  <p className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
-                  <p className="font-mono text-xl font-extrabold text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+                  <p className="font-mono text-base font-extrabold text-emerald-600 dark:text-emerald-400">
                     ✓ All Paid
                   </p>
                 </>
@@ -2309,12 +2341,12 @@ export default function PersonChatPage() {
 
             {/* Total & Paid row */}
             {totals.total > 0 && (
-              <div className="flex items-center justify-between border-t border-border/30 px-4 py-2">
-                <span className="text-xs text-muted-foreground">
+              <div className="flex items-center justify-between border-t border-border/30 px-3 py-1.5">
+                <span className="text-[11px] text-muted-foreground">
                   Total ₹{totals.total.toLocaleString("en-IN")}
                 </span>
                 {totals.paid > 0 && (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
                     Paid ₹{totals.paid.toLocaleString("en-IN")}
                   </span>
                 )}
@@ -2323,8 +2355,8 @@ export default function PersonChatPage() {
 
             {/* Progress bar */}
             {totals.paid > 0 && totals.pending > 0 && (
-              <div className="px-4 pb-3">
-                <div className="progress-hero">
+              <div className="px-3 pb-2">
+                <div className="progress-hero h-1.5">
                   <div className="progress-hero-fill" style={{ width: `${totals.progress}%` }} />
                 </div>
               </div>

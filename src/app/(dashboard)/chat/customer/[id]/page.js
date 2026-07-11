@@ -6,6 +6,7 @@ import { Edit, Trash2, FileText, Image as ImageIcon, Plus, Check, CheckCircle2, 
 import useCustomers from "@/hooks/useCustomers";
 import useUdhar from "@/hooks/useUdhar";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { usePersonProfile } from "@/hooks/usePersonProfile";
 import { UdharForm } from "@/components/UdharForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { ImageGalleryViewer } from "@/components/PhotoViewer";
@@ -37,7 +38,8 @@ export default function CustomerChatPage({ params }) {
   const isOnline = useOnlineStatus();
   const chatContainerRef = useRef(null);
 
-  const { customers, updateCustomer, deleteCustomer, addCustomer } = useCustomers();
+  const { customers, loading: customersLoading, updateCustomer, deleteCustomer, addCustomer } =
+    useCustomers();
   const {
     udharList,
     addUdhar,
@@ -48,7 +50,9 @@ export default function CustomerChatPage({ params }) {
     deletePayment,
   } = useUdhar({ fetchAll: true });
 
-  // State
+  const { person: customer, loading: customerLoading, notFound: customerNotFound, error: customerError } =
+    usePersonProfile("customer", id, { customers, listLoading: customersLoading });
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [udharToEdit, setUdharToEdit] = useState(null);
@@ -60,16 +64,9 @@ export default function CustomerChatPage({ params }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
-
-  // Collect payment sheet
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [collectUdhar, setCollectUdhar] = useState(null);
   const [collectAmount, setCollectAmount] = useState("");
-
-  // Get customer
-  const customer = useMemo(() => {
-    return customers.find(c => c.id === id);
-  }, [customers, id]);
 
   // Get customer's udhar
   const customerUdhars = useMemo(() => {
@@ -361,7 +358,23 @@ export default function CustomerChatPage({ params }) {
     },
   ];
 
-  if (!customer) {
+  if (customerLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Loading customer...</p>
+      </div>
+    );
+  }
+
+  if (customerError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Failed to load customer.</p>
+      </div>
+    );
+  }
+
+  if (customerNotFound || !customer) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Customer not found</p>

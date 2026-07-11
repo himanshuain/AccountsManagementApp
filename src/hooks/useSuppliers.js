@@ -10,6 +10,9 @@ import {
   replaceEntityInCaches,
   patchEntityInCaches,
   removeEntityFromCaches,
+  seedPersonProfileCache,
+  upsertEntityInCaches,
+  getPersonProfileKey,
 } from "@/lib/entity-list-cache";
 
 const SUPPLIERS_KEY = ["suppliers"];
@@ -19,8 +22,9 @@ const STATS_KEY = ["stats"];
 /**
  * @param {Object} options
  * @param {boolean} options.fetchAll - If true, fetches all suppliers in one request (home page, search)
+ * @param {boolean} options.enabled - If false, skips all network work
  */
-export function useSuppliers({ fetchAll = false } = {}) {
+export function useSuppliers({ fetchAll = false, enabled = true } = {}) {
   const queryClient = useQueryClient();
 
   const queryKey = fetchAll ? [...SUPPLIERS_KEY, { fetchAll }] : SUPPLIERS_KEY;
@@ -35,7 +39,7 @@ export function useSuppliers({ fetchAll = false } = {}) {
       const result = await response.json();
       return result.data || [];
     },
-    enabled: fetchAll,
+    enabled: enabled && fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
     refetchOnWindowFocus: true,
@@ -62,7 +66,7 @@ export function useSuppliers({ fetchAll = false } = {}) {
       return undefined;
     },
     initialPageParam: 1,
-    enabled: !fetchAll,
+    enabled: enabled && !fetchAll,
     staleTime: CACHE_SETTINGS.STALE_TIME,
     retry: CACHE_SETTINGS.RETRY_COUNT,
   });
@@ -131,8 +135,13 @@ export function useSuppliers({ fetchAll = false } = {}) {
     },
     onSuccess: (result, _vars, context) => {
       const created = result?.data;
-      if (created?.id && context?.tempId) {
-        replaceEntityInCaches(queryClient, SUPPLIERS_KEY, context.tempId, created);
+      if (created?.id) {
+        if (context?.tempId) {
+          replaceEntityInCaches(queryClient, SUPPLIERS_KEY, context.tempId, created);
+        } else {
+          upsertEntityInCaches(queryClient, SUPPLIERS_KEY, created);
+        }
+        seedPersonProfileCache(queryClient, "supplier", created);
       }
     },
     onError: (_err, _vars, context) => {
@@ -166,6 +175,13 @@ export function useSuppliers({ fetchAll = false } = {}) {
     onError: (_err, _vars, context) => {
       restoreEntityCaches(queryClient, SUPPLIERS_KEY, context?.snapshot);
     },
+    onSuccess: result => {
+      const updated = result?.data;
+      if (updated?.id) {
+        upsertEntityInCaches(queryClient, SUPPLIERS_KEY, updated);
+        seedPersonProfileCache(queryClient, "supplier", updated);
+      }
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
@@ -192,6 +208,11 @@ export function useSuppliers({ fetchAll = false } = {}) {
     },
     onError: (_err, _id, context) => {
       restoreEntityCaches(queryClient, SUPPLIERS_KEY, context?.snapshot);
+    },
+    onSuccess: deletedId => {
+      if (deletedId) {
+        queryClient.removeQueries({ queryKey: getPersonProfileKey("supplier", deletedId) });
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: SUPPLIERS_KEY });
@@ -254,9 +275,11 @@ export function useSuppliers({ fetchAll = false } = {}) {
 
   const getSupplierById = useCallback(
     id => {
-      return suppliers.find(s => s.id === id) || null;
+      const fromList = suppliers.find(s => s.id === id);
+      if (fromList) return fromList;
+      return queryClient.getQueryData(getPersonProfileKey("supplier", id)) || null;
     },
-    [suppliers]
+    [suppliers, queryClient]
   );
 
   const refresh = useCallback(() => {
