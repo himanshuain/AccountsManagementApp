@@ -293,13 +293,20 @@ export default function GPayHomePage() {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return [];
 
+    const queryDigits = query.replace(/\D/g, "");
+    const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
+
     return allPeople
-      .filter(
-        p =>
-          p.name?.toLowerCase().includes(query) ||
-          p.phone?.includes(searchQuery.trim()) ||
-          p.phone?.replace(/\D/g, "").includes(query.replace(/\D/g, ""))
-      )
+      .filter(p => {
+        const phoneDigits = (p.phone || "").replace(/\D/g, "");
+        if (p.name?.toLowerCase().includes(query)) return true;
+        if (p.phone?.includes(searchQuery.trim())) return true;
+        if (queryDigits && phoneDigits.includes(queryDigits)) return true;
+        if (!isNaN(numQuery) && p.pendingAmount > 0) {
+          return String(p.pendingAmount).includes(query.replace(/[₹,\s]/g, ""));
+        }
+        return false;
+      })
       .slice(0, 12);
   }, [allPeople, searchQuery]);
 
