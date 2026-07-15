@@ -35,6 +35,7 @@ import {
   MoreVertical,
   Percent,
   Mail,
+  AlertTriangle,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears } from "date-fns";
 import { toast } from "sonner";
@@ -595,9 +596,12 @@ function IncomeModal({ open, onClose }) {
 
 // Backup Modal Component
 function BackupModal({ open, onClose }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cleanupAnalysis, setCleanupAnalysis] = useState(null);
   const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [brokenBillsReport, setBrokenBillsReport] = useState(null);
+  const [brokenBillsLoading, setBrokenBillsLoading] = useState(false);
   const [backupEmail, setBackupEmail] = useState("");
   const [autoBackupEmail, setAutoBackupEmail] = useState("");
   const [savingAutoEmail, setSavingAutoEmail] = useState(false);
@@ -789,6 +793,29 @@ function BackupModal({ open, onClose }) {
     setCleanupLoading(false);
   };
 
+  const handleScanBrokenBills = async () => {
+    setBrokenBillsLoading(true);
+    try {
+      const response = await fetch("/api/images/broken-bills");
+      const result = await response.json();
+      if (result.success) {
+        setBrokenBillsReport(result.data);
+        if (result.data.brokenTransactionCount === 0) {
+          toast.success("All bill images are healthy in storage.");
+        } else {
+          toast.error(
+            `Found ${result.data.brokenTransactionCount} transactions with missing bill photos`
+          );
+        }
+      } else {
+        toast.error(result.error || "Scan failed");
+      }
+    } catch {
+      toast.error("Failed to scan bill images");
+    }
+    setBrokenBillsLoading(false);
+  };
+
   const handleCleanupStorage = async () => {
     if (!cleanupAnalysis || cleanupAnalysis.analysis.orphanedCount === 0) {
       toast.error("No unused files to delete");
@@ -925,6 +952,78 @@ function BackupModal({ open, onClose }) {
             <p className="text-xs text-muted-foreground">
               Enter the email where daily automatic backups will be sent.
             </p>
+          </div>
+
+          {/* Broken Bill Images */}
+          <div className="theme-card mb-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/20">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Broken Bill Photos</h3>
+                <p className="text-xs text-muted-foreground">
+                  Bills listed in the app but missing from storage
+                </p>
+              </div>
+            </div>
+
+            {brokenBillsReport && brokenBillsReport.brokenTransactionCount > 0 && (
+              <div className="mb-3 max-h-56 space-y-2 overflow-y-auto rounded-xl bg-red-500/10 p-3">
+                <p className="text-sm font-medium text-red-600">
+                  {brokenBillsReport.brokenTransactionCount} transactions ·{" "}
+                  {brokenBillsReport.brokenBillRefs} missing photos
+                </p>
+                {brokenBillsReport.broken.slice(0, 30).map(item => (
+                  <div
+                    key={item.transactionId}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-background/60 px-3 py-2 text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{item.supplierName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.date || "No date"} · {item.missingCount}/{item.totalBillCount} missing
+                        {item.amount != null ? ` · ₹${Number(item.amount).toLocaleString("en-IN")}` : ""}
+                      </p>
+                    </div>
+                    {item.reuploadUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          router.push(item.reuploadUrl);
+                        }}
+                        className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                      >
+                        Re-upload
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {brokenBillsReport.broken.length > 30 && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    +{brokenBillsReport.broken.length - 30} more — re-scan after fixing batches
+                  </p>
+                )}
+              </div>
+            )}
+
+            {brokenBillsReport && brokenBillsReport.brokenTransactionCount === 0 && (
+              <p className="mb-3 text-sm text-emerald-600">All bill photos are present in storage.</p>
+            )}
+
+            <button
+              onClick={handleScanBrokenBills}
+              disabled={brokenBillsLoading}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
+            >
+              {brokenBillsLoading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <ImageIcon className="h-5 w-5" />
+              )}
+              Scan Bill Images
+            </button>
           </div>
 
           {/* Storage Cleanup */}

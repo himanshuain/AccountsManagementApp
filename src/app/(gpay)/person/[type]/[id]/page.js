@@ -1326,6 +1326,7 @@ export default function PersonChatPage() {
   const searchParams = useSearchParams();
   const { type, id } = params;
   const highlightTxnId = searchParams.get("txnId");
+  const editTxnId = searchParams.get("editTxn");
 
   const scrollRef = useRef(null);
   const txnRefs = useRef({});
@@ -1573,6 +1574,7 @@ export default function PersonChatPage() {
 
   // Track if we've already processed the highlight to prevent re-triggering on refresh
   const highlightProcessedRef = useRef(false);
+  const editTxnProcessedRef = useRef(false);
 
   // Scroll to highlighted transaction or bottom on load
   useEffect(() => {
@@ -1602,6 +1604,27 @@ export default function PersonChatPage() {
       }, 100);
     }
   }, [personTransactions.length, highlightTxnId, billsSortOrder]);
+
+  // Open edit form when linked from broken-bills repair flow (?editTxn=)
+  useEffect(() => {
+    if (!editTxnId || editTxnProcessedRef.current || personTransactions.length === 0) return;
+
+    const txn = personTransactions.find(t => t.id === editTxnId);
+    if (!txn) return;
+
+    editTxnProcessedRef.current = true;
+    setEditingTransaction(txn);
+    if (isSupplier) {
+      setTransactionFormOpen(true);
+    } else {
+      setUdharFormOpen(true);
+    }
+    toast.info("Add bill photos again and save to restore this transaction.");
+
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete("editTxn");
+    window.history.replaceState({}, "", newUrl.pathname + newUrl.search);
+  }, [editTxnId, personTransactions, isSupplier]);
 
   // Keep selectedTransaction in sync with updated data from personTransactions
   useEffect(() => {

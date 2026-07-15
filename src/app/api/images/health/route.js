@@ -95,7 +95,7 @@ export async function GET(request) {
         r2Configured,
         note:
           missingInR2 > 0
-            ? "These files are still listed in the database but no longer exist in R2. They were likely removed by storage cleanup or a bad edit — not by URL expiry."
+            ? "These files are still listed in the database but no longer exist in R2. Common cause: partial PUT updates (e.g. recording a payment) omitted billImages, so the server deleted R2 files while the DB still has the keys. Run scripts/audit-image-health.mjs for a full report."
             : "All checked storage keys exist in R2.",
         samples,
       },

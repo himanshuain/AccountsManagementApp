@@ -122,20 +122,24 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Clean up old images that were replaced (best-effort, non-blocking)
+    // Clean up old images that were replaced (best-effort, non-blocking).
+    // Only diff image fields explicitly sent in the PUT body.
     if (existingSupplier) {
       const imagesToDelete = [];
 
-      // Check if profile picture was replaced
       if (
+        Object.prototype.hasOwnProperty.call(body, "profilePicture") &&
         existingSupplier.profile_picture &&
         existingSupplier.profile_picture !== record.profile_picture
       ) {
         imagesToDelete.push(existingSupplier.profile_picture);
       }
 
-      // Check if UPI QR code was replaced
-      if (existingSupplier.upi_qr_code && existingSupplier.upi_qr_code !== record.upi_qr_code) {
+      if (
+        Object.prototype.hasOwnProperty.call(body, "upiQrCode") &&
+        existingSupplier.upi_qr_code &&
+        existingSupplier.upi_qr_code !== record.upi_qr_code
+      ) {
         imagesToDelete.push(existingSupplier.upi_qr_code);
       }
 

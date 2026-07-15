@@ -104,11 +104,13 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Clean up old images that were replaced (best-effort, non-blocking)
+    // Clean up old images that were replaced (best-effort, non-blocking).
+    // Only diff image fields explicitly sent in the PUT body.
     if (existingCustomer) {
       const imagesToDelete = [];
 
       if (
+        Object.prototype.hasOwnProperty.call(body, "profilePicture") &&
         existingCustomer.profile_picture &&
         !isSameImageRef(existingCustomer.profile_picture, record.profile_picture)
       ) {
@@ -116,15 +118,18 @@ export async function PUT(request, { params }) {
       }
 
       if (
+        Object.prototype.hasOwnProperty.call(body, "khataPhoto") &&
         existingCustomer.khata_photo &&
         !isSameImageRef(existingCustomer.khata_photo, record.khata_photo)
       ) {
         imagesToDelete.push(existingCustomer.khata_photo);
       }
 
-      imagesToDelete.push(
-        ...findRemovedImageRefs(existingCustomer.khata_photos || [], record.khata_photos || [])
-      );
+      if (Object.prototype.hasOwnProperty.call(body, "khataPhotos")) {
+        imagesToDelete.push(
+          ...findRemovedImageRefs(existingCustomer.khata_photos || [], record.khata_photos || [])
+        );
+      }
 
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {

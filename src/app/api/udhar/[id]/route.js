@@ -130,40 +130,46 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Clean up old images that were removed (best-effort, non-blocking)
+    // Clean up old images that were removed (best-effort, non-blocking).
+    // Only diff image fields explicitly sent in the PUT body.
     if (currentUdhar) {
       const imagesToDelete = [];
 
       if (
+        Object.prototype.hasOwnProperty.call(body, "billImage") &&
         currentUdhar.bill_image &&
         !isSameImageRef(currentUdhar.bill_image, record.bill_image)
       ) {
         imagesToDelete.push(currentUdhar.bill_image);
       }
 
-      imagesToDelete.push(
-        ...findRemovedImageRefs(currentUdhar.khata_photos || [], record.khata_photos || [])
-      );
+      if (Object.prototype.hasOwnProperty.call(body, "khataPhotos")) {
+        imagesToDelete.push(
+          ...findRemovedImageRefs(currentUdhar.khata_photos || [], record.khata_photos || [])
+        );
+      }
 
-      const oldPayments = currentUdhar.payments || [];
-      const newPayments = record.payments || [];
-      const newReceiptRefs = [];
-      newPayments.forEach(p => {
-        if (p.receiptUrl || p.receipt_url) newReceiptRefs.push(p.receiptUrl || p.receipt_url);
-        newReceiptRefs.push(...(p.receiptUrls || p.receipt_urls || []));
-      });
-      const newReceiptIndex = buildImageRefIndex(newReceiptRefs);
-
-      oldPayments.forEach(payment => {
-        const receiptUrl = payment.receiptUrl || payment.receipt_url;
-        if (receiptUrl && !isImageRefInIndex(receiptUrl, newReceiptIndex)) {
-          imagesToDelete.push(receiptUrl);
-        }
-        const oldReceipts = payment.receiptUrls || payment.receipt_urls || [];
-        oldReceipts.forEach(url => {
-          if (url && !isImageRefInIndex(url, newReceiptIndex)) imagesToDelete.push(url);
+      if (Object.prototype.hasOwnProperty.call(body, "payments")) {
+        const oldPayments = currentUdhar.payments || [];
+        const newPayments = record.payments || [];
+        const newReceiptRefs = [];
+        newPayments.forEach(p => {
+          if (p.receiptUrl || p.receipt_url) newReceiptRefs.push(p.receiptUrl || p.receipt_url);
+          newReceiptRefs.push(...(p.receiptUrls || p.receipt_urls || []));
         });
-      });
+        const newReceiptIndex = buildImageRefIndex(newReceiptRefs);
+
+        oldPayments.forEach(payment => {
+          const receiptUrl = payment.receiptUrl || payment.receipt_url;
+          if (receiptUrl && !isImageRefInIndex(receiptUrl, newReceiptIndex)) {
+            imagesToDelete.push(receiptUrl);
+          }
+          const oldReceipts = payment.receiptUrls || payment.receipt_urls || [];
+          oldReceipts.forEach(url => {
+            if (url && !isImageRefInIndex(url, newReceiptIndex)) imagesToDelete.push(url);
+          });
+        });
+      }
 
       if (imagesToDelete.length > 0) {
         deleteImagesFromStorage(imagesToDelete).catch(err => {
