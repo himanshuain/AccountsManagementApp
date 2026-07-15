@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
@@ -49,6 +49,7 @@ import { useStorage } from "@/hooks/useStorage";
 import { useBiometricLock } from "@/hooks/useBiometricLock";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 import { exportSupplierTransactionsPDF, exportCustomerTransactionsPDF } from "@/lib/export";
+import { TransactionForm } from "@/components/TransactionForm";
 import JSZip from "jszip";
 import { cn } from "@/lib/utils";
 import { getLocalDate, getMonthOptions, getAvailableMonths } from "@/lib/date-utils";
@@ -595,18 +596,23 @@ function IncomeModal({ open, onClose }) {
 }
 
 // Backup Modal Component
+const BROKEN_BILLS_CACHE_KEY = "broken_bills_report_v1";
+
 function BackupModal({ open, onClose }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cleanupAnalysis, setCleanupAnalysis] = useState(null);
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const [brokenBillsReport, setBrokenBillsReport] = useState(null);
   const [brokenBillsLoading, setBrokenBillsLoading] = useState(false);
+  const [reuploadLoading, setReuploadLoading] = useState(false);
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const brokenBillsScanningRef = useRef(false);
   const [backupEmail, setBackupEmail] = useState("");
   const [autoBackupEmail, setAutoBackupEmail] = useState("");
   const [savingAutoEmail, setSavingAutoEmail] = useState(false);
   const { suppliers = [] } = useSuppliers();
-  const { transactions = [] } = useTransactions();
+  const { transactions = [], updateTransaction } = useTransactions(null, { fetchAll: true });
   const { customers = [] } = useCustomers();
   const { udharList = [] } = useUdhar({ fetchAll: true });
 
@@ -625,8 +631,76 @@ function BackupModal({ open, onClose }) {
           if (res.success && res.data?.value) setAutoBackupEmail(res.data.value);
         })
         .catch(() => {});
+
+      try {
+        const cached = sessionStorage.getItem(BROKEN_BILLS_CACHE_KEY);
+        if (cached) setBrokenBillsReport(JSON.parse(cached));
+      } catch {
+        /* ignore */
+      }
     }
   }, [open]);
+
+  const persistBrokenBillsReport = useCallback(data => {
+    setBrokenBillsReport(data);
+    try {
+      sessionStorage.setItem(BROKEN_BILLS_CACHE_KEY, JSON.stringify(data));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const handleScanBrokenBills = useCallback(async () => {
+    if (brokenBillsScanningRef.current) return;
+    brokenBillsScanningRef.current = true;
+    setBrokenBillsLoading(true);
+    try {
+      const response = await fetch("/api/images/broken-bills");
+      const result = await response.json();
+      if (result.success) {
+        persistBrokenBillsReport(result.data);
+        if (result.data.brokenTransactionCount === 0) {
+          toast.success("All bill images load correctly.");
+        } else {
+          toast.error(
+            `${result.data.brokenTransactionCount} transactions with broken bill photos`
+          );
+        }
+      } else {
+        toast.error(result.error || "Scan failed");
+      }
+    } catch {
+      toast.error("Failed to scan bill images");
+    }
+    setBrokenBillsLoading(false);
+    brokenBillsScanningRef.current = false;
+  }, [persistBrokenBillsReport]);
+
+  const handleOpenReupload = useCallback(async item => {
+    if (!item?.transactionId || reuploadLoading) return;
+
+    const cached = transactions.find(t => t.id === item.transactionId);
+    if (cached) {
+      setEditingTransaction(cached);
+      setTransactionFormOpen(true);
+      return;
+    }
+
+    setReuploadLoading(true);
+    try {
+      const response = await fetch(`/api/transactions/${item.transactionId}`);
+      const result = await response.json();
+      if (result.success && result.data) {
+        setEditingTransaction(result.data);
+        setTransactionFormOpen(true);
+      } else {
+        toast.error(result.error || "Could not load transaction");
+      }
+    } catch {
+      toast.error("Could not load transaction");
+    }
+    setReuploadLoading(false);
+  }, [transactions, reuploadLoading]);
 
   const handleBackup = async () => {
     if (!backupEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(backupEmail)) {
@@ -793,29 +867,6 @@ function BackupModal({ open, onClose }) {
     setCleanupLoading(false);
   };
 
-  const handleScanBrokenBills = async () => {
-    setBrokenBillsLoading(true);
-    try {
-      const response = await fetch("/api/images/broken-bills");
-      const result = await response.json();
-      if (result.success) {
-        setBrokenBillsReport(result.data);
-        if (result.data.brokenTransactionCount === 0) {
-          toast.success("All bill images are healthy in storage.");
-        } else {
-          toast.error(
-            `Found ${result.data.brokenTransactionCount} transactions with missing bill photos`
-          );
-        }
-      } else {
-        toast.error(result.error || "Scan failed");
-      }
-    } catch {
-      toast.error("Failed to scan bill images");
-    }
-    setBrokenBillsLoading(false);
-  };
-
   const handleCleanupStorage = async () => {
     if (!cleanupAnalysis || cleanupAnalysis.analysis.orphanedCount === 0) {
       toast.error("No unused files to delete");
@@ -963,7 +1014,7 @@ function BackupModal({ open, onClose }) {
               <div>
                 <h3 className="font-medium">Broken Bill Photos</h3>
                 <p className="text-xs text-muted-foreground">
-                  Bills listed in the app but missing from storage
+                  Bills that fail to load in the app (not ones already working)
                 </p>
               </div>
             </div>
@@ -989,11 +1040,9 @@ function BackupModal({ open, onClose }) {
                     {item.reuploadUrl && (
                       <button
                         type="button"
-                        onClick={() => {
-                          onClose();
-                          router.push(item.reuploadUrl);
-                        }}
-                        className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                        onClick={() => handleOpenReupload(item)}
+                        disabled={reuploadLoading}
+                        className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
                       >
                         Re-upload
                       </button>
@@ -1009,22 +1058,63 @@ function BackupModal({ open, onClose }) {
             )}
 
             {brokenBillsReport && brokenBillsReport.brokenTransactionCount === 0 && (
-              <p className="mb-3 text-sm text-emerald-600">All bill photos are present in storage.</p>
+              <p className="mb-3 text-sm text-emerald-600">All bill photos load correctly.</p>
             )}
 
-            <button
-              onClick={handleScanBrokenBills}
-              disabled={brokenBillsLoading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
-            >
-              {brokenBillsLoading ? (
-                <RefreshCw className="h-5 w-5 animate-spin" />
-              ) : (
-                <ImageIcon className="h-5 w-5" />
+            <div className="flex gap-2">
+              <button
+                onClick={handleScanBrokenBills}
+                disabled={brokenBillsLoading}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-muted font-medium transition-colors hover:bg-accent disabled:opacity-50"
+              >
+                {brokenBillsLoading ? (
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-5 w-5" />
+                )}
+                Scan
+              </button>
+              {brokenBillsReport && (
+                <button
+                  onClick={handleScanBrokenBills}
+                  disabled={brokenBillsLoading}
+                  className="flex h-12 items-center justify-center gap-2 rounded-xl border border-border px-4 font-medium transition-colors hover:bg-accent disabled:opacity-50"
+                  title="Refresh scan after re-uploading"
+                >
+                  <RefreshCw className={`h-5 w-5 ${brokenBillsLoading ? "animate-spin" : ""}`} />
+                </button>
               )}
-              Scan Bill Images
-            </button>
+            </div>
+            {brokenBillsReport?.brokenTransactionCount > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Re-upload opens the same edit form as the supplier profile. Tap refresh when done.
+              </p>
+            )}
           </div>
+
+          <TransactionForm
+            open={transactionFormOpen}
+            onOpenChange={open => {
+              setTransactionFormOpen(open);
+              if (!open) setEditingTransaction(null);
+            }}
+            onSubmit={data =>
+              editingTransaction
+                ? updateTransaction(editingTransaction.id, data).then(r => {
+                    if (r.success) {
+                      toast.success("Updated");
+                      setTransactionFormOpen(false);
+                      setEditingTransaction(null);
+                    }
+                    return r;
+                  })
+                : Promise.resolve({ success: false })
+            }
+            suppliers={suppliers}
+            initialData={editingTransaction}
+            defaultSupplierId={editingTransaction?.supplierId}
+            title="Edit Transaction"
+          />
 
           {/* Storage Cleanup */}
           <div className="theme-card p-4">

@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured, getServerClient } from "@/lib/supabase";
-import { existsInR2, isR2Configured } from "@/lib/r2-storage";
-import {
-  isStorageKey,
-  normalizeToStorageKey,
-  resolveImageUrl,
-  isDataUrl,
-} from "@/lib/image-url";
+import { isBillImageBroken } from "@/lib/image-health";
+import { resolveImageUrl, isDataUrl } from "@/lib/image-url";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
  * GET /api/images/broken-bills
- * Full scan: bill_images refs in DB that no longer exist in R2.
+ * Bills that fail to load in the app (CDN 404, or missing from R2 when CDN unreachable).
  */
 export async function GET() {
   try {
@@ -47,7 +42,6 @@ export async function GET() {
       }
     }
 
-    const r2Configured = isR2Configured();
     let totalBillRefs = 0;
     let healthyRefs = 0;
     const broken = [];
@@ -61,20 +55,14 @@ export async function GET() {
       const missingRefs = [];
       for (const ref of refs) {
         totalBillRefs++;
-        const key = normalizeToStorageKey(ref);
-        if (!r2Configured || !isStorageKey(key)) {
-          missingRefs.push({ ref, storageKey: key, skipCheck: !isStorageKey(key) });
-          continue;
-        }
-        const exists = await existsInR2(key);
-        if (exists) {
-          healthyRefs++;
-        } else {
+        const brokenImage = await isBillImageBroken(ref);
+        if (brokenImage) {
           missingRefs.push({
             ref,
-            storageKey: key,
             resolvedUrl: resolveImageUrl(ref),
           });
+        } else {
+          healthyRefs++;
         }
       }
 
@@ -107,11 +95,10 @@ export async function GET() {
         healthyRefs,
         brokenTransactionCount: broken.length,
         brokenBillRefs: broken.reduce((n, b) => n + b.missingCount, 0),
-        r2Configured,
         note:
           broken.length > 0
-            ? "These transactions still list bill photos in the database, but the files were deleted from storage (usually after recording a payment without re-sending billImages). Use Re-upload to add photos again."
-            : "All bill images are present in storage.",
+            ? "Only bills that fail to load in the app are listed. Tap Re-upload (opens in a new tab), then return here and refresh the scan."
+            : "All bill photos load correctly.",
         broken,
       },
     });
