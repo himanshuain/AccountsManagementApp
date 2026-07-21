@@ -2324,16 +2324,16 @@ export default function SuppliersPage() {
                   {/* Receipt Upload */}
                   <div className="space-y-2">
                     <Label>Payment Receipt (Optional)</Label>
-                    <div className="w-44">
-                      <ImageUpload
-                        value={paymentReceipt}
-                        onChange={setPaymentReceipt}
-                        placeholder="Receipt"
-                        aspectRatio="square"
-                        onUploadingChange={setIsUploadingPaymentReceipt}
-                        folder="receipts"
-                      />
-                    </div>
+                    <ImageUpload
+                      value={paymentReceipt}
+                      onChange={setPaymentReceipt}
+                      layout="hero"
+                      attachLabel="Attach payment receipt"
+                      attachHint="Photo of payment proof"
+                      aspectRatio="square"
+                      onUploadingChange={setIsUploadingPaymentReceipt}
+                      folder="receipts"
+                    />
                   </div>
 
                   {/* Action Buttons */}

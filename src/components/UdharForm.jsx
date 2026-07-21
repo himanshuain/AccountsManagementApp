@@ -2,17 +2,22 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, UserPlus, X, Check } from "lucide-react";
+import { BookOpen, Users, IndianRupee, Calendar, StickyNote } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { MultiImageUpload } from "./ImageUpload";
-import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 import { resolveImageUrl } from "@/lib/image-url";
+import {
+  FormSection,
+  FormDrawerHeader,
+  OfflineBanner,
+  FormSubmitButton,
+  MUI_AUTOCOMPLETE_SX,
+  AUTOCOMPLETE_POPPER_PROPS,
+  NO_SPIN_INPUT,
+} from "@/components/form/FormDrawerUI";
 import {
   addSessionStorageKeys,
   clearSessionStorageKeys,
@@ -29,6 +34,7 @@ export function UdharForm({
   customers = [],
   initialData = null,
   defaultCustomerId = null,
+  defaultCustomerName = null,
   autoOpenCustomerDropdown = false,
   title = "Add Udhar",
 }) {
@@ -226,95 +232,99 @@ export function UdharForm({
     return result;
   };
 
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
+  const contextCustomerLabel = selectedCustomer?.name || defaultCustomerName || null;
+  const isCustomerLocked = !!defaultCustomerId;
+  const formTitle = initialData ? "Edit Udhar" : title;
+  const submitLabel = initialData ? "Save changes" : "Add udhar";
+  const canSubmit = !isSubmitting && !!selectedCustomerId && isOnline && !isUploadingKhata;
+
   return (
     <>
-      <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
-          {/* Header with action buttons */}
-          <div className="border-b px-4 pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="h-9 px-3"
-              >
-                <X className="mr-1 h-4 w-4" />
-                Cancel
-              </Button>
-              <h3 className="flex-1 text-center text-base font-semibold">
-                {initialData ? "Edit Udhar" : title}
-              </h3>
-              <Button
-                size="sm"
-                onClick={handleSubmit(handleFormSubmit)}
-                disabled={isSubmitting || !selectedCustomerId || !isOnline || isUploadingKhata}
-                className="h-9 px-3"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Check className="mr-1 h-4 w-4" />
-                    {initialData ? "Save" : "Add"}
-                  </>
-                )}
-              </Button>
-            </div>
+      <DragCloseDrawer
+        open={open}
+        onOpenChange={v => {
+          if (!v) resetAndClose();
+        }}
+        beforeClose={handleBeforeClose}
+        height="h-[92vh]"
+      >
+        <FormDrawerHeader
+          title={formTitle}
+          icon={BookOpen}
+          subtitle={isCustomerLocked ? contextCustomerLabel : undefined}
+          onClose={handleClose}
+          onSubmit={handleSubmit(handleFormSubmit)}
+          isSubmitting={isSubmitting}
+          isEdit={!!initialData}
+          canSubmit={canSubmit}
+        />
+
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 px-4 py-4 pb-8">
+          {!isOnline && <OfflineBanner />}
+
+          <div className="space-y-2">
+            <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Khata photos
+            </p>
+            <MultiImageUpload
+              value={khataPhotos}
+              onChange={setKhataPhotos}
+              maxImages={5}
+              disabled={!isOnline}
+              layout="hero"
+              attachLabel="Attach khata photos"
+              onUploadingChange={setIsUploadingKhata}
+              onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+              onSessionStorageKeysRemoved={keys =>
+                removeSessionStorageKeys(sessionUploadKeysRef, keys)
+              }
+              folder="khata"
+            />
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6">
-            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
-              {!isOnline && (
-                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
-                  You&apos;re offline. Saving is disabled.
-                </div>
-              )}
+          <div className="overflow-hidden rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 shadow-sm">
+            <label
+              htmlFor="amount"
+              className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Amount (₹) *
+            </label>
+            <div className="relative">
+              <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-amber-600/70 dark:text-amber-400/70" />
+              <input
+                id="amount"
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                {...register("amount", { required: "Amount is required" })}
+                placeholder="0"
+                disabled={!isOnline}
+                className={`input-hero h-14 pl-12 font-mono text-3xl font-bold tabular-nums tracking-tight ${NO_SPIN_INPUT}`}
+              />
+            </div>
+            {errors.amount && (
+              <p className="mt-2 text-xs text-destructive">{errors.amount.message}</p>
+            )}
+          </div>
 
-              {/* Customer Selection */}
-              <div className="space-y-2">
+          {!isCustomerLocked && (
+            <FormSection title="Customer" icon={Users}>
+              <div className="rounded-xl bg-muted/50 px-1 py-0.5">
                 <Autocomplete
                   options={customers}
-                  value={customers.find(c => c.id === selectedCustomerId) || null}
+                  value={selectedCustomer}
                   onChange={(_, newValue) => setSelectedCustomerId(newValue?.id || "")}
-                  disabled={!!defaultCustomerId || !isOnline}
+                  disabled={!isOnline}
                   getOptionLabel={opt => opt?.name || ""}
                   isOptionEqualToValue={(option, value) => option?.id === value?.id}
                   renderInput={params => (
                     <TextField
                       {...params}
-                      label="Customer"
-                      placeholder="Select customer"
+                      placeholder="Search customer…"
                       required
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "hsl(var(--background))",
-                          color: "hsl(var(--foreground))",
-                          "& fieldset": {
-                            borderColor: "hsl(var(--border))",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "hsl(var(--primary))",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "hsl(var(--primary))",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "hsl(var(--muted-foreground))",
-                          "&.Mui-focused": {
-                            color: "hsl(var(--primary))",
-                          },
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "hsl(var(--foreground))",
-                        },
-                        "& .MuiAutocomplete-endAdornment": {
-                          "& .MuiSvgIcon-root": {
-                            color: "hsl(var(--foreground))",
-                          },
-                        },
-                      }}
+                      variant="outlined"
+                      sx={MUI_AUTOCOMPLETE_SX}
                     />
                   )}
                   renderOption={(props, option) => {
@@ -329,8 +339,8 @@ export function UdharForm({
                           >
                             {(option.name || "").charAt(0).toUpperCase()}
                           </Avatar>
-                          <div className="flex-1">
-                            <div className="font-medium">{option.name}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{option.name}</div>
                             {option.phone && (
                               <div className="text-xs opacity-70">{option.phone}</div>
                             )}
@@ -341,100 +351,26 @@ export function UdharForm({
                   }}
                   noOptionsText="No customer found"
                   fullWidth
-                  slotProps={{
-                    paper: {
-                      elevation: 8,
-                      sx: {
-                        mt: 1,
-                        bgcolor: "hsl(var(--card))",
-                        color: "hsl(var(--card-foreground))",
-                        border: "1px solid hsl(var(--border))",
-                        pointerEvents: "auto",
-                        "& .MuiAutocomplete-listbox": {
-                          padding: "4px",
-                          pointerEvents: "auto",
-                          "& .MuiAutocomplete-option": {
-                            minHeight: 48,
-                            borderRadius: "6px",
-                            color: "hsl(var(--foreground))",
-                            pointerEvents: "auto",
-                            cursor: "pointer",
-                            "&:hover": {
-                              bgcolor: "hsl(var(--accent))",
-                            },
-                            '&[aria-selected="true"]': {
-                              bgcolor: "hsl(var(--primary) / 0.1)",
-                            },
-                            "&.Mui-focused": {
-                              bgcolor: "hsl(var(--accent))",
-                            },
-                          },
-                        },
-                        "& .MuiAutocomplete-noOptions": {
-                          color: "hsl(var(--muted-foreground))",
-                        },
-                      },
-                    },
-                    popper: {
-                      disablePortal: false,
-                      sx: {
-                        zIndex: 2147483647,
-                      },
-                      container: typeof document !== "undefined" ? document.body : undefined,
-                      modifiers: [
-                        {
-                          name: "preventOverflow",
-                          enabled: false,
-                        },
-                      ],
-                    },
-                  }}
-                />
-                {!selectedCustomerId && (
-                  <p className="text-xs text-gray-500">Select a customer or add new</p>
-                )}
-              </div>
-
-              {/* Khata Photos */}
-              <div className="space-y-2">
-                <Label>Bill Images (Optional)</Label>
-                <MultiImageUpload
-                  value={khataPhotos}
-                  onChange={setKhataPhotos}
-                  maxImages={5}
-                  disabled={!isOnline}
-                  onUploadingChange={setIsUploadingKhata}
-                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-                  onSessionStorageKeysRemoved={keys =>
-                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
-                  }
-                  folder="khata"
+                  slotProps={AUTOCOMPLETE_POPPER_PROPS}
                 />
               </div>
+              {!selectedCustomerId && (
+                <p className="mt-2 text-xs text-destructive">Select a customer to continue</p>
+              )}
+            </FormSection>
+          )}
 
-              <Separator />
-
-              {/* Amount Input - Single field */}
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount (₹) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  inputMode="numeric"
-                  {...register("amount", { required: "Amount is required" })}
-                  placeholder="Enter amount"
-                  className="h-16 text-2xl font-bold"
-                  disabled={!isOnline}
-                />
-                {errors.amount && (
-                  <p className="text-xs text-destructive">{errors.amount.message}</p>
-                )}
-              </div>
-
-              {/* Date */}
-              <div className="space-y-2">
-                <Label htmlFor="date">Udhari Date *</Label>
-                <Input
+          <FormSection title="Details" icon={Calendar}>
+            <div>
+              <label
+                htmlFor="date"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Udhari date *
+              </label>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
                   id="date"
                   type="date"
                   {...register("date", {
@@ -446,7 +382,6 @@ export function UdharForm({
                     },
                   })}
                   onChange={e => {
-                    // Prevent future dates (iOS Safari ignores max attribute)
                     const today = getLocalDate();
                     if (e.target.value > today) {
                       e.target.value = today;
@@ -454,31 +389,32 @@ export function UdharForm({
                   }}
                   disabled={!isOnline}
                   max={new Date().toISOString().split("T")[0]}
-                  className="h-12"
-                />
-                {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Description</Label>
-                <textarea
-                  id="notes"
-                  {...register("notes")}
-                  placeholder="Add any details about this Udhar..."
-                  disabled={!isOnline}
-                  rows={3}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="input-hero h-11 pr-10 text-sm"
                 />
               </div>
+              {errors.date && (
+                <p className="mt-1 text-[10px] text-destructive">{errors.date.message}</p>
+              )}
+            </div>
+          </FormSection>
 
-              {/* Bottom padding for safe area */}
-              <div className="h-8" />
-            </form>
-          </div>
+          <FormSection title="Description" icon={StickyNote} className="[&>div:last-child]:py-3">
+            <textarea
+              id="notes"
+              rows={2}
+              {...register("notes")}
+              placeholder="Add any details about this udhar…"
+              disabled={!isOnline}
+              className="input-hero min-h-[72px] resize-none py-2.5 text-sm leading-relaxed"
+            />
+          </FormSection>
+
+          <FormSubmitButton disabled={!canSubmit} isSubmitting={isSubmitting}>
+            {submitLabel}
+          </FormSubmitButton>
+        </form>
       </DragCloseDrawer>
 
-      {/* Customer Form Sheet */}
       <CustomerForm
         open={customerFormOpen}
         onOpenChange={setCustomerFormOpen}

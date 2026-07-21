@@ -103,6 +103,9 @@ export function ImageUpload({
   onSessionStorageKeysRemoved,
   folder = "general",
   showHDToggle = true, // Show HD toggle by default
+  layout = "grid",
+  attachLabel,
+  attachHint,
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState(value || null);
@@ -273,10 +276,120 @@ export function ImageUpload({
     portrait: "aspect-[3/4]",
   };
 
+  const isHero = layout === "hero";
+  const label = attachLabel || placeholder;
+  const hint = attachHint || "Tap to attach from gallery";
+  const openGallery = () => galleryInputRef.current?.click();
+
   // Determine display URL
   const displayUrl = isDataUrl(preview) ? preview : optimizedUrls.medium || optimizedUrls.src || "";
   const lqipUrl = isDataUrl(preview) ? preview : optimizedUrls.lqip;
   const isBase64 = isDataUrl(preview);
+
+  const renderPreviewImage = ({ className: previewClassName, rounded = "rounded-lg" } = {}) => (
+    <div
+      className={cn(
+        "group relative cursor-pointer overflow-hidden border bg-muted",
+        rounded,
+        aspectClasses[aspectRatio],
+        previewClassName
+      )}
+      onClick={handleViewImage}
+    >
+      {!isBase64 && lqipUrl && (
+        <img
+          src={lqipUrl}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 h-full w-full scale-110 object-cover transition-opacity duration-500",
+            isImageLoaded ? "opacity-0" : "opacity-100 blur-xl"
+          )}
+        />
+      )}
+      <img
+        src={displayUrl}
+        alt="Preview"
+        className={cn(
+          "h-full w-full object-cover transition-opacity duration-500",
+          !isImageLoaded && !isBase64 ? "opacity-0" : "opacity-100"
+        )}
+        onLoad={() => setIsImageLoaded(true)}
+        loading="eager"
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+        <Expand className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+      </div>
+      {!disabled && (
+        <Button
+          type="button"
+          variant="destructive"
+          size="icon"
+          className={cn(
+            "absolute right-2 top-2 h-7 w-7",
+            isHero ? "z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleRemove(e);
+          }}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      {isUploading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <Loader2 className="h-6 w-6 animate-spin text-white" />
+        </div>
+      )}
+    </div>
+  );
+
+  const renderHeroClipButton = ({ variant = "rail" } = {}) => (
+    <button
+      type="button"
+      onClick={openGallery}
+      disabled={disabled || isUploading}
+      aria-label="Attach photo"
+      className={cn(
+        "flex shrink-0 items-center justify-center transition-colors active:scale-[0.98]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "rail"
+          ? "h-24 w-14 flex-col gap-1 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-card shadow-sm hover:border-primary/40 hover:bg-muted/40"
+          : "absolute bottom-2.5 right-2.5 z-20 h-11 w-11 rounded-full border border-border/60 bg-background/95 shadow-md backdrop-blur-sm hover:bg-muted"
+      )}
+    >
+      {isUploading ? (
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <Paperclip className="h-5 w-5 text-primary" strokeWidth={1.75} />
+          {variant === "rail" && (
+            <span className="text-[9px] font-medium text-muted-foreground">Change</span>
+          )}
+        </>
+      )}
+    </button>
+  );
+
+  const renderHDToggle = () =>
+    showHDToggle ? (
+      <button
+        type="button"
+        onClick={() => setIsHDMode(!isHDMode)}
+        disabled={disabled || isUploading}
+        className={cn(
+          "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+          isHDMode
+            ? "bg-amber-500 text-white shadow-sm"
+            : "bg-muted text-muted-foreground hover:bg-accent"
+        )}
+      >
+        <Sparkles className={cn("h-3 w-3", isHDMode && "animate-pulse")} />
+        HD {isHDMode ? "ON" : "OFF"}
+      </button>
+    ) : null;
 
   return (
     <>
@@ -300,62 +413,48 @@ export function ImageUpload({
           disabled={disabled || isUploading}
         />
 
-        {preview ? (
-          <div
-            className={cn(
-              "group relative cursor-pointer overflow-hidden rounded-lg border bg-muted",
-              aspectClasses[aspectRatio]
-            )}
-            onClick={handleViewImage}
-          >
-            {/* LQIP blurred background - shows while main image loads */}
-            {!isBase64 && lqipUrl && (
-              <img
-                src={lqipUrl}
-                alt=""
-                aria-hidden="true"
-                className={cn(
-                  "absolute inset-0 h-full w-full scale-110 object-cover transition-opacity duration-500",
-                  isImageLoaded ? "opacity-0" : "opacity-100 blur-xl"
-                )}
-              />
-            )}
-            {/* Main image - use medium quality for form previews */}
-            <img
-              src={displayUrl}
-              alt="Preview"
-              className={cn(
-                "h-full w-full object-cover transition-opacity duration-500",
-                !isImageLoaded && !isBase64 ? "opacity-0" : "opacity-100"
-              )}
-              onLoad={() => setIsImageLoaded(true)}
-              loading="eager"
-            />
-            {/* Hover overlay with view hint */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-              <Expand className="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
-            </div>
-            {!disabled && (
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={e => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleRemove(e);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-            {isUploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <Loader2 className="h-6 w-6 animate-spin text-white" />
+        {isHero ? (
+          <div className="space-y-2">
+            {preview ? (
+              <div className="flex gap-2">
+                <div
+                  className={cn(
+                    "relative min-w-0 flex-1",
+                    aspectRatio === "square" && "mx-auto w-full max-w-[220px]"
+                  )}
+                >
+                  {renderPreviewImage({ rounded: "rounded-xl" })}
+                  {!disabled && renderHeroClipButton({ variant: "overlay" })}
+                </div>
               </div>
+            ) : (
+              <button
+                type="button"
+                onClick={openGallery}
+                disabled={disabled || isUploading}
+                className="flex min-h-[100px] w-full items-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 active:scale-[0.99] disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <Paperclip className="h-6 w-6 text-primary" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{label}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+                    </div>
+                  </>
+                )}
+              </button>
+            )}
+            {!preview && renderHDToggle() && (
+              <div className="flex justify-end">{renderHDToggle()}</div>
             )}
           </div>
+        ) : preview ? (
+          renderPreviewImage()
         ) : (
           <div
             className={cn(
@@ -373,7 +472,6 @@ export function ImageUpload({
                   <ImageIcon className="h-6 w-6 text-primary" />
                 </div>
                 <span className="text-center text-sm text-muted-foreground">{placeholder}</span>
-                {/* Camera and Gallery buttons */}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -398,23 +496,7 @@ export function ImageUpload({
                     Gallery
                   </Button>
                 </div>
-                {/* HD Toggle */}
-                {showHDToggle && (
-                  <button
-                    type="button"
-                    onClick={() => setIsHDMode(!isHDMode)}
-                    disabled={disabled || isUploading}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                      isHDMode 
-                        ? "bg-amber-500 text-white shadow-sm" 
-                        : "bg-muted text-muted-foreground hover:bg-accent"
-                    )}
-                  >
-                    <Sparkles className={cn("h-3 w-3", isHDMode && "animate-pulse")} />
-                    HD {isHDMode ? "ON" : "OFF"}
-                  </button>
-                )}
+                {renderHDToggle()}
               </>
             )}
           </div>

@@ -2,13 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X, Check, Contact } from "lucide-react";
+import { Loader2, Contact, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
+import {
+  FormSection,
+  FormDrawerHeader,
+  OfflineBanner,
+  FormSubmitButton,
+  NO_SPIN_INPUT,
+} from "@/components/form/FormDrawerUI";
 import { ImageUpload } from "./ImageUpload";
-import { Separator } from "@/components/ui/separator";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { useContactPicker } from "@/hooks/useContactPicker";
 import {
@@ -163,100 +167,101 @@ export function SupplierForm({
     return confirm("You have unsaved changes. Are you sure you want to close?");
   };
 
+  const canSubmit = !isSubmitting && isOnline && !uploadingProfile && !uploadingUpiQr;
+  const submitLabel = initialData ? "Save supplier" : "Add supplier";
+
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
-        {/* Header with action buttons */}
-        <div className="border-b px-4 pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="h-9 px-3"
-            >
-              <X className="mr-1 h-4 w-4" />
-              Cancel
-            </Button>
-            <h3 className="flex-1 text-center text-base font-semibold">{title}</h3>
-            <Button
-              size="sm"
-              onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !isOnline || uploadingProfile || uploadingUpiQr}
-              className="h-9 px-3"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Check className="mr-1 h-4 w-4" />
-                  {initialData ? "Save" : "Add"}
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+    <DragCloseDrawer
+      open={open}
+      onOpenChange={v => {
+        if (!v) resetAndClose();
+      }}
+      beforeClose={handleBeforeClose}
+      height="h-[92vh]"
+    >
+      <FormDrawerHeader
+        title={title}
+        icon={Store}
+        onClose={handleClose}
+        onSubmit={handleSubmit(handleFormSubmit)}
+        isSubmitting={isSubmitting}
+        isEdit={!!initialData}
+        canSubmit={canSubmit}
+      />
 
-        <div className="flex-1 overflow-y-auto px-6">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
-            {/* Offline warning */}
-            {!isOnline && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
-                You&apos;re offline. Saving is disabled.
-              </div>
-            )}
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 px-4 py-4 pb-8">
+        {!isOnline && <OfflineBanner />}
 
-            {/* Profile Picture - At Top */}
-            <div className="flex justify-center">
-              <div className="w-44">
-                <ImageUpload
-                  value={profilePicture}
-                  onChange={setProfilePicture}
-                  placeholder="Add Photo"
-                  aspectRatio="square"
-                  disabled={!isOnline}
-                  onUploadingChange={setUploadingProfile}
-                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-                  onSessionStorageKeysRemoved={keys =>
-                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
-                  }
-                  folder="suppliers"
-                />
-              </div>
-            </div>
+        <FormSection title="Photo">
+          <ImageUpload
+            value={profilePicture}
+            onChange={setProfilePicture}
+            layout="hero"
+            attachLabel="Add profile photo"
+            attachHint="Supplier shop or contact photo"
+            aspectRatio="square"
+            disabled={!isOnline}
+            onUploadingChange={setUploadingProfile}
+            onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+            onSessionStorageKeysRemoved={keys =>
+              removeSessionStorageKeys(sessionUploadKeysRef, keys)
+            }
+            folder="suppliers"
+          />
+        </FormSection>
 
-            {/* Supplier Name */}
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Supplier Name *</Label>
-              <Input
+        <FormSection title="Basic details">
+          <div className="space-y-3">
+            <div>
+              <label
+                htmlFor="companyName"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Supplier name *
+              </label>
+              <input
                 id="companyName"
                 {...register("companyName", {
                   required: "Supplier name is required",
                 })}
                 placeholder="Enter supplier/shop name"
-                className="h-12 text-base"
+                className="input-hero h-12 text-base"
               />
               {errors.companyName && (
-                <p className="text-xs text-destructive">{errors.companyName.message}</p>
+                <p className="mt-1.5 text-xs text-destructive">{errors.companyName.message}</p>
               )}
             </div>
 
-            {/* Person Name & Phone */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Contact Person</Label>
-                <Input id="name" {...register("name")} placeholder="Person name" className="h-12" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="mb-1.5 block text-xs font-medium text-muted-foreground"
+                >
+                  Contact person
+                </label>
+                <input
+                  id="name"
+                  {...register("name")}
+                  placeholder="Person name"
+                  className="input-hero h-12"
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="mb-1.5 block text-xs font-medium text-muted-foreground"
+                >
+                  Phone
+                </label>
                 <div className="flex gap-1">
-                  <Input
+                  <input
                     id="phone"
                     {...register("phone")}
                     placeholder="Phone"
-                    type="number"
-                    inputMode="numeric"
-                    className="h-12 flex-1 text-base"
+                    type="tel"
+                    inputMode="tel"
+                    className={`input-hero h-12 flex-1 text-base ${NO_SPIN_INPUT}`}
                   />
                   {contactPickerSupported && (
                     <Button
@@ -278,74 +283,90 @@ export function SupplierForm({
                 </div>
               </div>
             </div>
+          </div>
+        </FormSection>
 
-            <Separator />
-
-            {/* UPI Details */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">UPI Payment</h4>
-
-              <div className="space-y-2">
-                <Label htmlFor="upiId">UPI ID</Label>
-                <Input
-                  id="upiId"
-                  {...register("upiId")}
-                  placeholder="example@upi or 9876543210@paytm"
-                  className="h-12 text-base"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>QR Code Photo</Label>
-                <div className="w-40">
-                  <ImageUpload
-                    value={upiQrCode}
-                    onChange={setUpiQrCode}
-                    placeholder="Add QR Code"
-                    aspectRatio="square"
-                    disabled={!isOnline}
-                    onUploadingChange={setUploadingUpiQr}
-                    onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-                    onSessionStorageKeysRemoved={keys =>
-                      removeSessionStorageKeys(sessionUploadKeysRef, keys)
-                    }
-                    folder="qr-codes"
-                  />
-                </div>
-              </div>
+        <FormSection
+          title="UPI payment"
+          className="border-sky-500/30 bg-sky-500/[0.06]"
+        >
+          <div className="space-y-3">
+            <div>
+              <label
+                htmlFor="upiId"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                UPI ID
+              </label>
+              <input
+                id="upiId"
+                {...register("upiId")}
+                placeholder="example@upi or 9876543210@paytm"
+                className="input-hero h-12 text-base"
+              />
             </div>
 
-            <Separator />
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">QR code photo</p>
+              <ImageUpload
+                value={upiQrCode}
+                onChange={setUpiQrCode}
+                layout="hero"
+                attachLabel="Attach QR code"
+                attachHint="Photo of supplier UPI QR"
+                aspectRatio="square"
+                disabled={!isOnline}
+                onUploadingChange={setUploadingUpiQr}
+                onSessionStorageKeysAdded={keys =>
+                  addSessionStorageKeys(sessionUploadKeysRef, keys)
+                }
+                onSessionStorageKeysRemoved={keys =>
+                  removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                }
+                folder="qr-codes"
+              />
+            </div>
+          </div>
+        </FormSection>
 
-            {/* Additional Info */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">Additional Details</h4>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  {...register("address")}
-                  placeholder="Full address"
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gstNumber">GST Number</Label>
-                <Input
-                  id="gstNumber"
-                  {...register("gstNumber")}
-                  placeholder="GST number (optional)"
-                  className="h-12"
-                />
-              </div>
+        <FormSection title="Additional">
+          <div className="space-y-3">
+            <div>
+              <label
+                htmlFor="address"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Address
+              </label>
+              <input
+                id="address"
+                {...register("address")}
+                placeholder="Full address"
+                className="input-hero h-12"
+              />
             </div>
 
-            {/* Bottom padding for safe area */}
-            <div className="h-8" />
-          </form>
-        </div>
+            <div>
+              <label
+                htmlFor="gstNumber"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                GST number
+              </label>
+              <input
+                id="gstNumber"
+                {...register("gstNumber")}
+                placeholder="GST number (optional)"
+                className="input-hero h-12"
+              />
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSubmitButton disabled={!canSubmit} isSubmitting={isSubmitting}>
+          {submitLabel}
+        </FormSubmitButton>
+      </form>
     </DragCloseDrawer>
   );
 }

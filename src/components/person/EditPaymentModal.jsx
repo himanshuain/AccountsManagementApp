@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IndianRupee, CreditCard } from "lucide-react";
+import { IndianRupee, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { cn } from "@/lib/utils";
@@ -14,23 +14,41 @@ import {
   NO_SPIN_INPUT,
 } from "@/components/form/FormDrawerUI";
 
-/**
- * Payment Form Modal Component with hero receipt upload
- */
-export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
-  const today = getLocalDate();
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(today);
-  const [notes, setNotes] = useState("");
-  const [isReturn, setIsReturn] = useState(false);
-  const [receiptImages, setReceiptImages] = useState([]);
+export function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }) {
+  const [amount, setAmount] = useState(String(payment?.amount || ""));
+  const [date, setDate] = useState(payment?.date ? payment.date.split("T")[0] : getLocalDate());
+  const [notes, setNotes] = useState(payment?.notes || "");
+  const [isReturn, setIsReturn] = useState(!!payment?.isReturn);
+  const [receiptImages, setReceiptImages] = useState(() => {
+    if (payment?.receiptUrls && payment.receiptUrls.length > 0) {
+      return payment.receiptUrls;
+    }
+    if (payment?.receiptUrl) {
+      return [payment.receiptUrl];
+    }
+    return [];
+  });
   const [isUploading, setIsUploading] = useState(false);
 
-  const paidAmount = txn.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  const remainingAmount = (Number(txn.amount) || 0) - (Number(paidAmount) || 0);
+  const totalAmount = Number(txn?.amount) || 0;
+  const otherPaidAmount = (txn?.payments || [])
+    .filter(p => p.id !== payment?.id)
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const maxAmount = totalAmount - otherPaidAmount;
+
+  const initialReceipts = (() => {
+    if (payment?.receiptUrls && payment.receiptUrls.length > 0) return payment.receiptUrls;
+    if (payment?.receiptUrl) return [payment.receiptUrl];
+    return [];
+  })();
 
   const isFormDirty = () => {
-    return !!(amount || notes || receiptImages.length > 0 || isReturn || date !== today);
+    if (amount !== String(payment?.amount || "")) return true;
+    if (date !== (payment?.date ? payment.date.split("T")[0] : getLocalDate())) return true;
+    if (notes !== (payment?.notes || "")) return true;
+    if (isReturn !== !!payment?.isReturn) return true;
+    if (JSON.stringify(receiptImages) !== JSON.stringify(initialReceipts)) return true;
+    return false;
   };
 
   const handleBeforeClose = async () => {
@@ -54,13 +72,23 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
       toast.error("Amount cannot be negative");
       return;
     }
-    if (!isReturn && paymentAmount > remainingAmount) {
-      toast.error(`Max amount is ₹${remainingAmount.toLocaleString("en-IN")}`);
+    if (!isReturn && paymentAmount > maxAmount) {
+      toast.error(`Max amount is ₹${maxAmount.toLocaleString("en-IN")}`);
       return;
     }
-    onSubmit(paymentAmount, date, false, receiptImages, notes, isReturn);
+    onSave({
+      amount: paymentAmount,
+      date: date + "T00:00:00.000Z",
+      notes: notes,
+      receiptUrl: receiptImages[0] || null,
+      receiptUrls: receiptImages,
+      isReturn: isReturn,
+    });
   };
 
+  if (!payment) return null;
+
+  const today = getLocalDate();
   const canSubmit = !isSubmitting && !!amount && !isUploading;
 
   return (
@@ -73,27 +101,19 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
       height="h-[92vh]"
     >
       <FormDrawerHeader
-        title="Record Payment"
-        icon={CreditCard}
+        title="Edit Payment"
+        icon={Pencil}
         onClose={handleClose}
         onSubmit={handleFormSubmit}
         isSubmitting={isSubmitting}
+        isEdit
         canSubmit={canSubmit}
       />
 
       <form onSubmit={handleFormSubmit} className="space-y-4 px-4 py-4 pb-8">
-        <div className="overflow-hidden rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 text-center shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Pending amount
-          </p>
-          <p className="mt-1 font-mono text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">
-            ₹{remainingAmount.toLocaleString("en-IN")}
-          </p>
-        </div>
-
         <div className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 shadow-sm">
           <label
-            htmlFor="payment-amount"
+            htmlFor="edit-payment-amount"
             className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
           >
             Payment amount (₹)
@@ -101,7 +121,7 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
           <div className="relative">
             <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-emerald-600/70 dark:text-emerald-400/70" />
             <input
-              id="payment-amount"
+              id="edit-payment-amount"
               type="number"
               inputMode="numeric"
               value={amount}
@@ -114,18 +134,9 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
               autoFocus
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setAmount(String(remainingAmount))}
-            className={cn(
-              "mt-3 rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
-              Number(amount) === remainingAmount
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-accent"
-            )}
-          >
-            Full — ₹{remainingAmount.toLocaleString("en-IN")}
-          </button>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Max: ₹{maxAmount.toLocaleString("en-IN")}
+          </p>
         </div>
 
         <FormSection title="Date">
@@ -169,12 +180,12 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
         </FormSection>
 
         <FormSection title="Notes">
-          <textarea
+          <input
+            type="text"
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            rows={2}
             placeholder="Payment notes…"
-            className="input-hero min-h-[72px] resize-none"
+            className="input-hero h-12"
           />
         </FormSection>
 
@@ -191,11 +202,11 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
         </FormSection>
 
         <FormSubmitButton disabled={!canSubmit} isSubmitting={isSubmitting}>
-          Record payment
+          Save changes
         </FormSubmitButton>
       </form>
     </DragCloseDrawer>
   );
 }
 
-export default PaymentFormModal;
+export default EditPaymentModal;

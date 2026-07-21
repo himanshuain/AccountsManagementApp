@@ -2,15 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, X, Check, Contact } from "lucide-react";
+import { Loader2, Contact, User, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
-import { ImageUpload, MultiImageUpload } from "./ImageUpload";
-import { Separator } from "@/components/ui/separator";
+import { ImageUpload } from "./ImageUpload";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { useContactPicker } from "@/hooks/useContactPicker";
+import {
+  FormSection,
+  FormDrawerHeader,
+  OfflineBanner,
+  FormSubmitButton,
+  NO_SPIN_INPUT,
+} from "@/components/form/FormDrawerUI";
 import {
   addSessionStorageKeys,
   clearSessionStorageKeys,
@@ -165,93 +169,87 @@ export function CustomerForm({
     return confirm("You have unsaved changes. Are you sure you want to close?");
   };
 
+  const canSubmit = !isSubmitting && isOnline && !uploadingProfile && !uploadingKhata;
+  const submitLabel = initialData ? "Save changes" : "Add customer";
+
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
-        {/* Header with action buttons */}
-        <div className="border-b px-4 pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="h-9 px-3"
-            >
-              <X className="mr-1 h-4 w-4" />
-              Cancel
-            </Button>
-            <h3 className="flex-1 text-center text-base font-semibold">{title}</h3>
-            <Button
-              size="sm"
-              onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !isOnline || uploadingProfile || uploadingKhata}
-              className="h-9 px-3"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Check className="mr-1 h-4 w-4" />
-                  {initialData ? "Save" : "Add"}
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+    <DragCloseDrawer
+      open={open}
+      onOpenChange={v => {
+        if (!v) resetAndClose();
+      }}
+      beforeClose={handleBeforeClose}
+      height="h-[92vh]"
+    >
+      <FormDrawerHeader
+        title={title}
+        icon={User}
+        onClose={handleClose}
+        onSubmit={handleSubmit(handleFormSubmit)}
+        isSubmitting={isSubmitting}
+        isEdit={!!initialData}
+        canSubmit={canSubmit}
+      />
 
-        <div className="flex-1 overflow-y-auto px-6">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
-            {!isOnline && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
-                You&apos;re offline. Saving is disabled.
-              </div>
-            )}
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 px-4 py-4 pb-8">
+        {!isOnline && <OfflineBanner />}
 
-            {/* Profile Picture */}
-            <div className="flex justify-center">
-              <div className="w-44">
-                <ImageUpload
-                  value={profilePicture}
-                  onChange={setProfilePicture}
-                  placeholder="Add Photo"
-                  aspectRatio="square"
-                  disabled={!isOnline}
-                  onUploadingChange={setUploadingProfile}
-                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-                  onSessionStorageKeysRemoved={keys =>
-                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
-                  }
-                  folder="customers"
-                />
-              </div>
-            </div>
+        <FormSection title="Photo">
+          <ImageUpload
+            value={profilePicture}
+            onChange={setProfilePicture}
+            layout="hero"
+            attachLabel="Add profile photo"
+            attachHint="Customer photo (optional)"
+            aspectRatio="square"
+            disabled={!isOnline}
+            onUploadingChange={setUploadingProfile}
+            onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+            onSessionStorageKeysRemoved={keys =>
+              removeSessionStorageKeys(sessionUploadKeysRef, keys)
+            }
+            folder="customers"
+          />
+        </FormSection>
 
-            {/* Customer Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Customer Name *</Label>
-              <Input
+        <FormSection title="Basic details">
+          <div className="space-y-3">
+            <div>
+              <label
+                htmlFor="name"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Customer name *
+              </label>
+              <input
                 id="name"
                 {...register("name", {
                   required: "Customer name is required",
                 })}
                 placeholder="Enter customer name"
-                className="h-12 text-base"
+                className="input-hero h-12 text-base"
               />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              {errors.name && (
+                <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>
+              )}
             </div>
 
-            {/* Phone Number */}
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+            <div>
+              <label
+                htmlFor="phone"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Phone number
+              </label>
               <div className="flex gap-2">
-                <Input
+                <input
                   id="phone"
                   {...register("phone")}
                   placeholder="Phone number"
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  className="h-12 flex-1 text-base"
+                  className={`input-hero h-12 flex-1 text-base ${NO_SPIN_INPUT}`}
                 />
                 {contactPickerSupported && (
                   <Button
@@ -272,56 +270,61 @@ export function CustomerForm({
                 )}
               </div>
             </div>
+          </div>
+        </FormSection>
 
-            {/* Initial Amount (optional) */}
-            {showInitialAmount && (
-              <div className="space-y-2">
-                <Label htmlFor="initialAmount">Initial Udhar Amount (₹)</Label>
-                <Input
-                  id="initialAmount"
-                  type="number"
-                  inputMode="numeric"
-                  value={initialAmount}
-                  onChange={e => onInitialAmountChange(e.target.value)}
-                  placeholder="Enter initial lending amount"
-                  className="h-14 text-xl font-bold"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This will create an Udhar entry automatically
-                </p>
-              </div>
-            )}
-
-            {/* Address */}
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                {...register("address")}
-                placeholder="Full address"
-                className="h-12 text-base"
+        {showInitialAmount && (
+          <div className="overflow-hidden rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 shadow-sm">
+            <label
+              htmlFor="initialAmount"
+              className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Initial Udhar Amount (₹)
+            </label>
+            <div className="relative">
+              <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-amber-600/70 dark:text-amber-400/70" />
+              <input
+                id="initialAmount"
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={initialAmount}
+                onChange={e => onInitialAmountChange(e.target.value)}
+                placeholder="0"
+                className={`input-hero h-14 pl-12 text-2xl font-bold tabular-nums tracking-tight ${NO_SPIN_INPUT}`}
               />
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              This will create an Udhar entry automatically
+            </p>
+          </div>
+        )}
 
-            {/* <Separator /> */}
+        <FormSection title="Address">
+          <input
+            id="address"
+            {...register("address")}
+            placeholder="Full address"
+            className="input-hero h-12 text-base"
+          />
+        </FormSection>
 
-            {/* Khata Photos
-            <div className="space-y-2">
-              <Label>Khata Photos (Ledger/Account Photos)</Label>
-              <MultiImageUpload
-                value={khataPhotos}
-                onChange={setKhataPhotos}
-                maxImages={5}
-                disabled={!isOnline}
-                onUploadingChange={setUploadingKhata}
-                folder="khata"
-              />
-            </div> */}
+        {/* Khata Photos
+        <FormSection title="Khata photos">
+          <MultiImageUpload
+            value={khataPhotos}
+            onChange={setKhataPhotos}
+            maxImages={5}
+            disabled={!isOnline}
+            onUploadingChange={setUploadingKhata}
+            folder="khata"
+          />
+        </FormSection> */}
 
-            {/* Bottom padding for safe area */}
-            <div className="h-8" />
-          </form>
-        </div>
+        <FormSubmitButton disabled={!canSubmit} isSubmitting={isSubmitting}>
+          {submitLabel}
+        </FormSubmitButton>
+      </form>
     </DragCloseDrawer>
   );
 }

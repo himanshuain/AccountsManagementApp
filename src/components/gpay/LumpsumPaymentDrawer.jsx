@@ -1,66 +1,23 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
-  X,
   IndianRupee,
-  Camera,
-  ImagePlus,
-  Expand,
   Wallet,
   Loader2,
   Check,
   AlertCircle,
 } from "lucide-react";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getImageUrls, isDataUrl } from "@/lib/image-url";
-import { compressImage, compressForHD } from "@/lib/image-compression";
+import { MultiImageUpload } from "@/components/ImageUpload";
 import {
-  PhotoGalleryViewer as ImageGalleryViewer,
-} from "@/components/PhotoViewer";
-
-function ReceiptThumbnail({ src, idx, onTap, onRemove }) {
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <div className="group relative h-16 w-16 overflow-hidden rounded-lg bg-muted">
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        </div>
-      )}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={`Receipt ${idx + 1}`}
-        className={cn(
-          "h-full w-full cursor-pointer object-cover transition-opacity",
-          loaded ? "opacity-100" : "opacity-0"
-        )}
-        onLoad={() => setLoaded(true)}
-        onClick={() => onTap(idx)}
-      />
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove(idx);
-        }}
-        className="absolute right-0.5 top-0.5 rounded-full bg-destructive p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
-      >
-        <X className="h-3 w-3" />
-      </button>
-      {loaded && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-          <Expand className="h-4 w-4 text-white opacity-0 group-hover:opacity-70" />
-        </div>
-      )}
-    </div>
-  );
-}
+  FormDrawerHeader,
+  FormSection,
+  NO_SPIN_INPUT,
+} from "@/components/form/FormDrawerUI";
 
 /**
  * Lumpsum Payment Drawer
@@ -82,11 +39,6 @@ export function LumpsumPaymentDrawer({
   const [receiptImages, setReceiptImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageViewerOpen, setImageViewerOpen] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState(0);
-  const [isHDMode, setIsHDMode] = useState(false);
-  const cameraInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
 
   const resetForm = useCallback(() => {
     setAmount("");
@@ -108,80 +60,6 @@ export function LumpsumPaymentDrawer({
     }
     resetForm();
     setOpen(true);
-  };
-
-  const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const remainingSlots = 5 - receiptImages.length;
-    const filesToUpload = files.slice(0, remainingSlots);
-
-    setIsUploading(true);
-    const newImages = [];
-
-    for (const file of filesToUpload) {
-      try {
-        let compressedFile;
-        if (isHDMode) {
-          compressedFile = await compressForHD(file);
-        } else {
-          compressedFile = await compressImage(file, {
-            maxWidth: 2048,
-            maxHeight: 2048,
-            quality: 0.9,
-            maxSizeKB: 800,
-            useWebP: false,
-          });
-        }
-
-        const formData = new FormData();
-        formData.append("file", compressedFile);
-        formData.append("folder", "payments");
-
-        try {
-          const response = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            newImages.push(result.storageKey || result.url);
-          } else {
-            const localUrl = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onload = (ev) => resolve(ev.target.result);
-              reader.readAsDataURL(compressedFile);
-            });
-            newImages.push(localUrl);
-          }
-        } catch {
-          const localUrl = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => resolve(ev.target.result);
-            reader.readAsDataURL(compressedFile);
-          });
-          newImages.push(localUrl);
-        }
-      } catch (error) {
-        console.error("File processing failed:", error);
-      }
-    }
-
-    setReceiptImages((prev) => [...prev, ...newImages]);
-    setIsUploading(false);
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
-    if (galleryInputRef.current) galleryInputRef.current.value = "";
-  };
-
-  const handleRemoveImage = (index) => {
-    setReceiptImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleImageTap = (index) => {
-    setViewerIndex(index);
-    setImageViewerOpen(true);
   };
 
   const parsedAmount = Number(amount) || 0;
@@ -303,7 +181,6 @@ export function LumpsumPaymentDrawer({
       <DragCloseDrawer
         open={open}
         onOpenChange={(val) => {
-          if (!val && imageViewerOpen) return;
           if (!isSubmitting) {
             setOpen(val);
             if (!val) resetForm();
@@ -311,20 +188,33 @@ export function LumpsumPaymentDrawer({
         }}
         height="max-h-[90vh]"
       >
-          <DrawerHeader className="px-4 pb-2">
-            <DrawerTitle className="flex items-center gap-2">
-              <Wallet className="h-5 w-5" />
-              Pay Lumpsum
-            </DrawerTitle>
-          </DrawerHeader>
+          <FormDrawerHeader
+            title="Pay Lumpsum"
+            icon={Wallet}
+            onClose={() => {
+              setOpen(false);
+              resetForm();
+            }}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            canSubmit={!isSubmitting && !isUploading && isValidAmount}
+          />
 
-          <div className="space-y-4 px-4 pb-8">
-            {/* Total Pending */}
-            <div className="rounded-xl bg-muted/50 p-4 text-center">
-              <p className="text-xs text-muted-foreground">Total Pending</p>
+          <div className="space-y-4 px-4 py-4 pb-8">
+            <div
+              className={cn(
+                "overflow-hidden rounded-2xl border p-4 text-center shadow-sm",
+                type === "supplier"
+                  ? "border-rose-500/25 bg-gradient-to-br from-rose-500/10 to-rose-500/5"
+                  : "border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-amber-500/5"
+              )}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Total pending
+              </p>
               <p
                 className={cn(
-                  "font-mono text-2xl font-bold",
+                  "mt-1 font-mono text-3xl font-bold tabular-nums",
                   type === "supplier"
                     ? "text-rose-600 dark:text-rose-400"
                     : "text-amber-600 dark:text-amber-400"
@@ -332,195 +222,115 @@ export function LumpsumPaymentDrawer({
               >
                 ₹{totalPending.toLocaleString("en-IN")}
               </p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 across {pendingItems.length} {billLabel.toLowerCase()}
                 {pendingItems.length !== 1 ? "s" : ""}
               </p>
             </div>
 
-            {/* Amount Input */}
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">
-                Lumpsum Amount
+            <div
+              className={cn(
+                "overflow-hidden rounded-2xl border p-4 shadow-sm",
+                type === "supplier"
+                  ? "border-rose-500/25 bg-gradient-to-br from-rose-500/10 to-rose-500/5"
+                  : "border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5"
+              )}
+            >
+              <label
+                htmlFor="lumpsum-amount"
+                className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Lumpsum amount (₹)
               </label>
               <div className="relative">
-                <IndianRupee className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-muted-foreground/70" />
                 <input
+                  id="lumpsum-amount"
                   type="number"
                   inputMode="numeric"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0"
                   className={cn(
-                    "input-hero pl-12 font-mono text-lg",
+                    "input-hero h-14 pl-12 font-mono text-3xl font-bold tabular-nums tracking-tight",
+                    NO_SPIN_INPUT,
                     isOverLimit && "ring-2 ring-destructive/50 focus:ring-destructive"
                   )}
                   autoFocus
                 />
               </div>
               {isOverLimit && (
-                <div className="mt-1.5 flex items-center gap-1.5 text-destructive">
+                <div className="mt-2 flex items-center gap-1.5 text-destructive">
                   <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
                   <p className="text-xs">
-                    Amount exceeds total pending of ₹{totalPending.toLocaleString("en-IN")}
+                    Exceeds total pending of ₹{totalPending.toLocaleString("en-IN")}
                   </p>
                 </div>
               )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setAmount(String(totalPending))}
-              className={cn(
-                "rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
-                parsedAmount === totalPending
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-accent"
-              )}
-            >
-              Full — ₹{totalPending.toLocaleString("en-IN")}
-            </button>
-
-            <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
-              <div>
-                <p className="text-sm font-medium">Return (GR)</p>
-                <p className="text-xs text-muted-foreground">Mark as goods return</p>
-              </div>
               <button
                 type="button"
-                onClick={() => setIsReturn(prev => !prev)}
+                onClick={() => setAmount(String(totalPending))}
                 className={cn(
-                  "relative h-6 w-11 rounded-full transition-colors",
-                  isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
+                  "mt-3 rounded-full px-3 py-1.5 font-mono text-sm transition-colors",
+                  parsedAmount === totalPending
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-accent"
                 )}
               >
-                <div
-                  className={cn(
-                    "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
-                    isReturn ? "translate-x-6" : "translate-x-1"
-                  )}
-                />
+                Full — ₹{totalPending.toLocaleString("en-IN")}
               </button>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">Notes (optional)</label>
+            <FormSection title="Return (GR)" bodyClassName="py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">Mark as goods return</p>
+                <button
+                  type="button"
+                  onClick={() => setIsReturn(prev => !prev)}
+                  className={cn(
+                    "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+                    isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
+                      isReturn ? "translate-x-6" : "translate-x-1"
+                    )}
+                  />
+                </button>
+              </div>
+            </FormSection>
+
+            <FormSection title="Notes">
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
-                placeholder="Payment notes..."
-                className="input-hero min-h-[60px] resize-none"
+                placeholder="Payment notes…"
+                className="input-hero min-h-[72px] resize-none"
               />
-            </div>
+            </FormSection>
 
-            {/* Receipt Images */}
-            <div>
-              <label className="mb-2 block text-sm text-muted-foreground">
-                Payment Receipts (optional)
-              </label>
-
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isUploading || receiptImages.length >= 5}
+            <FormSection title="Receipts" bodyClassName="py-3">
+              <MultiImageUpload
+                value={receiptImages}
+                onChange={setReceiptImages}
+                maxImages={5}
+                layout="hero"
+                attachLabel="Attach payment receipts"
+                onUploadingChange={setIsUploading}
+                folder="payments"
               />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isUploading || receiptImages.length >= 5}
-              />
-
-              <div className="flex flex-wrap gap-2">
-                {receiptImages.map((img, idx) => {
-                  const urls = getImageUrls(img);
-                  const displayUrl = isDataUrl(img) ? img : urls.thumbnail || urls.src;
-                  return (
-                    <ReceiptThumbnail
-                      key={idx}
-                      src={displayUrl}
-                      idx={idx}
-                      onTap={handleImageTap}
-                      onRemove={handleRemoveImage}
-                    />
-                  );
-                })}
-
-                {receiptImages.length < 5 && (
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:bg-muted disabled:opacity-50"
-                    >
-                      {isUploading ? (
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      ) : (
-                        <>
-                          <Camera className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-[9px] text-muted-foreground">Camera</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => galleryInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="flex h-16 w-16 flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:bg-muted disabled:opacity-50"
-                    >
-                      <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[9px] text-muted-foreground">Gallery</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground">
-                  {receiptImages.length}/5 images • Tap to expand
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsHDMode(!isHDMode)}
-                  disabled={isUploading}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium transition-all",
-                    isHDMode
-                      ? "bg-amber-500 text-white shadow-sm"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-2 w-2 rounded-full",
-                      isHDMode ? "bg-white animate-pulse" : "bg-muted-foreground"
-                    )}
-                  />
-                  HD {isHDMode ? "ON" : "OFF"}
-                </button>
-              </div>
-              {isHDMode && (
-                <p className="text-[9px] text-amber-600 dark:text-amber-400">
-                  HD: Best quality (larger file)
-                </p>
-              )}
-            </div>
+            </FormSection>
 
             {/* Detailed Bills Preview */}
             {parsedAmount > 0 && !isOverLimit && previewBills.length > 0 && (
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="text-sm text-muted-foreground">
-                    {billLabel}s Breakdown
-                  </label>
+              <FormSection
+                title={`${billLabel}s breakdown`}
+                bodyClassName="p-0"
+              >
+                <div className="border-b border-border/40 px-4 py-2">
                   <span className="text-xs text-muted-foreground">
                     {billsBeingPaid.length} of {pendingItems.length} will be paid
                   </span>
@@ -644,7 +454,7 @@ export function LumpsumPaymentDrawer({
                     </div>
                   )}
                 </div>
-              </div>
+              </FormSection>
             )}
 
             {/* Over-limit warning with details */}
@@ -691,14 +501,6 @@ export function LumpsumPaymentDrawer({
             </div>
           </div>
       </DragCloseDrawer>
-
-      {/* Image Gallery Viewer - rendered outside the Sheet to avoid close conflicts */}
-      <ImageGalleryViewer
-        images={receiptImages}
-        initialIndex={viewerIndex}
-        open={imageViewerOpen}
-        onOpenChange={setImageViewerOpen}
-      />
     </>
   );
 }

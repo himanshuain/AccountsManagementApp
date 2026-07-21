@@ -4,9 +4,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
-  Loader2,
-  X,
-  Check,
   Expand,
   Receipt,
   IndianRupee,
@@ -15,13 +12,22 @@ import {
   StickyNote,
 } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
-import { Button } from "@/components/ui/button";
-import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
+import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { MultiImageUpload } from "./ImageUpload";
 import { PhotoGalleryViewer } from "./PhotoViewer";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
+import {
+  FormSection,
+  SegmentToggle,
+  FormDrawerHeader,
+  OfflineBanner,
+  FormSubmitButton,
+  MUI_AUTOCOMPLETE_SX,
+  AUTOCOMPLETE_POPPER_PROPS,
+  NO_SPIN_INPUT,
+} from "@/components/form/FormDrawerUI";
 import {
   addSessionStorageKeys,
   clearSessionStorageKeys,
@@ -31,80 +37,6 @@ import {
 } from "@/lib/orphan-upload-cleanup";
 
 const EMPTY_ARRAY = [];
-
-const SUPPLIER_AUTOCOMPLETE_SX = {
-  "& .MuiOutlinedInput-root": {
-    backgroundColor: "transparent",
-    color: "hsl(var(--foreground))",
-    borderRadius: "0.75rem",
-    "& fieldset": { borderColor: "transparent" },
-    "&:hover fieldset": { borderColor: "transparent" },
-    "&.Mui-focused fieldset": { borderColor: "transparent" },
-  },
-  "& .MuiInputLabel-root": {
-    color: "hsl(var(--muted-foreground))",
-    "&.Mui-focused": { color: "hsl(var(--primary))" },
-  },
-  "& .MuiInputBase-input": { color: "hsl(var(--foreground))", padding: "0 !important" },
-  "& .MuiAutocomplete-endAdornment .MuiSvgIcon-root": {
-    color: "hsl(var(--muted-foreground))",
-  },
-};
-
-function FormSection({ title, icon: Icon, children, className, iconClassName, titleClassName }) {
-  return (
-    <section
-      className={cn(
-        "overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm",
-        className
-      )}
-    >
-      {title && (
-        <div className="flex items-center gap-2 border-b border-border/40 px-4 py-2.5">
-          {Icon && (
-            <Icon className={cn("h-4 w-4 text-muted-foreground", iconClassName)} />
-          )}
-          <p
-            className={cn(
-              "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
-              titleClassName
-            )}
-          >
-            {title}
-          </p>
-        </div>
-      )}
-      <div className="p-4">{children}</div>
-    </section>
-  );
-}
-
-function SegmentToggle({ value, onChange, options, disabled }) {
-  return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1">
-      {options.map(opt => {
-        const isActive = value === opt.value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(opt.value)}
-            className={cn(
-              "rounded-lg py-2.5 text-sm font-semibold transition-all active:scale-[0.98]",
-              isActive
-                ? opt.activeClass || "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-              disabled && "opacity-50"
-            )}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export function TransactionForm({
   open,
@@ -427,53 +359,19 @@ export function TransactionForm({
       beforeClose={handleBeforeClose}
       height="h-[92vh]"
     >
-      <DrawerHeader className="border-b border-border/50 px-4 pb-3 pt-0">
-        <div className="flex w-full items-center justify-between gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className="h-9 w-9 shrink-0"
-            aria-label="Cancel"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-          <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
-            <DrawerTitle className="flex items-center justify-center gap-2 text-base">
-              <Receipt className="h-4 w-4 text-primary" />
-              {formTitle}
-            </DrawerTitle>
-            {isSupplierLocked && contextSupplierLabel && (
-              <p className="mt-0.5 max-w-[200px] truncate text-sm font-medium text-muted-foreground">
-                {contextSupplierLabel}
-              </p>
-            )}
-          </div>
-          <Button
-            size="sm"
-            onClick={handleSubmit(handleFormSubmit)}
-            disabled={!canSubmit}
-            className="h-9 shrink-0 px-3"
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Check className="mr-1 h-4 w-4" />
-                {initialData ? "Save" : "Add"}
-              </>
-            )}
-          </Button>
-        </div>
-      </DrawerHeader>
+      <FormDrawerHeader
+        title={formTitle}
+        icon={Receipt}
+        subtitle={isSupplierLocked ? contextSupplierLabel : null}
+        onClose={handleClose}
+        onSubmit={handleSubmit(handleFormSubmit)}
+        isSubmitting={isSubmitting}
+        isEdit={!!initialData}
+        canSubmit={canSubmit}
+      />
 
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 px-4 py-4 pb-8">
-        {!isOnline && (
-          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-            You&apos;re offline. Saving is disabled until you reconnect.
-          </div>
-        )}
+        {!isOnline && <OfflineBanner />}
 
         {/* Bill photos — minimal chrome, smart layout inside MultiImageUpload */}
         <div className="space-y-2">
@@ -565,7 +463,10 @@ export function TransactionForm({
               pattern="[0-9]*"
               {...register("amount", { required: "Amount is required" })}
               placeholder="0"
-              className="input-hero h-14 pl-12 font-mono text-3xl font-bold tabular-nums tracking-tight [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className={cn(
+                "input-hero h-14 pl-12 font-mono text-3xl font-bold tabular-nums tracking-tight",
+                NO_SPIN_INPUT
+              )}
             />
           </div>
           {errors.amount && (
@@ -606,7 +507,7 @@ export function TransactionForm({
                     placeholder="Search vyapari…"
                     required
                     variant="outlined"
-                    sx={SUPPLIER_AUTOCOMPLETE_SX}
+                    sx={MUI_AUTOCOMPLETE_SX}
                   />
                 )}
                 renderOption={(props, option) => {
@@ -635,43 +536,7 @@ export function TransactionForm({
                 }}
                 noOptionsText="No vyapari found"
                 fullWidth
-                slotProps={{
-                  paper: {
-                    elevation: 8,
-                    sx: {
-                      mt: 1,
-                      bgcolor: "hsl(var(--card))",
-                      color: "hsl(var(--card-foreground))",
-                      border: "1px solid hsl(var(--border))",
-                      pointerEvents: "auto",
-                      "& .MuiAutocomplete-listbox": {
-                        padding: "4px",
-                        pointerEvents: "auto",
-                        "& .MuiAutocomplete-option": {
-                          minHeight: 48,
-                          borderRadius: "6px",
-                          color: "hsl(var(--foreground))",
-                          pointerEvents: "auto",
-                          cursor: "pointer",
-                          "&:hover": { bgcolor: "hsl(var(--accent))" },
-                          '&[aria-selected="true"]': {
-                            bgcolor: "hsl(var(--primary) / 0.1)",
-                          },
-                          "&.Mui-focused": { bgcolor: "hsl(var(--accent))" },
-                        },
-                      },
-                      "& .MuiAutocomplete-noOptions": {
-                        color: "hsl(var(--muted-foreground))",
-                      },
-                    },
-                  },
-                  popper: {
-                    disablePortal: false,
-                    sx: { zIndex: 2147483647 },
-                    container: typeof document !== "undefined" ? document.body : undefined,
-                    modifiers: [{ name: "preventOverflow", enabled: false }],
-                  },
-                }}
+                slotProps={AUTOCOMPLETE_POPPER_PROPS}
               />
             </div>
             {!selectedSupplierId && (
@@ -808,20 +673,9 @@ export function TransactionForm({
           />
         </FormSection>
 
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="btn-hero flex h-12 w-full items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Saving…
-            </>
-          ) : (
-            submitLabel
-          )}
-        </button>
+        <FormSubmitButton disabled={!canSubmit} isSubmitting={isSubmitting}>
+          {submitLabel}
+        </FormSubmitButton>
       </form>
     </DragCloseDrawer>
   );

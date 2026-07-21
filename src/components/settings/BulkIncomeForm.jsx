@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { format, parseISO, isWeekend } from "date-fns";
-import { RefreshCw, Save, Banknote, Smartphone, CalendarDays, ChevronDown } from "lucide-react";
+import { Save, Banknote, Smartphone, CalendarDays, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getLocalDate, getMonthOptions, getDaysInMonth } from "@/lib/date-utils";
+import { FormSection, FormSubmitButton, NO_SPIN_INPUT } from "@/components/form/FormDrawerUI";
 
 function buildRowsForMonth(monthKey, incomeList) {
   const existingByDate = {};
@@ -46,8 +47,10 @@ function rowHasChanges(row) {
   return cash !== row.initialCash || online !== row.initialOnline;
 }
 
-const compactInputClass =
-  "h-9 w-full rounded-lg border-0 bg-background/80 px-2 text-center font-mono text-sm outline-none transition-all placeholder:text-muted-foreground/40 focus:bg-background focus:ring-2 focus:ring-emerald-500/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+const compactInputClass = cn(
+  "h-9 w-full rounded-lg border-0 bg-background/80 px-2 text-center font-mono text-sm outline-none transition-all placeholder:text-muted-foreground/40 focus:bg-background focus:ring-2 focus:ring-emerald-500/40",
+  NO_SPIN_INPUT
+);
 
 /**
  * Month-wise bulk income entry — one row per day with cash and online columns
@@ -173,18 +176,7 @@ export function BulkIncomeForm({
       )}
 
       {/* Month picker */}
-      <div className="shrink-0">
-        <div className="mb-1.5 flex items-center justify-between">
-          <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <CalendarDays className="h-3.5 w-3.5" />
-            Month
-          </label>
-          {embedded && changedRows.length > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-              {changedRows.length} unsaved
-            </span>
-          )}
-        </div>
+      <FormSection title="Month" icon={CalendarDays} bodyClassName="py-3">
         <div className="relative">
           <select
             value={selectedMonth}
@@ -199,16 +191,22 @@ export function BulkIncomeForm({
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         </div>
-      </div>
+        {embedded && changedRows.length > 0 && (
+          <p className="mt-2 text-center text-xs font-medium text-amber-600 dark:text-amber-400">
+            {changedRows.length} unsaved {changedRows.length === 1 ? "change" : "changes"}
+          </p>
+        )}
+      </FormSection>
 
       {/* Table */}
-      <div
-        className={cn(
-          "flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-muted/20",
-          stickyFooter && "min-h-0 flex-1"
-        )}
-        style={stickyFooter ? undefined : { maxHeight: listMaxHeight }}
-      >
+      <FormSection title="Daily entries" bodyClassName="p-0">
+        <div
+          className={cn(
+            "flex flex-col overflow-hidden bg-muted/20",
+            stickyFooter && "min-h-0 flex-1"
+          )}
+          style={stickyFooter ? undefined : { maxHeight: listMaxHeight }}
+        >
         {/* Sticky column headers */}
         <div className="grid shrink-0 grid-cols-[3.25rem_1fr_1fr] gap-2 border-b border-border/40 bg-card/80 px-2 py-2 backdrop-blur-sm">
           <span className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -306,7 +304,8 @@ export function BulkIncomeForm({
             );
           })}
         </div>
-      </div>
+        </div>
+      </FormSection>
 
       {/* Footer */}
       <div
@@ -340,29 +339,21 @@ export function BulkIncomeForm({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={submitting || changedRows.length === 0}
-          className={cn(
-            "flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-semibold text-white transition-all",
-            changedRows.length > 0
-              ? "bg-emerald-600 shadow-lg shadow-emerald-600/25 hover:bg-emerald-500 active:scale-[0.98]"
-              : "bg-muted text-muted-foreground",
-            submitting && "opacity-70"
-          )}
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSave();
+          }}
         >
-          {submitting ? (
-            <RefreshCw className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              {changedRows.length > 0
-                ? `Save ${changedRows.length} ${changedRows.length === 1 ? "Entry" : "Entries"}`
-                : "Save Entries"}
-            </>
-          )}
-        </button>
+          <FormSubmitButton
+            disabled={submitting || changedRows.length === 0}
+            isSubmitting={submitting}
+          >
+            {changedRows.length > 0
+              ? `Save ${changedRows.length} ${changedRows.length === 1 ? "entry" : "entries"}`
+              : "Save entries"}
+          </FormSubmitButton>
+        </form>
       </div>
     </div>
   );
