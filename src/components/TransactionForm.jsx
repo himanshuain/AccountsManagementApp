@@ -3,18 +3,25 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Loader2, X, Check, Expand } from "lucide-react";
+import {
+  Loader2,
+  X,
+  Check,
+  Expand,
+  Receipt,
+  IndianRupee,
+  Calendar,
+  Package,
+  StickyNote,
+} from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
-import { Switch } from "@/components/ui/switch";
+import { DragCloseDrawer, DrawerHeader, DrawerTitle } from "@/components/ui/drag-close-drawer";
 import { MultiImageUpload } from "./ImageUpload";
-import { Separator } from "@/components/ui/separator";
 import { PhotoGalleryViewer } from "./PhotoViewer";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
+import { cn } from "@/lib/utils";
 import {
   addSessionStorageKeys,
   clearSessionStorageKeys,
@@ -23,8 +30,81 @@ import {
   removeSessionStorageKeys,
 } from "@/lib/orphan-upload-cleanup";
 
-// Stable empty array reference to prevent infinite re-renders
 const EMPTY_ARRAY = [];
+
+const SUPPLIER_AUTOCOMPLETE_SX = {
+  "& .MuiOutlinedInput-root": {
+    backgroundColor: "transparent",
+    color: "hsl(var(--foreground))",
+    borderRadius: "0.75rem",
+    "& fieldset": { borderColor: "transparent" },
+    "&:hover fieldset": { borderColor: "transparent" },
+    "&.Mui-focused fieldset": { borderColor: "transparent" },
+  },
+  "& .MuiInputLabel-root": {
+    color: "hsl(var(--muted-foreground))",
+    "&.Mui-focused": { color: "hsl(var(--primary))" },
+  },
+  "& .MuiInputBase-input": { color: "hsl(var(--foreground))", padding: "0 !important" },
+  "& .MuiAutocomplete-endAdornment .MuiSvgIcon-root": {
+    color: "hsl(var(--muted-foreground))",
+  },
+};
+
+function FormSection({ title, icon: Icon, children, className, iconClassName, titleClassName }) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm",
+        className
+      )}
+    >
+      {title && (
+        <div className="flex items-center gap-2 border-b border-border/40 px-4 py-2.5">
+          {Icon && (
+            <Icon className={cn("h-4 w-4 text-muted-foreground", iconClassName)} />
+          )}
+          <p
+            className={cn(
+              "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
+              titleClassName
+            )}
+          >
+            {title}
+          </p>
+        </div>
+      )}
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
+function SegmentToggle({ value, onChange, options, disabled }) {
+  return (
+    <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1">
+      {options.map(opt => {
+        const isActive = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "rounded-lg py-2.5 text-sm font-semibold transition-all active:scale-[0.98]",
+              isActive
+                ? opt.activeClass || "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+              disabled && "opacity-50"
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function TransactionForm({
   open,
@@ -33,6 +113,7 @@ export function TransactionForm({
   suppliers = EMPTY_ARRAY,
   initialData = null,
   defaultSupplierId = null,
+  defaultSupplierName = null,
   quickCaptureData = null,
   initialBillImages,
   autoOpenSupplierDropdown = false,
@@ -326,95 +407,206 @@ export function TransactionForm({
     return confirm("You have unsaved changes. Are you sure you want to close?");
   };
 
+  const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId) || null;
+  const contextSupplierLabel =
+    selectedSupplier?.companyName ||
+    selectedSupplier?.name ||
+    defaultSupplierName ||
+    null;
+  const isSupplierLocked = !!defaultSupplierId;
+  const formTitle = initialData ? "Edit Transaction" : title;
+  const submitLabel = initialData ? "Save changes" : "Add transaction";
+  const canSubmit = !isSubmitting && !!selectedSupplierId && isOnline && !isUploadingBills;
+
   return (
-    <DragCloseDrawer open={open} onOpenChange={v => { if (!v) resetAndClose(); }} beforeClose={handleBeforeClose} height="h-[90vh]">
-        {/* Header with action buttons */}
-        <div className="border-b px-4 pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              disabled={isSubmitting}
-              className="h-9 px-3"
-            >
-              <X className="mr-1 h-4 w-4" />
-              Cancel
-            </Button>
-            <h3 className="flex-1 text-center text-base font-semibold">
-              {initialData ? "Edit Transaction" : title}
-            </h3>
-            <Button
-              size="sm"
-              onClick={handleSubmit(handleFormSubmit)}
-              disabled={isSubmitting || !selectedSupplierId || !isOnline || isUploadingBills}
-              className="h-9 px-3"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Check className="mr-1 h-4 w-4" />
-                  {initialData ? "Save" : "Add"}
-                </>
-              )}
-            </Button>
+    <DragCloseDrawer
+      open={open}
+      onOpenChange={v => {
+        if (!v) resetAndClose();
+      }}
+      beforeClose={handleBeforeClose}
+      height="h-[92vh]"
+    >
+      <DrawerHeader className="border-b border-border/50 px-4 pb-3 pt-0">
+        <div className="flex w-full items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="h-9 w-9 shrink-0"
+            aria-label="Cancel"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
+            <DrawerTitle className="flex items-center justify-center gap-2 text-base">
+              <Receipt className="h-4 w-4 text-primary" />
+              {formTitle}
+            </DrawerTitle>
+            {isSupplierLocked && contextSupplierLabel && (
+              <p className="mt-0.5 max-w-[200px] truncate text-sm font-medium text-muted-foreground">
+                {contextSupplierLabel}
+              </p>
+            )}
           </div>
+          <Button
+            size="sm"
+            onClick={handleSubmit(handleFormSubmit)}
+            disabled={!canSubmit}
+            className="h-9 shrink-0 px-3"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Check className="mr-1 h-4 w-4" />
+                {initialData ? "Save" : "Add"}
+              </>
+            )}
+          </Button>
+        </div>
+      </DrawerHeader>
+
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 px-4 py-4 pb-8">
+        {!isOnline && (
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+            You&apos;re offline. Saving is disabled until you reconnect.
+          </div>
+        )}
+
+        {/* Bill photos — minimal chrome, smart layout inside MultiImageUpload */}
+        <div className="space-y-2">
+          <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Bill photos
+          </p>
+          {pendingFiles.length > 0 ? (
+            <div className="space-y-2">
+              {billImages.length === 1 ? (
+                <div
+                  className="group relative aspect-[16/10] cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm ring-2 ring-primary/30"
+                  onClick={() => handleImageTap(0)}
+                >
+                  <img
+                    src={resolveImageUrl(billImages[0])}
+                    alt="Captured bill"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                    <Expand className="h-6 w-6 text-white opacity-0 group-hover:opacity-70" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="flex min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
+                    {billImages.map((url, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm ring-2 ring-primary/30",
+                          billImages.length === 1
+                            ? "h-24 min-w-0 flex-1"
+                            : "h-24 w-[108px] snap-start"
+                        )}
+                        onClick={() => handleImageTap(index)}
+                      >
+                        <img
+                          src={resolveImageUrl(url)}
+                          alt={`Captured bill ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {pendingFiles.length} photo{pendingFiles.length !== 1 ? "s" : ""} · uploads on save
+              </p>
+              <PhotoGalleryViewer
+                images={billImages}
+                initialIndex={viewerIndex}
+                open={imageViewerOpen}
+                onOpenChange={setImageViewerOpen}
+              />
+            </div>
+          ) : (
+            <MultiImageUpload
+              value={billImages}
+              onChange={setBillImages}
+              maxImages={5}
+              disabled={!isOnline}
+              layout="hero"
+              attachLabel="Attach bill photos"
+              onUploadingChange={setIsUploadingBills}
+              onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+              onSessionStorageKeysRemoved={keys =>
+                removeSessionStorageKeys(sessionUploadKeysRef, keys)
+              }
+              folder="bills"
+            />
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 py-4">
-            {/* Offline warning */}
-            {!isOnline && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-600">
-                You&apos;re offline. Saving is disabled.
-              </div>
-            )}
+        {/* Amount — primary field, directly under photos */}
+        <div className="overflow-hidden rounded-2xl border border-rose-500/25 bg-gradient-to-br from-rose-500/10 to-rose-500/5 p-4 shadow-sm">
+          <label
+            htmlFor="amount"
+            className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Amount (₹) *
+          </label>
+          <div className="relative">
+            <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-rose-600/70 dark:text-rose-400/70" />
+            <input
+              id="amount"
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              {...register("amount", { required: "Amount is required" })}
+              placeholder="0"
+              className="input-hero h-14 pl-12 font-mono text-3xl font-bold tabular-nums tracking-tight [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+          </div>
+          {errors.amount && (
+            <p className="mt-2 text-xs text-destructive">{errors.amount.message}</p>
+          )}
+          {initialData?.paidAmount > 0 && (
+            <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5">
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                Already paid ₹{initialData.paidAmount.toLocaleString("en-IN")}
+                {initialData.payments?.length > 0 && (
+                  <span className="ml-1.5 text-xs font-normal opacity-80">
+                    · {initialData.payments.length} payment
+                    {initialData.payments.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </p>
+              <p className="mt-0.5 text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
+                Payment history is kept when you save.
+              </p>
+            </div>
+          )}
+        </div>
 
-            {/* Supplier Selection */}
-            <div className="space-y-2">
+        {/* Vyapari picker — only when not opened from a supplier chat/profile */}
+        {!isSupplierLocked && (
+          <FormSection title="Vyapari">
+            <div className="rounded-xl bg-muted/50 px-1 py-0.5">
               <Autocomplete
                 options={suppliers}
-                value={suppliers.find(s => s.id === selectedSupplierId) || null}
+                value={selectedSupplier}
                 onChange={(_, newValue) => setSelectedSupplierId(newValue?.id || "")}
-                disabled={!!defaultSupplierId || !isOnline}
+                disabled={!isOnline}
                 getOptionLabel={opt => opt?.companyName || opt?.name || ""}
                 isOptionEqualToValue={(option, value) => option?.id === value?.id}
                 renderInput={params => (
                   <TextField
                     {...params}
-                    label="Vyapari"
-                    placeholder="Select vyapari"
+                    placeholder="Search vyapari…"
                     required
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "hsl(var(--background))",
-                        color: "hsl(var(--foreground))",
-                        "& fieldset": {
-                          borderColor: "hsl(var(--border))",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "hsl(var(--primary))",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "hsl(var(--primary))",
-                        },
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "hsl(var(--muted-foreground))",
-                        "&.Mui-focused": {
-                          color: "hsl(var(--primary))",
-                        },
-                      },
-                      "& .MuiInputBase-input": {
-                        color: "hsl(var(--foreground))",
-                      },
-                      "& .MuiAutocomplete-endAdornment": {
-                        "& .MuiSvgIcon-root": {
-                          color: "hsl(var(--foreground))",
-                        },
-                      },
-                    }}
+                    variant="outlined"
+                    sx={SUPPLIER_AUTOCOMPLETE_SX}
                   />
                 )}
                 renderOption={(props, option) => {
@@ -429,9 +621,13 @@ export function TransactionForm({
                         >
                           {(option.companyName || option.name || "").charAt(0).toUpperCase()}
                         </Avatar>
-                        <div className="flex-1">
-                          <div className="font-medium">{option.companyName || option.name}</div>
-                          {option.phone && <div className="text-xs opacity-70">{option.phone}</div>}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium">
+                            {option.companyName || option.name}
+                          </div>
+                          {option.phone && (
+                            <div className="text-xs opacity-70">{option.phone}</div>
+                          )}
                         </div>
                       </div>
                     </li>
@@ -457,15 +653,11 @@ export function TransactionForm({
                           color: "hsl(var(--foreground))",
                           pointerEvents: "auto",
                           cursor: "pointer",
-                          "&:hover": {
-                            bgcolor: "hsl(var(--accent))",
-                          },
+                          "&:hover": { bgcolor: "hsl(var(--accent))" },
                           '&[aria-selected="true"]': {
                             bgcolor: "hsl(var(--primary) / 0.1)",
                           },
-                          "&.Mui-focused": {
-                            bgcolor: "hsl(var(--accent))",
-                          },
+                          "&.Mui-focused": { bgcolor: "hsl(var(--accent))" },
                         },
                       },
                       "& .MuiAutocomplete-noOptions": {
@@ -475,129 +667,46 @@ export function TransactionForm({
                   },
                   popper: {
                     disablePortal: false,
-                    sx: {
-                      zIndex: 2147483647,
-                    },
+                    sx: { zIndex: 2147483647 },
                     container: typeof document !== "undefined" ? document.body : undefined,
-                    modifiers: [
-                      {
-                        name: "preventOverflow",
-                        enabled: false,
-                      },
-                    ],
+                    modifiers: [{ name: "preventOverflow", enabled: false }],
                   },
                 }}
               />
             </div>
+            {!selectedSupplierId && (
+              <p className="mt-2 text-xs text-destructive">Select a vyapari to continue</p>
+            )}
+          </FormSection>
+        )}
 
-            {/* Bill Images - Moved to top */}
-            <div className="space-y-2">
-              <Label>
-                Bill Photos
-                {pendingFiles.length > 0 && (
-                  <span className="ml-2 text-xs font-normal text-primary">
-                    ({pendingFiles.length} captured)
-                  </span>
-                )}
-              </Label>
-              {pendingFiles.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
-                    {billImages.map((url, index) => (
-                      <div
-                        key={index}
-                        className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg border bg-muted ring-2 ring-primary/50"
-                        onClick={() => handleImageTap(index)}
-                      >
-                        <img
-                          src={resolveImageUrl(url)}
-                          alt={`Captured bill ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                        {/* Tap to expand hint */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                          <Expand className="h-5 w-5 text-white opacity-0 group-hover:opacity-70" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {pendingFiles.length} bill(s) will be uploaded when you save • Tap image to
-                    expand
-                  </p>
-                  {/* Image Viewer for captured images */}
-                  <PhotoGalleryViewer
-                    images={billImages}
-                    initialIndex={viewerIndex}
-                    open={imageViewerOpen}
-                    onOpenChange={setImageViewerOpen}
-                  />
-                </div>
-              ) : (
-                <MultiImageUpload
-                  value={billImages}
-                  onChange={setBillImages}
-                  maxImages={5}
-                  disabled={!isOnline}
-                  onUploadingChange={setIsUploadingBills}
-                  onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-                  onSessionStorageKeysRemoved={keys =>
-                    removeSessionStorageKeys(sessionUploadKeysRef, keys)
-                  }
-                  folder="bills"
-                />
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Amount - Big and prominent */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (₹) *</Label>
-              <Input
-                id="amount"
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                {...register("amount", { required: "Amount is required" })}
-                placeholder="Enter amount"
-                className="h-14 text-2xl font-semibold"
+        {/* Item & date */}
+        <FormSection title="Details" icon={Package}>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="itemName"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Item
+              </label>
+              <input
+                id="itemName"
+                {...register("itemName")}
+                placeholder="Clothes"
+                className="input-hero h-11 text-sm"
               />
-              {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
-              {/* Show existing payment info when editing */}
-              {initialData?.paidAmount > 0 && (
-                <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3">
-                  <p className="text-sm text-green-700">
-                    Already paid: ₹{initialData.paidAmount.toLocaleString()}
-                    {initialData.payments?.length > 0 && (
-                      <span className="ml-2 text-xs">
-                        ({initialData.payments.length} payment
-                        {initialData.payments.length > 1 ? "s" : ""})
-                      </span>
-                    )}
-                  </p>
-                  <p className="mt-1 text-xs text-green-600">
-                    Payment history will be preserved when you save.
-                  </p>
-                </div>
-              )}
             </div>
-
-            {/* Item Name & Date */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="itemName">Item</Label>
-                <Input
-                  id="itemName"
-                  {...register("itemName")}
-                  placeholder="Clothes"
-                  defaultValue="Clothes"
-                  className="h-12"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Date *</Label>
-                <Input
+            <div>
+              <label
+                htmlFor="date"
+                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+              >
+                Date *
+              </label>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
                   id="date"
                   type="date"
                   {...register("date", {
@@ -609,66 +718,111 @@ export function TransactionForm({
                     },
                   })}
                   onChange={e => {
-                    // Prevent future dates (iOS Safari ignores max attribute)
                     const today = getLocalDate();
                     if (e.target.value > today) {
                       e.target.value = today;
                     }
                   }}
                   max={new Date().toISOString().split("T")[0]}
-                  className="h-12"
+                  className="input-hero h-11 pr-10 text-sm"
                 />
               </div>
+              {errors.date && (
+                <p className="mt-1 text-[10px] text-destructive">{errors.date.message}</p>
+              )}
             </div>
+          </div>
+        </FormSection>
 
-            <Separator />
-
-            {/* Payment Info - Using Switches */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Payment Mode</Label>
-                  <p className="text-xs text-muted-foreground">
-                    {isCash ? "Cash payment" : "UPI payment"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">UPI</span>
-                  <Switch checked={isCash} onCheckedChange={setIsCash} />
-                  <span className="text-sm text-muted-foreground">Cash</span>
-                </div>
-              </div>
-
-              <div className={`$ flex items-center justify-between rounded-lg bg-muted/50 p-3`}>
-                <div className="space-y-0.5">
-                  <Label className="text-base">Payment Status</Label>
-                  <p className="text-xs text-muted-foreground">
-                    {isPaid ? "Already paid" : "Payment pending"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Pending</span>
-                  <Switch checked={isPaid} onCheckedChange={setIsPaid} />
-                  <span className="text-sm text-muted-foreground">Paid</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Input
-                id="notes"
-                {...register("notes")}
-                placeholder="Optional notes"
-                className="h-12"
+        <FormSection
+          title="Payment"
+          icon={IndianRupee}
+          iconClassName={isPaid ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}
+          titleClassName={isPaid ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}
+          className={cn(
+            "[&>div:last-child]:py-3 transition-colors",
+            isPaid
+              ? "border-emerald-500/30 bg-emerald-500/[0.06]"
+              : "border-rose-500/30 bg-rose-500/[0.06]"
+          )}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Mode
+              </p>
+              <SegmentToggle
+                value={isCash ? "cash" : "upi"}
+                onChange={v => setIsCash(v === "cash")}
+                disabled={!isOnline}
+                options={[
+                  {
+                    value: "upi",
+                    label: "UPI",
+                    activeClass:
+                      "bg-sky-500/20 text-sky-700 shadow-sm ring-1 ring-sky-500/30 dark:text-sky-400",
+                  },
+                  {
+                    value: "cash",
+                    label: "Cash",
+                    activeClass:
+                      "bg-amber-500/20 text-amber-800 shadow-sm ring-1 ring-amber-500/30 dark:text-amber-400",
+                  },
+                ]}
               />
             </div>
+            <div>
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Status
+              </p>
+              <SegmentToggle
+                value={isPaid ? "paid" : "pending"}
+                onChange={v => setIsPaid(v === "paid")}
+                disabled={!isOnline}
+                options={[
+                  {
+                    value: "pending",
+                    label: "Pending",
+                    activeClass:
+                      "bg-rose-500/20 text-rose-700 shadow-sm ring-1 ring-rose-500/30 dark:text-rose-400",
+                  },
+                  {
+                    value: "paid",
+                    label: "Paid",
+                    activeClass:
+                      "bg-emerald-500/20 text-emerald-700 shadow-sm ring-1 ring-emerald-500/30 dark:text-emerald-400",
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        </FormSection>
 
-            {/* Bottom padding for safe area */}
-            <div className="h-8" />
-          </form>
-        </div>
+        <FormSection title="Notes" icon={StickyNote} className="[&>div:last-child]:py-3">
+          <textarea
+            id="notes"
+            rows={2}
+            {...register("notes")}
+            placeholder="Optional notes…"
+            className="input-hero min-h-[72px] resize-none py-2.5 text-sm leading-relaxed"
+          />
+        </FormSection>
+
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="btn-hero flex h-12 w-full items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            submitLabel
+          )}
+        </button>
+      </form>
     </DragCloseDrawer>
   );
 }

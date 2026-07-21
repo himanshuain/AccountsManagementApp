@@ -2944,6 +2944,7 @@ export default function PersonChatPage() {
             }
             suppliers={suppliers}
             defaultSupplierId={id}
+            defaultSupplierName={person?.companyName || person?.name}
             initialData={editingTransaction || null}
             title="Add Transaction"
           />

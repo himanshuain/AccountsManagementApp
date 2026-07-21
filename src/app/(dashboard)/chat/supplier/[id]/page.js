@@ -443,6 +443,7 @@ export default function SupplierChatPage({ params }) {
         suppliers={suppliers}
         initialData={transactionToEdit}
         defaultSupplierId={id}
+        defaultSupplierName={supplier?.companyName || supplier?.name}
         title={transactionToEdit ? "Edit Bill" : "Add Bill"}
       />
 

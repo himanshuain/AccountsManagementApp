@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Check, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand, Sparkles } from "lucide-react";
+import { Check, X, Image as ImageIcon, Loader2, Camera, ImagePlus, Expand, Sparkles, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
@@ -450,6 +450,8 @@ export function MultiImageUpload({
   folder = "general",
   onImageTap, // Optional callback when image is tapped (index) => void
   showHDToggle = true, // Show HD toggle by default
+  layout = "grid", // "grid" | "hero" — hero = larger attach area for forms
+  attachLabel = "Attach photos",
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -625,6 +627,78 @@ export function MultiImageUpload({
     return urls.original || v;
   });
 
+  const isHero = layout === "hero";
+  const canAddMore = value.length < maxImages;
+
+  const openGallery = () => galleryInputRef.current?.click();
+
+  const renderThumbnail = (storageKey, index) => {
+    const urls = getImageUrls(storageKey);
+    const isBase64 = isDataUrl(storageKey);
+    return (
+      <div
+        key={index}
+        className={cn(
+          "group relative shrink-0 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm",
+          isHero ? "h-24 w-[108px] shrink-0 snap-start" : ""
+        )}
+        onClick={() => handleViewImage(index)}
+      >
+        <MultiImageThumbnail
+          storageKey={storageKey}
+          urls={urls}
+          index={index}
+          isBase64={isBase64}
+        />
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+          <Expand className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+        </div>
+        {!disabled && (
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            className="absolute right-1.5 top-1.5 z-20 h-7 w-7 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleRemove(index);
+            }}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  const renderFixedClipButton = ({ variant = "rail" } = {}) => (
+    <button
+      type="button"
+      onClick={openGallery}
+      disabled={disabled || isUploading}
+      aria-label="Attach photo"
+      className={cn(
+        "flex shrink-0 items-center justify-center transition-colors active:scale-[0.98]",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "rail"
+          ? "h-24 w-14 flex-col gap-1 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-card shadow-sm hover:border-primary/40 hover:bg-muted/40"
+          : "absolute bottom-2.5 right-2.5 z-20 h-11 w-11 rounded-full border border-border/60 bg-background/95 shadow-md backdrop-blur-sm hover:bg-muted"
+      )}
+    >
+      {isUploading ? (
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <Paperclip className="h-5 w-5 text-primary" strokeWidth={1.75} />
+          {variant === "rail" && (
+            <span className="text-[9px] font-medium text-muted-foreground">Add</span>
+          )}
+        </>
+      )}
+    </button>
+  );
+
   return (
     <>
       <div className="space-y-3">
@@ -648,93 +722,167 @@ export function MultiImageUpload({
           disabled={disabled || isUploading}
         />
 
-        {/* Image grid */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {value.map((storageKey, index) => {
-            const urls = getImageUrls(storageKey);
-            const isBase64 = isDataUrl(storageKey);
-            return (
-              <div
-                key={index}
-                className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border bg-muted"
-                onClick={() => handleViewImage(index)}
+        {isHero ? (
+          <div className="space-y-2">
+            {value.length === 0 ? (
+              <button
+                type="button"
+                onClick={openGallery}
+                disabled={disabled || isUploading}
+                className="flex min-h-[100px] w-full items-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 active:scale-[0.99] disabled:opacity-50"
               >
-                {/* Render optimized thumbnail with LQIP */}
-                <MultiImageThumbnail
-                  storageKey={storageKey}
-                  urls={urls}
-                  index={index}
-                  isBase64={isBase64}
-                />
-                {/* Hover overlay */}
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                  <Expand className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                {isUploading ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <Paperclip className="h-6 w-6 text-primary" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{attachLabel}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Up to {maxImages} photos · tap to attach
+                      </p>
+                    </div>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <div className="flex min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
+                  {value.map((storageKey, index) => {
+                    const urls = getImageUrls(storageKey);
+                    const isBase64 = isDataUrl(storageKey);
+                    return (
+                      <div
+                        key={index}
+                        className={cn(
+                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm",
+                          value.length === 1
+                            ? "h-24 min-w-0 flex-1"
+                            : "h-24 w-[108px] snap-start"
+                        )}
+                        onClick={() => handleViewImage(index)}
+                      >
+                        <MultiImageThumbnail
+                          storageKey={storageKey}
+                          urls={urls}
+                          index={index}
+                          isBase64={isBase64}
+                        />
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                          <Expand className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                        </div>
+                        {!disabled && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute right-1.5 top-1.5 z-20 h-7 w-7 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            onClick={e => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRemove(index);
+                            }}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                {!disabled && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute right-1 top-1 z-20 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleRemove(index);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                {canAddMore && renderFixedClipButton({ variant: "rail" })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Default compact grid */
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {value.map((storageKey, index) => {
+              const urls = getImageUrls(storageKey);
+              const isBase64 = isDataUrl(storageKey);
+              return (
+                <div
+                  key={index}
+                  className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border bg-muted"
+                  onClick={() => handleViewImage(index)}
+                >
+                  <MultiImageThumbnail
+                    storageKey={storageKey}
+                    urls={urls}
+                    index={index}
+                    isBase64={isBase64}
+                  />
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                    <Expand className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                  {!disabled && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute right-1 top-1 z-20 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemove(index);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+
+            {canAddMore && (
+              <div
+                className={cn(
+                  "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
+                  "flex flex-col items-center justify-center gap-2 p-2",
+                  "disabled:cursor-not-allowed disabled:opacity-50"
+                )}
+              >
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => cameraInputRef.current?.click()}
+                        disabled={disabled || isUploading}
+                      >
+                        <Camera className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={openGallery}
+                        disabled={disabled || isUploading}
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <span className="text-center text-[10px] text-muted-foreground">Add Photo</span>
+                  </>
                 )}
               </div>
-            );
-          })}
-
-          {/* Add more buttons */}
-          {value.length < maxImages && (
-            <div
-              className={cn(
-                "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
-                "flex flex-col items-center justify-center gap-2 p-2",
-                "disabled:cursor-not-allowed disabled:opacity-50"
-              )}
-            >
-              {isUploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
-                <>
-                  <div className="flex gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => cameraInputRef.current?.click()}
-                      disabled={disabled || isUploading}
-                    >
-                      <Camera className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => galleryInputRef.current?.click()}
-                      disabled={disabled || isUploading}
-                    >
-                      <ImagePlus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <span className="text-center text-[10px] text-muted-foreground">Add Photo</span>
-                </>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* HD Toggle and info */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 pt-0.5">
           <p className="text-xs text-muted-foreground">
-            {value.length} of {maxImages} images • Tap to view
+            {value.length} of {maxImages}
+            {value.length > 0 ? " · Tap to view" : ""}
           </p>
           {showHDToggle && (
             <button
