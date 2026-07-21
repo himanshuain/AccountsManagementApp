@@ -17,7 +17,7 @@ export default function LegacyDashboardLayout({ children }) {
       "/": "/", // Home stays at /
       "/suppliers": "/", // Suppliers now in home
       "/customers": "/", // Customers now in home
-      "/transactions": "/history", // Transactions -> History
+      "/transactions": "/",
       "/reports": "/settings", // Reports -> Settings (with reports modal)
     };
 

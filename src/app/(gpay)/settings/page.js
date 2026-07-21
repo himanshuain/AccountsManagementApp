@@ -2,11 +2,13 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "motion/react";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import {
   ChevronRight,
+  ArrowLeft,
   IndianRupee,
   Download,
   Upload,
@@ -1588,11 +1590,20 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-4">
-        <h1 className="font-heading text-2xl tracking-wide">Settings</h1>
+      <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted"
+            aria-label="Back to home"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="font-heading text-xl tracking-wide">Settings</h1>
+        </div>
       </div>
 
-      <div className="space-y-6 px-4 py-4 pb-24">
+      <div className="space-y-6 px-4 py-4 pb-safe">
         <details className="group">
           <summary className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground cursor-pointer list-none flex items-center gap-1">
             <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />

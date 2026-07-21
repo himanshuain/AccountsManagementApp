@@ -192,7 +192,46 @@ function TransactionDetailModal({
   };
 
   return (
-    <DragCloseDrawer open={!!txn} onOpenChange={v => !v && onClose()} height="h-[92vh]">
+    <DragCloseDrawer
+      open={!!txn}
+      onOpenChange={v => !v && onClose()}
+      height="h-[92vh]"
+      footer={
+        <div className="space-y-2 px-4 pt-3">
+          {!isPaid && (
+            <button
+              onClick={() => onRecordPayment(txn)}
+              className="btn-hero flex h-11 w-full items-center justify-center gap-2 text-sm font-semibold"
+            >
+              <CreditCard className="h-4 w-4" />
+              Record Payment
+            </button>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                onClose();
+                onEdit(txn);
+              }}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                onDelete(txn);
+              }}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+        </div>
+      }
+    >
       {/* Image Carousel or Amount Hero */}
       {hasImages ? (
         <SwipeCarousel
@@ -486,39 +525,6 @@ function TransactionDetailModal({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className="mt-6 space-y-2 border-t border-border px-4 pt-4">
-        {!isPaid && (
-          <button
-            onClick={() => onRecordPayment(txn)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white transition-colors hover:bg-emerald-700"
-          >
-            <CreditCard className="h-5 w-5" />
-            Record Payment
-          </button>
-        )}
-        <button
-          onClick={() => {
-            onClose();
-            onEdit(txn);
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted px-4 py-3 font-medium transition-colors hover:bg-accent"
-        >
-          <Pencil className="h-5 w-5" />
-          Edit Transaction
-        </button>
-        <button
-          onClick={() => {
-            onClose();
-            onDelete(txn);
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 font-medium text-destructive transition-colors hover:bg-destructive/20"
-        >
-          <Trash2 className="h-5 w-5" />
-          Delete Transaction
-        </button>
       </div>
     </DragCloseDrawer>
   );
@@ -1848,7 +1854,7 @@ export default function PersonChatPage() {
         </div>
 
         {/* Bottom Action Bar Skeleton */}
-        <div className="header-glass sticky bottom-14 border-t border-border p-3">
+        <div className="header-glass sticky bottom-0 border-t border-border p-3 pb-safe">
           <div className="flex items-center gap-2">
             <div className="h-10 w-16 animate-pulse rounded-xl bg-muted" />
             <div className="h-10 w-24 animate-pulse rounded-xl bg-muted" />
@@ -2172,7 +2178,7 @@ export default function PersonChatPage() {
       {/* Bills list or payment ledger */}
       <div
         ref={scrollRef}
-        className="mb-nav flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4"
+        className="pb-bottom-bar flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4"
       >
         {isSupplier && profileTab === "payments" ? (
           searchQuery && filteredPaymentCount === 0 ? (
@@ -2267,8 +2273,8 @@ export default function PersonChatPage() {
         )}
       </div>
 
-      {/* Bottom Action Bar - Fixed above nav */}
-      <div className="header-glass fixed bottom-14 left-0 right-0 z-20 border-t border-border px-3 py-2">
+      {/* Bottom Action Bar */}
+      <div className="header-glass fixed bottom-0 left-0 right-0 z-20 border-t border-border px-3 pt-2 pb-safe">
         <div className="flex items-center gap-2">
           {/* UPI Pay Button */}
           {person.upiId && (
@@ -2461,7 +2467,7 @@ export default function PersonChatPage() {
             </div>
 
             {/* Contact Info */}
-            <div className="pb-nav space-y-3 px-4">
+            <div className="pb-safe space-y-3 px-4">
               {/* Phone */}
               {person.phone && (
                 <div className="flex items-center justify-between rounded-xl bg-muted p-4">

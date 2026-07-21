@@ -464,7 +464,8 @@
 
 /* Floating Action Button */
 .fab-hero {
-  @apply fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg;
+  @apply fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full shadow-lg;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   transition: all 0.2s ease;
@@ -694,9 +695,9 @@ input[type="datetime-local"] {
     padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
 
-  /* Bottom nav spacing - use this on main content areas */
+  /* Legacy alias — bottom nav removed; safe-area padding only */
   .pb-nav {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
 
   /* Extra padding for FAB + nav */
@@ -704,9 +705,14 @@ input[type="datetime-local"] {
     padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Margin bottom for nav */
+  /* Space for fixed bottom action bars (person page, etc.) */
+  .pb-bottom-bar {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Legacy alias — bottom nav removed */
   .mb-nav {
-    margin-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
   }
 
   /* Hardware acceleration */

@@ -17,7 +17,9 @@ import {
   PiggyBank,
   ArrowUpRight,
   ArrowDownLeft,
+  Settings,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { useSuppliers } from "@/hooks/useSuppliers";
@@ -393,7 +395,7 @@ export default function GPayHomePage() {
   const isStatsLoading = statsLoading && !statsData;
 
   return (
-    <div className="min-h-screen pb-20 lg:mx-auto lg:max-w-6xl xl:max-w-7xl">
+    <div className="min-h-screen lg:mx-auto lg:max-w-6xl xl:max-w-7xl">
       {/* Search Bar */}
       <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
@@ -460,11 +462,17 @@ export default function GPayHomePage() {
             )}
           >
             <SlidersHorizontal className="h-5 w-5" />
-            {/* Badge when filters active */}
             {hasActiveFilters && !showFilters && (
               <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
             )}
           </button>
+          <Link
+            href="/settings"
+            className="flex-shrink-0 rounded-xl bg-muted p-3 transition-colors hover:bg-accent"
+            aria-label="Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
         </div>
 
         {/* Filter & Sort Options */}
@@ -826,7 +834,7 @@ export default function GPayHomePage() {
             transition={{ duration: 0.2 }}
           >
             <motion.div
-              className="pb-nav w-full max-w-md rounded-t-3xl bg-card p-6"
+              className="pb-safe w-full max-w-md rounded-t-3xl bg-card p-6"
               onClick={e => e.stopPropagation()}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}

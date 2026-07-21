@@ -18,6 +18,8 @@ function DragCloseDrawer({
   onOpenChange,
   beforeClose,
   children,
+  footer,
+  contentClassName,
   className,
   height = "h-[75vh]",
   overlayClassName,
@@ -190,10 +192,19 @@ function DragCloseDrawer({
         </div>
         <div
           ref={contentRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-nav"
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+            footer ? "pb-4" : "pb-safe",
+            contentClassName
+          )}
         >
           {children}
         </div>
+        {footer ? (
+          <div className="shrink-0 border-t border-border/60 bg-card/95 backdrop-blur-md pb-safe">
+            {footer}
+          </div>
+        ) : null}
       </motion.div>
     </motion.div>,
     document.body

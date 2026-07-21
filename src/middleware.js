@@ -63,7 +63,6 @@ export const config = {
     // Match all API routes except static files
     "/api/:path*",
     // Match GPay routes
-    "/history/:path*",
     "/settings/:path*",
     "/person/:path*",
     // Match legacy dashboard routes (will redirect)
