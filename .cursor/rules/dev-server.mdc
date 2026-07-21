@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+# Dev server stability
+
+## Node
+Use Node **20.11.0** (`nvm use` — matches `.nvmrc` and `package.json` engines).
+
+## Never corrupt `.next` while dev is running
+- Do **not** run `rm -rf .next`, `npm run build`, or `dev:clean` while `npm run dev` / `npm run dev:vpn` is active.
+- If the UI breaks after edits: tell the user to stop dev, run `npm run dev:clean` (or `npm run dev:vpn:clean`), then hard-refresh the browser.
+- Do not run production builds to "verify" after every change unless the user asks.
+
+## Scripts
+| Command | Use |
+|---------|-----|
+| `npm run dev` | Normal local dev |
+| `npm run dev:vpn` | Dev with relaxed TLS (ImageKit/R2 on VPN) |
+| `npm run dev:clean` | Wipe cache + dev (use after HMR stuck / chunk errors) |
+| `npm run dev:vpn:clean` | Same with VPN TLS flag |
+
+## Config notes
+- `reactCompiler` is **off in dev**, **on in production** (`next.config.mjs`) for stable Fast Refresh.
+- Stale `.next` symptoms: `Cannot find module './NNNN.js'`, blank page, 404 on `_next/static/chunks`.

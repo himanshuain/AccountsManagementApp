@@ -1,4 +1,6 @@
 ---
 alwaysApply: true
 ---
-Use node version 20.11.0
+Use node version 20.11.0 (see `.nvmrc` and `package.json` engines).
+
+For dev server workflow and cache rules, see `dev-server.mdc`.
