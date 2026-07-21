@@ -35,6 +35,7 @@ import {
   ChevronRight,
   ArrowUpWideNarrow,
   ArrowDownWideNarrow,
+  Undo2,
 } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
@@ -70,6 +71,7 @@ import {
   filterPaymentLedgerGroups,
   countPaymentLedgerEntries,
   isLumpsumPayment,
+  getPaymentDisplayNote,
 } from "@/lib/payment-ledger";
 import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { Separator } from "@/components/ui/separator";
@@ -529,10 +531,29 @@ function TransactionDetailModal({
   onRecordPayment,
   onDeletePayment,
   onEditPayment,
+  focusPaymentId = null,
 }) {
   const [showPayments, setShowPayments] = useState(true);
   const [deletingPaymentId, setDeletingPaymentId] = useState(null);
   const [paymentToDelete, setPaymentToDelete] = useState(null);
+  const [highlightedPaymentId, setHighlightedPaymentId] = useState(null);
+  const paymentRefs = useRef({});
+
+  useEffect(() => {
+    if (!focusPaymentId || !txn) return;
+
+    setShowPayments(true);
+    const timer = setTimeout(() => {
+      const el = paymentRefs.current[focusPaymentId];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedPaymentId(focusPaymentId);
+        setTimeout(() => setHighlightedPaymentId(null), 3000);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [focusPaymentId, txn?.id]);
 
   if (!txn) return null;
 
@@ -739,7 +760,16 @@ function TransactionDetailModal({
                     return (
                       <div
                         key={payment.id || idx}
-                        className="group flex items-start gap-3 rounded-xl bg-muted/50 p-3"
+                        ref={el => {
+                          const refKey = payment.id || `idx-${idx}`;
+                          if (el) paymentRefs.current[refKey] = el;
+                          else delete paymentRefs.current[refKey];
+                        }}
+                        className={cn(
+                          "group flex items-start gap-3 rounded-xl bg-muted/50 p-3 transition-all duration-500",
+                          highlightedPaymentId === (payment.id || `idx-${idx}`) &&
+                            "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        )}
                       >
                         <div className="flex flex-col items-center pt-1">
                           <div className="h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
@@ -948,41 +978,42 @@ function sortPaymentLedgerChronologically(entries, order = "oldest") {
 
 function LumpsumChildRow({ entry, onGoToBill }) {
   const amount = Number(entry.payment.amount) || 0;
+  const paymentId = entry.payment?.id;
 
   return (
-    <button
-      type="button"
-      onClick={() => onGoToBill(entry.txnId)}
-      className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2.5 text-left transition-colors hover:bg-muted/70 active:scale-[0.99]"
-    >
-      <span className="flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400">
+    <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-foreground">{entry.billLabel}</p>
+        <p className="font-mono text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+          ₹{amount.toLocaleString("en-IN")}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onGoToBill(entry.txnId, paymentId)}
+        className="flex shrink-0 items-center gap-1 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-medium text-sky-600 transition-colors hover:bg-sky-500/15 active:scale-[0.98] dark:text-sky-400"
+      >
         View bill
         <ChevronRight className="h-3.5 w-3.5" />
-      </span>
-      <span className="shrink-0 font-mono text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-        ₹{amount.toLocaleString("en-IN")}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 
 function PaymentLedgerEntryCard({ entry, onGoToBill }) {
   const { payment, txnId } = entry;
   const amount = Number(payment.amount) || 0;
-  const isLumpsumLine = isLumpsumPayment(payment);
+  const displayNote = getPaymentDisplayNote(payment.notes);
+  const hasMeta = payment.isReturn || displayNote;
 
   return (
-    <button
-      type="button"
-      onClick={() => onGoToBill(txnId)}
-      className="flex w-full items-start gap-3 rounded-2xl border border-border/50 bg-card p-3.5 text-left shadow-sm transition-colors hover:bg-accent/40 active:scale-[0.99]"
-    >
+    <div className="flex w-full items-start gap-3 rounded-2xl border border-border/50 bg-card p-3.5 shadow-sm">
       <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
         <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Paid on
             </p>
@@ -997,7 +1028,7 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
           </div>
           <p
             className={cn(
-              "shrink-0 font-mono text-base font-bold tabular-nums",
+              "shrink-0 font-mono text-base font-bold tabular-nums leading-tight",
               payment.isReturn
                 ? "text-blue-600 dark:text-blue-400"
                 : "text-emerald-600 dark:text-emerald-400"
@@ -1007,35 +1038,69 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
           </p>
         </div>
 
-        {(payment.isReturn || (payment.notes && !isLumpsumLine)) && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div
+          className={cn(
+            "flex items-center justify-between gap-2",
+            hasMeta ? "mt-2.5" : "mt-2"
+          )}
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             {payment.isReturn && (
               <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
                 Goods return
               </span>
             )}
-            {payment.notes && !isLumpsumLine && (
-              <span className="line-clamp-1 text-[10px] text-muted-foreground">{payment.notes}</span>
+            {displayNote && (
+              <span className="line-clamp-1 text-[10px] text-muted-foreground">{displayNote}</span>
             )}
           </div>
-        )}
-
-        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400">
-          View bill
-          <ChevronRight className="h-3.5 w-3.5" />
-        </p>
+          <button
+            type="button"
+            onClick={() => onGoToBill(txnId, payment.id)}
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-medium text-sky-600 transition-colors hover:bg-sky-500/15 active:scale-[0.98] dark:text-sky-400"
+          >
+            View bill
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 
-function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
+function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndoLumpsum }) {
+  const [confirmUndo, setConfirmUndo] = useState(false);
+  const [isUndoing, setIsUndoing] = useState(false);
   const billCount = group.children.length;
   const allocatedTotal = group.children.reduce(
     (sum, e) => sum + (Number(e.payment.amount) || 0),
     0
   );
   const displayTotal = group.lumpsumTotal ?? allocatedTotal;
+  const groupPayment = group.children[0]?.payment;
+  const isReturn = !!groupPayment?.isReturn;
+  const displayNote = getPaymentDisplayNote(groupPayment?.notes);
+
+  const handleUndoClick = async e => {
+    e.stopPropagation();
+    if (!confirmUndo) {
+      setConfirmUndo(true);
+      return;
+    }
+    setIsUndoing(true);
+    try {
+      await onUndoLumpsum(group.children);
+      setConfirmUndo(false);
+    } catch {
+      /* toast handled by parent */
+    } finally {
+      setIsUndoing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!expanded) setConfirmUndo(false);
+  }, [expanded]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
@@ -1048,8 +1113,8 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
           <Wallet className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Lumpsum paid on
               </p>
@@ -1061,18 +1126,16 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
                   timeFrom={group.date}
                 />
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {billCount} bill{billCount !== 1 ? "s" : ""}
-                {allocatedTotal !== displayTotal && (
-                  <span>
-                    {" "}
-                    · ₹{allocatedTotal.toLocaleString("en-IN")} allocated
-                  </span>
-                )}
-              </p>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <p className="font-mono text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+            <div className="flex shrink-0 flex-col items-end gap-0.5">
+              <p
+                className={cn(
+                  "font-mono text-base font-bold tabular-nums leading-tight",
+                  isReturn
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-emerald-600 dark:text-emerald-400"
+                )}
+              >
                 ₹{displayTotal.toLocaleString("en-IN")}
               </p>
               <ChevronDown
@@ -1083,6 +1146,23 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
               />
             </div>
           </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[10px] text-muted-foreground">
+              {billCount} bill{billCount !== 1 ? "s" : ""}
+              {allocatedTotal !== displayTotal && (
+                <span> · ₹{allocatedTotal.toLocaleString("en-IN")} allocated</span>
+              )}
+            </span>
+            {isReturn && (
+              <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                Goods return
+              </span>
+            )}
+            {displayNote && (
+              <span className="line-clamp-1 text-[10px] text-muted-foreground">{displayNote}</span>
+            )}
+          </div>
         </div>
       </button>
 
@@ -1091,13 +1171,62 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill }) {
           {group.children.map(entry => (
             <LumpsumChildRow key={entry.key} entry={entry} onGoToBill={onGoToBill} />
           ))}
+
+          {confirmUndo ? (
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+              <p className="text-sm font-medium text-destructive">
+                Undo lumpsum of ₹{displayTotal.toLocaleString("en-IN")}?
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Removes payments from {billCount} bill{billCount !== 1 ? "s" : ""}. Pending amounts
+                will be restored.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmUndo(false)}
+                  disabled={isUndoing}
+                  className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUndoClick}
+                  disabled={isUndoing}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {isUndoing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Undoing...
+                    </>
+                  ) : (
+                    <>
+                      <Undo2 className="h-3.5 w-3.5" />
+                      Confirm undo
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleUndoClick}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 active:scale-[0.99]"
+            >
+              <Undo2 className="h-4 w-4" />
+              Undo lumpsum payment
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function SupplierPaymentLedger({ groups, onGoToBill }) {
+function SupplierPaymentLedger({ groups, onGoToBill, onUndoLumpsum }) {
   const [expandedLumpsum, setExpandedLumpsum] = useState(() => new Set());
 
   const toggleLumpsum = useCallback(groupKey => {
@@ -1140,6 +1269,7 @@ function SupplierPaymentLedger({ groups, onGoToBill }) {
             expanded={expandedLumpsum.has(group.groupKey)}
             onToggle={() => toggleLumpsum(group.groupKey)}
             onGoToBill={onGoToBill}
+            onUndoLumpsum={onUndoLumpsum}
           />
         );
       })}
@@ -1340,6 +1470,7 @@ export default function PersonChatPage() {
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [focusPaymentId, setFocusPaymentId] = useState(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewerImages, setViewerImages] = useState([]);
@@ -1565,12 +1696,26 @@ export default function PersonChatPage() {
     setProfileTab("bills");
     setSearchQuery("");
     setSelectedTransaction(null);
+    setFocusPaymentId(null);
     setTimeout(() => {
       txnRefs.current[txnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
       setHighlightedTxn(txnId);
       setTimeout(() => setHighlightedTxn(null), 3000);
     }, 150);
   }, []);
+
+  const openBillDrawerAtPayment = useCallback(
+    (txnId, paymentId) => {
+      const txn = personTransactions.find(t => t.id === txnId);
+      if (!txn) {
+        toast.error("Bill not found");
+        return;
+      }
+      setFocusPaymentId(paymentId || null);
+      setSelectedTransaction(txn);
+    },
+    [personTransactions]
+  );
 
   // Track if we've already processed the highlight to prevent re-triggering on refresh
   const highlightProcessedRef = useRef(false);
@@ -1843,7 +1988,7 @@ export default function PersonChatPage() {
             payment.receiptUrls,
             payment.lumpsumPaidAt || null,
             payment.notes,
-            false,
+            payment.isReturn ?? false,
             lumpsum
           );
         } else {
@@ -1853,7 +1998,7 @@ export default function PersonChatPage() {
             payment.receiptUrls,
             payment.notes,
             payment.lumpsumPaidAt || null,
-            false,
+            payment.isReturn ?? false,
             lumpsum
           );
         }
@@ -1948,9 +2093,38 @@ export default function PersonChatPage() {
         } else {
           toast.error(result.error || "Failed to delete payment");
         }
+        return result;
       } catch (err) {
         toast.error("Failed to delete payment");
+        return { success: false, error: err.message };
       }
+    },
+    [isSupplier, deleteTransactionPayment, deleteUdharPayment]
+  );
+
+  const handleUndoLumpsumPayment = useCallback(
+    async children => {
+      const deleteFn = isSupplier ? deleteTransactionPayment : deleteUdharPayment;
+      let undone = 0;
+
+      for (const entry of children) {
+        const paymentId = entry.payment?.id;
+        if (!paymentId) {
+          toast.error("Cannot undo: payment record is missing an id");
+          throw new Error("Missing payment id");
+        }
+
+        const result = await deleteFn(entry.txnId, paymentId);
+        if (!result?.success) {
+          toast.error(result?.error || "Failed to undo lumpsum on one of the bills");
+          throw new Error(result?.error || "Undo failed");
+        }
+        undone++;
+      }
+
+      toast.success(
+        `Undid lumpsum payment on ${undone} bill${undone !== 1 ? "s" : ""}`
+      );
     },
     [isSupplier, deleteTransactionPayment, deleteUdharPayment]
   );
@@ -2409,7 +2583,8 @@ export default function PersonChatPage() {
           ) : (
             <SupplierPaymentLedger
               groups={filteredPaymentLedger}
-              onGoToBill={scrollToTransaction}
+              onGoToBill={openBillDrawerAtPayment}
+              onUndoLumpsum={handleUndoLumpsumPayment}
             />
           )
         ) : groupedByDate.length === 0 ? (
@@ -2470,7 +2645,10 @@ export default function PersonChatPage() {
                       isSupplier={isSupplier}
                       isPaid={isPaid}
                       isHighlighted={highlightedTxn === txn.id}
-                      onTap={setSelectedTransaction}
+                      onTap={txn => {
+                        setFocusPaymentId(null);
+                        setSelectedTransaction(txn);
+                      }}
                       onPay={handleOpenPaymentForm}
                       onViewImages={handleViewImages}
                     />
@@ -2565,7 +2743,11 @@ export default function PersonChatPage() {
         <TransactionDetailModal
           txn={selectedTransaction}
           isSupplier={isSupplier}
-          onClose={() => setSelectedTransaction(null)}
+          focusPaymentId={focusPaymentId}
+          onClose={() => {
+            setSelectedTransaction(null);
+            setFocusPaymentId(null);
+          }}
           onEdit={handleEditTransaction}
           onDelete={txn => {
             setTransactionToDelete(txn);

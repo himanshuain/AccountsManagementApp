@@ -261,7 +261,7 @@ export default function SupplierChatPage({ params }) {
         payment.receiptUrls,
         payment.lumpsumPaidAt || null,
         payment.notes,
-        false,
+        payment.isReturn ?? false,
         lumpsum
       );
       if (!result.success) {

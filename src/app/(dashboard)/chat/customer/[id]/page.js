@@ -316,7 +316,7 @@ export default function CustomerChatPage({ params }) {
         payment.receiptUrls,
         payment.notes,
         payment.lumpsumPaidAt || null,
-        false,
+        payment.isReturn ?? false,
         lumpsum
       );
       if (!result?.success) {

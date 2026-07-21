@@ -1,6 +1,13 @@
 /** Display-only note tag from LumpsumPaymentDrawer (not used for grouping) */
 export const LUMPSUM_NOTE_PREFIX = "Paid in Lumpsum of ₹";
 
+/** User-facing note on a payment row (hides auto lumpsum tag text). */
+export function getPaymentDisplayNote(notes) {
+  if (!notes?.trim()) return null;
+  if (notes.startsWith(LUMPSUM_NOTE_PREFIX)) return null;
+  return notes.trim();
+}
+
 /** Legacy records: cluster lumpsum lines within this window (ms) */
 const LEGACY_LUMPSUM_WINDOW_MS = 60 * 60 * 1000;
 

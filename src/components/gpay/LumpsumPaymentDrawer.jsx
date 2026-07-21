@@ -77,6 +77,8 @@ export function LumpsumPaymentDrawer({
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isReturn, setIsReturn] = useState(false);
   const [receiptImages, setReceiptImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +90,8 @@ export function LumpsumPaymentDrawer({
 
   const resetForm = useCallback(() => {
     setAmount("");
+    setNotes("");
+    setIsReturn(false);
     setReceiptImages([]);
     setIsUploading(false);
     setIsSubmitting(false);
@@ -200,6 +204,7 @@ export function LumpsumPaymentDrawer({
       const lumpsumTag = `Paid in Lumpsum of ₹${parsedAmount.toLocaleString("en-IN")}`;
       const lumpsumId = crypto.randomUUID();
       const lumpsumPaidAt = new Date().toISOString();
+      const paymentNotes = notes.trim() || lumpsumTag;
       const payments = [];
       let remaining = parsedAmount;
 
@@ -216,7 +221,8 @@ export function LumpsumPaymentDrawer({
           id: item.id,
           amount: payAmount,
           receiptUrls: receiptImages.length > 0 ? receiptImages : null,
-          notes: lumpsumTag,
+          notes: paymentNotes,
+          isReturn,
           lumpsumId,
           lumpsumTotal: parsedAmount,
           lumpsumPaidAt,
@@ -374,6 +380,39 @@ export function LumpsumPaymentDrawer({
             >
               Full — ₹{totalPending.toLocaleString("en-IN")}
             </button>
+
+            <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+              <div>
+                <p className="text-sm font-medium">Return (GR)</p>
+                <p className="text-xs text-muted-foreground">Mark as goods return</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReturn(prev => !prev)}
+                className={cn(
+                  "relative h-6 w-11 rounded-full transition-colors",
+                  isReturn ? "bg-blue-500" : "bg-muted-foreground/30"
+                )}
+              >
+                <div
+                  className={cn(
+                    "absolute top-1 h-4 w-4 rounded-full bg-white transition-transform",
+                    isReturn ? "translate-x-6" : "translate-x-1"
+                  )}
+                />
+              </button>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm text-muted-foreground">Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Payment notes..."
+                className="input-hero min-h-[60px] resize-none"
+              />
+            </div>
 
             {/* Receipt Images */}
             <div>
