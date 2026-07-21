@@ -73,8 +73,17 @@ import {
 import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, EditPaymentModal, BillsGalleryModal } from "@/components/person";
+import { UnavailableImageText } from "@/components/UnavailableImageText";
 
-function LoadingImg({ src, alt, className, onClick, loading = "eager", fallbackSrc }) {
+function LoadingImg({
+  src,
+  alt,
+  className,
+  onClick,
+  loading = "eager",
+  fallbackSrc,
+  onUnavailable,
+}) {
   const [activeSrc, setActiveSrc] = useState(src);
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -92,37 +101,59 @@ function LoadingImg({ src, alt, className, onClick, loading = "eager", fallbackS
       return;
     }
     setErrored(true);
+    onUnavailable?.();
   };
+
+  if (errored) {
+    return (
+      <UnavailableImageText
+        label={alt || "Photo"}
+        className="text-[10px]"
+        hint={null}
+      />
+    );
+  }
 
   return (
     <>
-      {!loaded && !errored && (
+      {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        </div>
-      )}
-      {errored && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1 text-center">
-          <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
-          <span className="text-[8px] font-medium leading-tight text-muted-foreground/60">
-            Unavailable
-          </span>
         </div>
       )}
       <img
         src={activeSrc}
         alt={alt}
-        className={cn(
-          className,
-          "transition-opacity",
-          loaded && !errored ? "opacity-100" : "opacity-0"
-        )}
+        className={cn(className, "transition-opacity", loaded ? "opacity-100" : "opacity-0")}
         loading={loading}
         onLoad={() => setLoaded(true)}
         onError={handleError}
         onClick={onClick}
       />
     </>
+  );
+}
+
+function ReceiptThumb({ src, alt, onClick }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return <UnavailableImageText label={alt} className="self-center text-[10px]" hint={null} />;
+  }
+
+  return (
+    <div
+      onClick={onClick}
+      className="relative h-12 w-12 cursor-pointer overflow-hidden rounded-lg bg-muted transition-opacity hover:opacity-80"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover"
+        onError={() => setFailed(true)}
+      />
+    </div>
   );
 }
 
@@ -173,9 +204,10 @@ function TransactionDetailModal({
     Number(txn.paidAmount) || payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const remainingAmount = Math.max(0, totalAmount - paidAmount);
 
-  const resolvedImages = images.map(img => ({
+  const resolvedImages = images.map((img, i) => ({
     src: resolveImageUrl(img),
-    alt: isSupplier ? "Bill" : "Photo",
+    alt: isSupplier ? "Bill photo" : "Photo",
+    index: i,
   }));
 
   const handleDeletePayment = async paymentId => {
@@ -241,6 +273,7 @@ function TransactionDetailModal({
           aspectRatio="aspect-[4/3]"
           showGradientEdges={false}
           autoPlay={false}
+          unavailableLabel={isSupplier ? "Bill photo" : "Photo"}
         />
       ) : (
         <div className="mx-4 mb-4 flex aspect-[16/10] w-auto flex-col items-center justify-center gap-3 rounded-2xl bg-muted/50">
@@ -454,19 +487,14 @@ function TransactionDetailModal({
                           )}
 
                           {hasReceipts && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
                               {receipts.map((receipt, rIdx) => (
-                                <div
+                                <ReceiptThumb
                                   key={rIdx}
+                                  src={resolveImageUrl(receipt)}
+                                  alt={`Receipt ${rIdx + 1}`}
                                   onClick={() => onViewImages(receipts, rIdx)}
-                                  className="relative h-12 w-12 cursor-pointer overflow-hidden rounded-lg bg-muted transition-opacity hover:opacity-80"
-                                >
-                                  <LoadingImg
-                                    src={resolveImageUrl(receipt)}
-                                    alt={`Receipt ${rIdx + 1}`}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
+                                />
                               ))}
                               <div className="ml-1 self-center text-[10px] text-muted-foreground">
                                 {receipts.length} receipt{receipts.length > 1 ? "s" : ""}
@@ -913,8 +941,15 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   const thumbFallback = firstImageRef ? resolveImageUrl(firstImageRef) : "";
   const thumbSrc = thumbUrls?.thumbnail || thumbUrls?.medium || thumbUrls?.src || thumbFallback;
 
+  const [thumbUnavailable, setThumbUnavailable] = useState(false);
+
+  useEffect(() => {
+    setThumbUnavailable(false);
+  }, [firstImageRef, thumbSrc]);
+
   const photoWord = isSupplier ? "bill" : "photo";
   const photoWordPlural = isSupplier ? "bills" : "photos";
+  const photoLabel = isSupplier ? "Bill photo" : "Photo";
 
   return (
     <div
@@ -925,45 +960,45 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
       )}
     >
       <div className="flex gap-3">
-        <div className="relative h-[120px] w-[96px] shrink-0 self-start">
-          {hasImages && thumbSrc ? (
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation();
-                onViewImages(images, 0);
-              }}
-              className="relative block h-full w-full overflow-hidden rounded-xl border border-border/60 bg-muted text-left shadow-sm outline-none ring-offset-background transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <LoadingImg
-                src={thumbSrc}
-                fallbackSrc={thumbFallback !== thumbSrc ? thumbFallback : undefined}
-                alt={isSupplier ? "Bill" : "Photo"}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
-              {images.length > 1 && (
-                <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
-                  +{images.length - 1}
-                </span>
-              )}
-            </button>
-          ) : (
-            <div
-              className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border/70 bg-muted/25 px-1 text-center text-muted-foreground"
-              aria-hidden
-            >
-              {isSupplier ? (
-                <Receipt className="h-7 w-7 opacity-35" />
-              ) : (
-                <ImageIcon className="h-7 w-7 opacity-35" />
-              )}
-              <span className="text-[9px] font-medium leading-tight opacity-70">
-                No {photoWord}
-              </span>
+        {hasImages &&
+          (thumbUnavailable ? (
+            <UnavailableImageText
+              label={photoLabel}
+              className="max-w-[5.5rem] shrink-0 self-center text-[10px]"
+              hint={null}
+            />
+          ) : thumbSrc ? (
+            <div className="relative h-[120px] w-[96px] shrink-0 self-start">
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  onViewImages(images, 0);
+                }}
+                className="relative block h-full w-full overflow-hidden rounded-xl border border-border/60 bg-muted text-left shadow-sm outline-none ring-offset-background transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <LoadingImg
+                  src={thumbSrc}
+                  fallbackSrc={thumbFallback !== thumbSrc ? thumbFallback : undefined}
+                  alt={photoLabel}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  onUnavailable={() => setThumbUnavailable(true)}
+                />
+                {images.length > 1 && (
+                  <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+                    +{images.length - 1}
+                  </span>
+                )}
+              </button>
             </div>
-          )}
-        </div>
+          ) : (
+            <UnavailableImageText
+              label={photoLabel}
+              className="max-w-[5.5rem] shrink-0 self-center text-[10px]"
+              hint={null}
+            />
+          ))}
 
         <div className="flex min-w-0 flex-1 flex-col">
           <div
