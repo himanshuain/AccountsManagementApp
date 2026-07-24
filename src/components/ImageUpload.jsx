@@ -52,6 +52,145 @@ function uploadFormDataWithProgress(formData, onProgress) {
   });
 }
 
+/** Camera + gallery pickers shared across hero and grid layouts. */
+function ImageSourceActions({
+  onCamera,
+  onGallery,
+  disabled = false,
+  isUploading = false,
+  variant = "buttons",
+}) {
+  const blocked = disabled || isUploading;
+
+  if (variant === "overlay") {
+    return (
+      <div className="absolute bottom-2.5 right-2.5 z-20 flex gap-1.5">
+        <button
+          type="button"
+          onClick={onCamera}
+          disabled={blocked}
+          aria-label="Take photo"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-background/95 shadow-md backdrop-blur-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
+        >
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <Camera className="h-5 w-5 text-primary" strokeWidth={1.75} />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onGallery}
+          disabled={blocked}
+          aria-label="Choose from gallery"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-background/95 shadow-md backdrop-blur-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
+        >
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <ImagePlus className="h-5 w-5 text-primary" strokeWidth={1.75} />
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  if (variant === "rail") {
+    return (
+      <div className="flex shrink-0 flex-col gap-2">
+        <button
+          type="button"
+          onClick={onCamera}
+          disabled={blocked}
+          aria-label="Take photo"
+          className="flex h-[4.25rem] w-14 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-card shadow-sm transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
+        >
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <>
+              <Camera className="h-5 w-5 text-primary" strokeWidth={1.75} />
+              <span className="text-[9px] font-medium text-muted-foreground">Camera</span>
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onGallery}
+          disabled={blocked}
+          aria-label="Choose from gallery"
+          className="flex h-[4.25rem] w-14 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-card shadow-sm transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
+        >
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <>
+              <ImagePlus className="h-5 w-5 text-primary" strokeWidth={1.75} />
+              <span className="text-[9px] font-medium text-muted-foreground">Gallery</span>
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  if (variant === "compact") {
+    return (
+      <div className="flex gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onCamera}
+          disabled={blocked}
+          aria-label="Take photo"
+        >
+          <Camera className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onGallery}
+          disabled={blocked}
+          aria-label="Choose from gallery"
+        >
+          <ImagePlus className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onCamera}
+        disabled={blocked}
+        className="flex-1 gap-1.5"
+      >
+        <Camera className="h-4 w-4" />
+        Camera
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onGallery}
+        disabled={blocked}
+        className="flex-1 gap-1.5"
+      >
+        <ImagePlus className="h-4 w-4" />
+        Gallery
+      </Button>
+    </div>
+  );
+}
+
 /** @param {{ phase: 'idle'|'compressing'|'uploading'|'success'|'error'; progress: number|null; label?: string; errorMessage?: string }} props */
 function UploadStatusBar({ phase, progress, label, errorMessage }) {
   if (phase === "idle") return null;
@@ -278,7 +417,8 @@ export function ImageUpload({
 
   const isHero = layout === "hero";
   const label = attachLabel || placeholder;
-  const hint = attachHint || "Tap to attach from gallery";
+  const hint = attachHint || "Camera or gallery";
+  const openCamera = () => cameraInputRef.current?.click();
   const openGallery = () => galleryInputRef.current?.click();
 
   // Determine display URL
@@ -346,33 +486,6 @@ export function ImageUpload({
     </div>
   );
 
-  const renderHeroClipButton = ({ variant = "rail" } = {}) => (
-    <button
-      type="button"
-      onClick={openGallery}
-      disabled={disabled || isUploading}
-      aria-label="Attach photo"
-      className={cn(
-        "flex shrink-0 items-center justify-center transition-colors active:scale-[0.98]",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "rail"
-          ? "h-24 w-14 flex-col gap-1 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-card shadow-sm hover:border-primary/40 hover:bg-muted/40"
-          : "absolute bottom-2.5 right-2.5 z-20 h-11 w-11 rounded-full border border-border/60 bg-background/95 shadow-md backdrop-blur-sm hover:bg-muted"
-      )}
-    >
-      {isUploading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      ) : (
-        <>
-          <Paperclip className="h-5 w-5 text-primary" strokeWidth={1.75} />
-          {variant === "rail" && (
-            <span className="text-[9px] font-medium text-muted-foreground">Change</span>
-          )}
-        </>
-      )}
-    </button>
-  );
-
   const renderHDToggle = () =>
     showHDToggle ? (
       <button
@@ -424,30 +537,43 @@ export function ImageUpload({
                   )}
                 >
                   {renderPreviewImage({ rounded: "rounded-xl" })}
-                  {!disabled && renderHeroClipButton({ variant: "overlay" })}
+                  {!disabled && (
+                    <ImageSourceActions
+                      variant="overlay"
+                      onCamera={openCamera}
+                      onGallery={openGallery}
+                      disabled={disabled}
+                      isUploading={isUploading}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={openGallery}
-                disabled={disabled || isUploading}
-                className="flex min-h-[100px] w-full items-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 active:scale-[0.99] disabled:opacity-50"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                ) : (
-                  <>
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Paperclip className="h-6 w-6 text-primary" strokeWidth={1.75} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{label}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
-                    </div>
-                  </>
+              <div className="space-y-3 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-5 py-4">
+                <div className="flex items-center gap-4">
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <>
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <Paperclip className="h-6 w-6 text-primary" strokeWidth={1.75} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {!isUploading && (
+                  <ImageSourceActions
+                    onCamera={openCamera}
+                    onGallery={openGallery}
+                    disabled={disabled}
+                    isUploading={isUploading}
+                  />
                 )}
-              </button>
+              </div>
             )}
             {!preview && renderHDToggle() && (
               <div className="flex justify-end">{renderHDToggle()}</div>
@@ -472,30 +598,12 @@ export function ImageUpload({
                   <ImageIcon className="h-6 w-6 text-primary" />
                 </div>
                 <span className="text-center text-sm text-muted-foreground">{placeholder}</span>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => cameraInputRef.current?.click()}
-                    disabled={disabled || isUploading}
-                    className="gap-1.5"
-                  >
-                    <Camera className="h-4 w-4" />
-                    Camera
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => galleryInputRef.current?.click()}
-                    disabled={disabled || isUploading}
-                    className="gap-1.5"
-                  >
-                    <ImagePlus className="h-4 w-4" />
-                    Gallery
-                  </Button>
-                </div>
+                <ImageSourceActions
+                  onCamera={openCamera}
+                  onGallery={openGallery}
+                  disabled={disabled}
+                  isUploading={isUploading}
+                />
                 {renderHDToggle()}
               </>
             )}
@@ -712,6 +820,7 @@ export function MultiImageUpload({
   const isHero = layout === "hero";
   const canAddMore = value.length < maxImages;
 
+  const openCamera = () => cameraInputRef.current?.click();
   const openGallery = () => galleryInputRef.current?.click();
 
   const renderThumbnail = (storageKey, index) => {
@@ -754,31 +863,14 @@ export function MultiImageUpload({
     );
   };
 
-  const renderFixedClipButton = ({ variant = "rail" } = {}) => (
-    <button
-      type="button"
-      onClick={openGallery}
-      disabled={disabled || isUploading}
-      aria-label="Attach photo"
-      className={cn(
-        "flex shrink-0 items-center justify-center transition-colors active:scale-[0.98]",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "rail"
-          ? "h-24 w-14 flex-col gap-1 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-card shadow-sm hover:border-primary/40 hover:bg-muted/40"
-          : "absolute bottom-2.5 right-2.5 z-20 h-11 w-11 rounded-full border border-border/60 bg-background/95 shadow-md backdrop-blur-sm hover:bg-muted"
-      )}
-    >
-      {isUploading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      ) : (
-        <>
-          <Paperclip className="h-5 w-5 text-primary" strokeWidth={1.75} />
-          {variant === "rail" && (
-            <span className="text-[9px] font-medium text-muted-foreground">Add</span>
-          )}
-        </>
-      )}
-    </button>
+  const renderFixedClipButton = () => (
+    <ImageSourceActions
+      variant="rail"
+      onCamera={openCamera}
+      onGallery={openGallery}
+      disabled={disabled}
+      isUploading={isUploading}
+    />
   );
 
   return (
@@ -807,28 +899,33 @@ export function MultiImageUpload({
         {isHero ? (
           <div className="space-y-2">
             {value.length === 0 ? (
-              <button
-                type="button"
-                onClick={openGallery}
-                disabled={disabled || isUploading}
-                className="flex min-h-[100px] w-full items-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 active:scale-[0.99] disabled:opacity-50"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                ) : (
-                  <>
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Paperclip className="h-6 w-6 text-primary" strokeWidth={1.75} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{attachLabel}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Up to {maxImages} photos · tap to attach
-                      </p>
-                    </div>
-                  </>
+              <div className="space-y-3 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-5 py-4">
+                <div className="flex items-center gap-4">
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <>
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <Paperclip className="h-6 w-6 text-primary" strokeWidth={1.75} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{attachLabel}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Up to {maxImages} photos · camera or gallery
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {!isUploading && (
+                  <ImageSourceActions
+                    onCamera={openCamera}
+                    onGallery={openGallery}
+                    disabled={disabled}
+                    isUploading={isUploading}
+                  />
                 )}
-              </button>
+              </div>
             ) : (
               <div className="flex gap-2">
                 <div className="flex min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
@@ -874,7 +971,7 @@ export function MultiImageUpload({
                     );
                   })}
                 </div>
-                {canAddMore && renderFixedClipButton({ variant: "rail" })}
+                {canAddMore && renderFixedClipButton()}
               </div>
             )}
           </div>
@@ -930,28 +1027,13 @@ export function MultiImageUpload({
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (
                   <>
-                    <div className="flex gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => cameraInputRef.current?.click()}
-                        disabled={disabled || isUploading}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={openGallery}
-                        disabled={disabled || isUploading}
-                      >
-                        <ImagePlus className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <ImageSourceActions
+                      variant="compact"
+                      onCamera={openCamera}
+                      onGallery={openGallery}
+                      disabled={disabled}
+                      isUploading={isUploading}
+                    />
                     <span className="text-center text-[10px] text-muted-foreground">Add Photo</span>
                   </>
                 )}
