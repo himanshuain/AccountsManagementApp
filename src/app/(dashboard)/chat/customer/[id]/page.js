@@ -27,7 +27,7 @@ import {
   PaymentProgress,
   ChatBubble,
   DateSeparator,
-  QuickActionBar,
+  ChatInputBar,
   ProfileSheet,
   LumpsumPaymentDrawer,
 } from "@/components/gpay";
@@ -56,6 +56,8 @@ export default function CustomerChatPage({ params }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [udharFormOpen, setUdharFormOpen] = useState(false);
   const [udharToEdit, setUdharToEdit] = useState(null);
+  const [udharInitialData, setUdharInitialData] = useState(null);
+  const [quickCaptureData, setQuickCaptureData] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [udharToDelete, setUdharToDelete] = useState(null);
   const [billDrawerOpen, setBillDrawerOpen] = useState(false);
@@ -64,6 +66,7 @@ export default function CustomerChatPage({ params }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [chatInputValue, setChatInputValue] = useState("");
   const [collectSheetOpen, setCollectSheetOpen] = useState(false);
   const [collectUdhar, setCollectUdhar] = useState(null);
   const [collectAmount, setCollectAmount] = useState("");
@@ -184,13 +187,15 @@ export default function CustomerChatPage({ params }) {
     }
   };
 
-  const handleAddUdhar = () => {
+  const handleAddUdhar = (initialData = null, captureData = null) => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot add while offline");
       return;
     }
     setUdharToEdit(null);
+    setUdharInitialData(initialData);
+    setQuickCaptureData(captureData);
     setUdharFormOpen(true);
   };
 
@@ -451,22 +456,34 @@ export default function CustomerChatPage({ params }) {
         )}
       </div>
 
-      {/* Quick Action Bar */}
-      <QuickActionBar
-        primaryAction="Add Udhar"
-        onPrimaryAction={handleAddUdhar}
-        showInput={false}
-        disabled={!isOnline}
-        className="mx-auto w-full max-w-4xl"
-      >
-        <LumpsumPaymentDrawer
-          type="customer"
-          totalPending={totals.pending}
-          pendingItems={pendingItems}
-          onPayBills={handleLumpsumPay}
+      {/* Chat Input Bar */}
+      <div className="mx-auto w-full max-w-4xl">
+        <ChatInputBar
+          placeholder="Enter amount or message..."
+          inputValue={chatInputValue}
+          onInputChange={setChatInputValue}
+          submitLabel="Add udhar"
+          onSubmit={(value, attachments) => {
+            const amount = !isNaN(Number(value)) && value.trim() !== "" ? Number(value) : "";
+            const notes = isNaN(Number(value)) || value.trim() === "" ? value : "";
+
+            handleAddUdhar(
+              { amount, notes },
+              { customerId: id, images: attachments.map(a => a.file).filter(Boolean) }
+            );
+            setChatInputValue("");
+          }}
           disabled={!isOnline}
-        />
-      </QuickActionBar>
+        >
+          <LumpsumPaymentDrawer
+            type="customer"
+            totalPending={totals.pending}
+            pendingItems={pendingItems}
+            onPayBills={handleLumpsumPay}
+            disabled={!isOnline}
+          />
+        </ChatInputBar>
+      </div>
 
       {/* Profile Sheet */}
       <ProfileSheet
@@ -488,12 +505,17 @@ export default function CustomerChatPage({ params }) {
         open={udharFormOpen}
         onOpenChange={open => {
           setUdharFormOpen(open);
-          if (!open) setUdharToEdit(null);
+          if (!open) {
+            setUdharToEdit(null);
+            setUdharInitialData(null);
+            setQuickCaptureData(null);
+          }
         }}
         onSubmit={handleSubmitUdhar}
         onAddCustomer={addCustomer}
         customers={customers}
-        initialData={udharToEdit}
+        initialData={udharToEdit || udharInitialData}
+        quickCaptureData={quickCaptureData}
         defaultCustomerId={id}
         title={udharToEdit ? "Edit Udhar" : "Add Udhar"}
       />

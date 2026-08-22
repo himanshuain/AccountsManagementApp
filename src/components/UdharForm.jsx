@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { BookOpen, Users, IndianRupee, Calendar, StickyNote } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { MultiImageUpload } from "./ImageUpload";
+import { FormPhotoStrip } from "@/components/form/FormPhotoStrip";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 import { resolveImageUrl } from "@/lib/image-url";
+import { cn } from "@/lib/utils";
 import {
   FormSection,
   FormDrawerHeader,
@@ -18,6 +20,8 @@ import {
   AUTOCOMPLETE_POPPER_PROPS,
   NO_SPIN_INPUT,
 } from "@/components/form/FormDrawerUI";
+import { FormDatePicker } from "@/components/form/FormDatePicker";
+import { getLocalDate } from "@/lib/date-utils";
 import {
   addSessionStorageKeys,
   clearSessionStorageKeys,
@@ -33,6 +37,7 @@ export function UdharForm({
   onAddCustomer,
   customers = [],
   initialData = null,
+  quickCaptureData = null,
   defaultCustomerId = null,
   defaultCustomerName = null,
   autoOpenCustomerDropdown = false,
@@ -43,21 +48,28 @@ export function UdharForm({
   const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [khataPhotos, setKhataPhotos] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId || "");
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
   const [isUploadingKhata, setIsUploadingKhata] = useState(false);
 
+  useEffect(() => {
+    if (open && quickCaptureData) {
+      if (quickCaptureData.customerId) {
+        setSelectedCustomerId(quickCaptureData.customerId);
+      }
+      if (quickCaptureData.images?.length > 0) {
+        setPendingFiles(quickCaptureData.images);
+        setKhataPhotos(quickCaptureData.images.map(file => URL.createObjectURL(file)));
+      }
+    }
+  }, [open, quickCaptureData]);
+
   // Get today's date in local timezone (YYYY-MM-DD format)
-  const getLocalDate = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  const today = getLocalDate();
 
   const defaultFormValues = {
-    date: getLocalDate(),
+    date: today,
     amount: "",
     notes: "",
     itemDescription: "",
@@ -67,6 +79,7 @@ export function UdharForm({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isDirty },
   } = useForm({
     defaultValues: defaultFormValues,
@@ -98,7 +111,7 @@ export function UdharForm({
       const totalAmount =
         initialData.amount || (initialData.cashAmount || 0) + (initialData.onlineAmount || 0);
       reset({
-        date: initialData.date || getLocalDate(),
+        date: initialData.date || today,
         amount: totalAmount || "",
         notes: initialData.notes || "",
         itemDescription: initialData.itemDescription || "",
@@ -108,13 +121,14 @@ export function UdharForm({
 
   // Reset form state when opening without initialData
   useEffect(() => {
-    if (open && !initialData) {
+    if (open && !initialData && !quickCaptureData?.images?.length) {
       setKhataPhotos([]);
+      setPendingFiles([]);
       setSelectedCustomerId(defaultCustomerId || "");
       reset(defaultFormValues);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultCustomerId]);
+  }, [open, defaultCustomerId, quickCaptureData]);
 
   // Helper function to convert base64 data URL to File
   const base64ToFile = (dataUrl, filename) => {
@@ -138,33 +152,38 @@ export function UdharForm({
 
     setIsSubmitting(true);
     try {
-      // Upload any base64 images that haven't been uploaded yet
-      let uploadedPhotos = [];
+      const uploadKhataFile = async file => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "khata");
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.error || "Khata photo upload failed");
+        }
+        return payload.storageKey || payload.url;
+      };
+
+      const uploadedPhotos = [];
+      let pendingIndex = 0;
+
       for (let i = 0; i < khataPhotos.length; i++) {
         const photo = khataPhotos[i];
+        if (!photo) continue;
+
         if (photo.startsWith("data:")) {
-          // Base64 data URL - needs uploading
-          try {
-            const file = base64ToFile(photo, `khata-${Date.now()}-${i}.jpg`);
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const response = await fetch("/api/upload", {
-              method: "POST",
-              body: formData,
-            });
-
-            if (response.ok) {
-              const { url } = await response.json();
-              uploadedPhotos.push(url);
-            } else {
-              console.error("Failed to upload khata image");
-            }
-          } catch (error) {
-            console.error("Khata image upload failed:", error);
+          const file = base64ToFile(photo, `khata-${Date.now()}-${i}.jpg`);
+          uploadedPhotos.push(await uploadKhataFile(file));
+        } else if (photo.startsWith("blob:")) {
+          const file = pendingFiles[pendingIndex++];
+          if (!file) {
+            throw new Error("Photo previews are still loading. Try again.");
           }
+          uploadedPhotos.push(await uploadKhataFile(file));
         } else {
-          // Already a URL, keep it
           uploadedPhotos.push(photo);
         }
       }
@@ -181,6 +200,7 @@ export function UdharForm({
       clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setKhataPhotos([]);
+      setPendingFiles([]);
       setSelectedCustomerId(defaultCustomerId || "");
       onOpenChange(false);
     } catch (error) {
@@ -202,6 +222,7 @@ export function UdharForm({
     deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
     setKhataPhotos(initialKhata);
+    setPendingFiles([]);
     setSelectedCustomerId(initialData?.customerId || defaultCustomerId || "");
     onOpenChange(false);
   };
@@ -235,8 +256,9 @@ export function UdharForm({
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
   const contextCustomerLabel = selectedCustomer?.name || defaultCustomerName || null;
   const isCustomerLocked = !!defaultCustomerId;
-  const formTitle = initialData ? "Edit Udhar" : title;
-  const submitLabel = initialData ? "Save changes" : "Add udhar";
+  const isEdit = !!initialData?.id;
+  const formTitle = isEdit ? "Edit Udhar" : title;
+  const submitLabel = isEdit ? "Save changes" : "Add udhar";
   const canSubmit = !isSubmitting && !!selectedCustomerId && isOnline && !isUploadingKhata;
 
   return (
@@ -256,7 +278,7 @@ export function UdharForm({
           onClose={handleClose}
           onSubmit={handleSubmit(handleFormSubmit)}
           isSubmitting={isSubmitting}
-          isEdit={!!initialData}
+          isEdit={isEdit}
           canSubmit={canSubmit}
         />
 
@@ -267,20 +289,34 @@ export function UdharForm({
             <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Khata photos
             </p>
-            <MultiImageUpload
-              value={khataPhotos}
-              onChange={setKhataPhotos}
-              maxImages={5}
-              disabled={!isOnline}
-              layout="hero"
-              attachLabel="Attach khata photos"
-              onUploadingChange={setIsUploadingKhata}
-              onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-              onSessionStorageKeysRemoved={keys =>
-                removeSessionStorageKeys(sessionUploadKeysRef, keys)
-              }
-              folder="khata"
-            />
+            {khataPhotos.length > 0 ? (
+              <FormPhotoStrip
+                images={khataPhotos}
+                pendingFiles={pendingFiles}
+                onChange={({ images, pendingFiles: nextPending }) => {
+                  setKhataPhotos(images);
+                  setPendingFiles(nextPending);
+                }}
+                maxImages={5}
+                disabled={!isOnline}
+                uploadHint="uploads on save"
+              />
+            ) : (
+              <MultiImageUpload
+                value={khataPhotos}
+                onChange={setKhataPhotos}
+                maxImages={5}
+                disabled={!isOnline}
+                layout="hero"
+                attachLabel="Attach khata photos"
+                onUploadingChange={setIsUploadingKhata}
+                onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                onSessionStorageKeysRemoved={keys =>
+                  removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                }
+                folder="khata"
+              />
+            )}
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 shadow-sm">
@@ -368,33 +404,27 @@ export function UdharForm({
               >
                 Udhari date *
               </label>
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="date"
-                  type="date"
-                  {...register("date", {
-                    required: "Date is required",
-                    validate: value => {
-                      const today = getLocalDate();
-                      if (value > today) return "Future dates are not allowed";
-                      return true;
-                    },
-                  })}
-                  onChange={e => {
-                    const today = getLocalDate();
-                    if (e.target.value > today) {
-                      e.target.value = today;
-                    }
-                  }}
-                  disabled={!isOnline}
-                  max={new Date().toISOString().split("T")[0]}
-                  className="input-hero h-11 pr-10 text-sm"
-                />
-              </div>
-              {errors.date && (
-                <p className="mt-1 text-[10px] text-destructive">{errors.date.message}</p>
-              )}
+              <Controller
+                name="date"
+                control={control}
+                rules={{
+                  required: "Date is required",
+                  validate: value => {
+                    if (value > today) return "Future dates are not allowed";
+                    return true;
+                  },
+                }}
+                render={({ field, fieldState }) => (
+                  <FormDatePicker
+                    id="date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    maxDate={today}
+                    disabled={!isOnline}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
             </div>
           </FormSection>
 

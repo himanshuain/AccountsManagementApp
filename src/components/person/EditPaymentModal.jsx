@@ -7,6 +7,7 @@ import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { cn } from "@/lib/utils";
 import { getLocalDate } from "@/lib/date-utils";
 import { MultiImageUpload } from "@/components/ImageUpload";
+import { FormDatePicker } from "@/components/form/FormDatePicker";
 import {
   FormDrawerHeader,
   FormSection,
@@ -140,16 +141,7 @@ export function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }
         </div>
 
         <FormSection title="Date">
-          <input
-            type="date"
-            value={date}
-            onChange={e => {
-              const selectedDate = e.target.value;
-              setDate(selectedDate > today ? today : selectedDate);
-            }}
-            max={today}
-            className="input-hero h-12"
-          />
+          <FormDatePicker value={date} onChange={setDate} maxDate={today} />
         </FormSection>
 
         <FormSection title="Return (GR)" bodyClassName="py-3">

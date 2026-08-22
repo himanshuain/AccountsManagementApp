@@ -104,8 +104,8 @@ export function extractStorageKeyFromUrl(url) {
 export function resolveImageUrl(value) {
   if (!value || typeof value !== "string") return "";
 
-  // Data URLs - return as-is
-  if (isDataUrl(value)) {
+  // Data URLs and blob previews — return as-is
+  if (isDataUrl(value) || value.startsWith("blob:")) {
     return value;
   }
 
@@ -193,8 +193,8 @@ export function getImageUrls(value, options = {}) {
     return emptyResult;
   }
 
-  // Data URLs - return as-is for all variants
-  if (isDataUrl(value)) {
+  // Data URLs and blob previews — return as-is for all variants
+  if (isDataUrl(value) || value.startsWith("blob:")) {
     return {
       src: value,
       lqip: value,

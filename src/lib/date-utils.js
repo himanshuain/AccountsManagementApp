@@ -69,6 +69,23 @@ export function getLocalDate() {
 }
 
 /**
+ * Human-readable date: "9 August 2026"
+ */
+export function formatDisplayDate(value) {
+  const d = parseFlexibleDate(value);
+  if (!d) return "";
+  return format(d, "d MMMM yyyy");
+}
+
+/**
+ * Convert Date to YYYY-MM-DD in local timezone
+ */
+export function toDateValue(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return format(date, "yyyy-MM-dd");
+}
+
+/**
  * Generate month options for the last 12 months
  * @returns {Array<{value: string, label: string}>} Array of month options
  */

@@ -14,64 +14,85 @@ import "react-photo-view/dist/react-photo-view.css";
 
 /**
  * Floating toolbar overlay for the photo viewer
- * This renders as fixed position overlay for maximum visibility
  */
 function FloatingToolbar({ onDownload, onShare, onClose, index, total, sizeLabel }) {
   return (
     <>
-      {/* Top bar with close and counter */}
-      <div className="pt-safe pointer-events-auto fixed left-0 right-0 top-0 z-[2147483647] flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-4">
-        {/* Close Button */}
+      <div className="pt-safe pointer-events-none fixed left-0 right-0 top-0 z-[2147483647] flex items-center justify-between px-4 py-3">
         <button
+          type="button"
           onClick={onClose}
-          className="rounded-full bg-black/50 p-3 text-white transition-all hover:bg-black/70 active:scale-95"
+          aria-label="Close"
+          className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-xl transition-all hover:bg-white/20 active:scale-95"
         >
-          <X className="h-6 w-6" />
+          <X className="h-5 w-5" />
         </button>
 
-        {/* Counter */}
-        {total > 1 && (
-          <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-sm text-white">
-            {index + 1} / {total}
-          </span>
+        {(total > 1 || sizeLabel) && (
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-xl">
+            {total > 1 && (
+              <span className="text-sm font-medium tabular-nums text-white">
+                {index + 1} / {total}
+              </span>
+            )}
+            {total > 1 && sizeLabel && <span className="text-white/35">·</span>}
+            {sizeLabel && <span className="text-xs text-white/70">{sizeLabel}</span>}
+          </div>
         )}
 
-        {sizeLabel && (
-          <span className="rounded-full bg-black/50 px-3 py-1.5 font-mono text-xs text-white">
-            File Size: {sizeLabel}
-          </span>
-        )}
-
-        {/* Spacer for balance */}
-        <div className="w-12" />
+        <div className="w-10" aria-hidden />
       </div>
 
-      {/* Bottom bar with actions */}
-      <div className="pb-safe pointer-events-auto fixed bottom-0 left-0 right-0 z-[2147483647] flex items-center justify-center gap-4 bg-gradient-to-t from-black/80 to-transparent p-4">
-        <button
-          onClick={onShare}
-          className="flex min-w-[70px] flex-col items-center gap-1 rounded-xl bg-black/50 p-3 text-white transition-all hover:bg-black/70 active:scale-95"
-        >
-          <Share2 className="h-6 w-6" />
-          <span className="text-xs">Share</span>
-        </button>
-        <button
-          onClick={onDownload}
-          className="flex min-w-[70px] flex-col items-center gap-1 rounded-xl bg-black/50 p-3 text-white transition-all hover:bg-black/70 active:scale-95"
-        >
-          <Download className="h-6 w-6" />
-          <span className="text-xs">Download</span>
-        </button>
-      </div>
-
-      {/* Swipe hint
-      <div className="pointer-events-none fixed left-1/2 top-20 z-[2147483647] -translate-x-1/2">
-        <div className="flex flex-col items-center gap-1 text-white/50">
-          <ChevronDown className="h-5 w-5 animate-bounce duration-50" />
-          <span className="text-xs">Swipe down to close</span>
+      <div className="pb-safe pointer-events-none fixed bottom-0 left-0 right-0 z-[2147483647] flex justify-center px-4 py-5">
+        <div className="pointer-events-auto flex items-center rounded-full bg-white/10 p-1 backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={onShare}
+            className="flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 active:scale-95"
+          >
+            <Share2 className="h-4 w-4" />
+            Share
+          </button>
+          <div className="mx-0.5 h-5 w-px bg-white/20" />
+          <button
+            type="button"
+            onClick={onDownload}
+            className="flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 active:scale-95"
+          >
+            <Download className="h-4 w-4" />
+            Save
+          </button>
         </div>
-      </div> */}
+      </div>
     </>
+  );
+}
+
+function ViewerFilmstrip({ images, current, onSelect }) {
+  if (images.length <= 1) return null;
+
+  return (
+    <div className="pointer-events-auto fixed bottom-[76px] left-0 right-0 z-[2147483647] px-4">
+      <div className="mx-auto flex max-w-sm justify-center gap-2 overflow-x-auto rounded-2xl bg-black/30 p-2 backdrop-blur-xl scrollbar-none">
+        {images.map((img, idx) => (
+          <button
+            key={img.key || idx}
+            type="button"
+            aria-label={`View image ${idx + 1}`}
+            onClick={() => onSelect(idx)}
+            className={cn(
+              "relative h-11 w-11 shrink-0 overflow-hidden rounded-xl transition-all duration-200",
+              idx === current
+                ? "scale-105 ring-2 ring-white shadow-lg"
+                : "opacity-45 hover:opacity-75"
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.src} alt="" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -154,11 +175,14 @@ function LoadingElement() {
       animate={{ opacity: 1 }}
       className="flex h-full w-full items-center justify-center"
     >
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        className="h-10 w-10 rounded-full border-4 border-white/30 border-t-white"
-      />
+      <div className="flex flex-col items-center gap-3">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
+          className="h-9 w-9 rounded-full border-2 border-white/20 border-t-white"
+        />
+        <span className="text-sm text-white/50">Loading…</span>
+      </div>
     </motion.div>
   );
 }
@@ -166,19 +190,24 @@ function LoadingElement() {
 function BrokenElement({ onRetry }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center gap-4 text-white/70"
+      className="flex flex-col items-center justify-center gap-4 px-6 text-center text-white/80"
     >
-      <AlertCircle className="h-16 w-16" />
-      <p className="text-lg">Failed to load image</p>
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+        <AlertCircle className="h-8 w-8" />
+      </div>
+      <div>
+        <p className="text-base font-medium text-white">Couldn&apos;t load image</p>
+        <p className="mt-1 text-sm text-white/50">The file may be missing or still uploading</p>
+      </div>
       {onRetry && (
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={onRetry}
-          className="rounded-lg bg-white/10 px-4 py-2 transition-colors hover:bg-white/20"
+          className="rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/20"
         >
-          Retry
+          Try again
         </motion.button>
       )}
     </motion.div>
@@ -416,7 +445,7 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
     return images.map((img, idx) => {
       const src = typeof img === "string" ? img : img.url || img.src;
       let resolvedUrl;
-      if (isDataUrl(src)) {
+      if (isDataUrl(src) || (typeof src === "string" && src.startsWith("blob:"))) {
         resolvedUrl = src;
       } else {
         // Use getImageUrls to get original quality URL
@@ -545,7 +574,7 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
           type === 2 ? "cubic-bezier(0.36, 0, 0.66, -0.56)" : "cubic-bezier(0.4, 0, 0.2, 1)"
         }
         loop={normalizedImages.length > 1}
-        maskOpacity={0.98}
+        maskOpacity={1}
         pullClosable={true}
         maskClosable={true}
         bannerVisible={false}
@@ -591,14 +620,11 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         onClose={() => onOpenChange(false)}
         sizeLabel={sizeLabel}
       />
-      {/* Carousel dots */}
-      {normalizedImages.length > 1 && (
-        <CarouselDots
-          total={normalizedImages.length}
-          current={currentIndex}
-          onDotClick={setCurrentIndex}
-        />
-      )}
+      <ViewerFilmstrip
+        images={normalizedImages}
+        current={currentIndex}
+        onSelect={setCurrentIndex}
+      />
     </>
   );
 

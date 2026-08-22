@@ -1,20 +1,18 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import {
-  Expand,
   Receipt,
   IndianRupee,
-  Calendar,
   Package,
   StickyNote,
 } from "lucide-react";
 import { Autocomplete, TextField, Avatar } from "@mui/material";
 import { DragCloseDrawer } from "@/components/ui/drag-close-drawer";
 import { MultiImageUpload } from "./ImageUpload";
-import { PhotoGalleryViewer } from "./PhotoViewer";
+import { FormPhotoStrip } from "@/components/form/FormPhotoStrip";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
@@ -28,6 +26,8 @@ import {
   AUTOCOMPLETE_POPPER_PROPS,
   NO_SPIN_INPUT,
 } from "@/components/form/FormDrawerUI";
+import { FormDatePicker } from "@/components/form/FormDatePicker";
+import { getLocalDate } from "@/lib/date-utils";
 import {
   addSessionStorageKeys,
   clearSessionStorageKeys,
@@ -68,15 +68,6 @@ export function TransactionForm({
   const [isPaid, setIsPaid] = useState(initialData?.paymentStatus === "paid" || false);
   const [isCash, setIsCash] = useState(initialData?.paymentMode === "cash" || false);
   const [isUploadingBills, setIsUploadingBills] = useState(false);
-  // Image viewer state for captured images (pendingFiles mode)
-  const [imageViewerOpen, setImageViewerOpen] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState(0);
-
-  // Handle image tap to view (for captured images)
-  const handleImageTap = index => {
-    setViewerIndex(index);
-    setImageViewerOpen(true);
-  };
 
   // Handle quickCaptureData (legacy support)
   useEffect(() => {
@@ -116,26 +107,23 @@ export function TransactionForm({
       // Set supplier from initialData or defaultSupplierId
       setSelectedSupplierId(initialData?.supplierId || defaultSupplierId || "");
       // Reset bill images only if no initialBillImages provided
-      if (stableInitialBillImages.length === 0) {
+      if (stableInitialBillImages.length === 0 && !quickCaptureData?.images?.length) {
         setBillImages(initialData?.billImages || []);
       }
-      setPendingFiles([]);
+      if (!quickCaptureData?.images?.length) {
+        setPendingFiles([]);
+      }
     }
-  }, [open, initialData, defaultSupplierId, stableInitialBillImages]);
+  }, [open, initialData, defaultSupplierId, stableInitialBillImages, quickCaptureData]);
 
   // Get today's date in local timezone (YYYY-MM-DD format)
-  const getLocalDate = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  const today = getLocalDate();
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isDirty },
   } = useForm({
     defaultValues: {
@@ -212,41 +200,39 @@ export function TransactionForm({
     setIsSubmitting(true);
     try {
       const billStorageKeys = [];
+      let pendingIndex = 0;
 
-      if (pendingFiles.length > 0) {
-        for (const file of pendingFiles) {
+      for (let i = 0; i < billImages.length; i++) {
+        const img = billImages[i];
+        if (!img) continue;
+
+        if (img.startsWith("data:")) {
           try {
-            const key = await uploadBillFile(file);
-            billStorageKeys.push(key);
+            const file = base64ToFile(img, `bill-${Date.now()}-${i}.jpg`);
+            billStorageKeys.push(await uploadBillFile(file));
           } catch (e) {
             console.error("Bill upload failed:", e);
             toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
             return;
           }
-        }
-      } else if (billImages.length > 0) {
-        for (let i = 0; i < billImages.length; i++) {
-          const img = billImages[i];
-          if (!img) continue;
-          if (img.startsWith("data:")) {
-            try {
-              const file = base64ToFile(img, `bill-${Date.now()}-${i}.jpg`);
-              const key = await uploadBillFile(file);
-              billStorageKeys.push(key);
-            } catch (e) {
-              console.error("Bill upload failed:", e);
-              toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
-              return;
-            }
-          } else if (isPersistableBillRef(img)) {
-            billStorageKeys.push(img);
-          } else if (img.startsWith("blob:")) {
+        } else if (img.startsWith("blob:")) {
+          const file = pendingFiles[pendingIndex++];
+          if (!file) {
             toast.error("Bill previews are still loading. Wait a moment and save again.");
             return;
-          } else {
-            toast.error("Invalid bill photo. Remove it and add the photo again.");
+          }
+          try {
+            billStorageKeys.push(await uploadBillFile(file));
+          } catch (e) {
+            console.error("Bill upload failed:", e);
+            toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
             return;
           }
+        } else if (isPersistableBillRef(img)) {
+          billStorageKeys.push(img);
+        } else {
+          toast.error("Invalid bill photo. Remove it and add the photo again.");
+          return;
         }
       }
 
@@ -366,7 +352,7 @@ export function TransactionForm({
         onClose={handleClose}
         onSubmit={handleSubmit(handleFormSubmit)}
         isSubmitting={isSubmitting}
-        isEdit={!!initialData}
+        isEdit={!!initialData?.id}
         canSubmit={canSubmit}
       />
 
@@ -378,56 +364,18 @@ export function TransactionForm({
           <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Bill photos
           </p>
-          {pendingFiles.length > 0 ? (
-            <div className="space-y-2">
-              {billImages.length === 1 ? (
-                <div
-                  className="group relative aspect-[16/10] cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm ring-2 ring-primary/30"
-                  onClick={() => handleImageTap(0)}
-                >
-                  <img
-                    src={resolveImageUrl(billImages[0])}
-                    alt="Captured bill"
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                    <Expand className="h-6 w-6 text-white opacity-0 group-hover:opacity-70" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <div className="flex min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
-                    {billImages.map((url, index) => (
-                      <div
-                        key={index}
-                        className={cn(
-                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm ring-2 ring-primary/30",
-                          billImages.length === 1
-                            ? "h-24 min-w-0 flex-1"
-                            : "h-24 w-[108px] snap-start"
-                        )}
-                        onClick={() => handleImageTap(index)}
-                      >
-                        <img
-                          src={resolveImageUrl(url)}
-                          alt={`Captured bill ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {pendingFiles.length} photo{pendingFiles.length !== 1 ? "s" : ""} · uploads on save
-              </p>
-              <PhotoGalleryViewer
-                images={billImages}
-                initialIndex={viewerIndex}
-                open={imageViewerOpen}
-                onOpenChange={setImageViewerOpen}
-              />
-            </div>
+          {billImages.length > 0 ? (
+            <FormPhotoStrip
+              images={billImages}
+              pendingFiles={pendingFiles}
+              onChange={({ images, pendingFiles: nextPending }) => {
+                setBillImages(images);
+                setPendingFiles(nextPending);
+              }}
+              maxImages={5}
+              disabled={!isOnline}
+              uploadHint="uploads on save"
+            />
           ) : (
             <MultiImageUpload
               value={billImages}
@@ -547,7 +495,7 @@ export function TransactionForm({
 
         {/* Item & date */}
         <FormSection title="Details" icon={Package}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <div>
               <label
                 htmlFor="itemName"
@@ -569,32 +517,26 @@ export function TransactionForm({
               >
                 Date *
               </label>
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  id="date"
-                  type="date"
-                  {...register("date", {
-                    required: "Date is required",
-                    validate: value => {
-                      const today = getLocalDate();
-                      if (value > today) return "Future dates are not allowed";
-                      return true;
-                    },
-                  })}
-                  onChange={e => {
-                    const today = getLocalDate();
-                    if (e.target.value > today) {
-                      e.target.value = today;
-                    }
-                  }}
-                  max={new Date().toISOString().split("T")[0]}
-                  className="input-hero h-11 pr-10 text-sm"
-                />
-              </div>
-              {errors.date && (
-                <p className="mt-1 text-[10px] text-destructive">{errors.date.message}</p>
-              )}
+              <Controller
+                name="date"
+                control={control}
+                rules={{
+                  required: "Date is required",
+                  validate: value => {
+                    if (value > today) return "Future dates are not allowed";
+                    return true;
+                  },
+                }}
+                render={({ field, fieldState }) => (
+                  <FormDatePicker
+                    id="date"
+                    value={field.value}
+                    onChange={field.onChange}
+                    maxDate={today}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
             </div>
           </div>
         </FormSection>

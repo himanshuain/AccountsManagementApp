@@ -32,6 +32,8 @@ export { ProfileSheet } from "./ProfileSheet";
 
 // Action Components
 export { QuickActionBar, FloatingActionButton, FABMenu, QuickCaptureBar } from "./QuickActionBar";
+export { ChatInputBar } from "./ChatInputBar";
+export { PhotoInputPill } from "./PhotoInputPill";
 
 // Transaction Row Component (for history view)
 export { TransactionRow, TransactionRowSkeleton } from "./TransactionRow";

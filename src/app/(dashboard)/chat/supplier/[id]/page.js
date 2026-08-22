@@ -25,7 +25,7 @@ import {
   PaymentProgress,
   ChatBubble,
   DateSeparator,
-  QuickActionBar,
+  ChatInputBar,
   ProfileSheet,
   PaymentBubble,
   LumpsumPaymentDrawer,
@@ -57,6 +57,8 @@ export default function SupplierChatPage({ params }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [transactionToEdit, setTransactionToEdit] = useState(null);
+  const [transactionInitialData, setTransactionInitialData] = useState(null);
+  const [quickCaptureData, setQuickCaptureData] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [billDrawerOpen, setBillDrawerOpen] = useState(false);
@@ -65,6 +67,7 @@ export default function SupplierChatPage({ params }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [chatInputValue, setChatInputValue] = useState("");
 
   // Get supplier's transactions
   const supplierTransactions = useMemo(() => {
@@ -179,13 +182,15 @@ export default function SupplierChatPage({ params }) {
     }
   };
 
-  const handleAddBill = () => {
+  const handleAddBill = (initialData = null, captureData = null) => {
     haptics.light();
     if (!isOnline) {
       toast.error("Cannot add while offline");
       return;
     }
     setTransactionToEdit(null);
+    setTransactionInitialData(initialData);
+    setQuickCaptureData(captureData);
     setTransactionFormOpen(true);
   };
 
@@ -400,22 +405,34 @@ export default function SupplierChatPage({ params }) {
         )}
       </div>
 
-      {/* Quick Action Bar */}
-      <QuickActionBar
-        primaryAction="Add Bill"
-        onPrimaryAction={handleAddBill}
-        showInput={false}
-        disabled={!isOnline}
-        className="mx-auto w-full max-w-4xl"
-      >
-        <LumpsumPaymentDrawer
-          type="supplier"
-          totalPending={totals.pending}
-          pendingItems={pendingItems}
-          onPayBills={handleLumpsumPay}
+      {/* Chat Input Bar */}
+      <div className="mx-auto w-full max-w-4xl">
+        <ChatInputBar
+          placeholder="Enter amount or message..."
+          inputValue={chatInputValue}
+          onInputChange={setChatInputValue}
+          submitLabel="Add transaction"
+          onSubmit={(value, attachments) => {
+            const amount = !isNaN(Number(value)) && value.trim() !== "" ? Number(value) : "";
+            const notes = isNaN(Number(value)) || value.trim() === "" ? value : "";
+
+            handleAddBill(
+              { amount, notes },
+              { supplierId: id, images: attachments.map(a => a.file).filter(Boolean) }
+            );
+            setChatInputValue("");
+          }}
           disabled={!isOnline}
-        />
-      </QuickActionBar>
+        >
+          <LumpsumPaymentDrawer
+            type="supplier"
+            totalPending={totals.pending}
+            pendingItems={pendingItems}
+            onPayBills={handleLumpsumPay}
+            disabled={!isOnline}
+          />
+        </ChatInputBar>
+      </div>
 
       {/* Profile Sheet */}
       <ProfileSheet
@@ -437,11 +454,16 @@ export default function SupplierChatPage({ params }) {
         open={transactionFormOpen}
         onOpenChange={open => {
           setTransactionFormOpen(open);
-          if (!open) setTransactionToEdit(null);
+          if (!open) {
+            setTransactionToEdit(null);
+            setTransactionInitialData(null);
+            setQuickCaptureData(null);
+          }
         }}
         onSubmit={handleSubmitTransaction}
         suppliers={suppliers}
-        initialData={transactionToEdit}
+        initialData={transactionToEdit || transactionInitialData}
+        quickCaptureData={quickCaptureData}
         defaultSupplierId={id}
         defaultSupplierName={supplier?.companyName || supplier?.name}
         title={transactionToEdit ? "Edit Bill" : "Add Bill"}

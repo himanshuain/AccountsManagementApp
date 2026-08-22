@@ -46,6 +46,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 
 import { PersonAvatar } from "@/components/gpay/PersonAvatar";
 import { TransactionForm } from "@/components/TransactionForm";
@@ -59,6 +60,7 @@ import {
 } from "@/components/PhotoViewer";
 import { ProgressBar } from "@/components/gpay/PaymentProgress";
 import { LumpsumPaymentDrawer } from "@/components/gpay/LumpsumPaymentDrawer";
+import { ChatInputBar } from "@/components/gpay/ChatInputBar";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { cn } from "@/lib/utils";
@@ -105,13 +107,7 @@ function LoadingImg({
   };
 
   if (errored) {
-    return (
-      <UnavailableImageText
-        label={alt || "Photo"}
-        className="text-[10px]"
-        hint={null}
-      />
-    );
+    return <UnavailableImageText label={alt || "Photo"} className="text-[10px]" hint={null} />;
   }
 
   return (
@@ -156,7 +152,6 @@ function ReceiptThumb({ src, alt, onClick }) {
     </div>
   );
 }
-
 
 // Transaction Detail Modal — Carousel on top, drawer below (Instagram-style)
 function TransactionDetailModal({
@@ -679,12 +674,7 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
           </p>
         </div>
 
-        <div
-          className={cn(
-            "flex items-center justify-between gap-2",
-            hasMeta ? "mt-2.5" : "mt-2"
-          )}
-        >
+        <div className={cn("flex items-center justify-between gap-2", hasMeta ? "mt-2.5" : "mt-2")}>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             {payment.isReturn && (
               <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
@@ -1102,6 +1092,7 @@ export default function PersonChatPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
+  const isOnline = useOnlineStatus();
   const { type, id } = params;
   const highlightTxnId = searchParams.get("txnId");
   const editTxnId = searchParams.get("editTxn");
@@ -1117,6 +1108,8 @@ export default function PersonChatPage() {
   const [deleteTransactionDialog, setDeleteTransactionDialog] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [draftInitialData, setDraftInitialData] = useState(null);
+  const [quickCaptureData, setQuickCaptureData] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [focusPaymentId, setFocusPaymentId] = useState(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
@@ -1136,6 +1129,7 @@ export default function PersonChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [profileTab, setProfileTab] = useState("bills");
   const [billsSortOrder, setBillsSortOrder] = useState("newest");
+  const [chatInputValue, setChatInputValue] = useState("");
 
   // Prevent body scroll when modals/sheets are open
   usePreventBodyScroll(
@@ -1150,10 +1144,20 @@ export default function PersonChatPage() {
   const isSupplier = type === "supplier";
 
   // Data hooks - fetchAll: true ensures we load all transactions for accurate filtering
-  const { suppliers, loading: suppliersLoading, updateSupplier, deleteSupplier } = useSuppliers({
+  const {
+    suppliers,
+    loading: suppliersLoading,
+    updateSupplier,
+    deleteSupplier,
+  } = useSuppliers({
     enabled: isSupplier,
   });
-  const { customers, loading: customersLoading, updateCustomer, deleteCustomer } = useCustomers({
+  const {
+    customers,
+    loading: customersLoading,
+    updateCustomer,
+    deleteCustomer,
+  } = useCustomers({
     enabled: !isSupplier,
   });
   const {
@@ -1179,15 +1183,16 @@ export default function PersonChatPage() {
 
   const listLoading = isSupplier ? suppliersLoading : customersLoading;
 
-  const { person, loading: personLoading, notFound, error: personError } = usePersonProfile(
-    type,
-    id,
-    {
-      suppliers,
-      customers,
-      listLoading,
-    }
-  );
+  const {
+    person,
+    loading: personLoading,
+    notFound,
+    error: personError,
+  } = usePersonProfile(type, id, {
+    suppliers,
+    customers,
+    listLoading,
+  });
 
   // Get transactions for this person (sorted oldest first for chat view)
   // For same-date transactions, sort by createdAt timestamp (newest at bottom)
@@ -1770,9 +1775,7 @@ export default function PersonChatPage() {
         undone++;
       }
 
-      toast.success(
-        `Undid lumpsum payment on ${undone} bill${undone !== 1 ? "s" : ""}`
-      );
+      toast.success(`Undid lumpsum payment on ${undone} bill${undone !== 1 ? "s" : ""}`);
     },
     [isSupplier, deleteTransactionPayment, deleteUdharPayment]
   );
@@ -2160,6 +2163,14 @@ export default function PersonChatPage() {
                 <>
                   <p className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     {isSupplier ? "You Owe" : "They Owe"}
+                    {pendingItems.length > 0 && (
+                      <span className="ml-1.5 normal-case tracking-normal text-muted-foreground/80">
+                        · {pendingItems.length}{" "}
+                        {isSupplier
+                          ? `bill${pendingItems.length === 1 ? "" : "s"}`
+                          : `udhar${pendingItems.length === 1 ? "" : "s"}`}
+                      </span>
+                    )}
                   </p>
                   <p
                     className={cn(
@@ -2308,36 +2319,54 @@ export default function PersonChatPage() {
         )}
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="header-glass fixed bottom-0 left-0 right-0 z-20 border-t border-border px-3 pt-2 pb-safe">
-        <div className="flex items-center gap-2">
+      {/* Chat Input Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-20">
+        <ChatInputBar
+          placeholder="Enter amount..."
+          inputValue={chatInputValue}
+          onInputChange={setChatInputValue}
+          submitLabel={isSupplier ? "Add transaction" : "Add udhar"}
+          onSubmit={(value, attachments) => {
+            if (!isOnline) {
+              toast.error("Cannot add while offline");
+              return;
+            }
+
+            const amount = !isNaN(Number(value)) && value.trim() !== "" ? Number(value) : "";
+            const notes = isNaN(Number(value)) || value.trim() === "" ? value : "";
+            const files = attachments.map(item => item.file).filter(Boolean);
+
+            setEditingTransaction(null);
+            setDraftInitialData({ amount, notes });
+            setQuickCaptureData({
+              ...(isSupplier ? { supplierId: id } : { customerId: id }),
+              images: files,
+            });
+            setChatInputValue("");
+
+            if (isSupplier) {
+              setTransactionFormOpen(true);
+            } else {
+              setUdharFormOpen(true);
+            }
+          }}
+          disabled={!isOnline}
+        >
           {/* UPI Pay Button */}
           {person.upiId && (
             <button
               onClick={handleUpiPay}
-              className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              className="flex items-center gap-1.5 rounded-xl bg-muted px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
             >
               <ExternalLink className="h-3 w-3" />
               Pay
             </button>
           )}
 
-          {/* GPay Chat Button */}
-          {/* {person.phone && (
-            <button
-              onClick={handleGPayChat}
-              className="px-3 py-2 bg-muted rounded-xl font-medium text-sm flex items-center gap-2 hover:bg-accent transition-colors"
-            >
-              <Send className="h-3 w-3" />
-              Check GPay
-            </button>
-          )} */}
-
           {/* Bills Gallery Button */}
-
           <button
             onClick={() => setBillsGalleryOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+            className="flex items-center gap-1.5 rounded-xl bg-muted px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
           >
             <Images className="h-3 w-3" />
             Bills
@@ -2354,36 +2383,32 @@ export default function PersonChatPage() {
                   toast.error("Failed to export PDF");
                 }
               }}
-              className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              className="flex items-center gap-1.5 rounded-xl bg-muted px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
             >
               <FileDown className="h-3 w-3" />
               PDF
             </button>
           )}
 
-          {/* Lumpsum Payment */}
-          <LumpsumPaymentDrawer
-            type={isSupplier ? "supplier" : "customer"}
-            totalPending={totals.pending}
-            pendingItems={pendingItems}
-            onPayBills={handleLumpsumPay}
-          />
-
-          {/* Add Transaction/Udhar */}
-          <button
-            onClick={() => {
-              setEditingTransaction(null);
-              if (isSupplier) {
-                setTransactionFormOpen(true);
-              } else {
-                setUdharFormOpen(true);
-              }
-            }}
-            className="ml-auto rounded-full bg-primary p-3 text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        </div>
+          {/* Lumpsum Payment Button */}
+          {isSupplier ? (
+            <LumpsumPaymentDrawer
+              type="supplier"
+              totalPending={totals.pending}
+              pendingItems={pendingItems}
+              onPayBills={handleLumpsumPay}
+              disabled={!isOnline}
+            />
+          ) : (
+            <LumpsumPaymentDrawer
+              type="customer"
+              totalPending={totals.pending}
+              pendingItems={pendingItems}
+              onPayBills={handleLumpsumPay}
+              disabled={!isOnline}
+            />
+          )}
+        </ChatInputBar>
       </div>
 
       {/* Transaction Detail Modal */}
@@ -2575,10 +2600,14 @@ export default function PersonChatPage() {
             open={transactionFormOpen}
             onOpenChange={open => {
               setTransactionFormOpen(open);
-              if (!open) setEditingTransaction(null);
+              if (!open) {
+                setEditingTransaction(null);
+                setDraftInitialData(null);
+                setQuickCaptureData(null);
+              }
             }}
             onSubmit={
-              editingTransaction
+              editingTransaction?.id
                 ? data =>
                     updateTransaction(editingTransaction.id, data).then(r => {
                       if (r.success) {
@@ -2593,7 +2622,8 @@ export default function PersonChatPage() {
             suppliers={suppliers}
             defaultSupplierId={id}
             defaultSupplierName={person?.companyName || person?.name}
-            initialData={editingTransaction || null}
+            initialData={editingTransaction || draftInitialData}
+            quickCaptureData={quickCaptureData}
             title="Add Transaction"
           />
         </>
@@ -2610,10 +2640,14 @@ export default function PersonChatPage() {
             open={udharFormOpen}
             onOpenChange={open => {
               setUdharFormOpen(open);
-              if (!open) setEditingTransaction(null);
+              if (!open) {
+                setEditingTransaction(null);
+                setDraftInitialData(null);
+                setQuickCaptureData(null);
+              }
             }}
             onSubmit={
-              editingTransaction
+              editingTransaction?.id
                 ? data =>
                     updateUdhar(editingTransaction.id, data).then(r => {
                       if (r.success) {
@@ -2628,7 +2662,8 @@ export default function PersonChatPage() {
             customers={customers}
             defaultCustomerId={id}
             defaultCustomerName={person?.name}
-            initialData={editingTransaction || null}
+            initialData={editingTransaction || draftInitialData}
+            quickCaptureData={quickCaptureData}
             title="Add Udhar"
           />
         </>

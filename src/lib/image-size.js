@@ -22,10 +22,23 @@ export async function getImageSizeBytes(url, { allowDownload = false } = {}) {
   if (!url) return null;
   if (sizeCache.has(url)) return sizeCache.get(url);
 
-  if (url.startsWith("data:")) {
-    const bytes = getDataUrlSizeBytes(url);
-    if (bytes !== null) sizeCache.set(url, bytes);
-    return bytes;
+  if (url.startsWith("data:") || url.startsWith("blob:")) {
+    if (url.startsWith("data:")) {
+      const bytes = getDataUrlSizeBytes(url);
+      if (bytes !== null) sizeCache.set(url, bytes);
+      return bytes;
+    }
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      if (blob.size > 0) {
+        sizeCache.set(url, blob.size);
+        return blob.size;
+      }
+    } catch {
+      return null;
+    }
+    return null;
   }
 
   try {
