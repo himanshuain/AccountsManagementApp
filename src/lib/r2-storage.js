@@ -13,8 +13,10 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  GetObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
+import { getAwsTlsRequestHandler } from "@/lib/dev-tls";
 
 // R2 Configuration
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
@@ -37,6 +39,7 @@ function getR2Client() {
     throw new Error("R2 is not configured. Check environment variables.");
   }
 
+  const tlsHandler = getAwsTlsRequestHandler();
   return new S3Client({
     region: "auto",
     endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -44,6 +47,7 @@ function getR2Client() {
       accessKeyId: R2_ACCESS_KEY_ID,
       secretAccessKey: R2_SECRET_ACCESS_KEY,
     },
+    ...(tlsHandler ? { requestHandler: tlsHandler } : {}),
   });
 }
 
@@ -191,6 +195,36 @@ export async function existsInR2(storageKey) {
 }
 
 /**
+ * Download an object from R2 for server-side processing (e.g. OCR).
+ * @param {string} storageKey
+ * @returns {Promise<{ data: Buffer, contentType: string }|null>}
+ */
+export async function getObjectFromR2(storageKey) {
+  if (!storageKey || !isR2Configured()) return null;
+
+  try {
+    const client = getR2Client();
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+    });
+    const response = await client.send(command);
+    const bytes = await response.Body?.transformToByteArray?.();
+    if (!bytes || bytes.length === 0) return null;
+    return {
+      data: Buffer.from(bytes),
+      contentType: response.ContentType || "image/jpeg",
+    };
+  } catch (error) {
+    if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
+    console.error("[R2] GetObject error:", error);
+    return null;
+  }
+}
+
+/**
  * Get storage statistics from R2
  * @returns {Promise<{success: boolean, data?: {used: number, fileCount: number, usedFormatted: string}, error?: string}>}
  */
@@ -266,6 +300,7 @@ const r2Storage = {
   deleteFromR2,
   deleteMultipleFromR2,
   existsInR2,
+  getObjectFromR2,
   getR2StorageStats,
 };
 

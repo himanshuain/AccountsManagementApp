@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { PhotoProvider, PhotoView, PhotoSlider } from "react-photo-view";
 import { motion } from "motion/react";
 import { X, Download, Share2, AlertCircle, Maximize2 } from "lucide-react";
+import { ImageOcrInfoButton } from "@/components/ImageOcrInfoButton";
 import { toast } from "sonner";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { getImageSizeBytes, formatBytes } from "@/lib/image-size";
@@ -15,7 +16,15 @@ import "react-photo-view/dist/react-photo-view.css";
 /**
  * Floating toolbar overlay for the photo viewer
  */
-function FloatingToolbar({ onDownload, onShare, onClose, index, total, sizeLabel }) {
+function FloatingToolbar({
+  onDownload,
+  onShare,
+  onClose,
+  index,
+  total,
+  sizeLabel,
+  ocrTrailing,
+}) {
   return (
     <>
       <div className="pt-safe pointer-events-none fixed left-0 right-0 top-0 z-[2147483647] flex items-center justify-between px-4 py-3">
@@ -40,7 +49,9 @@ function FloatingToolbar({ onDownload, onShare, onClose, index, total, sizeLabel
           </div>
         )}
 
-        <div className="w-10" aria-hidden />
+        <div className="pointer-events-auto flex h-10 w-10 items-center justify-center">
+          {ocrTrailing || null}
+        </div>
       </div>
 
       <div className="pb-safe pointer-events-none fixed bottom-0 left-0 right-0 z-[2147483647] flex justify-center px-4 py-5">
@@ -430,7 +441,14 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
  * Photo Gallery Viewer - For multiple images with navigation
  * Uses portal to render at document body level to avoid z-index/touch conflicts
  */
-export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpenChange }) {
+export function PhotoGalleryViewer({
+  images = [],
+  imageRefs,
+  imageOcrMap,
+  initialIndex = 0,
+  open,
+  onOpenChange,
+}) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [mounted, setMounted] = useState(false);
   const [sizeLabel, setSizeLabel] = useState("");
@@ -560,6 +578,9 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
   if (!open || normalizedImages.length === 0 || !mounted) return null;
 
   const currentImage = normalizedImages[currentIndex];
+  const refs = imageRefs?.length ? imageRefs : images;
+  const currentRef = refs[currentIndex];
+  const resolvedOcrMap = imageOcrMap || {};
 
   const viewer = (
     <>
@@ -619,6 +640,15 @@ export function PhotoGalleryViewer({ images = [], initialIndex = 0, open, onOpen
         onShare={handleShare}
         onClose={() => onOpenChange(false)}
         sizeLabel={sizeLabel}
+        ocrTrailing={
+          currentRef ? (
+            <ImageOcrInfoButton
+              imageRef={currentRef}
+              imageOcrMap={resolvedOcrMap}
+              size="md"
+            />
+          ) : null
+        }
       />
       <ViewerFilmstrip
         images={normalizedImages}

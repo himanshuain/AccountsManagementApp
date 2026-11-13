@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
+import { recordMatchesBillSearch } from "@/lib/record-search";
 
 export function GlobalSearch({ className }) {
   const router = useRouter();
@@ -134,14 +135,7 @@ export function GlobalSearch({ className }) {
           .filter(t => {
             const supplier = allData.suppliers.find(s => s.id === t.supplierId);
             const supplierName = supplier?.name?.toLowerCase() || "";
-            const amount = t.amount?.toString() || "";
-            const notes = t.notes?.toLowerCase() || "";
-
-            return (
-              supplierName.includes(lowerQuery) ||
-              amount.includes(query) ||
-              notes.includes(lowerQuery)
-            );
+            return supplierName.includes(lowerQuery) || recordMatchesBillSearch(t, query);
           })
           .slice(0, 5);
 
@@ -150,15 +144,7 @@ export function GlobalSearch({ className }) {
           .filter(u => {
             const customer = allData.customers.find(c => c.id === u.customerId);
             const customerName = customer?.name?.toLowerCase() || "";
-            const amount =
-              (u.amount || (u.cashAmount || 0) + (u.onlineAmount || 0)).toString() || "";
-            const notes = u.notes?.toLowerCase() || "";
-
-            return (
-              customerName.includes(lowerQuery) ||
-              amount.includes(query) ||
-              notes.includes(lowerQuery)
-            );
+            return customerName.includes(lowerQuery) || recordMatchesBillSearch(u, query);
           })
           .slice(0, 5);
 

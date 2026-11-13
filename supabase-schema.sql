@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   payments JSONB DEFAULT '[]',
   notes TEXT,
   bill_images JSONB DEFAULT '[]',
+  bill_image_ocr JSONB NOT NULL DEFAULT '{}',
   sync_status TEXT DEFAULT 'synced',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS udhar (
   payment_status TEXT DEFAULT 'pending',
   payments JSONB DEFAULT '[]',
   khata_photos JSONB DEFAULT '[]',
+  khata_image_ocr JSONB NOT NULL DEFAULT '{}',
   item_description TEXT,
   notes TEXT,
   paid_date TIMESTAMPTZ,

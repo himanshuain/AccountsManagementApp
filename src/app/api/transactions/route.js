@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { transactionSchema, validateBody } from "@/lib/validation";
+import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -124,8 +125,16 @@ export async function POST(request) {
       cleanedBody.date = new Date().toISOString().split("T")[0];
     }
 
+    const billImages = cleanedBody.billImages || [];
+    const billImageOcr = await syncImageOcrForRefs(
+      billImages,
+      {},
+      cleanedBody.billImageOcr || {}
+    );
+
     const transactionData = {
       ...cleanedBody,
+      billImageOcr,
       id: cleanedBody.id || crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,

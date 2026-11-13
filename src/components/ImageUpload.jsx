@@ -8,6 +8,7 @@ import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { getImageUrls, isDataUrl, resolveImageUrl } from "@/lib/image-url";
 import { isDeletableStorageKey } from "@/lib/orphan-upload-cleanup";
+import { OCR_UPLOAD_FOLDERS } from "@/lib/image-ocr-map";
 
 function notifySessionKeysAdded(onSessionStorageKeysAdded, keys) {
   const deletable = keys.filter(isDeletableStorageKey);
@@ -17,6 +18,15 @@ function notifySessionKeysAdded(onSessionStorageKeysAdded, keys) {
 function notifySessionKeysRemoved(onSessionStorageKeysRemoved, keys) {
   const deletable = keys.filter(isDeletableStorageKey);
   if (deletable.length > 0) onSessionStorageKeysRemoved?.(deletable);
+}
+
+function appendOcrFlagIfNeeded(formData, folder) {
+  const normalized = String(folder || "general")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "");
+  if (OCR_UPLOAD_FOLDERS.has(normalized)) {
+    formData.append("runOcr", "1");
+  }
 }
 
 /** POST /api/upload with XMLHttpRequest so upload progress is available. */
@@ -240,6 +250,8 @@ export function ImageUpload({
   onSessionStorageKeysAdded,
   /** Called when a storage key is removed from the field (before R2 delete). */
   onSessionStorageKeysRemoved,
+  /** Called after upload with storage key and OCR text (bill/khata folders). */
+  onImageOcrCaptured,
   folder = "general",
   showHDToggle = true, // Show HD toggle by default
   layout = "grid",
@@ -343,12 +355,16 @@ export function ImageUpload({
       const formData = new FormData();
       formData.append("file", compressedFile);
       formData.append("folder", folder);
+      appendOcrFlagIfNeeded(formData, folder);
 
       const result = await uploadFormDataWithProgress(formData, pct => {
         setUploadProgress(pct);
       });
 
       const storageKey = result.storageKey || result.url;
+      if (result.ocrText) {
+        onImageOcrCaptured?.(storageKey, result.ocrText);
+      }
       onChange?.(storageKey);
       notifySessionKeysAdded(onSessionStorageKeysAdded, [storageKey]);
       setPreview(storageKey);
@@ -637,6 +653,7 @@ export function MultiImageUpload({
   onUploadingChange,
   onSessionStorageKeysAdded,
   onSessionStorageKeysRemoved,
+  onImageOcrCaptured,
   folder = "general",
   onImageTap, // Optional callback when image is tapped (index) => void
   showHDToggle = true, // Show HD toggle by default
@@ -727,6 +744,7 @@ export function MultiImageUpload({
         const formData = new FormData();
         formData.append("file", compressedFile);
         formData.append("folder", folder);
+        appendOcrFlagIfNeeded(formData, folder);
 
         const result = await uploadFormDataWithProgress(formData, pct => {
           if (pct === null) {
@@ -737,7 +755,11 @@ export function MultiImageUpload({
           setUploadProgress(overall);
         });
 
-        newKeys.push(result.storageKey || result.url);
+        const storageKey = result.storageKey || result.url;
+        if (result.ocrText) {
+          onImageOcrCaptured?.(storageKey, result.ocrText);
+        }
+        newKeys.push(storageKey);
       } catch (error) {
         console.error("Upload failed:", error);
         errors.push(error?.message || "Could not upload a photo.");

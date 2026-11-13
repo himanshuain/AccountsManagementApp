@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { uploadToR2, generateStorageKey, isR2Configured, existsInR2 } from "@/lib/r2-storage";
+import { extractTextFromImage, shouldRunOcrForFolder } from "@/lib/ocr";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // Security constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB max file size
@@ -176,6 +179,19 @@ export async function POST(request) {
       );
     }
 
+    const runOcrField = formData.get("runOcr");
+    const runOcr =
+      runOcrField === null
+        ? shouldRunOcrForFolder(sanitizedFolder)
+        : runOcrField !== "0" && runOcrField !== "false";
+
+    let ocrText = "";
+    if (runOcr) {
+      ocrText = await extractTextFromImage(Buffer.from(arrayBuffer), {
+        mimeType: detectedMimeType,
+      });
+    }
+
     // Return only the storage key (not the full URL)
     // Client will resolve this to a CDN URL at display time
     return NextResponse.json({
@@ -184,6 +200,7 @@ export async function POST(request) {
       // For backwards compatibility, also include url
       // This is resolved from the storage key
       url: result.storageKey,
+      ocrText: ocrText || undefined,
     });
   } catch (error) {
     console.error("[Upload] Failed:", error);

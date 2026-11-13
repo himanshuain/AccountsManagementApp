@@ -47,6 +47,8 @@ import { useUdhar } from "@/hooks/useUdhar";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { recordMatchesBillSearch } from "@/lib/record-search";
+import { mergeTxnImageOcrMaps } from "@/lib/image-ocr-map";
 
 import { PersonAvatar } from "@/components/gpay/PersonAvatar";
 import { TransactionForm } from "@/components/TransactionForm";
@@ -263,7 +265,7 @@ function TransactionDetailModal({
       {hasImages ? (
         <SwipeCarousel
           images={resolvedImages}
-          onImageClick={(img, idx) => onViewImages(images, idx)}
+          onImageClick={(img, idx) => onViewImages(images, idx, mergeTxnImageOcrMaps(txn))}
           className="mx-4 mb-4"
           aspectRatio="aspect-[4/3]"
           showGradientEdges={false}
@@ -963,7 +965,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
-                  onViewImages(images, 0);
+                  onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
                 }}
                 className="relative block h-full w-full overflow-hidden rounded-xl border border-border/60 bg-muted text-left shadow-sm outline-none ring-offset-background transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -1052,7 +1054,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                   type="button"
                   onClick={e => {
                     e.stopPropagation();
-                    onViewImages(images, 0);
+                    onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
                   }}
                   className="mt-2 text-left text-xs font-medium text-primary hover:underline"
                 >
@@ -1115,6 +1117,7 @@ export default function PersonChatPage() {
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewerImages, setViewerImages] = useState([]);
+  const [viewerOcrMap, setViewerOcrMap] = useState({});
   const [viewerIndex, setViewerIndex] = useState(0);
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
   const [paymentTransaction, setPaymentTransaction] = useState(null);
@@ -1223,21 +1226,10 @@ export default function PersonChatPage() {
 
     const query = searchQuery.toLowerCase();
     return personTransactions.filter(txn => {
-      // Search in amount
-      const amount = txn.amount?.toString() || "";
-      if (amount.includes(query)) return true;
+      if (recordMatchesBillSearch(txn, searchQuery)) return true;
 
-      // Search in description/notes
-      const notes = (txn.notes || txn.itemDescription || "").toLowerCase();
-      if (notes.includes(query)) return true;
-
-      // Search in date
       const dateStr = format(parseISO(txn.date), "dd MMM yyyy").toLowerCase();
       if (dateStr.includes(query)) return true;
-
-      // Search in payment status
-      const status = (txn.paymentStatus || "").toLowerCase();
-      if (status.includes(query)) return true;
 
       return false;
     });
@@ -1610,8 +1602,9 @@ export default function PersonChatPage() {
   };
 
   // Handle view images
-  const handleViewImages = (images, startIndex = 0) => {
+  const handleViewImages = (images, startIndex = 0, ocrMap = {}) => {
     setViewerImages(images);
+    setViewerOcrMap(ocrMap);
     setViewerIndex(startIndex);
     setImageViewerOpen(true);
   };
@@ -2047,7 +2040,7 @@ export default function PersonChatPage() {
                 placeholder={
                   isSupplier && profileTab === "payments"
                     ? "Search payments..."
-                    : `Search ${isSupplier ? "bills" : "udhars"}...`
+                    : `Search ${isSupplier ? "bills" : "udhars"}, amounts, or bill text...`
                 }
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -2696,6 +2689,8 @@ export default function PersonChatPage() {
         open={imageViewerOpen}
         onOpenChange={setImageViewerOpen}
         images={viewerImages}
+        imageRefs={viewerImages}
+        imageOcrMap={viewerOcrMap}
         initialIndex={viewerIndex}
       />
 

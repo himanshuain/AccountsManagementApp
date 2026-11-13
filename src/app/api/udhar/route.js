@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { udharSchema, validateBody } from "@/lib/validation";
+import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -140,8 +141,16 @@ export async function POST(request) {
 
     const now = new Date().toISOString();
 
+    const khataPhotos = validation.data.khataPhotos || [];
+    const khataImageOcr = await syncImageOcrForRefs(
+      khataPhotos,
+      {},
+      validation.data.khataImageOcr || {}
+    );
+
     const udharData = {
       ...validation.data,
+      khataImageOcr,
       id: validation.data.id || crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,

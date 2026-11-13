@@ -7,6 +7,7 @@ import {
   isImageRefInIndex,
 } from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
+import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -81,7 +82,7 @@ export async function PUT(request, { params }) {
     // Get existing transaction to check for image changes
     const { data: existingTransaction } = await supabase
       .from("transactions")
-      .select("bill_images, payments")
+      .select("bill_images, bill_image_ocr, payments")
       .eq("id", id)
       .single();
 
@@ -98,6 +99,14 @@ export async function PUT(request, { params }) {
       ...cleanedBody,
       updatedAt: new Date().toISOString(),
     };
+
+    if (Object.prototype.hasOwnProperty.call(body, "billImages")) {
+      updates.billImageOcr = await syncImageOcrForRefs(
+        updates.billImages || [],
+        existingTransaction?.bill_image_ocr || {},
+        updates.billImageOcr || body.billImageOcr || {}
+      );
+    }
 
     const record = toSnakeCase(updates);
 
