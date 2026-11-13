@@ -3,9 +3,12 @@
  */
 
 import { OCR_UPLOAD_FOLDERS } from "@/lib/image-ocr-map";
+import { cleanOcrTextMultiline, isWorthStoringOcr } from "@/lib/ocr-quality";
+import { preprocessImageForOcr } from "@/lib/ocr-preprocess";
 
 const MAX_OCR_BYTES = 8 * 1024 * 1024;
 const OCR_SKIP_MIME = new Set(["image/heic", "image/heif", "image/gif"]);
+const LINE_CONF_MIN = 48;
 
 let workerPromise = null;
 
@@ -47,8 +50,32 @@ export async function extractTextFromImage(imageData, options = {}) {
 
   try {
     const worker = await getOcrWorker();
-    const { data } = await worker.recognize(buffer);
-    return (data?.text || "").replace(/\s+/g, " ").trim();
+    const { PSM } = await import("tesseract.js");
+    const prepared = await preprocessImageForOcr(buffer);
+
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.AUTO,
+      preserve_interword_spaces: "1",
+    });
+
+    const { data } = await worker.recognize(prepared);
+
+    let text = "";
+    if (Array.isArray(data?.lines) && data.lines.length) {
+      text = data.lines
+        .filter((line) => (line.confidence ?? 0) >= LINE_CONF_MIN)
+        .map((line) => line.text)
+        .join("\n");
+    }
+    if (!text.trim()) {
+      text = data?.text || "";
+    }
+
+    text = cleanOcrTextMultiline(text);
+    if (!isWorthStoringOcr(text)) {
+      return "";
+    }
+    return text;
   } catch (err) {
     console.error("[OCR] Recognition failed:", err?.message || err);
     return "";

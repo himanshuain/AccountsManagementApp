@@ -1,21 +1,16 @@
 import Sanscript from "@indic-transliteration/sanscript";
 import { normalizeToStorageKey } from "./image-url";
+import {
+  buildOcrEntry,
+  devanagariToLatin,
+  normalizeOcrEntry,
+  normalizeRomanForSearch,
+} from "./ocr-entry";
+import { isWorthStoringOcr } from "./ocr-quality";
+
+export { buildOcrEntry, devanagariToLatin, normalizeOcrEntry, normalizeRomanForSearch };
 
 const DEVANAGARI_RE = /[\u0900-\u097F]/;
-const MOSTLY_ASCII_RE = /^[\x00-\x7F]*$/;
-
-/** Strip accents so "dukāna" and "dukana" match */
-export function normalizeRomanForSearch(value) {
-  if (!value) return "";
-  return String(value)
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .normalize("NFC")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 /** Loosen typed Roman (e.g. "dukan" → try "dukana") for Sanscript itrans */
 export function relaxRomanInputForItrans(query) {
@@ -35,17 +30,6 @@ export function relaxRomanInputForItrans(query) {
   return [...variants];
 }
 
-export function devanagariToLatin(text) {
-  if (!text || !DEVANAGARI_RE.test(text)) return "";
-  try {
-    const itrans = Sanscript.t(text, "devanagari", "itrans");
-    const hk = Sanscript.t(text, "devanagari", "hk");
-    return [normalizeRomanForSearch(itrans), normalizeRomanForSearch(hk)].filter(Boolean).join(" ");
-  } catch {
-    return "";
-  }
-}
-
 export function latinQueryToDevanagariVariants(query) {
   const variants = new Set();
   if (!query?.trim() || DEVANAGARI_RE.test(query)) return [];
@@ -61,41 +45,6 @@ export function latinQueryToDevanagariVariants(query) {
     }
   }
   return [...variants];
-}
-
-/** @returns {{ text: string, latin?: string }|null} */
-export function buildOcrEntry(rawText) {
-  const text = String(rawText || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!text) return null;
-
-  const fromDev = devanagariToLatin(text);
-  const fromRoman = MOSTLY_ASCII_RE.test(text) ? normalizeRomanForSearch(text) : "";
-  const latin = [fromDev, fromRoman].filter(Boolean).join(" ").trim();
-
-  return latin ? { text, latin } : { text };
-}
-
-export function normalizeOcrEntry(value) {
-  if (typeof value === "string" && value.trim()) {
-    return buildOcrEntry(value) || { text: value.trim() };
-  }
-  if (value && typeof value === "object" && typeof value.text === "string" && value.text.trim()) {
-    const entry = buildOcrEntry(value.text);
-    if (!entry) return null;
-    if (typeof value.latin === "string" && value.latin.trim()) {
-      const mergedLatin = [
-        normalizeRomanForSearch(value.latin),
-        entry.latin ? normalizeRomanForSearch(entry.latin) : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      if (mergedLatin) entry.latin = mergedLatin;
-    }
-    return entry;
-  }
-  return null;
 }
 
 /** Rich map: storage key → { text, latin? } */
@@ -164,6 +113,7 @@ export function ocrMapMatchesQuery(query, ocrMap) {
   const devVariants = latinQueryToDevanagariVariants(q);
 
   for (const entry of Object.values(normalizeImageOcrMapRich(ocrMap))) {
+    if (!isWorthStoringOcr(entry.text.replace(/\n/g, " "))) continue;
     const textLower = entry.text.toLowerCase();
     if (textLower.includes(qLower)) return true;
 

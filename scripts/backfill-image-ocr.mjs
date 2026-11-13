@@ -13,7 +13,9 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { GetObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM } from "tesseract.js";
+import { cleanOcrTextMultiline, isWorthStoringOcr } from "./lib/ocr-quality.mjs";
+import { preprocessImageForOcr } from "./lib/ocr-preprocess.mjs";
 import { s3TlsRequestHandler, useInsecureTls } from "./lib/dev-tls.mjs";
 import {
   buildOcrEntry,
@@ -154,10 +156,26 @@ async function getOcrWorker() {
   return ocrWorker;
 }
 
+const LINE_CONF_MIN = 48;
+
 async function runOcr(buffer) {
   const worker = await getOcrWorker();
-  const { data } = await worker.recognize(buffer);
-  return (data?.text || "").replace(/\s+/g, " ").trim();
+  const prepared = await preprocessImageForOcr(buffer);
+  await worker.setParameters({
+    tessedit_pageseg_mode: PSM.AUTO,
+    preserve_interword_spaces: "1",
+  });
+  const { data } = await worker.recognize(prepared);
+  let text = "";
+  if (Array.isArray(data?.lines) && data.lines.length) {
+    text = data.lines
+      .filter((line) => (line.confidence ?? 0) >= LINE_CONF_MIN)
+      .map((line) => line.text)
+      .join("\n");
+  }
+  if (!text.trim()) text = data?.text || "";
+  text = cleanOcrTextMultiline(text);
+  return isWorthStoringOcr(text) ? text : "";
 }
 
 async function ocrImageFromRef(client, ref) {

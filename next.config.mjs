@@ -3,7 +3,7 @@
 const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig = {
-  serverExternalPackages: ["tesseract.js"],
+  serverExternalPackages: ["tesseract.js", "sharp"],
   experimental: {
     // React Compiler rewrites components on every compile. On large client pages it
     // often breaks Fast Refresh mid-session (white screen / missing chunk errors).

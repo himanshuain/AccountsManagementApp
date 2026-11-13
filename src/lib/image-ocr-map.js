@@ -1,4 +1,5 @@
 import { normalizeToStorageKey } from "./image-url";
+import { isWorthStoringOcr } from "./ocr-quality";
 import {
   buildOcrEntry,
   flattenOcrMapForPersistence,
@@ -59,7 +60,11 @@ export function enrichImageOcrMapLatin(ocrMap) {
   let changed = false;
   for (const [key, entry] of Object.entries(rich)) {
     const refreshed = buildOcrEntry(entry.text);
-    if (!refreshed) continue;
+    if (!refreshed) {
+      delete rich[key];
+      changed = true;
+      continue;
+    }
     if (refreshed.latin !== entry.latin || refreshed.text !== entry.text) {
       rich[key] = refreshed;
       changed = true;
@@ -72,7 +77,10 @@ export function getOcrEntryForImageRef(ocrMap, imageRef) {
   const key = storageKeyForOcrMap(imageRef);
   if (!key) return null;
   const rich = normalizeImageOcrMapRich(ocrMap);
-  return rich[key] || null;
+  const entry = rich[key];
+  if (!entry?.text) return null;
+  if (!isWorthStoringOcr(entry.text.replace(/\n/g, " "))) return null;
+  return entry;
 }
 
 /** Bill + khata OCR on a transaction / udhar row */
