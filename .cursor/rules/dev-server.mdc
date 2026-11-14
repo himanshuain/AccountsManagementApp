@@ -4,7 +4,7 @@ alwaysApply: true
 # Dev server stability
 
 ## Node
-Use Node **20.11.0** (`nvm use` — matches `.nvmrc` and `package.json` engines).
+Use Node **26.x** (`nvm use` — `.nvmrc` pins a 26 LTS; `package.json` engines is `26.x`).
 
 ## Never corrupt `.next` while dev is running
 - Do **not** run `rm -rf .next`, `npm run build`, or `dev:clean` while `npm run dev` / `npm run dev:vpn` is active.

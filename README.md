@@ -178,7 +178,7 @@ A modern, mobile-first web application for managing clothes shop suppliers, cust
 
 ### Prerequisites
 
-- Node.js 20.11.0 or later
+- Node.js 26.x (see `.nvmrc` for the pinned LTS)
 - npm or yarn
 - Accounts: Supabase, Cloudflare R2, ImageKit, Vercel
 
