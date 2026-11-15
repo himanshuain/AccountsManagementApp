@@ -221,7 +221,7 @@ function DrawerHeader({ children, className }) {
 
 function DrawerTitle({ children, className }) {
   return (
-    <h3 className={cn("font-heading text-lg font-semibold tracking-wide", className)}>
+    <h3 className={cn("font-heading text-lg", className)}>
       {children}
     </h3>
   );

@@ -4,7 +4,7 @@ import { OfflineBlocker } from "@/components/OfflineBlocker";
 
 export default function GPayLayout({ children }) {
   return (
-    <div className="relative min-h-screen bg-transparent text-foreground">
+    <div className="relative min-h-screen bg-background text-foreground">
       <OfflineBlocker />
 
       <main className="relative pb-safe" style={{ zIndex: 10 }}>

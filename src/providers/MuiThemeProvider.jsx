@@ -19,19 +19,19 @@ export function MuiProvider({ children }) {
       palette: {
         mode: isDark ? "dark" : "light",
         primary: {
-          main: "#3b82f6",
+          main: isDark ? "#60a5fa" : "#3b82f6",
         },
         background: {
-          default: isDark ? "#000000" : "#ffffff",
-          paper: isDark ? "#1a1a1a" : "#ffffff",
+          default: isDark ? "#0c0f14" : "#f8fafc",
+          paper: isDark ? "#151a22" : "#ffffff",
         },
         text: {
-          primary: isDark ? "#ffffff" : "#000000",
-          secondary: isDark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+          primary: isDark ? "#f1f5f9" : "#0f172a",
+          secondary: isDark ? "#94a3b8" : "#64748b",
         },
       },
       typography: {
-        fontFamily: "var(--font-outfit), system-ui, sans-serif",
+        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
       },
       shape: {
         borderRadius: 8,

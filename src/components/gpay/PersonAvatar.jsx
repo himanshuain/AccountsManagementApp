@@ -110,7 +110,7 @@ export function PersonAvatar({
             decoding="async"
           />
         ) : (
-          <span className="select-none font-heading tracking-wide">{initials}</span>
+          <span className="select-none font-heading text-sm tracking-tight">{initials}</span>
         )}
       </div>
 

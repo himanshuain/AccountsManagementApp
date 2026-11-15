@@ -10,112 +10,89 @@
 @tailwind utilities;
 
 /* ============================================
-   SUPERHERO THEME SYSTEM
-   Miles Morales (Light) + Iron Man Mark III (Dark)
+   PROFESSIONAL THEME — neutral surfaces, clear accent
    ============================================ */
 
 @layer base {
-  /* ========== MILES MORALES THEME (Light) ========== */
   :root {
-    /* Core Colors - Urban/Street Art Vibes */
-    --background: 0 0% 96%; /* #F5F5F5 */
-    --foreground: 240 10% 10%; /* #1A1A1A */
-    --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 240 10% 10%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Primary - Spider-Man Red */
-    --primary: 358 82% 53%; /* #E62429 */
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Deep Purple Black */
-    --secondary: 240 30% 14%; /* #1A1A2E */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    /* Accent - Neon Pink/Red */
-    --accent: 349 100% 65%; /* #FF4D6D */
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
 
-    /* Muted */
-    --muted: 240 10% 90%;
-    --muted-foreground: 240 5% 40%; /* #666666 */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    /* Destructive */
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Border & Input */
-    --border: 240 10% 85%;
-    --input: 240 10% 90%;
-    --ring: 358 82% 53%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
 
-    /* Charts */
-    --chart-1: 358 82% 53%;
-    --chart-2: 349 100% 65%;
-    --chart-3: 240 30% 14%;
-    --chart-4: 142 76% 36%;
+    --chart-1: 221 83% 53%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 215 16% 47%;
+    --chart-4: 142 71% 45%;
     --chart-5: 38 92% 50%;
 
-    /* Utilities */
-    --radius: 0.75rem;
-    --success: 142 76% 36%;
+    --radius: 0.625rem;
+    --success: 142 71% 45%;
     --warning: 38 92% 50%;
 
-    /* Theme-specific */
-    --theme-glow: 358 82% 53%;
-    --theme-surface: 240 20% 95%;
+    --theme-glow: 221 83% 53%;
+    --theme-surface: 210 40% 97%;
   }
 
-  /* ========== CLAUDE DARK THEME ========== */
   .dark {
-    /* Core Colors - Deep neutral dark, clean whites */
-    --background: 240 6% 4%; /* #0D0D0F - Near-black neutral */
-    --foreground: 240 5% 93%; /* #ECECEE - Clean bright white */
-    --card: 240 5% 9%; /* #161618 - Raised surface */
-    --card-foreground: 240 5% 93%;
-    --popover: 240 5% 9%;
-    --popover-foreground: 240 5% 93%;
+    --background: 222 47% 7%;
+    --foreground: 210 40% 98%;
+    --card: 222 41% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 41% 11%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Primary - Warm Terracotta/Coral */
-    --primary: 16 60% 56%; /* #D4734B - Claude coral */
-    --primary-foreground: 0 0% 100%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
 
-    /* Secondary - Dark surface */
-    --secondary: 240 3% 15%; /* #252527 */
-    --secondary-foreground: 240 5% 93%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    /* Accent - Same warm terracotta */
-    --accent: 16 60% 56%; /* #D4734B */
-    --accent-foreground: 240 6% 4%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
 
-    /* Muted - Neutral dark gray */
-    --muted: 240 3% 15%; /* #252527 */
-    --muted-foreground: 240 4% 62%; /* #9B9BA3 - Medium gray */
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    /* Destructive */
-    --destructive: 0 72% 51%;
+    --destructive: 0 63% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Border & Input - Very subtle */
-    --border: 240 4% 17%; /* #2A2A2D */
-    --input: 240 3% 15%;
-    --ring: 16 60% 56%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
 
-    /* Charts */
-    --chart-1: 16 60% 56%;
-    --chart-2: 162 72% 46%;
-    --chart-3: 240 5% 65%;
-    --chart-4: 142 76% 42%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 173 58% 45%;
+    --chart-3: 215 20% 65%;
+    --chart-4: 142 71% 45%;
     --chart-5: 38 92% 50%;
 
-    /* Utilities */
-    --success: 142 76% 42%;
+    --success: 142 71% 45%;
     --warning: 38 92% 50%;
 
-    /* Theme-specific */
-    --theme-glow: 16 60% 56%;
-    --theme-surface: 240 4% 12%;
+    --theme-glow: 217 91% 60%;
+    --theme-surface: 222 41% 9%;
   }
 }
 
@@ -133,11 +110,13 @@
   }
 
   body {
-    @apply text-foreground;
-    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    @apply text-[15px] leading-relaxed text-foreground md:text-base;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-variant-numeric: proportional-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: transparent;
+    text-rendering: optimizeLegibility;
+    @apply bg-background;
     min-height: 100vh;
   }
 
@@ -154,7 +133,6 @@
     }
   }
 
-  /* Headings - Superhero Style */
   h1,
   h2,
   h3,
@@ -162,23 +140,44 @@
   h5,
   h6,
   .font-heading {
-    font-family: var(--font-bebas), var(--font-dm-sans), system-ui, sans-serif;
-    letter-spacing: 0.025em;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    @apply font-semibold tracking-tight text-foreground;
+    letter-spacing: -0.02em;
   }
 
-  /* Money/Numbers - Tech Style */
+  h1 {
+    @apply text-2xl sm:text-3xl;
+  }
+
+  h2 {
+    @apply text-xl sm:text-2xl;
+  }
+
+  h3 {
+    @apply text-lg;
+  }
+
+  .text-caption {
+    @apply text-xs leading-snug text-muted-foreground;
+  }
+
+  .text-label {
+    @apply text-[11px] font-medium uppercase tracking-wide text-muted-foreground;
+  }
+
   .font-mono,
   .amount,
   [data-amount] {
-    font-family: var(--font-jetbrains), monospace;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-feature-settings:
       "tnum" on,
       "lnum" on;
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Accent Text - Graffiti Style (Light mode only) */
   .font-accent {
-    font-family: var(--font-permanent-marker), cursive;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    @apply font-medium;
   }
 }
 
@@ -246,29 +245,6 @@
   @apply text-amber-500 dark:text-amber-400;
 }
 
-/* ============================================
-   THEME BACKGROUNDS & PATTERNS
-   ============================================ */
-
-/* Miles Morales - Web Pattern Background */
-.bg-miles-pattern {
-  background-color: hsl(var(--background));
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L30 60M0 30L60 30M0 0L60 60M60 0L0 60' stroke='%23E62429' stroke-width='0.5' fill='none' opacity='0.05'/%3E%3C/svg%3E");
-}
-
-/* Claude Dark - Subtle dot grid */
-.dark .bg-ironman-pattern,
-.bg-ironman-pattern.dark {
-  background-color: hsl(var(--background));
-  background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* ============================================
-   ANIMATED CHARACTER BACKGROUNDS
-   Note: Main character animations are in HeroBackground.jsx component
-   ============================================ */
-
 /* Subtle Glow Effect */
 .arc-glow {
   box-shadow:
@@ -325,14 +301,14 @@
   0%,
   100% {
     box-shadow:
-      0 0 5px hsl(16 60% 56% / 0.3),
-      0 0 10px hsl(16 60% 56% / 0.15);
+      0 0 5px hsl(var(--primary) / 0.3),
+      0 0 10px hsl(var(--primary) / 0.15);
     opacity: 1;
   }
   50% {
     box-shadow:
-      0 0 10px hsl(16 60% 56% / 0.4),
-      0 0 20px hsl(16 60% 56% / 0.2);
+      0 0 10px hsl(var(--primary) / 0.4),
+      0 0 20px hsl(var(--primary) / 0.2);
     opacity: 0.9;
   }
 }
@@ -413,16 +389,14 @@
   transform: translateY(-2px);
 }
 
-/* Light mode - Red accent on hover */
 .theme-card:hover {
-  border-color: #e62429;
-  box-shadow: 0 4px 20px rgba(230, 36, 41, 0.15);
+  border-color: hsl(var(--primary) / 0.45);
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.12);
 }
 
-/* Dark mode - Coral accent on hover */
 .dark .theme-card:hover {
-  border-color: hsl(16 60% 56% / 0.5);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 /* Primary Button - Theme Aware */
@@ -436,14 +410,12 @@
   transform: scale(1.02);
 }
 
-/* Light mode - Spider effect */
 .btn-hero:hover {
-  box-shadow: 0 4px 20px rgba(230, 36, 41, 0.4);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.35);
 }
 
-/* Dark mode - Subtle warm glow */
 .dark .btn-hero:hover {
-  box-shadow: 0 4px 20px hsl(16 60% 56% / 0.35);
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.28);
 }
 
 .btn-hero:active {
@@ -479,10 +451,9 @@
   transform: scale(0.95);
 }
 
-/* Dark mode FAB */
 .dark .fab-hero {
   box-shadow:
-    0 0 12px hsl(16 60% 56% / 0.3),
+    0 0 12px hsl(var(--primary) / 0.25),
     0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
@@ -512,7 +483,7 @@
 }
 
 .dark .progress-hero-fill {
-  background: linear-gradient(90deg, hsl(var(--primary)), hsl(16 60% 68%));
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--success)));
 }
 
 /* Input Fields */

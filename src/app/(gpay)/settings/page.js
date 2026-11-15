@@ -286,7 +286,7 @@ function IncomeModal({ open, onClose }) {
       height="max-h-[90vh]"
     >
         <div className="px-4 pb-6">
-          <h2 className="mb-6 font-heading text-2xl tracking-wide">Income Tracker</h2>
+          <h2 className="mb-6 font-heading text-2xl">Income Tracker</h2>
 
           {/* Summary Cards */}
           <div className="mb-6 grid grid-cols-3 gap-3">
@@ -898,7 +898,7 @@ function BackupModal({ open, onClose }) {
   return (
     <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[85vh]">
         <div className="px-4 pb-6">
-          <h2 className="mb-6 font-heading text-2xl tracking-wide">Backup & Export</h2>
+          <h2 className="mb-6 font-heading text-2xl">Backup & Export</h2>
 
           <div className="theme-card mb-4 p-4">
             <div className="mb-4 flex items-center gap-3">
@@ -1229,7 +1229,7 @@ function ChangePinModal({ open, onClose }) {
   return (
     <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="h-auto">
         <div className="px-4 pb-6">
-          <h2 className="mb-6 font-heading text-2xl tracking-wide">Change PIN</h2>
+          <h2 className="mb-6 font-heading text-2xl">Change PIN</h2>
 
           <div className="space-y-4">
             <div>
@@ -1321,7 +1321,7 @@ function BiometricSettingsModal({ open, onClose, settings, updateSettings, isAva
     <DragCloseDrawer open={open} onOpenChange={v => !v && onClose()} height="max-h-[90vh]">
         <div className="p-4">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="font-heading text-xl tracking-wide">Biometric Lock</h2>
+            <h2 className="font-heading text-xl">Biometric Lock</h2>
             <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-muted">
               <X className="h-5 w-5" />
             </button>
@@ -1440,8 +1440,6 @@ export default function SettingsPage() {
   const [backupModalOpen, setBackupModalOpen] = useState(false);
   const [changePinModalOpen, setChangePinModalOpen] = useState(false);
   const [biometricModalOpen, setBiometricModalOpen] = useState(false);
-  const [showHeroBackground, setShowHeroBackground] = useState(true);
-
   // Biometric lock settings
   const {
     settings: biometricSettings,
@@ -1486,10 +1484,6 @@ export default function SettingsPage() {
   // Prevent hydration mismatch for theme
   useEffect(() => {
     setMounted(true);
-    const heroStored = localStorage.getItem("ui-show-hero-background");
-    if (heroStored !== null) {
-      setShowHeroBackground(heroStored === "true");
-    }
   }, []);
 
   const handleLogout = async () => {
@@ -1503,17 +1497,7 @@ export default function SettingsPage() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
-    toast.success(
-      theme === "dark" ? "Spider-Man Theme Activated! 🕷️" : "Iron Man Theme Activated! 🦾"
-    );
-  };
-
-  const toggleHeroBackground = () => {
-    const nextValue = !showHeroBackground;
-    setShowHeroBackground(nextValue);
-    localStorage.setItem("ui-show-hero-background", String(nextValue));
-    window.dispatchEvent(new Event("hero-background-visibility-changed"));
-    toast.success(nextValue ? "Hero background shown" : "Hero background hidden");
+    toast.success(theme === "dark" ? "Light mode" : "Dark mode");
   };
 
   // Use stable defaults for SSR, then update on client
@@ -1599,7 +1583,7 @@ export default function SettingsPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="font-heading text-xl tracking-wide">Settings</h1>
+          <h1 className="font-heading text-xl">Settings</h1>
         </div>
       </div>
 
@@ -1619,9 +1603,7 @@ export default function SettingsPage() {
                 <h2 className="mb-3 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {section.section}
                 </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Theme Card */}
-                  <motion.button
+                <motion.button
                     whileTap={{ scale: 0.96 }}
                     onClick={toggleTheme}
                     className={cn(
@@ -1721,7 +1703,6 @@ export default function SettingsPage() {
                             )}
                           </motion.div>
                         </AnimatePresence>
-                        <span className="text-lg">{isDark ? "🦾" : "🕷️"}</span>
                       </div>
                       <div>
                         <p className={cn(
@@ -1734,119 +1715,11 @@ export default function SettingsPage() {
                           "text-[11px]",
                           isDark ? "text-indigo-300/70" : "text-amber-700/60"
                         )}>
-                          {isDark ? "Iron Man" : "Spider-Man"}
+                          {isDark ? "Dark mode" : "Light mode"}
                         </p>
                       </div>
                     </div>
                   </motion.button>
-
-                  {/* Hero Art Card */}
-                  <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    onClick={toggleHeroBackground}
-                    className={cn(
-                      "relative overflow-hidden rounded-2xl border p-4 text-left",
-                      showHeroBackground
-                        ? "border-violet-500/30 bg-gradient-to-br from-violet-500/15 via-fuchsia-500/10 to-pink-500/15"
-                        : "border-border bg-muted/40"
-                    )}
-                  >
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                      <AnimatePresence>
-                        {showHeroBackground && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                          >
-                            <motion.div
-                              className="absolute -right-3 bottom-0 h-16 w-16 rounded-tl-3xl bg-gradient-to-tl from-violet-500/15 to-fuchsia-500/10"
-                              animate={{ scale: [1, 1.1, 1], rotate: [0, 3, 0] }}
-                              transition={{ duration: 5, repeat: Infinity }}
-                            />
-                            <motion.div
-                              className="absolute -left-2 top-6 h-10 w-10 rounded-full bg-gradient-to-br from-pink-400/15 to-violet-400/10"
-                              animate={{
-                                y: [0, -4, 0],
-                                x: [0, 2, 0],
-                              }}
-                              transition={{ duration: 4, repeat: Infinity }}
-                            />
-                            {[...Array(3)].map((_, i) => (
-                              <motion.div
-                                key={i}
-                                className="absolute h-0.5 w-0.5 rounded-full bg-violet-400/60"
-                                style={{
-                                  top: `${25 + i * 25}%`,
-                                  left: `${45 + i * 15}%`,
-                                }}
-                                animate={{
-                                  opacity: [0, 1, 0],
-                                  scale: [0.5, 1.5, 0.5],
-                                }}
-                                transition={{
-                                  duration: 1.5,
-                                  repeat: Infinity,
-                                  delay: i * 0.5,
-                                }}
-                              />
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    <div className="relative z-10 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={showHeroBackground ? "on" : "off"}
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.5, opacity: 0 }}
-                            transition={{ type: "spring", stiffness: 250, damping: 18 }}
-                            className={cn(
-                              "flex h-11 w-11 items-center justify-center rounded-xl",
-                              showHeroBackground ? "bg-violet-500/20" : "bg-muted"
-                            )}
-                          >
-                            {showHeroBackground ? (
-                              <ImageIcon className="h-6 w-6 text-violet-500 dark:text-violet-400" />
-                            ) : (
-                              <EyeOff className="h-6 w-6 text-muted-foreground" />
-                            )}
-                          </motion.div>
-                        </AnimatePresence>
-                        <span
-                          role="switch"
-                          aria-checked={showHeroBackground}
-                          onClick={e => { e.stopPropagation(); toggleHeroBackground(); }}
-                        >
-                          <motion.span
-                            className={cn(
-                              "flex h-6 w-11 items-center rounded-full px-0.5",
-                              showHeroBackground ? "bg-violet-500" : "bg-muted-foreground/30"
-                            )}
-                            layout
-                          >
-                            <motion.span
-                              className="h-5 w-5 rounded-full bg-white shadow-sm"
-                              layout
-                              animate={{ x: showHeroBackground ? 20 : 0 }}
-                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            />
-                          </motion.span>
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">Hero Art</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {showHeroBackground ? "Artwork visible" : "Background hidden"}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.button>
-                </div>
               </div>
             );
           }

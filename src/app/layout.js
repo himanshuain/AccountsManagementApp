@@ -1,53 +1,24 @@
 import localFont from "next/font/local";
-import { Bebas_Neue, DM_Sans, JetBrains_Mono, Permanent_Marker } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { MuiProvider } from "@/providers/MuiThemeProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
-import { HeroBackground } from "@/components/HeroBackground";
 import { GlobalLoadingBar } from "@/components/GlobalLoadingBar";
-
-// Superhero Typography System
-const bebasNeue = Bebas_Neue({
-  subsets: ["latin"],
-  variable: "--font-bebas",
-  weight: "400",
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const permanentMarker = Permanent_Marker({
-  subsets: ["latin"],
-  variable: "--font-permanent-marker",
-  weight: "400",
-  display: "swap",
-});
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
+  display: "swap",
 });
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+  display: "swap",
 });
 
 export const metadata = {
@@ -61,8 +32,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#E62429" }, // Spider-Man Red
-    { media: "(prefers-color-scheme: dark)", color: "#1A0A0A" }, // Iron Man Dark
+    { media: "(prefers-color-scheme: light)", color: "#3b82f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0f14" },
   ],
 };
 
@@ -71,7 +42,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${bebasNeue.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${permanentMarker.variable} ${geistSans.variable} ${geistMono.variable} font-body antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-body antialiased`}
       >
         <QueryProvider>
           <ThemeProvider
@@ -83,7 +54,6 @@ export default function RootLayout({ children }) {
             <MuiProvider>
               <ServiceWorkerRegistration />
               <GlobalLoadingBar />
-              <HeroBackground />
               {children}
               <Toaster position="bottom-center" />
             </MuiProvider>

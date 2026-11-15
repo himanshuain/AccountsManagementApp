@@ -842,7 +842,7 @@ export default function GPayHomePage() {
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
             >
               <div className="mb-6 flex items-center justify-between">
-                <h3 className="font-heading text-xl tracking-wide">Add New</h3>
+                <h3 className="font-heading text-xl">Add New</h3>
                 <button
                   onClick={() => setAddMenuOpen(false)}
                   className="rounded-full p-2 transition-colors hover:bg-muted"

@@ -2044,7 +2044,7 @@ export default function PersonChatPage() {
               />
               <div className="flex flex-col">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-heading text-lg font-semibold tracking-wide break-words">
+                  <p className="font-heading text-lg break-words">
                     {person.companyName || person.name}
                   </p>
                   <span
@@ -2607,7 +2607,7 @@ export default function PersonChatPage() {
                   </div>
                 )}
               </div>
-              <h2 className="mt-4 font-heading text-2xl tracking-wide">
+              <h2 className="mt-4 font-heading text-2xl">
                 {person.companyName || person.name}
               </h2>
               {person.name && person.companyName && (
