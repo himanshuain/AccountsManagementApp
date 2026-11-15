@@ -45,6 +45,7 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
+import { useProfileScrollChrome } from "@/hooks/useProfileScrollChrome";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { recordMatchesBillSearch } from "@/lib/record-search";
@@ -1197,6 +1198,30 @@ export default function PersonChatPage() {
     listLoading,
   });
 
+  const modalsBlockChrome =
+    showProfile ||
+    showMenu ||
+    selectedTransaction ||
+    paymentFormOpen ||
+    billsGalleryOpen ||
+    profileImageViewerOpen ||
+    transactionFormOpen ||
+    udharFormOpen;
+  const profileRouteKey = `${type}/${id}`;
+  const {
+    chromeHidden,
+    headerRef,
+    footerRef,
+    scrollRef: bindProfileScrollRef,
+    headerHeight,
+    footerHeight,
+    chromeTransition,
+    showChrome,
+  } = useProfileScrollChrome(scrollRef, {
+    enabled: !modalsBlockChrome && !personLoading && !isDeleting && Boolean(person),
+    layoutKey: profileRouteKey,
+  });
+
   // Get transactions for this person (sorted oldest first for chat view)
   // For same-date transactions, sort by createdAt timestamp (newest at bottom)
   const personTransactions = useMemo(() => {
@@ -1935,9 +1960,16 @@ export default function PersonChatPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
       {/* Header */}
-      <header className="header-glass sticky top-0 z-30 border-b border-border">
+      <header
+        ref={headerRef}
+        className={cn(
+          "header-glass fixed top-0 left-0 right-0 z-30 border-b border-border",
+          chromeTransition,
+          chromeHidden && "-translate-y-full pointer-events-none"
+        )}
+      >
         {/* Top row */}
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -2044,6 +2076,7 @@ export default function PersonChatPage() {
                 }
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
+                onFocus={showChrome}
                 className="h-8 w-full rounded-lg border-0 bg-muted pl-8 pr-7 text-xs outline-none focus:ring-2 focus:ring-primary/50"
               />
               {searchQuery && (
@@ -2216,8 +2249,15 @@ export default function PersonChatPage() {
 
       {/* Bills list or payment ledger */}
       <div
-        ref={scrollRef}
-        className="pb-bottom-bar flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4"
+        ref={bindProfileScrollRef}
+        className={cn(
+          "min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4",
+          "transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        )}
+        style={{
+          paddingTop: chromeHidden ? 12 : Math.max(headerHeight, 12),
+          paddingBottom: chromeHidden ? 12 : Math.max(footerHeight, 12),
+        }}
       >
         {isSupplier && profileTab === "payments" ? (
           searchQuery && filteredPaymentCount === 0 ? (
@@ -2313,8 +2353,16 @@ export default function PersonChatPage() {
       </div>
 
       {/* Chat Input Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-20">
+      <div
+        ref={footerRef}
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-20",
+          chromeTransition,
+          chromeHidden && "translate-y-full pointer-events-none"
+        )}
+      >
         <ChatInputBar
+          className="!static w-full"
           placeholder="Enter amount..."
           inputValue={chatInputValue}
           onInputChange={setChatInputValue}
