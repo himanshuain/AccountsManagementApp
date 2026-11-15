@@ -38,6 +38,7 @@ import {
   Percent,
   Mail,
   AlertTriangle,
+  Table2,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears } from "date-fns";
 import { toast } from "sonner";
@@ -74,10 +75,10 @@ function IncomeModal({ open, onClose }) {
   const [filter, setFilter] = useState("all");
   const [selectedFilterMonth, setSelectedFilterMonth] = useState("");
   const [showOnlyMonthlyEntries, setShowOnlyMonthlyEntries] = useState(false);
-  const [showGraph, setShowGraph] = useState(true);
   const [chartDuration, setChartDuration] = useState("6months");
   const [profitMargin, setProfitMargin] = useState(40);
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+  const [activeIncomeForm, setActiveIncomeForm] = useState(null);
 
   // Load profit margin from localStorage on mount
   useEffect(() => {
@@ -100,6 +101,12 @@ function IncomeModal({ open, onClose }) {
   const availableFilterMonths = useMemo(() => getAvailableMonths(incomeList), [incomeList]);
 
   usePreventBodyScroll(open);
+
+  useEffect(() => {
+    if (!open) {
+      setActiveIncomeForm(null);
+    }
+  }, [open]);
 
   // Reset display count when filter changes
   useEffect(() => {
@@ -204,7 +211,6 @@ function IncomeModal({ open, onClose }) {
 
   // Calculate totals
   const totals = useMemo(() => {
-    const now = new Date();
     const income = incomeList || [];
 
     const calcTotal = list =>
@@ -214,15 +220,8 @@ function IncomeModal({ open, onClose }) {
         return sum + (Number(i.amount) || cash + online);
       }, 0);
 
-    const thisMonth = income.filter(i => {
-      const d = new Date(i.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-
     return {
       total: calcTotal(income),
-      thisMonth: calcTotal(thisMonth),
-      today: calcTotal(income.filter(i => i.date === format(now, "yyyy-MM-dd"))),
       filtered: calcTotal(filteredIncomeList),
     };
   }, [incomeList, filteredIncomeList]);
@@ -262,6 +261,7 @@ function IncomeModal({ open, onClose }) {
     if (result.success) {
       toast.success("Income added");
       resetForm();
+      setActiveIncomeForm(null);
     } else {
       toast.error(result.error || "Failed to add");
     }
@@ -285,69 +285,54 @@ function IncomeModal({ open, onClose }) {
       onOpenChange={v => { if (!v && !deleteItem) onClose(); }}
       height="max-h-[90vh]"
     >
-        <div className="px-4 pb-6">
-          <h2 className="mb-6 font-heading text-2xl">Income Tracker</h2>
-
-          {/* Summary Cards */}
-          <div className="mb-6 grid grid-cols-3 gap-3">
-            <div className="theme-card p-3 text-center">
-              <p className="text-xs text-muted-foreground">Today</p>
-              <p className="amount-positive font-mono text-lg font-bold">
-                ₹{totals.today.toLocaleString("en-IN")}
-              </p>
-              <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
-                ₹{Math.round((totals.today * profitMargin) / 100).toLocaleString("en-IN")} profit
-              </p>
-            </div>
-            <div className="theme-card p-3 text-center">
-              <p className="text-xs text-muted-foreground">This Month</p>
-              <p className="text-md font-mono font-bold text-primary">
-                ₹{totals.thisMonth.toLocaleString("en-IN")}
-              </p>
-              <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
-                ₹{Math.round((totals.thisMonth * profitMargin) / 100).toLocaleString("en-IN")}{" "}
-                profit
-              </p>
-            </div>
-            <div className="theme-card p-3 text-center">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-md font-mono font-bold">₹{totals.total.toLocaleString("en-IN")}</p>
-              <p className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
-                ₹{Math.round((totals.total * profitMargin) / 100).toLocaleString("en-IN")} profit
-              </p>
-            </div>
-          </div>
-
-          {/* Revenue Chart */}
-          <details className="group">
-            <summary className="mb-2 cursor-pointer list-none flex items-center gap-1 text-sm font-medium text-muted-foreground">
-              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-              Revenue Chart
-            </summary>
-            {showGraph && (
-              <IncomeChart
-                data={chartData}
-                duration={chartDuration}
-                onDurationChange={setChartDuration}
-                profitMargin={profitMargin}
-                onProfitMarginChange={handleProfitMarginChange}
-              />
-            )}
-          </details>
-
-          {/* Add Income Form */}
-          <details className="group">
-            <summary className="my-2 cursor-pointer list-none flex items-center gap-1 text-sm font-medium text-muted-foreground">
-              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+        <div className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 pb-3 pt-1 backdrop-blur-md">
+          <h2 className="font-heading text-xl">Income Tracker</h2>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveIncomeForm(prev => (prev === "add" ? null : "add"))}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors",
+                activeIncomeForm === "add"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-foreground hover:bg-muted/60"
+              )}
+            >
+              <Plus className="h-4 w-4 shrink-0" />
               Add Income
-            </summary>
-            <div className="theme-card mb-6 mt-4 p-4">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveIncomeForm(prev => (prev === "bulk" ? null : "bulk"))}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors",
+                activeIncomeForm === "bulk"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-foreground hover:bg-muted/60"
+              )}
+            >
+              <Table2 className="h-4 w-4 shrink-0" />
+              Bulk Add
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 pb-6 pt-4">
+          {activeIncomeForm === "add" && (
+            <div className="theme-card mb-6 p-4">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-medium">Add Income</h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveIncomeForm(null)}
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="Close add income"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
               <div className="space-y-3">
-                {/* Monthly Toggle */}
                 <div className="flex items-center justify-between rounded-xl bg-muted p-3">
                   <span className="text-sm font-medium">Monthly Income</span>
                   <button
@@ -367,7 +352,6 @@ function IncomeModal({ open, onClose }) {
                   </button>
                 </div>
 
-                {/* Cash Amount */}
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                     <Banknote className="h-3 w-3" /> Cash Amount
@@ -382,7 +366,6 @@ function IncomeModal({ open, onClose }) {
                   />
                 </div>
 
-                {/* Online Amount */}
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                     <Smartphone className="h-3 w-3" /> Online Amount
@@ -397,7 +380,6 @@ function IncomeModal({ open, onClose }) {
                   />
                 </div>
 
-                {/* Date or Month Picker */}
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                     <CalendarDays className="h-3 w-3" /> {isMonthly ? "Month" : "Date"}
@@ -420,7 +402,6 @@ function IncomeModal({ open, onClose }) {
                       value={date}
                       onChange={e => {
                         const selectedDate = e.target.value;
-                        // Prevent future dates (iOS Safari ignores max attribute)
                         if (selectedDate > today) {
                           setDate(today);
                         } else {
@@ -433,11 +414,10 @@ function IncomeModal({ open, onClose }) {
                   )}
                 </div>
 
-                {/* Total Preview */}
                 {(Number(cashAmount) > 0 || Number(onlineAmount) > 0) && (
-                  <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
+                  <div className="rounded-xl border border-border bg-muted/40 p-3 text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="amount-positive font-mono text-2xl font-bold">
+                    <p className="font-mono text-2xl font-semibold tabular-nums">
                       ₹
                       {((Number(cashAmount) || 0) + (Number(onlineAmount) || 0)).toLocaleString(
                         "en-IN"
@@ -447,35 +427,63 @@ function IncomeModal({ open, onClose }) {
                 )}
 
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="btn-hero flex h-12 w-full items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? (
                     <RefreshCw className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
                       <Plus className="h-5 w-5" />
-                      Add Income
+                      Save Income
                     </>
                   )}
                 </button>
               </div>
             </div>
-          </details>
+          )}
 
-          {/* Bulk Add Income — month-wise grid */}
-          <details className="group">
-            <summary className="my-2 cursor-pointer list-none flex items-center gap-1 text-sm font-medium text-muted-foreground">
-              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-              Bulk Add (Month-wise)
-            </summary>
-            <BulkIncomeForm
-              incomeList={incomeList}
-              addIncome={addIncome}
-              updateIncome={updateIncome}
-            />
-          </details>
+          {activeIncomeForm === "bulk" && (
+            <div className="mb-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-medium">Bulk Add (Month-wise)</h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveIncomeForm(null)}
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+                  aria-label="Close bulk add"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <BulkIncomeForm
+                incomeList={incomeList}
+                addIncome={addIncome}
+                updateIncome={updateIncome}
+              />
+            </div>
+          )}
+
+          <div className="stat-card mb-6 text-center">
+            <p className="text-label mb-1">Total revenue</p>
+            <p className="font-mono text-xl font-semibold tabular-nums">
+              ₹{totals.total.toLocaleString("en-IN")}
+            </p>
+            <p className="mt-1 font-mono text-xs text-money-positive">
+              ₹{Math.round((totals.total * profitMargin) / 100).toLocaleString("en-IN")} est. profit
+            </p>
+          </div>
+
+          <IncomeChart
+            data={chartData}
+            duration={chartDuration}
+            onDurationChange={setChartDuration}
+            profitMargin={profitMargin}
+            onProfitMarginChange={handleProfitMarginChange}
+            className="mb-6"
+          />
 
           {/* Filter Chips */}
           <div className="my-4">
