@@ -1,5 +1,4 @@
 import { normalizeToStorageKey } from "./image-url";
-import { isWorthStoringOcr } from "./ocr-quality";
 import {
   buildOcrEntry,
   flattenOcrMapForPersistence,
@@ -78,8 +77,7 @@ export function getOcrEntryForImageRef(ocrMap, imageRef) {
   if (!key) return null;
   const rich = normalizeImageOcrMapRich(ocrMap);
   const entry = rich[key];
-  if (!entry?.text) return null;
-  if (!isWorthStoringOcr(entry.text.replace(/\n/g, " "))) return null;
+  if (!entry?.text?.trim()) return null;
   return entry;
 }
 

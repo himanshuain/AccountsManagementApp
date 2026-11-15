@@ -3,7 +3,7 @@
  */
 
 import { OCR_UPLOAD_FOLDERS } from "@/lib/image-ocr-map";
-import { cleanOcrTextMultiline, isWorthStoringOcr } from "@/lib/ocr-quality";
+import { cleanOcrTextMultiline } from "@/lib/ocr-quality";
 import { preprocessImageForOcr } from "@/lib/ocr-preprocess";
 
 const MAX_OCR_BYTES = 8 * 1024 * 1024;
@@ -72,10 +72,7 @@ export async function extractTextFromImage(imageData, options = {}) {
     }
 
     text = cleanOcrTextMultiline(text);
-    if (!isWorthStoringOcr(text)) {
-      return "";
-    }
-    return text;
+    return text.length >= 8 ? text : "";
   } catch (err) {
     console.error("[OCR] Recognition failed:", err?.message || err);
     return "";

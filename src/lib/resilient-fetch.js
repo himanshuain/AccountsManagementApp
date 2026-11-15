@@ -5,7 +5,7 @@
  */
 
 import fs from "fs";
-import { Agent } from "undici";
+import { Agent, fetch as undiciFetch } from "undici";
 
 let tlsDispatcher;
 
@@ -32,7 +32,11 @@ function getTlsDispatcher() {
 
 export function resilientFetch(input, init = {}) {
   const dispatcher = getTlsDispatcher();
-  return fetch(input, dispatcher ? { ...init, dispatcher } : init);
+  // Node's built-in fetch must not use an Agent from another undici build (breaks on Node 22+).
+  if (dispatcher) {
+    return undiciFetch(input, { ...init, dispatcher });
+  }
+  return fetch(input, init);
 }
 
 export default resilientFetch;

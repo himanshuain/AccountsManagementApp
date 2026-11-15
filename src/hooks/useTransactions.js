@@ -7,6 +7,15 @@ import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 const TRANSACTIONS_KEY = ["transactions"];
 const STATS_KEY = ["stats"];
 
+/** Bill OCR runs in the background after save — refetch so ⓘ / search see new text. */
+function scheduleTransactionsOcrRefetch(queryClient) {
+  const refetch = () => {
+    queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
+  };
+  setTimeout(refetch, 12_000);
+  setTimeout(refetch, 35_000);
+}
+
 /**
  * Hook to fetch and manage transactions
  * @param {string|null} supplierId - Filter by supplier ID
@@ -148,10 +157,12 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
     onError: (err, newTransaction, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
     },
-    onSettled: () => {
-      // Refetch all transaction queries immediately
+    onSettled: (_data, _err, variables) => {
       queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
+      if (variables?.billImages?.length) {
+        scheduleTransactionsOcrRefetch(queryClient);
+      }
     },
   });
 
@@ -189,10 +200,12 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
     onError: (err, variables, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
     },
-    onSettled: () => {
-      // Refetch all transaction queries immediately
+    onSettled: (_data, _err, variables) => {
       queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
+      if (variables?.updates?.billImages?.length) {
+        scheduleTransactionsOcrRefetch(queryClient);
+      }
     },
   });
 

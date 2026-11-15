@@ -37,9 +37,12 @@ export async function syncImageOcrForRefs(imageRefs, existingOcrMap = {}, client
       const object = await getObjectFromR2(ref);
       if (!object?.data) continue;
       const text = await extractTextFromImage(object.data, { mimeType: object.contentType });
-      const entry = buildOcrEntry(text);
+      if (!text) continue;
+      const entry = buildOcrEntry(text, { allowLowQuality: true });
       if (entry) {
         filled[ref] = entry.latin ? { text: entry.text, latin: entry.latin } : entry.text;
+      } else {
+        filled[ref] = text;
       }
     } catch (err) {
       console.warn(`[OCR] Could not OCR ${ref}:`, err?.message || err);

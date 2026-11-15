@@ -3,10 +3,16 @@ import { getServerClient } from "@/lib/supabase";
 import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
 
 function scheduleAfter(task) {
+  const run = () => {
+    task().catch(err => {
+      console.error("[OCR defer] background task failed:", err?.message || err);
+    });
+  };
   try {
-    after(task);
+    after(run);
   } catch (err) {
-    console.error("[OCR defer] after() unavailable, skipping background OCR:", err?.message || err);
+    console.warn("[OCR defer] after() unavailable, running inline:", err?.message || err);
+    run();
   }
 }
 
@@ -32,6 +38,8 @@ export function deferTransactionBillOcr(transactionId, billImages, existingOcrMa
 
       if (error) {
         console.error("[OCR defer] transaction update failed:", error.message);
+      } else {
+        console.log("[OCR defer] transaction bill OCR updated:", transactionId);
       }
     } catch (err) {
       console.error("[OCR defer] transaction:", err?.message || err);

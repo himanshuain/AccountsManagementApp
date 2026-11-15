@@ -6,7 +6,6 @@ import {
   normalizeOcrEntry,
   normalizeRomanForSearch,
 } from "./ocr-entry";
-import { isWorthStoringOcr } from "./ocr-quality";
 
 export { buildOcrEntry, devanagariToLatin, normalizeOcrEntry, normalizeRomanForSearch };
 
@@ -113,7 +112,6 @@ export function ocrMapMatchesQuery(query, ocrMap) {
   const devVariants = latinQueryToDevanagariVariants(q);
 
   for (const entry of Object.values(normalizeImageOcrMapRich(ocrMap))) {
-    if (!isWorthStoringOcr(entry.text.replace(/\n/g, " "))) continue;
     const textLower = entry.text.toLowerCase();
     if (textLower.includes(qLower)) return true;
 
