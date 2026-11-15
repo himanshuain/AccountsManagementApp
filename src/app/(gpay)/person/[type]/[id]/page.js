@@ -981,9 +981,16 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
         )}
 
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => onTap(txn)}
+            onKeyDown={e => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onTap(txn);
+              }
+            }}
             className={cn(
               "relative flex w-full flex-col overflow-hidden cursor-pointer rounded-2xl border p-4 text-left shadow-sm transition-colors",
               showThumbColumn && "min-h-[104px]",
@@ -1102,7 +1109,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
               </div>
             )}
             </div>
-          </button>
+          </div>
 
           {!isPaid && (
             <button
