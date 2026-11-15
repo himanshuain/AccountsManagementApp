@@ -5,26 +5,18 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
 
-/**
- * Superhero-themed circular avatar with colored fallback
- * Miles Morales (light) + Iron Man (dark) color schemes
- */
+/** Avatar with neutral slate fallback colors */
 
-// Theme-aware avatar colors
 const getAvatarColor = name => {
   const colors = [
-    // Miles Morales inspired (reds, purples, pinks)
-    "bg-red-600",
-    "bg-rose-600",
-    "bg-pink-600",
-    "bg-fuchsia-600",
-    "bg-purple-600",
-    // Iron Man inspired (golds, oranges, cyans)
-    "bg-amber-600",
-    "bg-orange-600",
-    "bg-yellow-600",
-    "bg-cyan-600",
-    "bg-teal-600",
+    "bg-zinc-600",
+    "bg-zinc-700",
+    "bg-neutral-600",
+    "bg-stone-600",
+    "bg-slate-600",
+    "bg-zinc-800",
+    "bg-neutral-700",
+    "bg-slate-700",
   ];
 
   if (!name) return colors[0];
@@ -95,7 +87,6 @@ export function PersonAvatar({
           "flex items-center justify-center overflow-hidden rounded-full font-bold text-white",
           "hw-accelerate",
           "ring-2 ring-background",
-          "dark:shadow-[0_0_10px_rgba(0,212,255,0.2)]",
           sizeClasses[size],
           !imageUrl && avatarColor
         )}

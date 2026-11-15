@@ -275,16 +275,11 @@ function TransactionDetailModal({
         />
       ) : (
         <div className="mx-4 mb-4 flex aspect-[16/10] w-auto flex-col items-center justify-center gap-3 rounded-2xl bg-muted/50">
-          <div
-            className={cn(
-              "rounded-full p-5",
-              isPaid ? "bg-emerald-500/20" : isSupplier ? "bg-rose-500/20" : "bg-amber-500/20"
-            )}
-          >
+          <div className="rounded-full border border-border bg-muted/60 p-5">
             <Receipt
               className={cn(
                 "h-10 w-10",
-                isPaid ? "text-emerald-400" : isSupplier ? "text-rose-400" : "text-amber-400"
+                isPaid ? "text-emerald-600 dark:text-emerald-500" : "text-muted-foreground"
               )}
             />
           </div>
@@ -300,16 +295,7 @@ function TransactionDetailModal({
 
       {/* Amount card */}
       <div className="px-4">
-        <div
-          className={cn(
-            "mb-4 overflow-hidden rounded-2xl border",
-            isPaid
-              ? "border-emerald-500/30 bg-emerald-500/5"
-              : isSupplier
-                ? "border-rose-500/30 bg-rose-500/5"
-                : "border-amber-500/30 bg-amber-500/5"
-          )}
-        >
+        <div className="surface-panel mb-4">
           <div className="px-4 pb-2 pt-4 text-center">
             {isPaid ? (
               <>
@@ -325,14 +311,7 @@ function TransactionDetailModal({
                 <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                   {paidAmount > 0 ? "Pending" : "Total Pending"}
                 </p>
-                <p
-                  className={cn(
-                    "font-mono text-3xl font-extrabold tabular-nums tracking-tight",
-                    isSupplier
-                      ? "text-rose-600 dark:text-rose-400"
-                      : "text-amber-600 dark:text-amber-400"
-                  )}
-                >
+                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
                   ₹{remainingAmount.toLocaleString("en-IN")}
                 </p>
               </>
@@ -958,8 +937,8 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   const statusClass = isPaid
     ? "badge-paid border-0"
     : hasPartialPayment
-      ? "bg-amber-500/15 text-amber-900 dark:text-amber-300"
-      : "bg-amber-100 text-amber-950 dark:bg-amber-400/20 dark:text-amber-50";
+      ? "badge-partial"
+      : "badge-pending";
 
   const displayAmount = isPaid ? totalAmount : remainingAmount;
 
@@ -1021,10 +1000,8 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
               hasImages && "min-h-[104px]",
               "active:scale-[0.995]",
               isPaid
-                ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card hover:from-emerald-500/14 border-l-[3px] border-l-emerald-500/55"
-                : "border-border/40 bg-card/90 hover:bg-card",
-              !isPaid && isSupplier && "border-l-[3px] border-l-rose-400/50 border-t-border/40 border-r-border/40 border-b-border/40",
-              !isPaid && !isSupplier && "border-l-[3px] border-l-amber-400/50 border-t-border/40 border-r-border/40 border-b-border/40"
+                ? "border-emerald-500/20 bg-card hover:bg-card"
+                : "border-border bg-card hover:bg-muted/30",
             )}
           >
             {isPaid && (
@@ -1131,7 +1108,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                 e.stopPropagation();
                 onPay(txn);
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600/25 bg-emerald-500/10 py-2.5 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/15 active:scale-[0.99] dark:text-emerald-300"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-95 active:scale-[0.99]"
             >
               <CreditCard className="h-4 w-4 opacity-80" />
               {isSupplier ? "Pay" : "Receive"} ₹{remainingAmount.toLocaleString("en-IN")}
@@ -2047,14 +2024,7 @@ export default function PersonChatPage() {
                   <p className="font-heading text-lg break-words">
                     {person.companyName || person.name}
                   </p>
-                  <span
-                    className={cn(
-                      "flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      isSupplier
-                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                        : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                    )}
-                  >
+                  <span className="badge-role flex-shrink-0">
                     {isSupplier ? "Supplier" : "Customer"}
                   </span>
                 </div>
@@ -2211,7 +2181,7 @@ export default function PersonChatPage() {
                     className={cn(
                       "rounded-full px-1 py-px text-[9px] font-semibold tabular-nums",
                       profileTab === "payments"
-                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                        ? "bg-muted text-foreground"
                         : "bg-muted-foreground/15 text-muted-foreground"
                     )}
                   >
@@ -2225,16 +2195,7 @@ export default function PersonChatPage() {
 
         {/* Summary Card */}
         <div className="px-4 pb-6 pt-1">
-          <div
-            className={cn(
-              "overflow-hidden rounded-xl border",
-              totals.pending > 0
-                ? isSupplier
-                  ? "border-rose-500/30 bg-rose-500/5"
-                  : "border-amber-500/30 bg-amber-500/5"
-                : "border-emerald-500/30 bg-emerald-500/5"
-            )}
-          >
+          <div className="surface-panel">
             {/* Pending — label beside amount */}
             <div className="flex items-center justify-between gap-2 px-3 py-2">
               {totals.pending > 0 ? (
@@ -2250,14 +2211,7 @@ export default function PersonChatPage() {
                       </span>
                     )}
                   </p>
-                  <p
-                    className={cn(
-                      "font-mono text-lg font-extrabold tabular-nums tracking-tight",
-                      isSupplier
-                        ? "text-rose-600 dark:text-rose-400"
-                        : "text-amber-600 dark:text-amber-400"
-                    )}
-                  >
+                  <p className="font-mono text-lg font-semibold tabular-nums tracking-tight text-foreground">
                     ₹{totals.pending.toLocaleString("en-IN")}
                   </p>
                 </>
@@ -2266,9 +2220,7 @@ export default function PersonChatPage() {
                   <p className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     Status
                   </p>
-                  <p className="font-mono text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                    ✓ All Paid
-                  </p>
+                  <p className="font-mono text-base font-semibold text-money-positive">All cleared</p>
                 </>
               )}
             </div>
@@ -2374,7 +2326,7 @@ export default function PersonChatPage() {
                   groupIndex === 0 ? "mb-7 mt-8" : "mb-7"
                 )}
               >
-                <span className="rounded-full border border-amber-200/80 bg-amber-100 px-4 py-2.5 text-xs font-semibold leading-snug text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-400/20 dark:text-amber-50">
+                <span className="date-chip">
                   <DateWithRelative date={group.date} dateFormat="dd MMM yyyy" />
                 </span>
               </div>

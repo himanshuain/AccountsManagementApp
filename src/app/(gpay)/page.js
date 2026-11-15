@@ -439,14 +439,7 @@ export default function GPayHomePage() {
                         <p className="truncate text-[10px] text-muted-foreground">{person.phone}</p>
                       )}
                     </div>
-                    <span
-                      className={cn(
-                        "flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                        person.type === "supplier"
-                          ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
-                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                      )}
-                    >
+                    <span className="badge-role flex-shrink-0">
                       {person.type === "supplier" ? "Supplier" : "Customer"}
                     </span>
                   </button>
@@ -523,8 +516,8 @@ export default function GPayHomePage() {
           className="mb-2 flex w-full items-center justify-between gap-2"
         >
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/15">
-              <Store className="h-3.5 w-3.5 text-rose-500" />
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/50">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <div className="min-w-0 text-left">
               <h2 className="text-sm font-semibold">Supplier spending</h2>
@@ -553,7 +546,7 @@ export default function GPayHomePage() {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+              <div className="surface-panel p-4">
                 <p className="mb-3 text-[10px] text-muted-foreground">
                   Purchase total vs amount paid
                 </p>
@@ -569,7 +562,7 @@ export default function GPayHomePage() {
                       className={cn(
                         "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
                         supplierPeriod === opt.id
-                          ? "bg-rose-600 text-white"
+                          ? "bg-primary text-primary-foreground"
                           : "bg-muted/80 text-muted-foreground hover:bg-muted"
                       )}
                     >
@@ -617,13 +610,12 @@ export default function GPayHomePage() {
       <div className="px-4 pt-2 pb-2">
         <div className="grid grid-cols-2 gap-3">
           <motion.div
-            className="relative overflow-hidden rounded-2xl border border-rose-500/20 bg-rose-500/5 p-3.5"
+            className="stat-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0 }}
           >
-            <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-rose-500/10" />
-            <ArrowUpRight className="mb-1.5 h-4 w-4 text-rose-500" />
+            <ArrowUpRight className="mb-1.5 h-4 w-4 text-muted-foreground" />
             <p className="text-[11px] font-medium text-muted-foreground">You Owe</p>
             {isStatsLoading ? (
               <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
@@ -635,18 +627,17 @@ export default function GPayHomePage() {
             <p className="text-[10px] text-muted-foreground">{stats.supplierCount} suppliers</p>
           </motion.div>
           <motion.div
-            className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3.5"
+            className="stat-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-amber-500/10" />
-            <ArrowDownLeft className="mb-1.5 h-4 w-4 text-amber-500" />
+            <ArrowDownLeft className="mb-1.5 h-4 w-4 text-muted-foreground" />
             <p className="text-[11px] font-medium text-muted-foreground">They Owe</p>
             {isStatsLoading ? (
               <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
             ) : (
-              <p className="font-mono text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">
+              <p className="font-mono text-lg font-semibold tabular-nums text-foreground">
                 ₹{stats.totalCustomerPending.toLocaleString("en-IN")}
               </p>
             )}
@@ -662,8 +653,8 @@ export default function GPayHomePage() {
           className="mb-2 flex w-full items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15">
-              <Store className="h-3.5 w-3.5 text-rose-500" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-muted/50">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <h2 className="text-sm font-semibold">Suppliers</h2>
             <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -739,8 +730,8 @@ export default function GPayHomePage() {
           className="mb-2 flex w-full items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15">
-              <Users className="h-3.5 w-3.5 text-amber-500" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-muted/50">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <h2 className="text-sm font-semibold">Customers</h2>
             <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -785,7 +776,7 @@ export default function GPayHomePage() {
                   <p className="mb-3 text-sm text-muted-foreground">No customers yet</p>
                   <button
                     onClick={() => setCustomerFormOpen(true)}
-                    className="rounded-full bg-amber-500 px-4 py-2 text-sm font-medium text-white"
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
                   >
                     + Add Customer
                   </button>
@@ -798,7 +789,7 @@ export default function GPayHomePage() {
                       name={person.name}
                       image={person.image}
                       amount={person.pendingAmount > 0 ? person.pendingAmount : undefined}
-                      amountColor="text-amber-600 dark:text-amber-400"
+                      amountColor="text-foreground"
                       href={`/person/customer/${person.id}`}
                     />
                   ))}

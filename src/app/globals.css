@@ -10,89 +10,89 @@
 @tailwind utilities;
 
 /* ============================================
-   PROFESSIONAL THEME — neutral surfaces, clear accent
+   LEDGER THEME — neutral zinc, monochrome CTAs
    ============================================ */
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 0 0% 99%;
+    --foreground: 240 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 240 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 240 6% 10%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 240 6% 10%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 240 6% 10%;
 
-    --chart-1: 221 83% 53%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 215 16% 47%;
-    --chart-4: 142 71% 45%;
-    --chart-5: 38 92% 50%;
+    --chart-1: 240 6% 10%;
+    --chart-2: 142 36% 42%;
+    --chart-3: 240 4% 46%;
+    --chart-4: 0 65% 48%;
+    --chart-5: 38 60% 45%;
 
-    --radius: 0.625rem;
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
+    --radius: 0.5rem;
+    --success: 142 36% 42%;
+    --warning: 38 60% 45%;
 
-    --theme-glow: 221 83% 53%;
-    --theme-surface: 210 40% 97%;
+    --theme-glow: 240 6% 10%;
+    --theme-surface: 240 5% 97%;
   }
 
   .dark {
-    --background: 222 47% 7%;
-    --foreground: 210 40% 98%;
-    --card: 222 41% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 41% 11%;
-    --popover-foreground: 210 40% 98%;
+    --background: 240 6% 6%;
+    --foreground: 0 0% 98%;
+    --card: 240 5% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 5% 9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 6% 10%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 98%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 4% 14%;
+    --accent-foreground: 0 0% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 65%;
 
     --destructive: 0 63% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 240 5% 84%;
 
-    --chart-1: 217 91% 60%;
-    --chart-2: 173 58% 45%;
-    --chart-3: 215 20% 65%;
-    --chart-4: 142 71% 45%;
-    --chart-5: 38 92% 50%;
+    --chart-1: 0 0% 98%;
+    --chart-2: 142 36% 48%;
+    --chart-3: 240 5% 65%;
+    --chart-4: 0 65% 52%;
+    --chart-5: 38 60% 50%;
 
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
+    --success: 142 36% 48%;
+    --warning: 38 60% 50%;
 
-    --theme-glow: 217 91% 60%;
-    --theme-surface: 222 41% 9%;
+    --theme-glow: 0 0% 98%;
+    --theme-surface: 240 5% 8%;
   }
 }
 
@@ -234,15 +234,32 @@
   border-color: #2a2a2d;
 }
 
-/* Semantic Colors */
+/* Semantic money — restrained */
 .text-money-positive {
-  @apply text-emerald-500 dark:text-emerald-400;
+  @apply text-emerald-700 dark:text-emerald-500;
 }
 .text-money-negative {
-  @apply text-red-500 dark:text-red-400;
+  @apply text-foreground;
 }
 .text-money-pending {
-  @apply text-amber-500 dark:text-amber-400;
+  @apply text-foreground;
+}
+
+/* Ledger surfaces */
+.surface-panel {
+  @apply overflow-hidden rounded-xl border border-border bg-card shadow-sm;
+}
+
+.date-chip {
+  @apply rounded-full border border-border bg-muted/40 px-4 py-2.5 text-xs font-medium leading-snug text-muted-foreground;
+}
+
+.badge-role {
+  @apply rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground;
+}
+
+.stat-card {
+  @apply rounded-xl border border-border bg-card p-3.5 shadow-sm;
 }
 
 /* Subtle Glow Effect */
@@ -407,15 +424,12 @@
 }
 
 .btn-hero:hover {
-  transform: scale(1.02);
-}
-
-.btn-hero:hover {
-  box-shadow: 0 4px 16px hsl(var(--primary) / 0.35);
+  @apply opacity-95;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .dark .btn-hero:hover {
-  box-shadow: 0 4px 20px hsl(var(--primary) / 0.28);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .btn-hero:active {
@@ -424,14 +438,7 @@
 
 /* Translucent Header */
 .header-glass {
-  @apply backdrop-blur-xl;
-  background: hsl(var(--background) / 0.85);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-}
-
-.dark .header-glass {
-  background: hsl(var(--background) / 0.8);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  @apply border-b border-border bg-background/95 backdrop-blur-md;
 }
 
 /* Floating Action Button */
@@ -568,7 +575,7 @@ input[type="datetime-local"] {
 
 /* Badge styles for status */
 .badge-paid {
-  @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400;
+  @apply border border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400;
 }
 
 /* Paid supplier bill — faint tiled label, faded on the right behind the stamp */
@@ -580,16 +587,20 @@ input[type="datetime-local"] {
 }
 
 .badge-pending {
-  @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
+  @apply border border-border bg-muted text-muted-foreground;
+}
+
+.badge-partial {
+  @apply border border-border bg-muted text-foreground;
 }
 
 /* Type badges for customer/supplier */
 .badge-supplier {
-  @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400;
+  @apply badge-role;
 }
 
 .badge-customer {
-  @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400;
+  @apply badge-role;
 }
 
 /* Chat Bubbles */

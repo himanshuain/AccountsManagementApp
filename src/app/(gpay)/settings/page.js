@@ -1604,122 +1604,23 @@ export default function SettingsPage() {
                   {section.section}
                 </h2>
                 <motion.button
-                    whileTap={{ scale: 0.96 }}
-                    onClick={toggleTheme}
-                    className={cn(
-                      "relative overflow-hidden rounded-2xl border p-4 text-left",
-                      isDark
-                        ? "border-indigo-500/30 bg-gradient-to-br from-indigo-950/80 via-slate-900/60 to-violet-950/80"
-                        : "border-orange-300/40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50"
+                  whileTap={{ scale: 0.98 }}
+                  onClick={toggleTheme}
+                  className="stat-card flex w-full items-center gap-3 text-left"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-muted/50">
+                    {isDark ? (
+                      <Moon className="h-5 w-5 text-foreground" />
+                    ) : (
+                      <Sun className="h-5 w-5 text-foreground" />
                     )}
-                  >
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                      <AnimatePresence mode="wait">
-                        {isDark ? (
-                          <motion.div
-                            key="dark"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
-                          >
-                            {[...Array(5)].map((_, i) => (
-                              <motion.div
-                                key={i}
-                                className="absolute h-1 w-1 rounded-full bg-white"
-                                style={{
-                                  top: `${15 + i * 18}%`,
-                                  left: `${60 + (i % 3) * 12}%`,
-                                }}
-                                animate={{
-                                  opacity: [0.2, 0.8, 0.2],
-                                  scale: [0.8, 1.2, 0.8],
-                                }}
-                                transition={{
-                                  duration: 2 + i * 0.4,
-                                  repeat: Infinity,
-                                  delay: i * 0.3,
-                                }}
-                              />
-                            ))}
-                            <motion.div
-                              className="absolute right-3 top-3 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-300/30 to-violet-400/20"
-                              animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
-                              transition={{ duration: 4, repeat: Infinity }}
-                            />
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="light"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
-                          >
-                            <motion.div
-                              className="absolute right-2 top-2 h-10 w-10 rounded-full bg-gradient-to-br from-amber-300/40 to-orange-300/30"
-                              animate={{ scale: [1, 1.2, 1] }}
-                              transition={{ duration: 3, repeat: Infinity }}
-                            />
-                            {[...Array(4)].map((_, i) => (
-                              <motion.div
-                                key={i}
-                                className="absolute bg-gradient-to-r from-amber-400/20 to-transparent"
-                                style={{
-                                  width: 30 + i * 8,
-                                  height: 1.5,
-                                  top: `${20 + i * 15}%`,
-                                  right: 8,
-                                  transformOrigin: "right center",
-                                  rotate: -45 + i * 30,
-                                }}
-                                animate={{ opacity: [0.3, 0.6, 0.3], scaleX: [0.7, 1, 0.7] }}
-                                transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
-                              />
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    <div className="relative z-10 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={isDark ? "moon" : "sun"}
-                            initial={{ rotate: -90, scale: 0, opacity: 0 }}
-                            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                            exit={{ rotate: 90, scale: 0, opacity: 0 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                            className={cn(
-                              "flex h-11 w-11 items-center justify-center rounded-xl",
-                              isDark ? "bg-indigo-500/20" : "bg-amber-400/20"
-                            )}
-                          >
-                            {isDark ? (
-                              <Moon className="h-6 w-6 text-indigo-300" />
-                            ) : (
-                              <Sun className="h-6 w-6 text-amber-500" />
-                            )}
-                          </motion.div>
-                        </AnimatePresence>
-                      </div>
-                      <div>
-                        <p className={cn(
-                          "text-sm font-semibold",
-                          isDark ? "text-indigo-100" : "text-amber-900"
-                        )}>
-                          Theme
-                        </p>
-                        <p className={cn(
-                          "text-[11px]",
-                          isDark ? "text-indigo-300/70" : "text-amber-700/60"
-                        )}>
-                          {isDark ? "Dark mode" : "Light mode"}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.button>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">Appearance</p>
+                    <p className="text-caption">{isDark ? "Dark mode" : "Light mode"}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </motion.button>
               </div>
             );
           }

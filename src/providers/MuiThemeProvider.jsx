@@ -19,15 +19,15 @@ export function MuiProvider({ children }) {
       palette: {
         mode: isDark ? "dark" : "light",
         primary: {
-          main: isDark ? "#60a5fa" : "#3b82f6",
+          main: isDark ? "#fafafa" : "#18181b",
         },
         background: {
-          default: isDark ? "#0c0f14" : "#f8fafc",
-          paper: isDark ? "#151a22" : "#ffffff",
+          default: isDark ? "#0f0f10" : "#fafafa",
+          paper: isDark ? "#161618" : "#ffffff",
         },
         text: {
-          primary: isDark ? "#f1f5f9" : "#0f172a",
-          secondary: isDark ? "#94a3b8" : "#64748b",
+          primary: isDark ? "#fafafa" : "#18181b",
+          secondary: isDark ? "#a1a1aa" : "#71717a",
         },
       },
       typography: {
