@@ -600,6 +600,14 @@ input[type="datetime-local"] {
   @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400;
 }
 
+/* Paid supplier bill — faint tiled label, faded on the right behind the stamp */
+.paid-bill-cleared-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='72' viewBox='0 0 168 72'%3E%3Ctext x='84' y='38' dominant-baseline='middle' text-anchor='middle' fill='%2310b981' fill-opacity='0.055' font-family='ui-sans-serif,system-ui,sans-serif' font-size='8' font-weight='700' letter-spacing='0.22em'%3EBILL CLEARED%3C/text%3E%3C/svg%3E");
+  background-size: 168px 72px;
+  mask-image: linear-gradient(105deg, black 0%, black 48%, transparent 78%);
+  -webkit-mask-image: linear-gradient(105deg, black 0%, black 48%, transparent 78%);
+}
+
 .badge-pending {
   @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
 }

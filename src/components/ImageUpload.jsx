@@ -135,29 +135,86 @@ function ImageSourceActions({
 
   if (variant === "compact") {
     return (
-      <div className="flex gap-1">
-        <Button
+      <ImageSourceActions
+        variant="split-rows"
+        onCamera={onCamera}
+        onGallery={onGallery}
+        disabled={disabled}
+        isUploading={isUploading}
+      />
+    );
+  }
+
+  if (variant === "split-rows") {
+    const rowClass =
+      "flex w-full items-center justify-center gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:border-primary/35 hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]";
+    return (
+      <div className="flex w-full flex-col gap-3">
+        <button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
           onClick={onCamera}
           disabled={blocked}
           aria-label="Take photo"
+          className={rowClass}
         >
-          <Camera className="h-4 w-4" />
-        </Button>
-        <Button
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <Camera className="h-5 w-5 text-primary" strokeWidth={1.75} />
+          )}
+          <span>Take photo</span>
+        </button>
+        <button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
           onClick={onGallery}
           disabled={blocked}
           aria-label="Choose from gallery"
+          className={rowClass}
         >
-          <ImagePlus className="h-4 w-4" />
-        </Button>
+          {isUploading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <ImagePlus className="h-5 w-5 text-primary" strokeWidth={1.75} />
+          )}
+          <span>Choose from gallery</span>
+        </button>
+      </div>
+    );
+  }
+
+  if (variant === "split-tiles") {
+    const tileClass =
+      "flex flex-col items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-4 text-center transition-colors hover:border-primary/35 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]";
+    return (
+      <div className="grid w-full grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={onCamera}
+          disabled={blocked}
+          aria-label="Take photo"
+          className={tileClass}
+        >
+          {isUploading ? (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          ) : (
+            <Camera className="h-6 w-6 text-primary" strokeWidth={1.75} />
+          )}
+          <span className="text-xs font-medium text-foreground">Camera</span>
+        </button>
+        <button
+          type="button"
+          onClick={onGallery}
+          disabled={blocked}
+          aria-label="Choose from gallery"
+          className={tileClass}
+        >
+          {isUploading ? (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          ) : (
+            <ImagePlus className="h-6 w-6 text-primary" strokeWidth={1.75} />
+          )}
+          <span className="text-xs font-medium text-foreground">Gallery</span>
+        </button>
       </div>
     );
   }
@@ -928,6 +985,7 @@ export function MultiImageUpload({
                 </div>
                 {!isUploading && (
                   <ImageSourceActions
+                    variant="split-rows"
                     onCamera={openCamera}
                     onGallery={openGallery}
                     disabled={disabled}
@@ -1027,24 +1085,21 @@ export function MultiImageUpload({
             {canAddMore && (
               <div
                 className={cn(
-                  "aspect-video rounded-lg border-2 border-dashed border-muted-foreground/25",
-                  "flex flex-col items-center justify-center gap-2 p-2",
-                  "disabled:cursor-not-allowed disabled:opacity-50"
+                  "col-span-2 rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/10 p-3 sm:col-span-3"
                 )}
               >
                 {isUploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
                 ) : (
-                  <>
-                    <ImageSourceActions
-                      variant="compact"
-                      onCamera={openCamera}
-                      onGallery={openGallery}
-                      disabled={disabled}
-                      isUploading={isUploading}
-                    />
-                    <span className="text-center text-[10px] text-muted-foreground">Add Photo</span>
-                  </>
+                  <ImageSourceActions
+                    variant="split-rows"
+                    onCamera={openCamera}
+                    onGallery={openGallery}
+                    disabled={disabled}
+                    isUploading={isUploading}
+                  />
                 )}
               </div>
             )}

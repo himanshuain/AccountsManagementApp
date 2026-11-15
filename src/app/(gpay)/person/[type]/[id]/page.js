@@ -67,7 +67,7 @@ import { ChatInputBar } from "@/components/gpay/ChatInputBar";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
 import { cn } from "@/lib/utils";
-import { getLocalDate, formatDateWithRelative } from "@/lib/date-utils";
+import { getLocalDate, formatDateWithRelative, parseFlexibleDate } from "@/lib/date-utils";
 import {
   groupPaymentLedgerEntries,
   filterPaymentLedgerGroups,
@@ -885,7 +885,7 @@ function SupplierPaymentLedger({ groups, onGoToBill, onUndoLumpsum }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3 pt-8">
       {groups.map(group => {
         if (group.type === "single") {
           return (
@@ -943,32 +943,51 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   const photoWord = isSupplier ? "bill" : "photo";
   const photoWordPlural = isSupplier ? "bills" : "photos";
   const photoLabel = isSupplier ? "Bill photo" : "Photo";
+  const userNotes = typeof txn.notes === "string" ? txn.notes.trim() : "";
+  const createdAt = txn.createdAt ? parseFlexibleDate(txn.createdAt) : null;
+  const timeLabel = createdAt ? format(createdAt, "h:mm a") : null;
+
+  const statusLabel = isPaid
+    ? "Paid"
+    : hasPartialPayment
+      ? "Partial"
+      : isSupplier
+        ? "Pending"
+        : "Outstanding";
+
+  const statusClass = isPaid
+    ? "badge-paid border-0"
+    : hasPartialPayment
+      ? "bg-amber-500/15 text-amber-900 dark:text-amber-300"
+      : "bg-amber-100 text-amber-950 dark:bg-amber-400/20 dark:text-amber-50";
+
+  const displayAmount = isPaid ? totalAmount : remainingAmount;
 
   return (
     <div
       ref={ref}
       className={cn(
         "mb-5 w-full transition-all duration-500",
-        isHighlighted && "rounded-2xl ring-2 ring-primary ring-offset-2 ring-offset-background"
+        isHighlighted && "rounded-2xl ring-2 ring-primary/60 ring-offset-2 ring-offset-background"
       )}
     >
-      <div className="flex gap-3">
+      <div className="flex items-start gap-3.5">
         {hasImages &&
           (thumbUnavailable ? (
             <UnavailableImageText
               label={photoLabel}
-              className="max-w-[5.5rem] shrink-0 self-center text-[10px]"
+              className="h-[104px] max-w-[5.5rem] shrink-0 text-[10px]"
               hint={null}
             />
           ) : thumbSrc ? (
-            <div className="relative h-[120px] w-[96px] shrink-0 self-start">
+            <div className="relative h-[104px] w-[84px] shrink-0">
               <button
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
                   onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
                 }}
-                className="relative block h-full w-full overflow-hidden rounded-xl border border-border/60 bg-muted text-left shadow-sm outline-none ring-offset-background transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+                className="relative block h-full w-full overflow-hidden rounded-xl border border-border/50 bg-muted/40 text-left outline-none transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <LoadingImg
                   src={thumbSrc}
@@ -979,7 +998,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                   onUnavailable={() => setThumbUnavailable(true)}
                 />
                 {images.length > 1 && (
-                  <span className="pointer-events-none absolute bottom-1.5 right-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+                  <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
                     +{images.length - 1}
                   </span>
                 )}
@@ -988,90 +1007,123 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
           ) : (
             <UnavailableImageText
               label={photoLabel}
-              className="max-w-[5.5rem] shrink-0 self-center text-[10px]"
+              className="h-[104px] max-w-[5.5rem] shrink-0 text-[10px]"
               hint={null}
             />
           ))}
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <button
+            type="button"
             onClick={() => onTap(txn)}
-            className="cursor-pointer overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-transform active:scale-[0.99]"
+            className={cn(
+              "relative flex w-full flex-col overflow-hidden cursor-pointer rounded-2xl border p-4 text-left shadow-sm transition-colors",
+              hasImages && "min-h-[104px]",
+              "active:scale-[0.995]",
+              isPaid
+                ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card hover:from-emerald-500/14 border-l-[3px] border-l-emerald-500/55"
+                : "border-border/40 bg-card/90 hover:bg-card",
+              !isPaid && isSupplier && "border-l-[3px] border-l-rose-400/50 border-t-border/40 border-r-border/40 border-b-border/40",
+              !isPaid && !isSupplier && "border-l-[3px] border-l-amber-400/50 border-t-border/40 border-r-border/40 border-b-border/40"
+            )}
           >
-            <div
-              className={cn(
-                "h-1 w-full",
-                isPaid ? "bg-emerald-500" : isSupplier ? "bg-rose-500" : "bg-amber-500"
-              )}
-            />
-            <div className="p-3">
-              <div className="mb-1">
-                {isPaid ? (
-                  <p className="flex items-center gap-1.5 font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    <Check className="h-4 w-4" />
-                    Paid
-                  </p>
-                ) : (
-                  <p
-                    className={cn(
-                      "font-mono text-2xl font-extrabold tabular-nums tracking-tight",
-                      isSupplier
-                        ? "text-rose-600 dark:text-rose-400"
-                        : "text-amber-600 dark:text-amber-400"
-                    )}
-                  >
-                    ₹{remainingAmount.toLocaleString("en-IN")}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                {hasPartialPayment ? (
-                  <>
-                    <span>of ₹{totalAmount.toLocaleString("en-IN")}</span>
-                    <span>·</span>
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      ₹{paidAmount.toLocaleString("en-IN")} paid
-                    </span>
-                  </>
-                ) : !isPaid ? (
-                  <span>Total pending</span>
-                ) : (
-                  <span>₹{totalAmount.toLocaleString("en-IN")}</span>
-                )}
-              </div>
-              {hasPartialPayment && (
-                <div className="mt-2">
-                  <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-                </div>
-              )}
-              <div className="my-2.5 border-t border-border/50" />
-              {(txn.description || txn.itemName || txn.itemDescription) && (
-                <p className="line-clamp-2 text-sm font-medium text-foreground">
-                  {txn.description || txn.itemName || txn.itemDescription}
-                </p>
-              )}
-              {hasImages && images.length > 1 && (
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.stopPropagation();
-                    onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
-                  }}
-                  className="mt-2 text-left text-xs font-medium text-primary hover:underline"
-                >
-                  View all {images.length} {photoWordPlural}
-                </button>
-              )}
-              <p className="mt-2 text-[10px] text-muted-foreground">
-                <DateWithRelative
-                  date={txn.date}
-                  dateFormat="dd MMM yyyy"
-                  timeFormat={txn.createdAt ? "h:mm a" : undefined}
-                  timeFrom={txn.createdAt || txn.date}
+            {isPaid && (
+              <>
+                <div
+                  className="paid-bill-cleared-pattern pointer-events-none absolute inset-0 rounded-[inherit]"
+                  aria-hidden
                 />
-              </p>
+                <div
+                  className="pointer-events-none absolute bottom-2 right-2 z-0 sm:bottom-auto sm:right-3 sm:top-1/2 sm:-translate-y-1/2"
+                  aria-hidden
+                >
+                  <div className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rotate-[-12deg]">
+                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-600/35 dark:border-emerald-400/30" />
+                    <div className="absolute inset-[6px] rounded-full border border-emerald-600/20 dark:border-emerald-400/18" />
+                    <span className="max-w-[3.25rem] text-center text-[7px] font-bold uppercase leading-[1.2] tracking-[0.14em] text-emerald-700/45 dark:text-emerald-300/40">
+                      Bill
+                      <br />
+                      Cleared
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="relative z-[1] flex w-full flex-col">
+            <div className="flex w-full items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <p className="font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground">
+                  ₹{displayAmount.toLocaleString("en-IN")}
+                </p>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
+                    statusClass
+                  )}
+                >
+                  {isPaid && <Check className="h-3 w-3" />}
+                  {statusLabel}
+                </span>
+              </div>
+              {timeLabel ? (
+                <span className="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+                  {timeLabel}
+                </span>
+              ) : null}
             </div>
-          </div>
+
+            {!isPaid && hasPartialPayment && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                of ₹{totalAmount.toLocaleString("en-IN")}
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  {" "}
+                  · ₹{paidAmount.toLocaleString("en-IN")} paid
+                </span>
+              </p>
+            )}
+
+            {hasPartialPayment && (
+              <div className="mt-2.5">
+                <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
+              </div>
+            )}
+
+            {(userNotes || hasImages) && (
+              <div className={cn("pt-3", hasImages && "mt-auto")}>
+                {userNotes ? (
+                  <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80">{userNotes}</p>
+                ) : null}
+
+                {hasImages && (
+                <div
+                  className={cn(
+                    "flex items-center justify-between gap-2",
+                    userNotes ? "mt-2 border-t border-border/35 pt-2" : ""
+                  )}
+                >
+                  {images.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Images className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                      {images.length} {photoWordPlural}
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground/80">1 {photoWord}</span>
+                  )}
+                </div>
+                )}
+              </div>
+            )}
+            </div>
+          </button>
+
           {!isPaid && (
             <button
               type="button"
@@ -1079,9 +1131,9 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                 e.stopPropagation();
                 onPay(txn);
               }}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 active:scale-[0.99]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600/25 bg-emerald-500/10 py-2.5 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-500/15 active:scale-[0.99] dark:text-emerald-300"
             >
-              <CreditCard className="h-4 w-4" />
+              <CreditCard className="h-4 w-4 opacity-80" />
               {isSupplier ? "Pay" : "Receive"} ₹{remainingAmount.toLocaleString("en-IN")}
             </button>
           )}
@@ -2172,7 +2224,7 @@ export default function PersonChatPage() {
         )}
 
         {/* Summary Card */}
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-6 pt-1">
           <div
             className={cn(
               "overflow-hidden rounded-xl border",
@@ -2237,7 +2289,7 @@ export default function PersonChatPage() {
 
             {/* Progress bar */}
             {totals.paid > 0 && totals.pending > 0 && (
-              <div className="px-3 pb-2">
+              <div className="px-3 pb-4 pt-1">
                 <div className="progress-hero h-1.5">
                   <div className="progress-hero-fill" style={{ width: `${totals.progress}%` }} />
                 </div>
@@ -2251,7 +2303,7 @@ export default function PersonChatPage() {
       <div
         ref={bindProfileScrollRef}
         className={cn(
-          "min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-4 py-4",
+          "min-h-0 flex-1 space-y-8 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-8",
           "transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
         )}
         style={{
@@ -2316,14 +2368,19 @@ export default function PersonChatPage() {
           groupedByDate.map((group, groupIndex) => (
             <div key={groupIndex}>
               {/* Date Separator */}
-              <div className="mb-4 flex items-center justify-center">
-                <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              <div
+                className={cn(
+                  "flex items-center justify-center px-1",
+                  groupIndex === 0 ? "mb-7 mt-8" : "mb-7"
+                )}
+              >
+                <span className="rounded-full border border-amber-200/80 bg-amber-100 px-4 py-2.5 text-xs font-semibold leading-snug text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-400/20 dark:text-amber-50">
                   <DateWithRelative date={group.date} dateFormat="dd MMM yyyy" />
                 </span>
               </div>
 
               {/* Transaction Bubbles */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {group.transactions.map(txn => {
                   const isPaid = txn.paymentStatus === "paid" || txn.status === "paid";
 
