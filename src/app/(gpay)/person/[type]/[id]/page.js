@@ -941,55 +941,44 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
       : "badge-pending";
 
   const displayAmount = isPaid ? totalAmount : remainingAmount;
+  const showThumbColumn = hasImages && !!thumbSrc && !thumbUnavailable;
+  const showInCardPhotoUnavailable = hasImages && (!thumbSrc || thumbUnavailable);
 
   return (
     <div
       ref={ref}
       className={cn(
-        "mb-5 w-full transition-all duration-500",
+        "w-full transition-all duration-500",
         isHighlighted && "rounded-2xl ring-2 ring-primary/60 ring-offset-2 ring-offset-background"
       )}
     >
-      <div className="flex items-start gap-3.5">
-        {hasImages &&
-          (thumbUnavailable ? (
-            <UnavailableImageText
-              label={photoLabel}
-              className="h-[104px] max-w-[5.5rem] shrink-0 text-[10px]"
-              hint={null}
-            />
-          ) : thumbSrc ? (
-            <div className="relative h-[104px] w-[84px] shrink-0">
-              <button
-                type="button"
-                onClick={e => {
-                  e.stopPropagation();
-                  onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
-                }}
-                className="relative block h-full w-full overflow-hidden rounded-xl border border-border/50 bg-muted/40 text-left outline-none transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <LoadingImg
-                  src={thumbSrc}
-                  fallbackSrc={thumbFallback !== thumbSrc ? thumbFallback : undefined}
-                  alt={photoLabel}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                  onUnavailable={() => setThumbUnavailable(true)}
-                />
-                {images.length > 1 && (
-                  <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
-                    +{images.length - 1}
-                  </span>
-                )}
-              </button>
-            </div>
-          ) : (
-            <UnavailableImageText
-              label={photoLabel}
-              className="h-[104px] max-w-[5.5rem] shrink-0 text-[10px]"
-              hint={null}
-            />
-          ))}
+      <div className={cn("flex items-start", showThumbColumn && "gap-3.5")}>
+        {showThumbColumn && (
+          <div className="relative h-[104px] w-[84px] shrink-0">
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
+              }}
+              className="relative block h-full w-full overflow-hidden rounded-xl border border-border/50 bg-muted/40 text-left outline-none transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <LoadingImg
+                src={thumbSrc}
+                fallbackSrc={thumbFallback !== thumbSrc ? thumbFallback : undefined}
+                alt={photoLabel}
+                loading="lazy"
+                className="h-full w-full object-cover"
+                onUnavailable={() => setThumbUnavailable(true)}
+              />
+              {images.length > 1 && (
+                <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums">
+                  +{images.length - 1}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <button
@@ -997,10 +986,10 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
             onClick={() => onTap(txn)}
             className={cn(
               "relative flex w-full flex-col overflow-hidden cursor-pointer rounded-2xl border p-4 text-left shadow-sm transition-colors",
-              hasImages && "min-h-[104px]",
+              showThumbColumn && "min-h-[104px]",
               "active:scale-[0.995]",
               isPaid
-                ? "border-emerald-500/20 bg-card hover:bg-card"
+                ? "border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/20 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/25"
                 : "border-border bg-card hover:bg-muted/30",
             )}
           >
@@ -1066,13 +1055,21 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
               </div>
             )}
 
-            {(userNotes || hasImages) && (
-              <div className={cn("pt-3", hasImages && "mt-auto")}>
+            {(userNotes || hasImages || showInCardPhotoUnavailable) && (
+              <div className={cn("pt-3", (hasImages || showInCardPhotoUnavailable) && "mt-auto")}>
                 {userNotes ? (
                   <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80">{userNotes}</p>
                 ) : null}
 
-                {hasImages && (
+                {showInCardPhotoUnavailable && (
+                  <UnavailableImageText
+                    label={photoLabel}
+                    className="text-[11px]"
+                    hint={null}
+                  />
+                )}
+
+                {hasImages && !showInCardPhotoUnavailable && (
                 <div
                   className={cn(
                     "flex items-center justify-between gap-2",
@@ -1095,6 +1092,12 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                     <span className="text-[11px] text-muted-foreground/80">1 {photoWord}</span>
                   )}
                 </div>
+                )}
+
+                {hasImages && showInCardPhotoUnavailable && images.length > 1 && (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground/80">
+                    {images.length} {photoWordPlural} on record
+                  </p>
                 )}
               </div>
             )}
@@ -2194,58 +2197,74 @@ export default function PersonChatPage() {
         )}
 
         {/* Summary Card */}
-        <div className="px-4 pb-6 pt-1">
-          <div className="surface-panel">
-            {/* Pending — label beside amount */}
-            <div className="flex items-center justify-between gap-2 px-3 py-2">
-              {totals.pending > 0 ? (
-                <>
-                  <p className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    {isSupplier ? "You Owe" : "They Owe"}
-                    {pendingItems.length > 0 && (
-                      <span className="ml-1.5 normal-case tracking-normal text-muted-foreground/80">
-                        · {pendingItems.length}{" "}
-                        {isSupplier
-                          ? `bill${pendingItems.length === 1 ? "" : "s"}`
-                          : `udhar${pendingItems.length === 1 ? "" : "s"}`}
-                      </span>
-                    )}
-                  </p>
-                  <p className="font-mono text-lg font-semibold tabular-nums tracking-tight text-foreground">
-                    ₹{totals.pending.toLocaleString("en-IN")}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    Status
-                  </p>
-                  <p className="font-mono text-base font-semibold text-money-positive">All cleared</p>
-                </>
-              )}
-            </div>
-
-            {/* Total & Paid row */}
-            {totals.total > 0 && (
-              <div className="flex items-center justify-between border-t border-border/30 px-3 py-1.5">
-                <span className="text-[11px] text-muted-foreground">
-                  Total ₹{totals.total.toLocaleString("en-IN")}
-                </span>
-                {totals.paid > 0 && (
-                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                    Paid ₹{totals.paid.toLocaleString("en-IN")}
-                  </span>
-                )}
-              </div>
+        <div className="px-4 pb-4 pt-0.5">
+          <div
+            className={cn(
+              "overflow-hidden rounded-xl border px-3 py-2.5 shadow-sm",
+              totals.pending <= 0 && totals.total > 0
+                ? "border-emerald-500/25 bg-emerald-500/10"
+                : "border-border bg-card"
             )}
+          >
+            {totals.pending > 0 ? (
+              <>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {isSupplier ? "You owe" : "They owe"}
+                  {pendingItems.length > 0 && (
+                    <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/85">
+                      · {pendingItems.length}{" "}
+                      {isSupplier
+                        ? `bill${pendingItems.length === 1 ? "" : "s"}`
+                        : `udhar${pendingItems.length === 1 ? "" : "s"}`}
+                    </span>
+                  )}
+                </p>
 
-            {/* Progress bar */}
-            {totals.paid > 0 && totals.pending > 0 && (
-              <div className="px-3 pb-4 pt-1">
-                <div className="progress-hero h-1.5">
-                  <div className="progress-hero-fill" style={{ width: `${totals.progress}%` }} />
+                <p className="mt-0.5 font-mono text-xl font-bold tabular-nums tracking-tight text-foreground">
+                  ₹{totals.pending.toLocaleString("en-IN")}
+                </p>
+
+                {totals.total > 0 && (
+                  <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2">
+                    {totals.paid > 0 && (
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-emerald-600 transition-all duration-500 dark:bg-emerald-500"
+                          style={{ width: `${Math.min(totals.progress, 100)}%` }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-muted-foreground">
+                        Total{" "}
+                        <span className="font-mono font-semibold tabular-nums text-foreground">
+                          ₹{totals.total.toLocaleString("en-IN")}
+                        </span>
+                      </span>
+                      <span className="text-muted-foreground">
+                        Paid{" "}
+                        <span className="font-mono font-semibold tabular-nums text-money-positive">
+                          ₹{totals.paid.toLocaleString("en-IN")}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : totals.total > 0 ? (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <p className="text-sm font-semibold text-foreground">All cleared</p>
                 </div>
+                <p className="font-mono text-sm font-semibold tabular-nums text-money-positive">
+                  ₹{totals.paid.toLocaleString("en-IN")}
+                </p>
               </div>
+            ) : (
+              <p className="py-0.5 text-center text-xs text-muted-foreground">
+                No {isSupplier ? "bills" : "udhar"} yet
+              </p>
             )}
           </div>
         </div>
@@ -2318,21 +2337,19 @@ export default function PersonChatPage() {
           </div>
         ) : (
           groupedByDate.map((group, groupIndex) => (
-            <div key={groupIndex}>
-              {/* Date Separator */}
-              <div
-                className={cn(
-                  "flex items-center justify-center px-1",
-                  groupIndex === 0 ? "mb-7 mt-8" : "mb-7"
-                )}
-              >
-                <span className="date-chip">
-                  <DateWithRelative date={group.date} dateFormat="dd MMM yyyy" />
+            <div key={groupIndex} className={cn("date-group-card", groupIndex === 0 && "mt-2")}>
+              <div className="date-group-card__header">
+                <span className="date-chip-profile">
+                  <DateWithRelative
+                    date={group.date}
+                    dateFormat="dd MMM yyyy"
+                    className="font-bold tracking-tight text-foreground"
+                    timeRelativeClassName="text-[11px] font-semibold text-muted-foreground"
+                  />
                 </span>
               </div>
 
-              {/* Transaction Bubbles */}
-              <div className="space-y-4">
+              <div className="date-group-card__body">
                 {group.transactions.map(txn => {
                   const isPaid = txn.paymentStatus === "paid" || txn.status === "paid";
 

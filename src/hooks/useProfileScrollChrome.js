@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const SCROLL_DELTA = 10;
+/** Per-tick delta — fast flicks */
+const SCROLL_DELTA = 4;
+/** Slow scroll: hide after this much net downward travel */
+const HIDE_ACCUM_PX = 14;
+/** Slow scroll up: show after this much net upward travel */
+const SHOW_ACCUM_PX = 10;
 const TOP_SHOW_Y = 32;
 
 /**
@@ -16,6 +21,8 @@ export function useProfileScrollChrome(scrollRef, { enabled = true, layoutKey = 
   const [headerHeight, setHeaderHeight] = useState(0);
   const [footerHeight, setFooterHeight] = useState(88);
   const lastScrollY = useRef(0);
+  const downAccum = useRef(0);
+  const upAccum = useRef(0);
   const rafRef = useRef(null);
 
   const bindScrollRef = useCallback(
@@ -38,6 +45,8 @@ export function useProfileScrollChrome(scrollRef, { enabled = true, layoutKey = 
   useEffect(() => {
     setChromeHidden(false);
     lastScrollY.current = 0;
+    downAccum.current = 0;
+    upAccum.current = 0;
     const id = requestAnimationFrame(() => {
       measureChrome();
       if (scrollRef.current) {
@@ -77,10 +86,20 @@ export function useProfileScrollChrome(scrollRef, { enabled = true, layoutKey = 
 
         if (y <= TOP_SHOW_Y) {
           setChromeHidden(false);
-        } else if (delta > SCROLL_DELTA) {
-          setChromeHidden(true);
-        } else if (delta < -SCROLL_DELTA) {
-          setChromeHidden(false);
+          downAccum.current = 0;
+          upAccum.current = 0;
+        } else if (delta > 0) {
+          upAccum.current = 0;
+          downAccum.current += delta;
+          if (delta > SCROLL_DELTA || downAccum.current >= HIDE_ACCUM_PX) {
+            setChromeHidden(true);
+          }
+        } else if (delta < 0) {
+          downAccum.current = 0;
+          upAccum.current += -delta;
+          if (delta < -SCROLL_DELTA || upAccum.current >= SHOW_ACCUM_PX) {
+            setChromeHidden(false);
+          }
         }
 
         lastScrollY.current = y;
