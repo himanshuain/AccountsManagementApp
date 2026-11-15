@@ -8,7 +8,8 @@ import {
   isSameImageRef,
 } from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
-import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
+import { pruneImageOcrMap } from "@/lib/image-ocr-map";
+import { deferUdharKhataOcr } from "@/lib/server/deferred-image-ocr";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -117,12 +118,18 @@ export async function PUT(request, { params }) {
       updatedAt: new Date().toISOString(),
     };
 
+    let deferOcr = null;
     if (Object.prototype.hasOwnProperty.call(body, "khataPhotos")) {
-      updates.khataImageOcr = await syncImageOcrForRefs(
-        updates.khataPhotos || [],
-        currentUdhar?.khata_image_ocr || {},
-        updates.khataImageOcr || body.khataImageOcr || {}
+      const khataPhotos = updates.khataPhotos || [];
+      updates.khataImageOcr = pruneImageOcrMap(
+        updates.khataImageOcr || body.khataImageOcr || {},
+        khataPhotos
       );
+      deferOcr = {
+        khataPhotos,
+        existing: currentUdhar?.khata_image_ocr || {},
+        client: body.khataImageOcr || updates.khataImageOcr || {},
+      };
     }
 
     const record = toSnakeCase(updates);
@@ -137,6 +144,10 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update udhar failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    if (deferOcr) {
+      deferUdharKhataOcr(id, deferOcr.khataPhotos, deferOcr.existing, deferOcr.client);
     }
 
     // Clean up old images that were removed (best-effort, non-blocking).

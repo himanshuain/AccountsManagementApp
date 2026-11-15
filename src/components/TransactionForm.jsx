@@ -188,7 +188,6 @@ export function TransactionForm({
     const formData = new FormData();
     formData.append("file", file);
     formData.append("folder", "bills");
-    formData.append("runOcr", "1");
     const response = await fetch("/api/upload", {
       method: "POST",
       body: formData,
@@ -210,42 +209,51 @@ export function TransactionForm({
 
     setIsSubmitting(true);
     try {
-      const billStorageKeys = [];
       let pendingIndex = 0;
 
-      for (let i = 0; i < billImages.length; i++) {
-        const img = billImages[i];
-        if (!img) continue;
+      let billStorageKeys;
+      try {
+        billStorageKeys = await Promise.all(
+          billImages.map(async (img, i) => {
+            if (!img) return null;
 
-        if (img.startsWith("data:")) {
-          try {
-            const file = base64ToFile(img, `bill-${Date.now()}-${i}.jpg`);
-            billStorageKeys.push(await uploadBillFile(file));
-          } catch (e) {
-            console.error("Bill upload failed:", e);
-            toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
-            return;
-          }
-        } else if (img.startsWith("blob:")) {
-          const file = pendingFiles[pendingIndex++];
-          if (!file) {
-            toast.error("Bill previews are still loading. Wait a moment and save again.");
-            return;
-          }
-          try {
-            billStorageKeys.push(await uploadBillFile(file));
-          } catch (e) {
-            console.error("Bill upload failed:", e);
-            toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
-            return;
-          }
-        } else if (isPersistableBillRef(img)) {
-          billStorageKeys.push(img);
-        } else {
+            if (img.startsWith("data:")) {
+              const file = base64ToFile(img, `bill-${Date.now()}-${i}.jpg`);
+              return uploadBillFile(file);
+            }
+            if (img.startsWith("blob:")) {
+              const file = pendingFiles[pendingIndex++];
+              if (!file) {
+                throw new Error("PENDING_BLOB");
+              }
+              return uploadBillFile(file);
+            }
+            if (isPersistableBillRef(img)) {
+              return img;
+            }
+            throw new Error("INVALID_REF");
+          })
+        );
+      } catch (e) {
+        if (e?.message === "PENDING_BLOB") {
+          toast.error("Bill previews are still loading. Wait a moment and save again.");
+          return;
+        }
+        if (e?.message === "INVALID_REF") {
           toast.error("Invalid bill photo. Remove it and add the photo again.");
           return;
         }
+        console.error("Bill upload failed:", e);
+        toast.error(e?.message || "Could not upload a bill photo. Nothing was saved.");
+        return;
       }
+
+      const resolved = billStorageKeys.filter(Boolean);
+      if (resolved.length !== billImages.filter(Boolean).length) {
+        toast.error("Invalid bill photo. Remove it and add the photo again.");
+        return;
+      }
+      billStorageKeys = resolved;
 
       if (billStorageKeys.some(k => typeof k === "string" && (k.startsWith("data:") || k.startsWith("blob:")))) {
         toast.error("Bill photos must finish uploading before save.");
@@ -379,7 +387,26 @@ export function TransactionForm({
           <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Bill photos
           </p>
-          {billImages.length > 0 ? (
+          {isOnline ? (
+            <MultiImageUpload
+              value={billImages}
+              onChange={imgs => {
+                setBillImages(imgs);
+                setBillImageOcr(prev => pruneImageOcrMap(prev, imgs));
+              }}
+              maxImages={5}
+              disabled={false}
+              layout={billImages.length > 0 ? "grid" : "hero"}
+              attachLabel="Attach bill photos"
+              onUploadingChange={setIsUploadingBills}
+              onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+              onSessionStorageKeysRemoved={keys =>
+                removeSessionStorageKeys(sessionUploadKeysRef, keys)
+              }
+              folder="bills"
+              onImageOcrCaptured={captureBillOcr}
+            />
+          ) : (
             <FormPhotoStrip
               images={billImages}
               pendingFiles={pendingFiles}
@@ -389,24 +416,8 @@ export function TransactionForm({
                 setBillImageOcr(prev => pruneImageOcrMap(prev, images));
               }}
               maxImages={5}
-              disabled={!isOnline}
-              uploadHint="uploads on save"
-            />
-          ) : (
-            <MultiImageUpload
-              value={billImages}
-              onChange={setBillImages}
-              maxImages={5}
-              disabled={!isOnline}
-              layout="hero"
-              attachLabel="Attach bill photos"
-              onUploadingChange={setIsUploadingBills}
-              onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-              onSessionStorageKeysRemoved={keys =>
-                removeSessionStorageKeys(sessionUploadKeysRef, keys)
-              }
-              folder="bills"
-              onImageOcrCaptured={captureBillOcr}
+              disabled
+              uploadHint="save when back online"
             />
           )}
         </div>

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { transactionSchema, validateBody } from "@/lib/validation";
-import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
+import { pruneImageOcrMap } from "@/lib/image-ocr-map";
+import { deferTransactionBillOcr } from "@/lib/server/deferred-image-ocr";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -126,11 +127,7 @@ export async function POST(request) {
     }
 
     const billImages = cleanedBody.billImages || [];
-    const billImageOcr = await syncImageOcrForRefs(
-      billImages,
-      {},
-      cleanedBody.billImageOcr || {}
-    );
+    const billImageOcr = pruneImageOcrMap(cleanedBody.billImageOcr || {}, billImages);
 
     const transactionData = {
       ...cleanedBody,
@@ -154,9 +151,17 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    const created = toCamelCase(data);
+    deferTransactionBillOcr(
+      created.id,
+      billImages,
+      {},
+      cleanedBody.billImageOcr || {}
+    );
+
     return NextResponse.json({
       success: true,
-      data: toCamelCase(data),
+      data: created,
     });
   } catch (error) {
     console.error("Create transaction failed:", error);

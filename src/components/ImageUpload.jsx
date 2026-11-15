@@ -8,8 +8,6 @@ import { ImageViewer, ImageGalleryViewer } from "./PhotoViewer";
 import { compressImage, compressForHD } from "@/lib/image-compression";
 import { getImageUrls, isDataUrl, resolveImageUrl } from "@/lib/image-url";
 import { isDeletableStorageKey } from "@/lib/orphan-upload-cleanup";
-import { OCR_UPLOAD_FOLDERS } from "@/lib/image-ocr-map";
-
 function notifySessionKeysAdded(onSessionStorageKeysAdded, keys) {
   const deletable = keys.filter(isDeletableStorageKey);
   if (deletable.length > 0) onSessionStorageKeysAdded?.(deletable);
@@ -18,15 +16,6 @@ function notifySessionKeysAdded(onSessionStorageKeysAdded, keys) {
 function notifySessionKeysRemoved(onSessionStorageKeysRemoved, keys) {
   const deletable = keys.filter(isDeletableStorageKey);
   if (deletable.length > 0) onSessionStorageKeysRemoved?.(deletable);
-}
-
-function appendOcrFlagIfNeeded(formData, folder) {
-  const normalized = String(folder || "general")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "");
-  if (OCR_UPLOAD_FOLDERS.has(normalized)) {
-    formData.append("runOcr", "1");
-  }
 }
 
 /** POST /api/upload with XMLHttpRequest so upload progress is available. */
@@ -355,7 +344,6 @@ export function ImageUpload({
       const formData = new FormData();
       formData.append("file", compressedFile);
       formData.append("folder", folder);
-      appendOcrFlagIfNeeded(formData, folder);
 
       const result = await uploadFormDataWithProgress(formData, pct => {
         setUploadProgress(pct);
@@ -744,7 +732,6 @@ export function MultiImageUpload({
         const formData = new FormData();
         formData.append("file", compressedFile);
         formData.append("folder", folder);
-        appendOcrFlagIfNeeded(formData, folder);
 
         const result = await uploadFormDataWithProgress(formData, pct => {
           if (pct === null) {

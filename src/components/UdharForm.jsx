@@ -165,7 +165,6 @@ export function UdharForm({
         const formData = new FormData();
         formData.append("file", file);
         formData.append("folder", "khata");
-        formData.append("runOcr", "1");
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
@@ -304,7 +303,26 @@ export function UdharForm({
             <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Khata photos
             </p>
-            {khataPhotos.length > 0 ? (
+            {isOnline ? (
+              <MultiImageUpload
+                value={khataPhotos}
+                onChange={imgs => {
+                  setKhataPhotos(imgs);
+                  setKhataImageOcr(prev => pruneImageOcrMap(prev, imgs));
+                }}
+                maxImages={5}
+                disabled={false}
+                layout={khataPhotos.length > 0 ? "grid" : "hero"}
+                attachLabel="Attach khata photos"
+                onUploadingChange={setIsUploadingKhata}
+                onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
+                onSessionStorageKeysRemoved={keys =>
+                  removeSessionStorageKeys(sessionUploadKeysRef, keys)
+                }
+                folder="khata"
+                onImageOcrCaptured={captureKhataOcr}
+              />
+            ) : (
               <FormPhotoStrip
                 images={khataPhotos}
                 pendingFiles={pendingFiles}
@@ -314,24 +332,8 @@ export function UdharForm({
                   setKhataImageOcr(prev => pruneImageOcrMap(prev, images));
                 }}
                 maxImages={5}
-                disabled={!isOnline}
-                uploadHint="uploads on save"
-              />
-            ) : (
-              <MultiImageUpload
-                value={khataPhotos}
-                onChange={setKhataPhotos}
-                maxImages={5}
-                disabled={!isOnline}
-                layout="hero"
-                attachLabel="Attach khata photos"
-                onUploadingChange={setIsUploadingKhata}
-                onSessionStorageKeysAdded={keys => addSessionStorageKeys(sessionUploadKeysRef, keys)}
-                onSessionStorageKeysRemoved={keys =>
-                  removeSessionStorageKeys(sessionUploadKeysRef, keys)
-                }
-                folder="khata"
-                onImageOcrCaptured={captureKhataOcr}
+                disabled
+                uploadHint="save when back online"
               />
             )}
           </div>

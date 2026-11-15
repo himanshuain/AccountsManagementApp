@@ -7,7 +7,8 @@ import {
   isImageRefInIndex,
 } from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
-import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
+import { pruneImageOcrMap } from "@/lib/image-ocr-map";
+import { deferTransactionBillOcr } from "@/lib/server/deferred-image-ocr";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -100,12 +101,18 @@ export async function PUT(request, { params }) {
       updatedAt: new Date().toISOString(),
     };
 
+    let deferOcr = null;
     if (Object.prototype.hasOwnProperty.call(body, "billImages")) {
-      updates.billImageOcr = await syncImageOcrForRefs(
-        updates.billImages || [],
-        existingTransaction?.bill_image_ocr || {},
-        updates.billImageOcr || body.billImageOcr || {}
+      const billImages = updates.billImages || [];
+      updates.billImageOcr = pruneImageOcrMap(
+        updates.billImageOcr || body.billImageOcr || {},
+        billImages
       );
+      deferOcr = {
+        billImages,
+        existing: existingTransaction?.bill_image_ocr || {},
+        client: body.billImageOcr || updates.billImageOcr || {},
+      };
     }
 
     const record = toSnakeCase(updates);
@@ -120,6 +127,10 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update transaction failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    if (deferOcr) {
+      deferTransactionBillOcr(id, deferOcr.billImages, deferOcr.existing, deferOcr.client);
     }
 
     // Clean up old images that were removed (best-effort, non-blocking).

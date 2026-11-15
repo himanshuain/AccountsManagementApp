@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadToR2, generateStorageKey, isR2Configured, existsInR2 } from "@/lib/r2-storage";
-import { extractTextFromImage, shouldRunOcrForFolder } from "@/lib/ocr";
+import { extractTextFromImage } from "@/lib/ocr";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -172,18 +172,11 @@ export async function POST(request) {
 
     const verified = await existsInR2(result.storageKey);
     if (!verified) {
-      console.error("[Upload] PutObject succeeded but object not readable:", result.storageKey);
-      return NextResponse.json(
-        { success: false, error: "Upload could not be verified. Please try again." },
-        { status: 500 }
-      );
+      console.warn("[Upload] HeadObject miss after PutObject (continuing):", result.storageKey);
     }
 
     const runOcrField = formData.get("runOcr");
-    const runOcr =
-      runOcrField === null
-        ? shouldRunOcrForFolder(sanitizedFolder)
-        : runOcrField !== "0" && runOcrField !== "false";
+    const runOcr = runOcrField === "1" || runOcrField === "true";
 
     let ocrText = "";
     if (runOcr) {

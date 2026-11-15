@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { udharSchema, validateBody } from "@/lib/validation";
-import { syncImageOcrForRefs } from "@/lib/server/image-ocr-sync";
+import { pruneImageOcrMap } from "@/lib/image-ocr-map";
+import { deferUdharKhataOcr } from "@/lib/server/deferred-image-ocr";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -142,11 +143,7 @@ export async function POST(request) {
     const now = new Date().toISOString();
 
     const khataPhotos = validation.data.khataPhotos || [];
-    const khataImageOcr = await syncImageOcrForRefs(
-      khataPhotos,
-      {},
-      validation.data.khataImageOcr || {}
-    );
+    const khataImageOcr = pruneImageOcrMap(validation.data.khataImageOcr || {}, khataPhotos);
 
     const udharData = {
       ...validation.data,
@@ -171,6 +168,14 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    const created = toCamelCase(data);
+    deferUdharKhataOcr(
+      created.id,
+      khataPhotos,
+      {},
+      validation.data.khataImageOcr || {}
+    );
+
     // Update customer's total pending
     if (validation.data.customerId) {
       await updateCustomerTotalPending(validation.data.customerId);
@@ -178,7 +183,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      data: toCamelCase(data),
+      data: created,
     });
   } catch (error) {
     console.error("Create udhar failed:", error);
