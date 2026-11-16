@@ -367,7 +367,7 @@ export function TransactionForm({
         if (!v) resetAndClose();
       }}
       beforeClose={handleBeforeClose}
-      height="h-[92vh]"
+      height="h-[92dvh]"
     >
       <FormDrawerHeader
         title={formTitle}
@@ -425,7 +425,7 @@ export function TransactionForm({
         </div>
 
         {/* Amount — primary field, directly under photos */}
-        <div className="overflow-hidden rounded-2xl border border-rose-500/25 bg-gradient-to-br from-rose-500/10 to-rose-500/5 p-4 shadow-sm">
+        <div className="amount-highlight-card overflow-hidden rounded-2xl p-4 shadow-sm dark:shadow-none dark:ring-1 dark:ring-white/[0.08]">
           <label
             htmlFor="amount"
             className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"

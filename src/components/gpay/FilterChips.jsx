@@ -12,7 +12,12 @@ import { haptics } from "@/hooks/useHaptics";
 
 export function FilterChips({ filters = [], onFilterChange, className }) {
   return (
-    <div className={cn("scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 py-2", className)}>
+    <div
+      className={cn(
+        "carousel-edge-fade scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 py-2",
+        className
+      )}
+    >
       {filters.map(filter => (
         <FilterChip
           key={filter.id}

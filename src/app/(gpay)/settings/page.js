@@ -1587,7 +1587,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <Link

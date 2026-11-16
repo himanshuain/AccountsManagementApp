@@ -112,11 +112,11 @@ export function BillsGalleryModal({
   }, [isOpen]);
 
   return (
-    <DragCloseDrawer open={isOpen} onOpenChange={handleClose} height="h-[90vh]">
-      <DrawerHeader className="border-b px-4 pb-3">
+    <DragCloseDrawer open={isOpen} onOpenChange={handleClose} height="h-[90dvh]">
+      <DrawerHeader className="border-b border-black/[0.1] px-4 pb-3 dark:border-white/[0.1]">
         <div>
           <DrawerTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
+            <Receipt className="h-5 w-5" strokeWidth={1.5} />
             All Bills & Receipts
           </DrawerTitle>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -151,7 +151,7 @@ export function BillsGalleryModal({
           {allBills.length > 1 && (
             <div
               ref={stripRef}
-              className="flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none"
+              className="carousel-edge-fade flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none"
             >
               {allBills.map((bill, idx) => (
                 <div key={`${bill.txnId}-${bill.index}`} ref={(el) => (itemRefs.current[idx] = el)}>

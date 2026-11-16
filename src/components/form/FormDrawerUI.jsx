@@ -73,13 +73,18 @@ export function FormSection({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm",
+        "overflow-hidden rounded-2xl border border-black/[0.12] bg-card shadow-sm dark:border-white/[0.12] dark:shadow-none dark:ring-1 dark:ring-white/[0.08]",
         className
       )}
     >
       {title && (
-        <div className="flex items-center gap-2 border-b border-border/40 px-4 py-2.5">
-          {Icon && <Icon className={cn("h-4 w-4 text-muted-foreground", iconClassName)} />}
+        <div className="flex items-center gap-2 border-b border-black/[0.08] px-4 py-2.5 dark:border-white/[0.08]">
+          {Icon && (
+            <Icon
+              className={cn("h-4 w-4 text-muted-foreground", iconClassName)}
+              strokeWidth={1.5}
+            />
+          )}
           <p
             className={cn(
               "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground",
@@ -97,7 +102,7 @@ export function FormSection({
 
 export function SegmentToggle({ value, onChange, options, disabled }) {
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1 dark:bg-muted/80">
       {options.map(opt => {
         const isActive = value === opt.value;
         return (
@@ -109,7 +114,8 @@ export function SegmentToggle({ value, onChange, options, disabled }) {
             className={cn(
               "rounded-lg py-2.5 text-sm font-semibold transition-all active:scale-[0.98]",
               isActive
-                ? opt.activeClass || "bg-background text-foreground shadow-sm"
+                ? opt.activeClass ||
+                  "bg-background text-foreground shadow-sm dark:bg-card dark:shadow-none dark:ring-1 dark:ring-white/[0.1]"
                 : "text-muted-foreground hover:text-foreground",
               disabled && "opacity-50"
             )}
@@ -137,7 +143,7 @@ export function FormDrawerHeader({
   const primaryLabel = actionLabel ?? (isEdit ? "Save" : "Add");
 
   return (
-    <DrawerHeader className="border-b border-border/50 px-4 pb-3 pt-0">
+    <DrawerHeader className="border-b border-black/[0.1] px-4 pb-3 pt-0 dark:border-white/[0.1]">
       <div className="flex w-full items-center justify-between gap-2">
         <Button
           variant="ghost"
@@ -151,7 +157,7 @@ export function FormDrawerHeader({
         </Button>
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center">
           <DrawerTitle className="flex items-center justify-center gap-2 text-base">
-            {Icon && <Icon className="h-4 w-4 text-primary" />}
+            {Icon && <Icon className="h-4 w-4 text-primary" strokeWidth={1.5} />}
             {title}
           </DrawerTitle>
           {subtitle && (
@@ -171,7 +177,7 @@ export function FormDrawerHeader({
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                <Check className="mr-1 h-4 w-4 shrink-0" />
+                <Check className="mr-1 h-4 w-4 shrink-0" strokeWidth={2} />
                 <span className="truncate text-xs font-medium sm:text-sm">{primaryLabel}</span>
               </>
             )}

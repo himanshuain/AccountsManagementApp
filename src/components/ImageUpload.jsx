@@ -893,7 +893,7 @@ export function MultiImageUpload({
       <div
         key={index}
         className={cn(
-          "group relative shrink-0 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm",
+          "group relative shrink-0 cursor-pointer overflow-hidden rounded-[14px] border border-black/[0.12] bg-muted shadow-sm dark:border-white/[0.12]",
           isHero ? "h-24 w-[108px] shrink-0 snap-start" : ""
         )}
         onClick={() => handleViewImage(index)}
@@ -992,7 +992,7 @@ export function MultiImageUpload({
               </div>
             ) : (
               <div className="flex gap-2">
-                <div className="flex min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
+                <div className="carousel-edge-fade flex min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5">
                   {value.map((storageKey, index) => {
                     const urls = getImageUrls(storageKey);
                     const isBase64 = isDataUrl(storageKey);
@@ -1000,7 +1000,7 @@ export function MultiImageUpload({
                       <div
                         key={index}
                         className={cn(
-                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow-sm",
+                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-[14px] border border-black/[0.12] bg-muted shadow-sm dark:border-white/[0.12]",
                           value.length === 1
                             ? "h-24 min-w-0 flex-1"
                             : "h-24 w-[108px] snap-start"
@@ -1048,7 +1048,7 @@ export function MultiImageUpload({
               return (
                 <div
                   key={index}
-                  className="group relative aspect-video cursor-pointer overflow-hidden rounded-lg border bg-muted"
+                  className="group relative aspect-video cursor-pointer overflow-hidden rounded-[14px] border border-black/[0.12] bg-muted dark:border-white/[0.12]"
                   onClick={() => handleViewImage(index)}
                 >
                   <MultiImageThumbnail

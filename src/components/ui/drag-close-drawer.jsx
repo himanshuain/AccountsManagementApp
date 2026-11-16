@@ -21,7 +21,7 @@ function DragCloseDrawer({
   footer,
   contentClassName,
   className,
-  height = "h-[75vh]",
+  height = "h-[75dvh]",
   overlayClassName,
 }) {
   const [scope, scopeAnimate] = useAnimate();

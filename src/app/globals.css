@@ -117,7 +117,7 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     @apply bg-background;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   html {
@@ -532,6 +532,35 @@
   box-shadow: 0 0 0 2px hsl(var(--primary));
 }
 
+/* Search suggestions — opaque card, crisp edges, lifted shadow (no backdrop blur) */
+.search-suggestions-panel {
+  @apply max-h-[min(55dvh,18.5rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-black/[0.1] bg-card overscroll-contain;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.65) inset,
+    0 10px 24px -6px rgb(0 0 0 / 0.14),
+    0 20px 40px -12px rgb(0 0 0 / 0.1);
+}
+
+.dark .search-suggestions-panel {
+  @apply border-white/[0.12] bg-card;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.07) inset,
+    0 16px 36px -8px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+.search-suggestions-panel__item {
+  @apply bg-card transition-colors duration-150;
+}
+
+.search-suggestions-panel__item:hover {
+  @apply bg-muted/50;
+}
+
+.search-suggestions-panel__item:active {
+  @apply bg-muted/70;
+}
+
 /* Date Input Fixes - prevent overflow */
 input[type="date"].input-hero,
 input[type="datetime-local"].input-hero {
@@ -697,6 +726,21 @@ input[type="datetime-local"] {
     display: none;
   }
 
+  .carousel-edge-fade {
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
+    mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent);
+  }
+
+  .amount-highlight-card {
+    border: 1px solid rgb(244 63 94 / 0.2);
+    background-image: linear-gradient(to bottom right in oklch, oklch(0.72 0.14 20 / 0.14), oklch(0.68 0.06 20 / 0.05));
+  }
+
+  .dark .amount-highlight-card {
+    border-color: rgb(251 113 133 / 0.22);
+    background-image: linear-gradient(to bottom right in oklch, oklch(0.42 0.11 20 / 0.32), oklch(0.34 0.06 20 / 0.18));
+  }
+
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -830,7 +874,8 @@ textarea,
    LOADING STATES
    ============================================ */
 
-.skeleton-hero {
+.skeleton-hero,
+.skeleton-shimmer {
   background: linear-gradient(
     90deg,
     hsl(var(--muted)) 25%,
@@ -851,7 +896,8 @@ textarea,
 }
 
 /* Dark mode skeleton */
-.dark .skeleton-hero {
+.dark .skeleton-hero,
+.dark .skeleton-shimmer {
   background: linear-gradient(
     90deg,
     hsl(var(--muted)) 25%,

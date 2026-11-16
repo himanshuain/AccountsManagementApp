@@ -1,14 +1,14 @@
 /** Vibrant placeholder backgrounds (works without Tailwind safelist) */
 
 const PLACEHOLDER_GRADIENTS = [
-  ["#f97316", "#d97706"],
-  ["#f43f5e", "#db2777"],
-  ["#8b5cf6", "#9333ea"],
-  ["#0ea5e9", "#2563eb"],
-  ["#10b981", "#0d9488"],
-  ["#d946ef", "#7c3aed"],
-  ["#f59e0b", "#ea580c"],
-  ["#06b6d4", "#0284c7"],
+  ["oklch(0.68 0.19 45)", "oklch(0.58 0.17 55)"],
+  ["oklch(0.65 0.22 15)", "oklch(0.58 0.21 350)"],
+  ["oklch(0.62 0.21 295)", "oklch(0.58 0.2 305)"],
+  ["oklch(0.68 0.15 235)", "oklch(0.52 0.18 265)"],
+  ["oklch(0.7 0.16 165)", "oklch(0.58 0.12 180)"],
+  ["oklch(0.66 0.22 325)", "oklch(0.55 0.22 285)"],
+  ["oklch(0.75 0.16 75)", "oklch(0.62 0.17 55)"],
+  ["oklch(0.72 0.14 210)", "oklch(0.55 0.14 250)"],
 ];
 
 function hashSeed(seed) {
@@ -28,6 +28,6 @@ export function getListingThumbGradientStyle(seed) {
   const idx = hashSeed(seed) % PLACEHOLDER_GRADIENTS.length;
   const [from, to] = PLACEHOLDER_GRADIENTS[idx];
   return {
-    backgroundImage: `linear-gradient(to bottom right, ${from}, ${to})`,
+    backgroundImage: `linear-gradient(to bottom right in oklch, ${from}, ${to})`,
   };
 }

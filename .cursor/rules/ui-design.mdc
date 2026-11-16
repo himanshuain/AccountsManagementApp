@@ -1,0 +1,56 @@
+---
+description: Visual design rules for UI (radius, borders, OKLCH, motion, layout)
+alwaysApply: true
+---
+
+# UI design standards
+
+Apply these whenever adding or changing UI (components, pages, drawers, modals).
+
+## Shape & borders
+
+- **Nested radii:** inner `border-radius` = outer radius − padding (e.g. outer `16px`, padding `8px` → inner `8px`).
+- **Borders:** prefer alpha blends, e.g. `border border-black/12` or `rgb(0 0 0 / 0.12)`, not heavy solid hex. In this repo, `border-border/50`–`/60` is the usual pattern on themed surfaces.
+
+## Color & gradients
+
+- **Palettes:** define new colors in **OKLCH** so equal L looks equal. Existing theme tokens in `globals.css` are HSL—when touching tokens or adding scales, prefer OKLCH.
+- **Gradients:** use OKLCH interpolation: `linear-gradient(90deg in oklch, …)` (see `listingThumbColor.js` for inline gradient style).
+
+## Typography & icons
+
+- **Lucide icons:** match stroke to adjacent text—e.g. `strokeWidth={1.5}` near `text-sm font-medium`, slightly heavier for `font-semibold`/`text-base`.
+
+## Scroll & carousels
+
+- **Horizontal strips:** fade edges with  
+  `mask-image: linear-gradient(90deg, transparent, black 15%, black 85%, transparent)`  
+  (and `-webkit-mask-image` when needed). Use for photo rails and snap carousels.
+
+## Motion
+
+- **Icon swaps:** blur outgoing icon while fading, e.g. `filter: blur(4px)` + opacity transition on the leaving element.
+
+## Dark mode & layout
+
+- **Depth in dark UI:** lift hierarchy with **lighter surface steps** (`bg-card`, `bg-muted/…`); don’t rely on shadows alone.
+- **Full viewport height:** use `min-h-[100dvh]` / `h-[100dvh]`, not `100vh` (Safari).
+
+## Product imagery
+
+- **White-background shots:** `mix-blend-mode: multiply` on the image so white merges with the surface.
+
+## Tailwind shortcuts
+
+```tsx
+// Nested radius (Tailwind arbitrary)
+className="rounded-2xl p-2 [&>*]:rounded-xl" // 16px − 8px = 8px on child
+
+// Carousel fade
+style={{
+  WebkitMaskImage:
+    "linear-gradient(90deg, transparent, black 15%, black 85%, transparent)",
+  maskImage:
+    "linear-gradient(90deg, transparent, black 15%, black 85%, transparent)",
+}}
+```

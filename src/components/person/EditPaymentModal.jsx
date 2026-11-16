@@ -99,7 +99,7 @@ export function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }
         if (!v) onClose();
       }}
       beforeClose={handleBeforeClose}
-      height="h-[92vh]"
+      height="h-[92dvh]"
     >
       <FormDrawerHeader
         title="Edit Payment"

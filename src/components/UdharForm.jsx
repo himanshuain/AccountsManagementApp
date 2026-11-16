@@ -283,7 +283,7 @@ export function UdharForm({
           if (!v) resetAndClose();
         }}
         beforeClose={handleBeforeClose}
-        height="h-[92vh]"
+        height="h-[92dvh]"
       >
         <FormDrawerHeader
           title={formTitle}

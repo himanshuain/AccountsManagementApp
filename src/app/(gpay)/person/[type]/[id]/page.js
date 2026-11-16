@@ -53,6 +53,7 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { recordMatchesBillSearch } from "@/lib/record-search";
 import { mergeTxnImageOcrMaps } from "@/lib/image-ocr-map";
 import { PersonAvatar } from "@/components/gpay/PersonAvatar";
+import { PersonProfileSkeleton } from "@/components/gpay/GPaySkeletons";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
 import { SupplierForm } from "@/components/SupplierForm";
@@ -144,13 +145,13 @@ function ReceiptThumb({ src, alt, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="relative h-12 w-12 cursor-pointer overflow-hidden rounded-lg bg-muted transition-opacity hover:opacity-80"
+      className="relative h-12 w-12 cursor-pointer overflow-hidden rounded-[10px] border border-black/[0.12] bg-muted transition-opacity hover:opacity-80 dark:border-white/[0.12]"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}
-        className="h-full w-full object-cover"
+        className="h-full w-full object-cover mix-blend-multiply dark:mix-blend-normal"
         onError={() => setFailed(true)}
       />
     </div>
@@ -961,14 +962,17 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                 e.stopPropagation();
                 onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
               }}
-              className="relative block h-full w-full overflow-hidden rounded-xl border border-border/50 bg-muted/40 text-left outline-none transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative block h-full w-full overflow-hidden rounded-[10px] border border-black/[0.12] bg-muted/50 text-left outline-none transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring dark:border-white/[0.12]"
             >
               <LoadingImg
                 src={thumbSrc}
                 fallbackSrc={thumbFallback !== thumbSrc ? thumbFallback : undefined}
                 alt={photoLabel}
                 loading="lazy"
-                className="h-full w-full object-cover"
+                className={cn(
+                  "h-full w-full object-cover",
+                  isSupplier && "mix-blend-multiply dark:mix-blend-normal"
+                )}
                 onUnavailable={() => setThumbUnavailable(true)}
               />
               {images.length > 1 && (
@@ -1869,75 +1873,12 @@ export default function PersonChatPage() {
 
   // Show loading skeleton while data is being fetched or during deletion
   if (isLoading || isDeleting) {
-    return (
-      <div className="flex min-h-screen flex-col">
-        {/* Header Skeleton */}
-        <header className="header-glass sticky top-0 z-30 border-b border-border">
-          <div className="flex items-center justify-between px-4 py-4">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 animate-pulse rounded-full bg-muted" />
-                <div>
-                  <div className="mb-1 h-4 w-28 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
-              <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
-            </div>
-          </div>
-
-          {/* Progress Bar Skeleton */}
-          <div className="px-4 pb-3">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="h-3 w-24 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-1/2 animate-pulse bg-muted/50" />
-            </div>
-          </div>
-        </header>
-
-        {/* Chat Messages Skeleton */}
-        <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
-          {/* Date Separator */}
-          <div className="flex items-center justify-center">
-            <div className="h-6 w-24 animate-pulse rounded-full bg-muted" />
-          </div>
-
-          {/* Message Bubbles */}
-          <div className="space-y-3">
-            <div className="flex justify-end">
-              <div className="h-24 w-48 animate-pulse rounded-2xl rounded-br-sm bg-muted" />
-            </div>
-            <div className="flex justify-end">
-              <div className="h-20 w-56 animate-pulse rounded-2xl rounded-br-sm bg-muted" />
-            </div>
-            <div className="flex justify-end">
-              <div className="h-16 w-40 animate-pulse rounded-2xl rounded-br-sm bg-muted" />
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Action Bar Skeleton */}
-        <div className="header-glass sticky bottom-0 border-t border-border p-3 pb-safe">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-16 animate-pulse rounded-xl bg-muted" />
-            <div className="h-10 w-24 animate-pulse rounded-xl bg-muted" />
-            <div className="ml-auto h-12 w-12 animate-pulse rounded-full bg-muted" />
-          </div>
-        </div>
-      </div>
-    );
+    return <PersonProfileSkeleton isSupplier={isSupplier} />;
   }
 
   if (personError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">
         <p className="text-muted-foreground">Failed to load person.</p>
         <p className="text-sm text-muted-foreground">{personError}</p>
         <div className="flex gap-2">
@@ -1961,7 +1902,7 @@ export default function PersonChatPage() {
   // Only show "not found" when resolution finished and entity truly missing
   if (notFound || !person) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Person not found</p>
         <button
           onClick={() => router.push("/")}
@@ -1978,7 +1919,7 @@ export default function PersonChatPage() {
       {/* Header */}
       <header
         ref={headerRef}
-        className="header-glass fixed top-0 left-0 right-0 z-30 border-b border-border"
+        className="header-glass fixed top-0 left-0 right-0 z-30 border-b border-black/[0.1] dark:border-white/[0.1]"
       >
         {/* Top row */}
         <div className="flex items-center justify-between px-4 py-3">

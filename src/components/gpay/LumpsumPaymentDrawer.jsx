@@ -186,7 +186,7 @@ export function LumpsumPaymentDrawer({
             if (!val) resetForm();
           }
         }}
-        height="max-h-[90vh]"
+        height="max-h-[90dvh]"
       >
           <FormDrawerHeader
             title="Pay Lumpsum"

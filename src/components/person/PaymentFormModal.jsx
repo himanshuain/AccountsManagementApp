@@ -71,7 +71,7 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
         if (!v) onClose();
       }}
       beforeClose={handleBeforeClose}
-      height="h-[92vh]"
+      height="h-[92dvh]"
     >
       <FormDrawerHeader
         title="Record Payment"

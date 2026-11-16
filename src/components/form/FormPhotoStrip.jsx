@@ -67,7 +67,7 @@ export function FormPhotoStrip({
 
   return (
     <>
-      <div className="flex gap-2.5 overflow-x-auto pb-0.5 pt-2.5 scrollbar-none">
+      <div className="carousel-edge-fade flex gap-2.5 overflow-x-auto pb-0.5 pt-2.5 scrollbar-none">
         {images.map((url, index) => (
           <div key={`${url}-${index}`} className="relative h-20 w-20 shrink-0">
             <button
@@ -77,7 +77,7 @@ export function FormPhotoStrip({
                 setViewerIndex(index);
                 setViewerOpen(true);
               }}
-              className="h-full w-full overflow-hidden rounded-2xl border border-border/60 bg-muted shadow-sm outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-full w-full overflow-hidden rounded-[14px] border border-black/[0.12] bg-muted shadow-sm outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring dark:border-white/[0.12]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={displayUrl(url)} alt="" className="h-full w-full object-cover" />

@@ -179,7 +179,7 @@ export function PeopleRow({
     return (
       <div className={cn("space-y-2", className)}>
         <h3 className="px-1 text-sm font-semibold text-muted-foreground">{title}</h3>
-        <div className="scrollbar-none flex gap-3 overflow-x-auto pb-2">
+        <div className="carousel-edge-fade scrollbar-none flex gap-3 overflow-x-auto pb-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
               <PersonAvatarSkeleton size="md" />
@@ -196,7 +196,7 @@ export function PeopleRow({
   return (
     <div className={cn("space-y-2", className)}>
       <h3 className="px-1 text-sm font-semibold text-muted-foreground">{title}</h3>
-      <div className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
+      <div className="carousel-edge-fade scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
         {people.map(person => (
           <PersonAvatarWithName
             key={person.id}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Settings,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
 import { getLocalDate } from "@/lib/date-utils";
 import { getSupplierPurchaseStats } from "@/lib/transaction-amounts";
+import { PersonListCardSkeleton } from "@/components/gpay/GPaySkeletons";
 
 // Filter Chip Component
 function FilterChip({ active, onClick, children, icon: Icon }) {
@@ -80,9 +82,44 @@ const SUPPLIER_PERIOD_OPTIONS = [
   { id: "1month", label: "1 month" },
 ];
 
+function personMatchesSearch(person, rawQuery) {
+  const trimmed = rawQuery.trim();
+  if (!trimmed) return true;
+
+  const query = trimmed.toLowerCase();
+  const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
+  const phoneDigits = (person.phone || "").replace(/\D/g, "");
+  const queryDigits = query.replace(/\D/g, "");
+
+  if (person.name?.toLowerCase().includes(query)) return true;
+  if (person.phone?.includes(trimmed)) return true;
+  if (queryDigits && phoneDigits.includes(queryDigits)) return true;
+  if (!isNaN(numQuery) && person.pendingAmount > 0) {
+    return String(person.pendingAmount).includes(query.replace(/[₹,\s]/g, ""));
+  }
+  return false;
+}
+
+function AppliedFilterPill({ label, onRemove }) {
+  return (
+    <span className="inline-flex max-w-[min(100%,14rem)] items-center gap-1 rounded-full border border-primary/25 bg-primary/10 py-1 pl-2.5 pr-1 text-xs font-medium text-primary">
+      <span className="truncate">{label}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="shrink-0 rounded-full p-0.5 transition-colors hover:bg-primary/20 active:scale-95"
+        aria-label={`Remove filter ${label}`}
+      >
+        <X className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+    </span>
+  );
+}
+
 export default function GPayHomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchPickerOpen, setSearchPickerOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("amount");
   const [filterBy, setFilterBy] = useState("all");
@@ -186,9 +223,12 @@ export default function GPayHomePage() {
     return people;
   }, [suppliers, customers, transactions, udharList]);
 
-  // Separate suppliers and customers lists (no search filtering - dropdown handles that)
   const suppliersList = useMemo(() => {
     let result = allPeople.filter(p => p.type === "supplier");
+
+    if (searchQuery.trim()) {
+      result = result.filter(p => personMatchesSearch(p, searchQuery));
+    }
 
     // Apply sorting only
     switch (sortBy) {
@@ -208,11 +248,15 @@ export default function GPayHomePage() {
     }
 
     return result;
-  }, [allPeople, sortBy]);
+  }, [allPeople, sortBy, searchQuery]);
 
   const customersList = useMemo(() => {
     let result = allPeople.filter(p => p.type === "customer");
 
+    if (searchQuery.trim()) {
+      result = result.filter(p => personMatchesSearch(p, searchQuery));
+    }
+
     // Apply sorting only
     switch (sortBy) {
       case "amount":
@@ -231,86 +275,91 @@ export default function GPayHomePage() {
     }
 
     return result;
-  }, [allPeople, sortBy]);
+  }, [allPeople, sortBy, searchQuery]);
 
-  // Apply filters and sorting (kept for backward compatibility)
-  const filteredAndSortedPeople = useMemo(() => {
-    let result = [...allPeople];
+  const activeFilterPills = useMemo(() => {
+    const pills = [];
+    const q = searchQuery.trim();
 
-    // Apply type filter
+    if (q) {
+      const display = q.length > 24 ? `${q.slice(0, 24)}…` : q;
+      pills.push({ id: "search", label: `Search: ${display}` });
+    }
+
     if (filterBy !== "all") {
-      result = result.filter(p => p.type === filterBy);
+      const opt = FILTER_OPTIONS.find(o => o.id === filterBy);
+      pills.push({ id: "type", label: opt?.label ?? filterBy });
     }
 
-    // Apply search filter (name, phone, and amount)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
-
-      result = result.filter(p => {
-        const phoneDigits = (p.phone || "").replace(/\D/g, "");
-        const queryDigits = query.replace(/\D/g, "");
-        // Match by name or phone
-        if (
-          p.name?.toLowerCase().includes(query) ||
-          p.phone?.includes(searchQuery.trim()) ||
-          (queryDigits && phoneDigits.includes(queryDigits))
-        ) {
-          return true;
-        }
-        // Match by amount if search is a number
-        if (!isNaN(numQuery) && p.pendingAmount > 0) {
-          const amountStr = String(p.pendingAmount);
-          return amountStr.includes(query.replace(/[₹,\s]/g, ""));
-        }
-        return false;
-      });
+    if (sortBy !== "amount") {
+      const opt = SORT_OPTIONS.find(o => o.id === sortBy);
+      pills.push({ id: "sort", label: `Sort: ${opt?.label ?? sortBy}` });
     }
 
-    // Apply sorting
-    switch (sortBy) {
-      case "amount":
-        result.sort((a, b) => b.pendingAmount - a.pendingAmount);
-        break;
-      case "name":
-        result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-        break;
-      case "recent":
-        result.sort(
-          (a, b) =>
-            new Date(b.lastActivity || b.createdAt || 0) -
-            new Date(a.lastActivity || a.createdAt || 0)
-        );
-        break;
+    if (supplierPeriod !== "all") {
+      const opt = SUPPLIER_PERIOD_OPTIONS.find(o => o.id === supplierPeriod);
+      pills.push({ id: "period", label: `Spending: ${opt?.label ?? supplierPeriod}` });
     }
 
-    return result;
-  }, [allPeople, filterBy, searchQuery, sortBy]);
+    return pills;
+  }, [searchQuery, filterBy, sortBy, supplierPeriod]);
 
-  // Check if any filter is active
-  const hasActiveFilters = filterBy !== "all" || sortBy !== "amount";
+  const hasActiveFilters = activeFilterPills.length > 0;
 
-  // Search suggestions for dropdown
+  const clearActiveFilter = id => {
+    switch (id) {
+      case "search":
+        setSearchQuery("");
+        setSearchPickerOpen(false);
+        break;
+      case "type":
+        setFilterBy("all");
+        break;
+      case "sort":
+        setSortBy("amount");
+        break;
+      case "period":
+        setSupplierPeriod("all");
+        break;
+      default:
+        break;
+    }
+  };
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSearchPickerOpen(false);
+  }, []);
+
   const searchSuggestions = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return [];
-
-    const queryDigits = query.replace(/\D/g, "");
-    const numQuery = parseFloat(query.replace(/[₹,\s]/g, ""));
-
-    return allPeople
-      .filter(p => {
-        const phoneDigits = (p.phone || "").replace(/\D/g, "");
-        if (p.name?.toLowerCase().includes(query)) return true;
-        if (p.phone?.includes(searchQuery.trim())) return true;
-        if (queryDigits && phoneDigits.includes(queryDigits)) return true;
-        if (!isNaN(numQuery) && p.pendingAmount > 0) {
-          return String(p.pendingAmount).includes(query.replace(/[₹,\s]/g, ""));
-        }
-        return false;
-      })
-      .slice(0, 12);
+    const q = searchQuery.trim();
+    if (!q) return [];
+    return allPeople.filter(p => personMatchesSearch(p, searchQuery)).slice(0, 12);
   }, [allPeople, searchQuery]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchPickerOpen(false);
+      return;
+    }
+    if (searchSuggestions.length > 0) {
+      setSearchPickerOpen(true);
+    } else {
+      setSearchPickerOpen(false);
+    }
+  }, [searchQuery, searchSuggestions.length]);
+
+  const showSearchMenu = searchPickerOpen && searchSuggestions.length > 0;
+
+  const closeSearchPicker = useCallback(() => setSearchPickerOpen(false), []);
+
+  const openPersonFromSearch = useCallback(
+    person => {
+      setSearchQuery("");
+      router.push(`/person/${person.type}/${person.id}`);
+    },
+    [router]
+  );
 
   // Statistics - Use API data for accurate totals, fall back to loaded data
   const stats = useMemo(() => {
@@ -395,31 +444,104 @@ export default function GPayHomePage() {
   const isStatsLoading = statsLoading && !statsData;
 
   return (
-    <div className="min-h-screen lg:mx-auto lg:max-w-6xl xl:max-w-7xl">
+    <div className="min-h-dvh lg:mx-auto lg:max-w-6xl xl:max-w-7xl">
+      <AnimatePresence>
+        {showSearchMenu && (
+          <motion.button
+            type="button"
+            key="search-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[25] bg-black/30"
+            aria-label="Close suggestions"
+            onClick={closeSearchPicker}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Search Bar */}
-      <div className="header-glass sticky top-0 z-20 border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search name or amount..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="input-hero pl-12"
-            />
-            {/* Search Dropdown */}
-            {searchSuggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-lg backdrop-blur-xl">
+      <div className="header-glass sticky top-0 z-30 overflow-visible border-b border-border px-4 py-3">
+        <div className="relative">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <input
+                type="text"
+                role="searchbox"
+                enterKeyHint="search"
+                placeholder="Search name or amount..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (searchSuggestions.length > 0) setSearchPickerOpen(true);
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Escape") {
+                    if (searchPickerOpen) closeSearchPicker();
+                    else clearSearch();
+                  }
+                }}
+                className={cn("input-hero pl-11", searchQuery ? "pr-11" : "pr-4")}
+                autoComplete="off"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" strokeWidth={2} />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn(
+                "relative shrink-0 rounded-xl p-3 transition-colors",
+                showFilters ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
+              )}
+            >
+              <SlidersHorizontal className="h-5 w-5" />
+              {hasActiveFilters && !showFilters && (
+                <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
+              )}
+            </button>
+            <Link
+              href="/settings"
+              className="flex-shrink-0 rounded-xl bg-muted p-3 transition-colors hover:bg-accent"
+              aria-label="Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </div>
+
+          <AnimatePresence>
+            {showSearchMenu && (
+              <motion.div
+                key="search-suggestions"
+                role="listbox"
+                aria-label="Search suggestions"
+                initial={{ opacity: 0, y: -6, scale: 0.99 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.995 }}
+                transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+                className="search-suggestions-panel absolute left-0 right-0 top-full z-50 mt-2 w-full origin-top divide-y divide-black/[0.06] dark:divide-white/[0.06]"
+              >
                 {searchSuggestions.map(person => (
                   <button
                     key={`suggest-${person.type}-${person.id}`}
-                    onClick={() => {
-                      setSearchQuery("");
-                      router.push(`/person/${person.type}/${person.id}`);
-                    }}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/40"
+                    type="button"
+                    onClick={() => openPersonFromSearch(person)}
+                    className="search-suggestions-panel__item flex w-full items-center gap-3 px-3 py-2.5 text-left"
                   >
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
                       {person.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -439,33 +561,14 @@ export default function GPayHomePage() {
                         <p className="truncate text-[10px] text-muted-foreground">{person.phone}</p>
                       )}
                     </div>
-                    <span className="badge-role flex-shrink-0">
+                    <span className="badge-role shrink-0">
                       {person.type === "supplier" ? "Supplier" : "Customer"}
                     </span>
                   </button>
                 ))}
-              </div>
+              </motion.div>
             )}
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "relative flex-shrink-0 rounded-xl p-3 transition-colors",
-              showFilters ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"
-            )}
-          >
-            <SlidersHorizontal className="h-5 w-5" />
-            {hasActiveFilters && !showFilters && (
-              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
-            )}
-          </button>
-          <Link
-            href="/settings"
-            className="flex-shrink-0 rounded-xl bg-muted p-3 transition-colors hover:bg-accent"
-            aria-label="Settings"
-          >
-            <Settings className="h-5 w-5" />
-          </Link>
+          </AnimatePresence>
         </div>
 
         {/* Filter & Sort Options */}
@@ -504,6 +607,18 @@ export default function GPayHomePage() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeFilterPills.length > 0 && !showSearchMenu && (
+          <div className="mt-2 flex flex-wrap gap-1.5 pb-0.5 pt-1">
+            {activeFilterPills.map(pill => (
+              <AppliedFilterPill
+                key={pill.id}
+                label={pill.label}
+                onRemove={() => clearActiveFilter(pill.id)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -618,7 +733,7 @@ export default function GPayHomePage() {
             <ArrowUpRight className="mb-1.5 h-4 w-4 text-muted-foreground" />
             <p className="text-[11px] font-medium text-muted-foreground">You Owe</p>
             {isStatsLoading ? (
-              <div className="skeleton-hero my-0.5 h-7 w-24 rounded" />
+              <div className="skeleton-hero my-0.5 h-7 w-24 rounded-md" />
             ) : (
               <p className="amount-negative font-mono text-lg font-bold tabular-nums">
                 ₹{stats.totalSupplierPending.toLocaleString("en-IN")}
@@ -647,6 +762,7 @@ export default function GPayHomePage() {
       </div>
 
       {/* Suppliers Section */}
+      {(filterBy === "all" || filterBy === "supplier") && (
       <section className="mt-4 px-4">
         <button
           onClick={() => setSuppliersExpanded(!suppliersExpanded)}
@@ -679,20 +795,7 @@ export default function GPayHomePage() {
               className="overflow-hidden"
             >
               {isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5"
-                    >
-                      <div className="skeleton-hero h-12 w-12 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="skeleton-hero h-3.5 w-28 rounded" />
-                      </div>
-                      <div className="skeleton-hero h-4 w-16 rounded" />
-                    </div>
-                  ))}
-                </div>
+                <PersonListCardSkeleton rows={4} />
               ) : suppliersList.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border py-8 text-center">
                   <Store className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
@@ -722,8 +825,10 @@ export default function GPayHomePage() {
           )}
         </AnimatePresence>
       </section>
+      )}
 
       {/* Customers Section */}
+      {(filterBy === "all" || filterBy === "customer") && (
       <section className="mt-5 px-4 pb-2">
         <button
           onClick={() => setCustomersExpanded(!customersExpanded)}
@@ -756,20 +861,7 @@ export default function GPayHomePage() {
               className="overflow-hidden"
             >
               {isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-xl bg-muted/30 px-3 py-2.5"
-                    >
-                      <div className="skeleton-hero h-12 w-12 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="skeleton-hero h-3.5 w-28 rounded" />
-                      </div>
-                      <div className="skeleton-hero h-4 w-16 rounded" />
-                    </div>
-                  ))}
-                </div>
+                <PersonListCardSkeleton rows={4} />
               ) : customersList.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border py-8 text-center">
                   <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
@@ -799,6 +891,7 @@ export default function GPayHomePage() {
           )}
         </AnimatePresence>
       </section>
+      )}
 
       {/* Quick Action FAB */}
       <motion.button

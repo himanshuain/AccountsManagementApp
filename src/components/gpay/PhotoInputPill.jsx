@@ -106,14 +106,14 @@ export function PhotoInputPill({
         )}
       >
         {attachments.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-1 pb-1 pt-2 scrollbar-none">
+          <div className="carousel-edge-fade flex gap-2 overflow-x-auto px-1 pb-1 pt-2 scrollbar-none">
             {attachments.map((item, index) => (
               <div key={item.id} className="relative h-24 w-24 shrink-0">
                 <button
                   type="button"
                   aria-label={`View photo ${index + 1}`}
                   onClick={() => openViewer(index)}
-                  className="h-full w-full overflow-hidden rounded-xl bg-muted shadow-sm ring-1 ring-border/40 outline-none transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-full w-full overflow-hidden rounded-2xl bg-muted shadow-sm ring-1 ring-black/[0.1] outline-none transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-ring dark:ring-white/[0.1]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.url} alt="" className="h-full w-full object-cover" />
