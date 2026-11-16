@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams, usePathname } from "next/navigation";
 import {
   ArrowLeft,
   Phone,
@@ -63,7 +63,6 @@ import {
   PhotoGalleryViewer as ImageGalleryViewer,
   PhotoViewer as ImageViewer,
 } from "@/components/PhotoViewer";
-import { ProgressBar } from "@/components/gpay/PaymentProgress";
 import { LumpsumPaymentDrawer } from "@/components/gpay/LumpsumPaymentDrawer";
 import { ChatInputBar } from "@/components/gpay/ChatInputBar";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
@@ -76,7 +75,12 @@ import {
   countPaymentLedgerEntries,
   isLumpsumPayment,
   getPaymentDisplayNote,
+  computePaymentDuesForBill,
+  lookupPaymentDue,
+  isLatestPaymentOnBill,
 } from "@/lib/payment-ledger";
+import { findStaleLumpsumPatches } from "@/lib/lumpsum-reconcile";
+import { computePaymentStatus } from "@/lib/computePaymentStatus";
 import { DateWithRelative } from "@/components/gpay/DateWithRelative";
 import { Separator } from "@/components/ui/separator";
 import { PaymentFormModal, EditPaymentModal, BillsGalleryModal } from "@/components/person";
@@ -297,43 +301,40 @@ function TransactionDetailModal({
 
       {/* Amount card */}
       <div className="px-4">
-        <div className="surface-panel mb-4">
-          <div className="px-4 pb-2 pt-4 text-center">
-            {isPaid ? (
-              <>
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  Status
-                </p>
-                <p className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                  ✓ Paid
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  {paidAmount > 0 ? "Pending" : "Total Pending"}
-                </p>
-                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
-                  ₹{remainingAmount.toLocaleString("en-IN")}
-                </p>
-              </>
+        <div
+          className={cn(
+            "surface-panel relative mb-4",
+            isPaid && "border-emerald-500/30 bg-emerald-500/15 dark:bg-emerald-500/20"
+          )}
+        >
+          {isPaid && <PaidBillWatermark />}
+          <div className="relative z-[1]">
+            <div className="px-4 pb-2 pt-4 text-center">
+              {isPaid ? (
+                <>
+                  <p className="text-[11px] font-medium text-muted-foreground">Bill amount</p>
+                  <p className="mt-0.5 font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+                    ₹{totalAmount.toLocaleString("en-IN")}
+                  </p>
+                  <span className="badge-paid mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                    Paid
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+                    ₹{remainingAmount.toLocaleString("en-IN")}
+                  </p>
+                </>
+              )}
+            </div>
+            {(isPaid || (paidAmount > 0 && !isPaid)) && (
+              <div className="flex justify-center border-t border-border/30 px-4 py-2.5 pb-3">
+                <BillPaidTotalSlash paid={paidAmount} total={totalAmount} size="xs" />
+              </div>
             )}
           </div>
-          {paidAmount > 0 && (
-            <div className="flex items-center justify-between border-t border-border/30 px-4 py-2">
-              <span className="text-xs text-muted-foreground">
-                Total ₹{totalAmount.toLocaleString("en-IN")}
-              </span>
-              <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                Paid ₹{paidAmount.toLocaleString("en-IN")}
-              </span>
-            </div>
-          )}
-          {paidAmount > 0 && !isPaid && (
-            <div className="px-4 pb-3">
-              <ProgressBar total={totalAmount} paid={paidAmount} size="md" />
-            </div>
-          )}
         </div>
       </div>
 
@@ -414,6 +415,22 @@ function TransactionDetailModal({
                   .map((payment, idx) => {
                     const receipts = getPaymentReceipts(payment);
                     const hasReceipts = receipts.length > 0;
+                    const paidN = Number(payment.amount) || 0;
+                    const duesMap = computePaymentDuesForBill(totalAmount, payments);
+                    const paymentOrigIdx = payments.findIndex(
+                      (p, pi) =>
+                        p === payment ||
+                        (payment.id != null && p.id != null && String(p.id) === String(payment.id)) ||
+                        pi === idx
+                    );
+                    const { dueBefore, dueAfter } = lookupPaymentDue(
+                      duesMap,
+                      payment,
+                      paymentOrigIdx >= 0 ? paymentOrigIdx : idx
+                    );
+                    const leftAfter = Math.max(0, dueAfter);
+                    const dueWhenPaid = Math.max(0, dueBefore);
+                    const isLatest = isLatestPaymentOnBill(payment, payments);
 
                     return (
                       <div
@@ -437,31 +454,56 @@ function TransactionDetailModal({
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
                               {payment.isReturn && (
                                 <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
                                   GR
                                 </span>
                               )}
-                              <p
-                                className={cn(
-                                  "font-mono font-semibold",
-                                  payment.isReturn
-                                    ? "text-blue-600 dark:text-blue-400"
-                                    : "text-emerald-600 dark:text-emerald-400"
-                                )}
-                              >
-                                ₹{(Number(payment.amount) || 0).toLocaleString("en-IN")}
+                              {isLumpsumPayment(payment) && (
+                                <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                                  Lumpsum
+                                </span>
+                              )}
+                              {payment.isReturn ? (
+                                <p className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+                                  ₹{paidN.toLocaleString("en-IN")}
+                                </p>
+                              ) : (
+                                <LedgerPaidBillAmounts
+                                  paid={paidN}
+                                  dueBefore={dueWhenPaid}
+                                  dueAfter={leftAfter}
+                                  denominator="dueBefore"
+                                  size="sm"
+                                  align="left"
+                                />
+                              )}
+                            </div>
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              {isLatest && <LatestPaymentBadge className="shrink-0 py-px text-[9px]" />}
+                              <p className="text-xs text-muted-foreground">
+                                <DateWithRelative date={payment.date} dateFormat="dd MMM yyyy" />
                               </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              <DateWithRelative date={payment.date} dateFormat="dd MMM yyyy" />
-                            </p>
                           </div>
-                          {payment.notes && (
+                          {!payment.isReturn && leftAfter > 0 && (
+                            <p className="mt-0.5 text-[10px] font-medium tabular-nums text-amber-800 dark:text-amber-300">
+                              Remaining ₹{leftAfter.toLocaleString("en-IN")}
+                            </p>
+                          )}
+                          {isLumpsumPayment(payment) &&
+                            payment.lumpsumTotal != null &&
+                            Number(payment.lumpsumTotal) !== Number(payment.amount) && (
+                              <p className="mt-1 text-[10px] text-muted-foreground">
+                                Part of ₹{Number(payment.lumpsumTotal).toLocaleString("en-IN")}{" "}
+                                lumpsum
+                              </p>
+                            )}
+                          {getPaymentDisplayNote(payment.notes) && (
                             <p className="mt-0.5 break-words text-xs text-muted-foreground">
-                              {payment.notes}
+                              {getPaymentDisplayNote(payment.notes)}
                             </p>
                           )}
 
@@ -550,6 +592,132 @@ function sortTransactionsChronologically(list, order = "oldest") {
   return order === "newest" ? sorted.reverse() : sorted;
 }
 
+/** Tiled + stamp watermark for fully paid bills (list card, drawer). */
+function PaidBillWatermark({ stampClassName, compact = false }) {
+  const stampSize = compact ? "h-11 w-11" : "h-[4.75rem] w-[4.75rem]";
+  const stampText = compact ? "text-[6px] tracking-[0.12em]" : "text-[7px] tracking-[0.14em]";
+  const stampInset = compact ? "inset-[4px]" : "inset-[6px]";
+
+  return (
+    <>
+      <div
+        className="paid-bill-cleared-pattern pointer-events-none absolute inset-0 rounded-[inherit]"
+        aria-hidden
+      />
+      <div
+        className={cn(
+          "pointer-events-none absolute z-0",
+          compact
+            ? "right-2 top-1/2 -translate-y-1/2"
+            : "bottom-2 right-2 sm:bottom-auto sm:right-3 sm:top-1/2 sm:-translate-y-1/2",
+          stampClassName
+        )}
+        aria-hidden
+      >
+        <div className={cn("relative flex items-center justify-center rotate-[-12deg]", stampSize)}>
+          <div className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-600/35 dark:border-emerald-400/30" />
+          <div
+            className={cn(
+              "absolute rounded-full border border-emerald-600/20 dark:border-emerald-400/18",
+              stampInset
+            )}
+          />
+          <span
+            className={cn(
+              "max-w-[2.75rem] text-center font-bold uppercase leading-[1.2] text-emerald-700/45 dark:text-emerald-300/40",
+              stampText
+            )}
+          >
+            Bill
+            <br />
+            Cleared
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** Payment slice / bill pending (denominator = due after default, due before for lumpsum rows). */
+function LedgerPaidBillAmounts({
+  paid,
+  dueAfter,
+  dueBefore,
+  denominator = "dueAfter",
+  align = "right",
+  size = "base",
+}) {
+  const paidN = Number(paid) || 0;
+  const afterN = Math.max(0, Number(dueAfter) || 0);
+  const beforeN = Math.max(0, Number(dueBefore) || 0);
+  const slashN =
+    denominator === "dueBefore"
+      ? beforeN > 0
+        ? beforeN
+        : afterN
+      : afterN > 0
+        ? afterN
+        : 0;
+  const sizeClass = size === "sm" ? "text-sm" : "text-base";
+
+  return (
+    <p
+      className={cn(
+        "font-mono font-bold tabular-nums leading-snug",
+        sizeClass,
+        align === "right" ? "text-right" : ""
+      )}
+    >
+      <span className="text-emerald-600 dark:text-emerald-400">
+        ₹{paidN.toLocaleString("en-IN")}
+      </span>
+      {slashN > 0 && (
+        <>
+          <span className="mx-1 font-normal text-muted-foreground/40">/</span>
+          <span className="font-semibold text-foreground">₹{slashN.toLocaleString("en-IN")}</span>
+        </>
+      )}
+    </p>
+  );
+}
+
+function LatestPaymentBadge({ className }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300",
+        className
+      )}
+    >
+      Latest payment
+    </span>
+  );
+}
+
+/** Paid so far / bill total — green paid, bold total. */
+function BillPaidTotalSlash({ paid, total, className, size = "sm", isReturn = false }) {
+  const paidN = Number(paid) || 0;
+  const totalN = Number(total) || 0;
+  const sizeClass = size === "xs" ? "text-xs" : "text-sm";
+  const labelClass = "text-[11px] font-medium text-muted-foreground";
+
+  return (
+    <p className={cn("font-mono tabular-nums leading-snug", sizeClass, className)}>
+      <span
+        className={cn(
+          "font-semibold",
+          isReturn ? "text-blue-600 dark:text-blue-400" : "text-emerald-600 dark:text-emerald-400"
+        )}
+      >
+        ₹{paidN.toLocaleString("en-IN")}
+      </span>
+      <span className={cn("ml-1 font-sans", labelClass)}>paid</span>
+      <span className="mx-1.5 font-normal text-muted-foreground/40">/</span>
+      <span className="font-bold text-foreground">₹{totalN.toLocaleString("en-IN")}</span>
+    </p>
+  );
+}
+
 function getBillLabel(txn) {
   const text = txn.description || txn.itemName || txn.itemDescription || txn.notes;
   if (text) return text;
@@ -567,15 +735,23 @@ function buildSupplierPaymentLedger(transactions) {
     const payments = txn.payments || [];
     const billLabel = getBillLabel(txn);
     const billAmount = Number(txn.amount) || 0;
+    const paidOnBill =
+      Number(txn.paidAmount) || payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const billRemaining = Math.max(0, billAmount - paidOnBill);
+    const duesMap = computePaymentDuesForBill(billAmount, payments);
     for (let i = 0; i < payments.length; i++) {
       const payment = payments[i];
       if (!payment?.date && payment?.amount == null) continue;
+      const { dueBefore, dueAfter } = lookupPaymentDue(duesMap, payment, i);
       entries.push({
         key: `${txn.id}-${payment.id || i}`,
         payment,
         txnId: txn.id,
         billLabel,
         billAmount,
+        dueBefore,
+        dueAfter,
+        billRemaining,
         billDate: txn.date,
       });
     }
@@ -599,14 +775,35 @@ function sortPaymentLedgerChronologically(entries, order = "oldest") {
 function LumpsumChildRow({ entry, onGoToBill }) {
   const amount = Number(entry.payment.amount) || 0;
   const paymentId = entry.payment?.id;
+  const stillOnBill = Math.max(0, Number(entry.billRemaining) || 0);
+  const dueAfter = Math.max(0, Number(entry.dueAfter) || 0);
+  const billCleared = stillOnBill === 0 && dueAfter === 0 && amount > 0;
 
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium text-foreground">{entry.billLabel}</p>
-        <p className="font-mono text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-          ₹{amount.toLocaleString("en-IN")}
-        </p>
+    <div className="flex items-center gap-2 rounded-xl bg-muted/40 p-1">
+      <div
+        className={cn(
+          "relative min-w-0 flex-1 overflow-hidden rounded-[10px] px-2.5 py-2",
+          billCleared && "bg-emerald-500/12 dark:bg-emerald-500/15"
+        )}
+      >
+        {billCleared && <PaidBillWatermark compact />}
+        <div className="relative z-[1]">
+          <p className="truncate text-xs font-medium text-foreground">{entry.billLabel}</p>
+          <LedgerPaidBillAmounts
+            paid={amount}
+            dueAfter={entry.dueAfter}
+            dueBefore={entry.dueBefore}
+            denominator="dueBefore"
+            align="left"
+            size="sm"
+          />
+          {stillOnBill > 0 && (
+            <p className="mt-0.5 text-[11px] font-medium tabular-nums text-amber-800 dark:text-amber-300">
+              Remaining ₹{stillOnBill.toLocaleString("en-IN")}
+            </p>
+          )}
+        </div>
       </div>
       <button
         type="button"
@@ -621,23 +818,35 @@ function LumpsumChildRow({ entry, onGoToBill }) {
 }
 
 function PaymentLedgerEntryCard({ entry, onGoToBill }) {
-  const { payment, txnId } = entry;
+  const { payment, txnId, billLabel } = entry;
   const amount = Number(payment.amount) || 0;
+  const dueBefore = Math.max(0, Number(entry.dueBefore) || 0);
+  const dueAfter = Math.max(0, Number(entry.dueAfter) || 0);
+  const lumpsum = isLumpsumPayment(payment);
   const displayNote = getPaymentDisplayNote(payment.notes);
-  const hasMeta = payment.isReturn || displayNote;
+  const hasMeta = payment.isReturn || displayNote || lumpsum;
 
   return (
-    <div className="flex w-full items-start gap-3 rounded-2xl border border-border/50 bg-card p-3.5 shadow-sm">
-      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-        <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+    <div className="flex w-full items-start gap-3 rounded-2xl border border-black/[0.1] bg-card p-3.5 shadow-sm dark:border-white/[0.1] dark:shadow-none dark:ring-1 dark:ring-white/[0.06]">
+      <div
+        className={cn(
+          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+          lumpsum ? "bg-rose-500/12" : "bg-emerald-500/15"
+        )}
+      >
+        {lumpsum ? (
+          <Wallet className="h-5 w-5 text-rose-600 dark:text-rose-400" strokeWidth={1.75} />
+        ) : (
+          <CreditCard
+            className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
+            strokeWidth={1.75}
+          />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Paid on
-            </p>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-semibold leading-snug text-foreground">
               <DateWithRelative
                 date={payment.date}
                 dateFormat="dd MMM yyyy"
@@ -645,21 +854,40 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
                 timeFrom={payment.date}
               />
             </p>
-          </div>
-          <p
-            className={cn(
-              "shrink-0 font-mono text-base font-bold tabular-nums leading-tight",
-              payment.isReturn
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-emerald-600 dark:text-emerald-400"
+            {billLabel && (
+              <p className="mt-1 truncate text-xs font-medium text-foreground/90">{billLabel}</p>
             )}
-          >
-            ₹{amount.toLocaleString("en-IN")}
-          </p>
+          </div>
+          <div className="shrink-0 text-right">
+            {payment.isReturn ? (
+              <p className="font-mono text-base font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                ₹{amount.toLocaleString("en-IN")}
+              </p>
+            ) : (
+              <LedgerPaidBillAmounts
+                paid={amount}
+                dueAfter={dueAfter}
+                dueBefore={dueBefore}
+                denominator="dueBefore"
+                align="right"
+                size="sm"
+              />
+            )}
+            {dueAfter > 0 && !payment.isReturn && (
+              <p className="mt-0.5 text-[10px] font-medium tabular-nums text-amber-800 dark:text-amber-300">
+                Remaining ₹{dueAfter.toLocaleString("en-IN")}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className={cn("flex items-center justify-between gap-2", hasMeta ? "mt-2.5" : "mt-2")}>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {lumpsum && (
+              <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                Lumpsum
+              </span>
+            )}
             {payment.isReturn && (
               <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
                 Goods return
@@ -675,7 +903,7 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
             className="flex shrink-0 items-center gap-1 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 text-xs font-medium text-sky-600 transition-colors hover:bg-sky-500/15 active:scale-[0.98] dark:text-sky-400"
           >
             View bill
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -686,12 +914,23 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
 function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndoLumpsum }) {
   const [confirmUndo, setConfirmUndo] = useState(false);
   const [isUndoing, setIsUndoing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const billCount = group.children.length;
   const allocatedTotal = group.children.reduce(
     (sum, e) => sum + (Number(e.payment.amount) || 0),
     0
   );
-  const displayTotal = group.lumpsumTotal ?? allocatedTotal;
+  const metaLumpsumTotal = group.lumpsumTotal ?? allocatedTotal;
+  const lumpsumPaidShown = allocatedTotal;
+  const lumpsumUnapplied = Math.max(0, metaLumpsumTotal - allocatedTotal);
+  const billsPendingAtPayment = group.children.reduce(
+    (sum, e) => sum + Math.max(0, Number(e.dueBefore) || 0),
+    0
+  );
+  const billsStillPending = group.children.reduce((sum, e) => {
+    const pending = Number(e.billRemaining);
+    return sum + (Number.isFinite(pending) ? pending : 0);
+  }, 0);
   const groupPayment = group.children[0]?.payment;
   const isReturn = !!groupPayment?.isReturn;
   const displayNote = getPaymentDisplayNote(groupPayment?.notes);
@@ -713,128 +952,181 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndo
     }
   };
 
-  useEffect(() => {
-    if (!expanded) setConfirmUndo(false);
-  }, [expanded]);
+  const confirmUndoBlock = confirmUndo ? (
+    <div className="border-t border-destructive/20 bg-destructive/5 px-3.5 py-3">
+      <p className="text-sm font-medium text-destructive">
+        Undo lumpsum of ₹{lumpsumPaidShown.toLocaleString("en-IN")}?
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Removes payments from {billCount} bill{billCount !== 1 ? "s" : ""}. Pending amounts will
+        be restored.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setConfirmUndo(false)}
+          disabled={isUndoing}
+          className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-medium disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleUndoClick}
+          disabled={isUndoing}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {isUndoing ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Undoing...
+            </>
+          ) : (
+            <>
+              <Undo2 className="h-3.5 w-3.5" />
+              Confirm undo
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-start gap-3 p-3.5 text-left transition-colors hover:bg-accent/40 active:scale-[0.99]"
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl border shadow-sm transition-colors",
+        expanded
+          ? "border-rose-500/20 bg-muted/40 ring-1 ring-rose-500/10 dark:border-rose-400/15 dark:bg-muted/30 dark:ring-rose-400/10"
+          : "border-black/[0.1] bg-card dark:border-white/[0.1] dark:shadow-none dark:ring-1 dark:ring-white/[0.06]"
+      )}
+    >
+      <div
+        className={cn(
+          "flex w-full items-start gap-3 p-3.5 transition-colors",
+          expanded ? "bg-muted/25 dark:bg-muted/20" : "hover:bg-accent/40"
+        )}
       >
-        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
-          <Wallet className="h-5 w-5 text-primary" />
+        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/12">
+          <Wallet className="h-5 w-5 text-rose-600 dark:text-rose-400" strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Lumpsum paid on
-              </p>
-              <p className="text-sm font-medium text-foreground">
-                <DateWithRelative
-                  date={group.date}
-                  dateFormat="dd MMM yyyy"
-                  timeFormat="h:mm a"
-                  timeFrom={group.date}
-                />
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-0.5">
-              <p
-                className={cn(
-                  "font-mono text-base font-bold tabular-nums leading-tight",
-                  isReturn
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-emerald-600 dark:text-emerald-400"
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                  Lumpsum
+                </span>
+                <span className="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  {billCount} bill{billCount !== 1 ? "s" : ""}
+                </span>
+                {isReturn && (
+                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                    Goods return
+                  </span>
                 )}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      setMenuOpen(v => !v);
+                    }}
+                    className="-my-1 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Lumpsum options"
+                  >
+                    <MoreVertical className="h-4 w-4" strokeWidth={2} />
+                  </button>
+                  {menuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        aria-hidden
+                        onClick={() => setMenuOpen(false)}
+                      />
+                      <div className="absolute left-0 top-full z-50 mt-1 min-w-[12.75rem] overflow-hidden rounded-xl border border-border/60 bg-card py-1 shadow-lg dark:ring-1 dark:ring-white/[0.06]">
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setMenuOpen(false);
+                            setConfirmUndo(true);
+                          }}
+                          className="flex w-full items-center gap-2.5 whitespace-nowrap px-3 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+                        >
+                          <Undo2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                          Undo lumpsum payment
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onToggle}
+                className="w-full text-left active:scale-[0.995]"
               >
-                ₹{displayTotal.toLocaleString("en-IN")}
-              </p>
+                <p className="text-sm font-semibold leading-snug text-foreground">
+                  <DateWithRelative
+                    date={group.date}
+                    dateFormat="dd MMM yyyy"
+                    timeFormat="h:mm a"
+                    timeFrom={group.date}
+                  />
+                </p>
+                {displayNote && (
+                  <p className="mt-2 line-clamp-2 text-[10px] text-muted-foreground">{displayNote}</p>
+                )}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={onToggle}
+              className="flex shrink-0 flex-col items-end gap-0.5 active:scale-[0.995]"
+            >
+              <BillPaidTotalSlash
+                paid={lumpsumPaidShown}
+                total={billsPendingAtPayment > 0 ? billsPendingAtPayment : allocatedTotal}
+                className="text-right"
+                isReturn={isReturn}
+              />
+              {(billsStillPending > 0 || lumpsumUnapplied > 0) && (
+                <p className="text-[10px] font-medium tabular-nums text-amber-800 dark:text-amber-300">
+                  {billsStillPending > 0 && (
+                    <span>
+                      Remaining ₹{billsStillPending.toLocaleString("en-IN")} on these bills
+                    </span>
+                  )}
+                  {billsStillPending > 0 && lumpsumUnapplied > 0 && (
+                    <span className="text-muted-foreground/70"> · </span>
+                  )}
+                  {lumpsumUnapplied > 0 && (
+                    <span className="text-muted-foreground">
+                      ₹{lumpsumUnapplied.toLocaleString("en-IN")} unapplied
+                    </span>
+                  )}
+                </p>
+              )}
               <ChevronDown
                 className={cn(
                   "h-4 w-4 text-muted-foreground transition-transform",
                   expanded && "rotate-180"
                 )}
+                strokeWidth={2}
               />
-            </div>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-[10px] text-muted-foreground">
-              {billCount} bill{billCount !== 1 ? "s" : ""}
-              {allocatedTotal !== displayTotal && (
-                <span> · ₹{allocatedTotal.toLocaleString("en-IN")} allocated</span>
-              )}
-            </span>
-            {isReturn && (
-              <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-                Goods return
-              </span>
-            )}
-            {displayNote && (
-              <span className="line-clamp-1 text-[10px] text-muted-foreground">{displayNote}</span>
-            )}
+            </button>
           </div>
         </div>
-      </button>
+      </div>
+
+      {confirmUndoBlock}
 
       {expanded && (
-        <div className="space-y-2 border-t border-border/50 bg-muted/20 px-3 py-3">
+        <div className="space-y-2 border-t border-border/50 bg-muted/50 px-3 py-3 dark:bg-muted/40">
           {group.children.map(entry => (
             <LumpsumChildRow key={entry.key} entry={entry} onGoToBill={onGoToBill} />
           ))}
-
-          {confirmUndo ? (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3">
-              <p className="text-sm font-medium text-destructive">
-                Undo lumpsum of ₹{displayTotal.toLocaleString("en-IN")}?
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Removes payments from {billCount} bill{billCount !== 1 ? "s" : ""}. Pending amounts
-                will be restored.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmUndo(false)}
-                  disabled={isUndoing}
-                  className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-medium disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUndoClick}
-                  disabled={isUndoing}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-destructive px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-                >
-                  {isUndoing ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Undoing...
-                    </>
-                  ) : (
-                    <>
-                      <Undo2 className="h-3.5 w-3.5" />
-                      Confirm undo
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleUndoClick}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 active:scale-[0.99]"
-            >
-              <Undo2 className="h-4 w-4" />
-              Undo lumpsum payment
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -931,16 +1223,12 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   const statusLabel = isPaid
     ? "Paid"
     : hasPartialPayment
-      ? "Partial"
+      ? "Partial pending"
       : isSupplier
         ? "Pending"
         : "Outstanding";
 
-  const statusClass = isPaid
-    ? "badge-paid border-0"
-    : hasPartialPayment
-      ? "badge-partial"
-      : "badge-pending";
+  const statusClass = isPaid ? "badge-paid" : hasPartialPayment ? "badge-partial" : "badge-pending";
 
   const displayAmount = isPaid ? totalAmount : remainingAmount;
   const showThumbColumn = hasImages && !!thumbSrc && !thumbUnavailable;
@@ -1001,93 +1289,67 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
               "active:scale-[0.995]",
               isPaid
                 ? "border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/20 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/25"
-                : "border-border bg-card hover:bg-muted/30",
+                : "border-border bg-card hover:bg-muted/30"
             )}
           >
-            {isPaid && (
-              <>
-                <div
-                  className="paid-bill-cleared-pattern pointer-events-none absolute inset-0 rounded-[inherit]"
-                  aria-hidden
-                />
-                <div
-                  className="pointer-events-none absolute bottom-2 right-2 z-0 sm:bottom-auto sm:right-3 sm:top-1/2 sm:-translate-y-1/2"
-                  aria-hidden
-                >
-                  <div className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rotate-[-12deg]">
-                    <div className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-600/35 dark:border-emerald-400/30" />
-                    <div className="absolute inset-[6px] rounded-full border border-emerald-600/20 dark:border-emerald-400/18" />
-                    <span className="max-w-[3.25rem] text-center text-[7px] font-bold uppercase leading-[1.2] tracking-[0.14em] text-emerald-700/45 dark:text-emerald-300/40">
-                      Bill
-                      <br />
-                      Cleared
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
+            {isPaid && <PaidBillWatermark />}
 
             <div className="relative z-[1] flex w-full flex-col">
-            <div className="flex w-full items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <p className="font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground">
-                  ₹{displayAmount.toLocaleString("en-IN")}
-                </p>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
-                    statusClass
-                  )}
-                >
-                  {isPaid && <Check className="h-3 w-3" />}
-                  {statusLabel}
-                </span>
-              </div>
-              {timeLabel ? (
-                <span className="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-muted-foreground">
-                  {timeLabel}
-                </span>
-              ) : null}
-            </div>
-
-            {!isPaid && hasPartialPayment && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                of ₹{totalAmount.toLocaleString("en-IN")}
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  {" "}
-                  · ₹{paidAmount.toLocaleString("en-IN")} paid
-                </span>
-              </p>
-            )}
-
-            {hasPartialPayment && (
-              <div className="mt-2.5">
-                <ProgressBar total={totalAmount} paid={paidAmount} size="sm" />
-              </div>
-            )}
-
-            {(userNotes || hasImages || showInCardPhotoUnavailable) && (
-              <div className={cn("pt-3", (hasImages || showInCardPhotoUnavailable) && "mt-auto")}>
-                {userNotes ? (
-                  <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80">{userNotes}</p>
-                ) : null}
-
-                {showInCardPhotoUnavailable && (
-                  <UnavailableImageText
-                    label={photoLabel}
-                    className="text-[11px]"
-                    hint={null}
-                  />
-                )}
-
-                {hasImages && !showInCardPhotoUnavailable && (
-                  <div
+              <div className="flex w-full items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <p
                     className={cn(
-                      "flex items-center justify-between gap-2",
-                      userNotes ? "mt-2 border-t border-border/35 pt-2" : ""
+                      "font-mono text-xl font-semibold tabular-nums tracking-tight",
+                      isPaid ? "text-money-positive" : "text-money-pending"
                     )}
                   >
-                    {images.length > 1 ? (
+                    ₹{displayAmount.toLocaleString("en-IN")}
+                  </p>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
+                      statusClass
+                    )}
+                  >
+                    {isPaid && <Check className="h-3 w-3" />}
+                    {statusLabel}
+                  </span>
+                </div>
+                {timeLabel ? (
+                  <span className="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+                    {timeLabel}
+                  </span>
+                ) : null}
+              </div>
+
+              {!isPaid && hasPartialPayment && (
+                <BillPaidTotalSlash
+                  className="mt-1.5"
+                  paid={paidAmount}
+                  total={totalAmount}
+                  size="xs"
+                />
+              )}
+
+              {(userNotes || hasImages || showInCardPhotoUnavailable) && (
+                <div className={cn("pt-3", (hasImages || showInCardPhotoUnavailable) && "mt-auto")}>
+                  {userNotes ? (
+                    <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80">
+                      {userNotes}
+                    </p>
+                  ) : null}
+
+                  {showInCardPhotoUnavailable && (
+                    <UnavailableImageText label={photoLabel} className="text-[11px]" hint={null} />
+                  )}
+
+                  {hasImages && !showInCardPhotoUnavailable && (
+                    <div
+                      className={cn(
+                        "flex items-center justify-between gap-2",
+                        userNotes ? "mt-2 border-t border-border/35 pt-2" : ""
+                      )}
+                    >
                       <button
                         type="button"
                         onClick={e => {
@@ -1097,21 +1359,19 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                         className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         <Images className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                        {images.length} {photoWordPlural}
+                        {images.length}{" "}
+                        {images.length > 1 ? photoWordPlural : photoWord}
                       </button>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground/80">1 {photoWord}</span>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {hasImages && showInCardPhotoUnavailable && images.length > 1 && (
-                  <p className="mt-1.5 text-[11px] text-muted-foreground/80">
-                    {images.length} {photoWordPlural} on record
-                  </p>
-                )}
-              </div>
-            )}
+                  {hasImages && showInCardPhotoUnavailable && images.length > 1 && (
+                    <p className="mt-1.5 text-[11px] text-muted-foreground/80">
+                      {images.length} {photoWordPlural} on record
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1134,8 +1394,27 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   );
 });
 
+const SUPPLIER_PROFILE_TAB_KEY = "gpay-supplier-profile-tab";
+
+function getStoredSupplierProfileTab(supplierId) {
+  if (typeof window === "undefined") return "bills";
+  try {
+    const tab = sessionStorage.getItem(`${SUPPLIER_PROFILE_TAB_KEY}:${supplierId}`);
+    return tab === "payments" ? "payments" : "bills";
+  } catch {
+    return "bills";
+  }
+}
+
+function resolveSupplierProfileTab(searchParams, supplierId) {
+  const fromUrl = searchParams.get("tab");
+  if (fromUrl === "payments" || fromUrl === "bills") return fromUrl;
+  return getStoredSupplierProfileTab(String(supplierId));
+}
+
 export default function PersonChatPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useParams();
   const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
@@ -1178,7 +1457,7 @@ export default function PersonChatPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmittingPaymentEdit, setIsSubmittingPaymentEdit] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [profileTab, setProfileTab] = useState("bills");
+  const [profileTab, setProfileTabState] = useState("bills");
   const [billsSortOrder, setBillsSortOrder] = useState("newest");
   const [chatInputValue, setChatInputValue] = useState("");
 
@@ -1190,6 +1469,32 @@ export default function PersonChatPage() {
   usePreventBodyScroll(blocksBackground);
 
   const isSupplier = type === "supplier";
+
+  const setProfileTab = useCallback(
+    tab => {
+      setProfileTabState(tab);
+      if (!isSupplier) return;
+      try {
+        sessionStorage.setItem(`${SUPPLIER_PROFILE_TAB_KEY}:${id}`, tab);
+      } catch {
+        /* ignore */
+      }
+      const next = new URLSearchParams(searchParams.toString());
+      if (tab === "bills") next.delete("tab");
+      else next.set("tab", tab);
+      const q = next.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+    },
+    [id, isSupplier, pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    if (!isSupplier) {
+      setProfileTabState("bills");
+      return;
+    }
+    setProfileTabState(resolveSupplierProfileTab(searchParams, id));
+  }, [id, isSupplier, searchParams]);
 
   const profileRouteKey = `${type}/${id}`;
 
@@ -1395,16 +1700,19 @@ export default function PersonChatPage() {
       : personTransactions.length > 0
     : personTransactions.length > 0;
 
-  const scrollToTransaction = useCallback(txnId => {
-    setProfileTab("bills");
-    setSearchQuery("");
-    dispatch({ type: "CLOSE_TXN_DETAIL" });
-    setTimeout(() => {
-      txnRefs.current[txnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setHighlightedTxn(txnId);
-      setTimeout(() => setHighlightedTxn(null), 3000);
-    }, 150);
-  }, [dispatch]);
+  const scrollToTransaction = useCallback(
+    txnId => {
+      setProfileTab("bills");
+      setSearchQuery("");
+      dispatch({ type: "CLOSE_TXN_DETAIL" });
+      setTimeout(() => {
+        txnRefs.current[txnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedTxn(txnId);
+        setTimeout(() => setHighlightedTxn(null), 3000);
+      }, 150);
+    },
+    [dispatch, setProfileTab]
+  );
 
   const openBillDrawerAtPayment = useCallback(
     (txnId, paymentId) => {
@@ -1508,6 +1816,31 @@ export default function PersonChatPage() {
       }
     }
   }, [personTransactions, selectedTransaction, dispatch]);
+
+  const lumpsumRepairRef = useRef(false);
+  useEffect(() => {
+    if (!isSupplier || lumpsumRepairRef.current || personTransactions.length === 0) return;
+
+    const patches = findStaleLumpsumPatches(personTransactions);
+    if (patches.length === 0) return;
+
+    lumpsumRepairRef.current = true;
+
+    (async () => {
+      for (const { txnId, payments } of patches) {
+        const txn = personTransactions.find(t => t.id === txnId);
+        if (!txn) continue;
+        const paidAmount = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const status = computePaymentStatus(paidAmount, Number(txn.amount) || 0);
+        await updateTransaction(txnId, {
+          payments,
+          paidAmount,
+          paymentStatus: status,
+          paidDate: status === "paid" ? txn.paidDate || new Date().toISOString() : null,
+        });
+      }
+    })();
+  }, [isSupplier, personTransactions, updateTransaction]);
 
   // Handle phone call
   const handleCall = useCallback(() => {
@@ -2121,75 +2454,75 @@ export default function PersonChatPage() {
         {/* Summary — hides on scroll (below tabs / search); top chrome stays visible */}
         <div ref={summaryChromeRef} className="overflow-hidden">
           <div className="px-4 pb-4 pt-0.5">
-              <div
-                className={cn(
-                  "overflow-hidden rounded-xl border px-3 py-2.5 shadow-sm",
-                  totals.pending <= 0 && totals.total > 0
-                    ? "border-emerald-500/25 bg-emerald-500/10"
-                    : "border-border bg-card"
-                )}
-              >
-                {totals.pending > 0 ? (
-                  <>
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      {isSupplier ? "You owe" : "They owe"}
-                      {pendingItems.length > 0 && (
-                        <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/85">
-                          · {pendingItems.length}{" "}
-                          {isSupplier
-                            ? `bill${pendingItems.length === 1 ? "" : "s"}`
-                            : `udhar${pendingItems.length === 1 ? "" : "s"}`}
-                        </span>
-                      )}
-                    </p>
-
-                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums tracking-tight text-foreground">
-                      ₹{totals.pending.toLocaleString("en-IN")}
-                    </p>
-
-                    {totals.total > 0 && (
-                      <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2">
-                        {totals.paid > 0 && (
-                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-emerald-600 transition-all duration-500 dark:bg-emerald-500"
-                              style={{ width: `${Math.min(totals.progress, 100)}%` }}
-                            />
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between gap-2 text-[11px]">
-                          <span className="text-muted-foreground">
-                            Total{" "}
-                            <span className="font-mono font-semibold tabular-nums text-foreground">
-                              ₹{totals.total.toLocaleString("en-IN")}
-                            </span>
-                          </span>
-                          <span className="text-muted-foreground">
-                            Paid{" "}
-                            <span className="font-mono font-semibold tabular-nums text-money-positive">
-                              ₹{totals.paid.toLocaleString("en-IN")}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
+            <div
+              className={cn(
+                "overflow-hidden rounded-xl border px-3 py-2.5 shadow-sm",
+                totals.pending <= 0 && totals.total > 0
+                  ? "border-emerald-500/25 bg-emerald-500/10"
+                  : "border-border bg-card"
+              )}
+            >
+              {totals.pending > 0 ? (
+                <>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {isSupplier ? "You owe" : "They owe"}
+                    {pendingItems.length > 0 && (
+                      <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/85">
+                        · {pendingItems.length}{" "}
+                        {isSupplier
+                          ? `bill${pendingItems.length === 1 ? "" : "s"}`
+                          : `udhar${pendingItems.length === 1 ? "" : "s"}`}
+                      </span>
                     )}
-                  </>
-                ) : totals.total > 0 ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                      <p className="text-sm font-semibold text-foreground">All cleared</p>
-                    </div>
-                    <p className="font-mono text-sm font-semibold tabular-nums text-money-positive">
-                      ₹{totals.paid.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="py-0.5 text-center text-xs text-muted-foreground">
-                    No {isSupplier ? "bills" : "udhar"} yet
                   </p>
-                )}
-              </div>
+
+                  <p className="mt-0.5 font-mono text-xl font-bold tabular-nums tracking-tight text-money-pending">
+                    ₹{totals.pending.toLocaleString("en-IN")}
+                  </p>
+
+                  {totals.total > 0 && (
+                    <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2">
+                      {totals.paid > 0 && (
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-emerald-600 transition-all duration-500 dark:bg-emerald-500"
+                            style={{ width: `${Math.min(totals.progress, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between gap-2 text-[11px]">
+                        <span className="text-muted-foreground">
+                          Total{" "}
+                          <span className="font-mono font-semibold tabular-nums text-foreground">
+                            ₹{totals.total.toLocaleString("en-IN")}
+                          </span>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Paid{" "}
+                          <span className="font-mono font-semibold tabular-nums text-money-positive">
+                            ₹{totals.paid.toLocaleString("en-IN")}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : totals.total > 0 ? (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <p className="text-sm font-semibold text-foreground">All cleared</p>
+                  </div>
+                  <p className="font-mono text-sm font-semibold tabular-nums text-money-positive">
+                    ₹{totals.paid.toLocaleString("en-IN")}
+                  </p>
+                </div>
+              ) : (
+                <p className="py-0.5 text-center text-xs text-muted-foreground">
+                  No {isSupplier ? "bills" : "udhar"} yet
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -2295,10 +2628,7 @@ export default function PersonChatPage() {
       </div>
 
       {/* Chat Input Bar */}
-      <div
-        ref={footerRef}
-        className="fixed bottom-0 left-0 right-0 z-20 will-change-transform"
-      >
+      <div ref={footerRef} className="fixed bottom-0 left-0 right-0 z-20 will-change-transform">
         <ChatInputBar
           className="!static w-full"
           placeholder="Enter amount..."
@@ -2483,9 +2813,7 @@ export default function PersonChatPage() {
                   </div>
                 )}
               </div>
-              <h2 className="mt-4 font-heading text-2xl">
-                {person.companyName || person.name}
-              </h2>
+              <h2 className="mt-4 font-heading text-2xl">{person.companyName || person.name}</h2>
               {person.name && person.companyName && (
                 <p className="text-sm text-muted-foreground">{person.name}</p>
               )}
@@ -2632,9 +2960,7 @@ export default function PersonChatPage() {
       {/* Delete Transaction Confirmation */}
       <DeleteConfirmDialog
         open={deleteTransactionDialog}
-        onOpenChange={open =>
-          dispatch({ type: "SET_DELETE_TRANSACTION_DIALOG", payload: open })
-        }
+        onOpenChange={open => dispatch({ type: "SET_DELETE_TRANSACTION_DIALOG", payload: open })}
         onConfirm={handleDeleteTransaction}
         title="Delete Transaction"
         description={
@@ -2660,9 +2986,7 @@ export default function PersonChatPage() {
           src={resolveImageUrl(person.profilePicture)}
           alt={person.companyName || person.name}
           open={profileImageViewerOpen}
-          onOpenChange={open =>
-            dispatch({ type: "SET_PROFILE_IMAGE_VIEWER_OPEN", payload: open })
-          }
+          onOpenChange={open => dispatch({ type: "SET_PROFILE_IMAGE_VIEWER_OPEN", payload: open })}
         />
       )}
     </div>

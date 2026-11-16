@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 import { computePaymentStatus } from "@/lib/computePaymentStatus";
+import { buildLumpsumSiblingPaymentUpdates } from "@/lib/lumpsum-reconcile";
 
 const UDHAR_KEY = ["udhar"];
 const CUSTOMERS_KEY = ["customers"];
@@ -384,22 +385,56 @@ export function useUdhar({ fetchAll = false } = {}) {
         return { success: false, error: "Payment not found" };
       }
 
-      // Remove the payment
+      const removed = payments[paymentIndex];
       payments.splice(paymentIndex, 1);
 
-      // Recalculate paid amount
-      const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
+      let nextPayments = payments;
+      const lumpsumId = removed?.lumpsumId ?? null;
+      if (lumpsumId) {
+        const scope = udharList.map(u =>
+          u.id === udharId ? { ...u, payments: nextPayments } : u
+        );
+        const lumpsumPatches = buildLumpsumSiblingPaymentUpdates(scope, lumpsumId, removed.id);
+        const selfPatch = lumpsumPatches.find(p => p.txnId === udharId);
+        if (selfPatch) nextPayments = selfPatch.payments;
+      }
 
+      const newPaidAmount = nextPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
       const paymentStatus = computePaymentStatus(newPaidAmount, totalAmount);
 
-      return await updateUdhar(udharId, {
-        payments: payments,
+      const result = await updateUdhar(udharId, {
+        payments: nextPayments,
         paidAmount: newPaidAmount,
-        paidCash: newPaidAmount, // Assuming all payments are cash for simplicity
-        paymentStatus: paymentStatus,
+        paidCash: newPaidAmount,
+        paymentStatus,
         paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
       });
+
+      if (!result?.success || !lumpsumId) {
+        return result;
+      }
+
+      const scope = udharList.map(u => (u.id === udharId ? { ...u, payments: nextPayments } : u));
+      const lumpsumPatches = buildLumpsumSiblingPaymentUpdates(scope, lumpsumId, removed.id);
+
+      for (const { txnId, payments: patched } of lumpsumPatches) {
+        if (txnId === udharId) continue;
+        const row = udharList.find(u => u.id === txnId);
+        if (!row) continue;
+        const paidAmount = patched.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        const rowTotal = row.amount || (row.cashAmount || 0) + (row.onlineAmount || 0);
+        const status = computePaymentStatus(paidAmount, rowTotal);
+        await updateUdhar(txnId, {
+          payments: patched,
+          paidAmount,
+          paidCash: paidAmount,
+          paymentStatus: status,
+          paidDate: status === "paid" ? row.paidDate || new Date().toISOString() : null,
+        });
+      }
+
+      return result;
     },
     [udharList, updateUdhar]
   );

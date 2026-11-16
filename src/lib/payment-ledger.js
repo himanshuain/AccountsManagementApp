@@ -57,6 +57,97 @@ export function isLumpsumPayment(payment) {
   return payment.lumpsumTotal != null && !Number.isNaN(Number(payment.lumpsumTotal));
 }
 
+function paymentLedgerKey(payment, origIdx) {
+  return payment?.id != null ? `id:${payment.id}` : `idx:${origIdx}`;
+}
+
+/** Chronological order on the bill (date → createdAt → record order). */
+export function paymentsMatch(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return a.id != null && b.id != null && String(a.id) === String(b.id);
+}
+
+/** Newest payment line on this bill (by date → createdAt → record order). */
+export function getLatestPaymentOnBill(payments) {
+  const ordered = paymentsChronological(payments);
+  if (ordered.length === 0) return null;
+  return ordered[ordered.length - 1].p;
+}
+
+export function isLatestPaymentOnBill(payment, payments) {
+  const latest = getLatestPaymentOnBill(payments);
+  return latest != null && paymentsMatch(payment, latest);
+}
+
+export function paymentsChronological(payments) {
+  return [...(payments || [])]
+    .map((p, origIdx) => ({ p, origIdx }))
+    .filter(({ p }) => p && (p.date || p.amount != null))
+    .sort((a, b) => {
+      const dateDiff = new Date(a.p.date || 0) - new Date(b.p.date || 0);
+      if (dateDiff !== 0) return dateDiff;
+      const createdDiff =
+        new Date(a.p.createdAt || 0).getTime() - new Date(b.p.createdAt || 0).getTime();
+      if (createdDiff !== 0) return createdDiff;
+      return a.origIdx - b.origIdx;
+    });
+}
+
+/**
+ * @param {number} billAmount
+ * @param {object[]} payments
+ * @returns {Map<string, { dueBefore: number, dueAfter: number }>}
+ */
+export function computePaymentDuesForBill(billAmount, payments) {
+  const bill = Number(billAmount) || 0;
+  const ordered = paymentsChronological(payments);
+  const map = new Map();
+  let paidBefore = 0;
+
+  for (const { p, origIdx } of ordered) {
+    const dueBefore = Math.max(0, bill - paidBefore);
+    const amt = Number(p.amount) || 0;
+    const dueAfter = Math.max(0, dueBefore - amt);
+    map.set(paymentLedgerKey(p, origIdx), { dueBefore, dueAfter });
+    paidBefore += amt;
+  }
+
+  return map;
+}
+
+export function lookupPaymentDue(duesMap, payment, origIdx) {
+  return duesMap.get(paymentLedgerKey(payment, origIdx)) ?? { dueBefore: 0, dueAfter: 0 };
+}
+
+/**
+ * Pending on the bill before and after one payment (chronological order on the bill).
+ * @param {number} billAmount
+ * @param {object[]} payments
+ * @param {object} targetPayment
+ * @param {number} [origIdx] — index in txn.payments (required when id missing)
+ * @returns {{ dueBefore: number, dueAfter: number }}
+ */
+export function paymentDueSnapshot(billAmount, payments, targetPayment, origIdx) {
+  const map = computePaymentDuesForBill(billAmount, payments);
+  const key = paymentLedgerKey(targetPayment, origIdx ?? -1);
+  if (map.has(key)) return map.get(key);
+
+  const targetId = targetPayment?.id;
+  if (targetId != null) {
+    for (const [k, v] of map) {
+      if (k === `id:${targetId}`) return v;
+    }
+  }
+  if (targetPayment && origIdx != null && origIdx >= 0) {
+    return lookupPaymentDue(map, targetPayment, origIdx);
+  }
+  for (const { p, origIdx: idx } of paymentsChronological(payments)) {
+    if (p === targetPayment) return lookupPaymentDue(map, p, idx);
+  }
+  return { dueBefore: 0, dueAfter: 0 };
+}
+
 /**
  * @param {import('./payment-ledger').PaymentLedgerEntry[]} entries
  * @returns {string[]} parallel group keys; empty string = not lumpsum
@@ -154,17 +245,24 @@ export function groupPaymentLedgerEntries(entries) {
     emitted.add(key);
 
     const children = lumpsumBuckets.get(key) || [entry];
-    if (children.length === 1) {
+    const allocatedInGroup = children.reduce(
+      (sum, c) => sum + (Number(c.payment.amount) || 0),
+      0
+    );
+    const storedLumpsumTotal = Number(children[0].payment.lumpsumTotal) || 0;
+    const lumpsumTotal =
+      storedLumpsumTotal > allocatedInGroup ? allocatedInGroup : storedLumpsumTotal || allocatedInGroup;
+    const date =
+      children[0].payment.lumpsumPaidAt ||
+      children[0].payment.date ||
+      children.reduce((latest, c) => {
+        const d = c.payment.date;
+        return d && (!latest || new Date(d) > new Date(latest)) ? d : latest;
+      }, "");
+
+    if (children.length === 1 && !isLumpsumPayment(children[0].payment)) {
       result.push({ type: "single", entry: children[0] });
-    } else {
-      const lumpsumTotal = Number(children[0].payment.lumpsumTotal) || 0;
-      const date =
-        children[0].payment.lumpsumPaidAt ||
-        children[0].payment.date ||
-        children.reduce((latest, c) => {
-          const d = c.payment.date;
-          return d && (!latest || new Date(d) > new Date(latest)) ? d : latest;
-        }, "");
+    } else if (children.length >= 1 && isLumpsumPayment(children[0].payment)) {
       result.push({
         type: "lumpsum",
         groupKey: key,
@@ -172,6 +270,8 @@ export function groupPaymentLedgerEntries(entries) {
         date,
         children,
       });
+    } else {
+      result.push({ type: "single", entry: children[0] });
     }
   });
 

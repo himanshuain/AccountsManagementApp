@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 import { computePaymentStatus } from "@/lib/computePaymentStatus";
+import { buildLumpsumSiblingPaymentUpdates } from "@/lib/lumpsum-reconcile";
 
 const TRANSACTIONS_KEY = ["transactions"];
 const STATS_KEY = ["stats"];
@@ -459,21 +460,56 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
         return { success: false, error: "Payment not found" };
       }
 
-      // Remove the payment
+      const removed = payments[paymentIndex];
+
       payments.splice(paymentIndex, 1);
 
-      // Recalculate paid amount
-      const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const totalAmount = transaction.amount || 0;
+      let nextPayments = payments;
+      const lumpsumId = removed?.lumpsumId ?? null;
+      if (lumpsumId) {
+        const scope = transactions.map(t =>
+          t.id === transactionId ? { ...t, payments: nextPayments } : t
+        );
+        const lumpsumPatches = buildLumpsumSiblingPaymentUpdates(scope, lumpsumId, removed.id);
+        const selfPatch = lumpsumPatches.find(u => u.txnId === transactionId);
+        if (selfPatch) nextPayments = selfPatch.payments;
+      }
 
+      const newPaidAmount = nextPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const totalAmount = transaction.amount || 0;
       const paymentStatus = computePaymentStatus(newPaidAmount, totalAmount);
 
-      return await updateTransaction(transactionId, {
-        payments: payments,
+      const result = await updateTransaction(transactionId, {
+        payments: nextPayments,
         paidAmount: newPaidAmount,
-        paymentStatus: paymentStatus,
+        paymentStatus,
         paidDate: paymentStatus === "paid" ? new Date().toISOString() : null,
       });
+
+      if (!result?.success || !lumpsumId) {
+        return result;
+      }
+
+      const scope = transactions.map(t =>
+        t.id === transactionId ? { ...t, payments: nextPayments } : t
+      );
+      const lumpsumPatches = buildLumpsumSiblingPaymentUpdates(scope, lumpsumId, removed.id);
+
+      for (const { txnId, payments: patched } of lumpsumPatches) {
+        if (txnId === transactionId) continue;
+        const txn = transactions.find(t => t.id === txnId);
+        if (!txn) continue;
+        const paidAmount = patched.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        const status = computePaymentStatus(paidAmount, txn.amount || 0);
+        await updateTransaction(txnId, {
+          payments: patched,
+          paidAmount,
+          paymentStatus: status,
+          paidDate: status === "paid" ? txn.paidDate || new Date().toISOString() : null,
+        });
+      }
+
+      return result;
     },
     [transactions, updateTransaction]
   );

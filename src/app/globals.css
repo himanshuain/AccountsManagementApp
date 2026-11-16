@@ -242,7 +242,7 @@
   @apply text-foreground;
 }
 .text-money-pending {
-  @apply text-foreground;
+  @apply text-amber-800 dark:text-amber-300;
 }
 
 /* Ledger surfaces */
@@ -636,11 +636,11 @@ input[type="datetime-local"] {
 }
 
 .badge-pending {
-  @apply border border-border bg-muted text-muted-foreground;
+  @apply border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-300;
 }
 
 .badge-partial {
-  @apply border border-border bg-muted text-foreground;
+  @apply border border-blue-500/30 bg-blue-500/10 text-blue-900 dark:border-blue-400/25 dark:bg-blue-400/10 dark:text-blue-300;
 }
 
 /* Type badges for customer/supplier */
