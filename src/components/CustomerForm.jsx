@@ -170,7 +170,8 @@ export function CustomerForm({
   };
 
   const canSubmit = !isSubmitting && isOnline && !uploadingProfile && !uploadingKhata;
-  const submitLabel = initialData ? "Save changes" : "Add customer";
+  const isEdit = Boolean(initialData?.id);
+  const submitLabel = isEdit ? "Save changes" : "Add customer";
 
   return (
     <DragCloseDrawer
@@ -187,7 +188,8 @@ export function CustomerForm({
         onClose={handleClose}
         onSubmit={handleSubmit(handleFormSubmit)}
         isSubmitting={isSubmitting}
-        isEdit={!!initialData}
+        isEdit={isEdit}
+        actionLabel={submitLabel}
         canSubmit={canSubmit}
       />
 

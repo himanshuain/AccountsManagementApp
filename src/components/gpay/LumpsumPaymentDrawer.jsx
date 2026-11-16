@@ -198,6 +198,7 @@ export function LumpsumPaymentDrawer({
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
             canSubmit={!isSubmitting && !isUploading && isValidAmount}
+            actionLabel="Pay lumpsum"
           />
 
           <div className="space-y-4 px-4 py-4 pb-8">

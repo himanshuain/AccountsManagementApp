@@ -227,7 +227,7 @@ export function QuickBillCapture({ suppliers, onCapture, disabled, variant = "bu
                         />
                         <button
                           onClick={() => handleRemoveImage(img.id)}
-                          className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white shadow-sm"
                         >
                           <X className="h-3 w-3" />
                         </button>

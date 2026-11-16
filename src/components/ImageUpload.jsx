@@ -526,10 +526,7 @@ export function ImageUpload({
           type="button"
           variant="destructive"
           size="icon"
-          className={cn(
-            "absolute right-2 top-2 h-7 w-7",
-            isHero ? "z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}
+          className="absolute right-2 top-2 z-20 h-7 w-7 opacity-100 shadow-sm"
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
@@ -915,7 +912,7 @@ export function MultiImageUpload({
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute right-1.5 top-1.5 z-20 h-7 w-7 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            className="absolute right-1.5 top-1.5 z-20 h-7 w-7 opacity-100 shadow-sm"
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
@@ -1024,7 +1021,7 @@ export function MultiImageUpload({
                             type="button"
                             variant="destructive"
                             size="icon"
-                            className="absolute right-1.5 top-1.5 z-20 h-7 w-7 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            className="absolute right-1.5 top-1.5 z-20 h-7 w-7 opacity-100 shadow-sm"
                             onClick={e => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -1068,7 +1065,7 @@ export function MultiImageUpload({
                       type="button"
                       variant="destructive"
                       size="icon"
-                      className="absolute right-1 top-1 z-20 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute right-1 top-1 z-20 h-6 w-6 opacity-100 shadow-sm"
                       onClick={e => {
                         e.preventDefault();
                         e.stopPropagation();

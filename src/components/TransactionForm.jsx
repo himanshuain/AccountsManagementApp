@@ -355,8 +355,9 @@ export function TransactionForm({
     defaultSupplierName ||
     null;
   const isSupplierLocked = !!defaultSupplierId;
-  const formTitle = initialData ? "Edit Transaction" : title;
-  const submitLabel = initialData ? "Save changes" : "Add transaction";
+  const isEdit = Boolean(initialData?.id);
+  const formTitle = isEdit ? "Edit Transaction" : title;
+  const submitLabel = isEdit ? "Save changes" : "Add transaction";
   const canSubmit = !isSubmitting && !!selectedSupplierId && isOnline && !isUploadingBills;
 
   return (
@@ -375,7 +376,8 @@ export function TransactionForm({
         onClose={handleClose}
         onSubmit={handleSubmit(handleFormSubmit)}
         isSubmitting={isSubmitting}
-        isEdit={!!initialData?.id}
+        isEdit={isEdit}
+        actionLabel={submitLabel}
         canSubmit={canSubmit}
       />
 

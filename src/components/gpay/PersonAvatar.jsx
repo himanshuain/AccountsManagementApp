@@ -4,30 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/image-url";
-
-/** Avatar with neutral slate fallback colors */
-
-const getAvatarColor = name => {
-  const colors = [
-    "bg-zinc-600",
-    "bg-zinc-700",
-    "bg-neutral-600",
-    "bg-stone-600",
-    "bg-slate-600",
-    "bg-zinc-800",
-    "bg-neutral-700",
-    "bg-slate-700",
-  ];
-
-  if (!name) return colors[0];
-
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return colors[Math.abs(hash) % colors.length];
-};
+import { getListingThumbGradientStyle } from "@/lib/listingThumbColor";
 
 // Get initials from name
 const getInitials = name => {
@@ -51,7 +28,7 @@ export function PersonAvatar({
   className,
   onClick,
 }) {
-  const avatarColor = useMemo(() => getAvatarColor(name), [name]);
+  const placeholderStyle = useMemo(() => getListingThumbGradientStyle(name), [name]);
   const initials = useMemo(() => getInitials(name), [name]);
   const imageUrl = image ? resolveImageUrl(image) : null;
 
@@ -84,12 +61,13 @@ export function PersonAvatar({
       {/* Avatar Circle with theme ring */}
       <div
         className={cn(
-          "flex items-center justify-center overflow-hidden rounded-full font-bold text-white",
+          "flex items-center justify-center overflow-hidden rounded-full font-bold",
           "hw-accelerate",
           "ring-2 ring-background",
           sizeClasses[size],
-          !imageUrl && avatarColor
+          !imageUrl && "shadow-sm"
         )}
+        style={!imageUrl ? placeholderStyle : undefined}
       >
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -101,7 +79,9 @@ export function PersonAvatar({
             decoding="async"
           />
         ) : (
-          <span className="select-none font-heading text-sm tracking-tight">{initials}</span>
+          <span className="select-none font-heading text-sm font-bold tracking-tight text-white drop-shadow-sm">
+            {initials}
+          </span>
         )}
       </div>
 

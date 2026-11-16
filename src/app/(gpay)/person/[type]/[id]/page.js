@@ -52,7 +52,6 @@ import { profileOverlayBlocksBackground } from "@/lib/profileOverlayGate";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { recordMatchesBillSearch } from "@/lib/record-search";
 import { mergeTxnImageOcrMaps } from "@/lib/image-ocr-map";
-
 import { PersonAvatar } from "@/components/gpay/PersonAvatar";
 import { TransactionForm } from "@/components/TransactionForm";
 import { UdharForm } from "@/components/UdharForm";
@@ -945,7 +944,6 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
   const displayAmount = isPaid ? totalAmount : remainingAmount;
   const showThumbColumn = hasImages && !!thumbSrc && !thumbUnavailable;
   const showInCardPhotoUnavailable = hasImages && (!thumbSrc || thumbUnavailable);
-
   return (
     <div
       ref={ref}
@@ -1079,28 +1077,28 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                 )}
 
                 {hasImages && !showInCardPhotoUnavailable && (
-                <div
-                  className={cn(
-                    "flex items-center justify-between gap-2",
-                    userNotes ? "mt-2 border-t border-border/35 pt-2" : ""
-                  )}
-                >
-                  {images.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      <Images className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                      {images.length} {photoWordPlural}
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground/80">1 {photoWord}</span>
-                  )}
-                </div>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between gap-2",
+                      userNotes ? "mt-2 border-t border-border/35 pt-2" : ""
+                    )}
+                  >
+                    {images.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <Images className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                        {images.length} {photoWordPlural}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/80">1 {photoWord}</span>
+                    )}
+                  </div>
                 )}
 
                 {hasImages && showInCardPhotoUnavailable && images.length > 1 && (
@@ -1243,13 +1241,10 @@ export default function PersonChatPage() {
   });
 
   const {
-    chromeHidden,
     headerRef,
     footerRef,
+    summaryChromeRef,
     scrollRef: bindProfileScrollRef,
-    headerHeight,
-    footerHeight,
-    chromeTransition,
     showChrome,
   } = useProfileScrollChrome(scrollRef, {
     enabled: !blocksBackground && !personLoading && !isDeleting && Boolean(person),
@@ -1983,11 +1978,7 @@ export default function PersonChatPage() {
       {/* Header */}
       <header
         ref={headerRef}
-        className={cn(
-          "header-glass fixed top-0 left-0 right-0 z-30 border-b border-border",
-          chromeTransition,
-          chromeHidden && "-translate-y-full pointer-events-none"
-        )}
+        className="header-glass fixed top-0 left-0 right-0 z-30 border-b border-border"
       >
         {/* Top row */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -2186,76 +2177,78 @@ export default function PersonChatPage() {
           </div>
         )}
 
-        {/* Summary Card */}
-        <div className="px-4 pb-4 pt-0.5">
-          <div
-            className={cn(
-              "overflow-hidden rounded-xl border px-3 py-2.5 shadow-sm",
-              totals.pending <= 0 && totals.total > 0
-                ? "border-emerald-500/25 bg-emerald-500/10"
-                : "border-border bg-card"
-            )}
-          >
-            {totals.pending > 0 ? (
-              <>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {isSupplier ? "You owe" : "They owe"}
-                  {pendingItems.length > 0 && (
-                    <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/85">
-                      · {pendingItems.length}{" "}
-                      {isSupplier
-                        ? `bill${pendingItems.length === 1 ? "" : "s"}`
-                        : `udhar${pendingItems.length === 1 ? "" : "s"}`}
-                    </span>
-                  )}
-                </p>
+        {/* Summary — hides on scroll (below tabs / search); top chrome stays visible */}
+        <div ref={summaryChromeRef} className="overflow-hidden">
+          <div className="px-4 pb-4 pt-0.5">
+              <div
+                className={cn(
+                  "overflow-hidden rounded-xl border px-3 py-2.5 shadow-sm",
+                  totals.pending <= 0 && totals.total > 0
+                    ? "border-emerald-500/25 bg-emerald-500/10"
+                    : "border-border bg-card"
+                )}
+              >
+                {totals.pending > 0 ? (
+                  <>
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {isSupplier ? "You owe" : "They owe"}
+                      {pendingItems.length > 0 && (
+                        <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/85">
+                          · {pendingItems.length}{" "}
+                          {isSupplier
+                            ? `bill${pendingItems.length === 1 ? "" : "s"}`
+                            : `udhar${pendingItems.length === 1 ? "" : "s"}`}
+                        </span>
+                      )}
+                    </p>
 
-                <p className="mt-0.5 font-mono text-xl font-bold tabular-nums tracking-tight text-foreground">
-                  ₹{totals.pending.toLocaleString("en-IN")}
-                </p>
+                    <p className="mt-0.5 font-mono text-xl font-bold tabular-nums tracking-tight text-foreground">
+                      ₹{totals.pending.toLocaleString("en-IN")}
+                    </p>
 
-                {totals.total > 0 && (
-                  <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2">
-                    {totals.paid > 0 && (
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-emerald-600 transition-all duration-500 dark:bg-emerald-500"
-                          style={{ width: `${Math.min(totals.progress, 100)}%` }}
-                        />
+                    {totals.total > 0 && (
+                      <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2">
+                        {totals.paid > 0 && (
+                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-emerald-600 transition-all duration-500 dark:bg-emerald-500"
+                              style={{ width: `${Math.min(totals.progress, 100)}%` }}
+                            />
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className="text-muted-foreground">
+                            Total{" "}
+                            <span className="font-mono font-semibold tabular-nums text-foreground">
+                              ₹{totals.total.toLocaleString("en-IN")}
+                            </span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Paid{" "}
+                            <span className="font-mono font-semibold tabular-nums text-money-positive">
+                              ₹{totals.paid.toLocaleString("en-IN")}
+                            </span>
+                          </span>
+                        </div>
                       </div>
                     )}
-                    <div className="flex items-center justify-between gap-2 text-[11px]">
-                      <span className="text-muted-foreground">
-                        Total{" "}
-                        <span className="font-mono font-semibold tabular-nums text-foreground">
-                          ₹{totals.total.toLocaleString("en-IN")}
-                        </span>
-                      </span>
-                      <span className="text-muted-foreground">
-                        Paid{" "}
-                        <span className="font-mono font-semibold tabular-nums text-money-positive">
-                          ₹{totals.paid.toLocaleString("en-IN")}
-                        </span>
-                      </span>
+                  </>
+                ) : totals.total > 0 ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <p className="text-sm font-semibold text-foreground">All cleared</p>
                     </div>
+                    <p className="font-mono text-sm font-semibold tabular-nums text-money-positive">
+                      ₹{totals.paid.toLocaleString("en-IN")}
+                    </p>
                   </div>
+                ) : (
+                  <p className="py-0.5 text-center text-xs text-muted-foreground">
+                    No {isSupplier ? "bills" : "udhar"} yet
+                  </p>
                 )}
-              </>
-            ) : totals.total > 0 ? (
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <p className="text-sm font-semibold text-foreground">All cleared</p>
-                </div>
-                <p className="font-mono text-sm font-semibold tabular-nums text-money-positive">
-                  ₹{totals.paid.toLocaleString("en-IN")}
-                </p>
               </div>
-            ) : (
-              <p className="py-0.5 text-center text-xs text-muted-foreground">
-                No {isSupplier ? "bills" : "udhar"} yet
-              </p>
-            )}
           </div>
         </div>
       </header>
@@ -2263,14 +2256,7 @@ export default function PersonChatPage() {
       {/* Bills list or payment ledger */}
       <div
         ref={bindProfileScrollRef}
-        className={cn(
-          "min-h-0 flex-1 space-y-8 overflow-y-auto overflow-x-hidden px-4 pb-8 pt-8",
-          "transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
-        )}
-        style={{
-          paddingTop: chromeHidden ? 12 : Math.max(headerHeight, 12),
-          paddingBottom: chromeHidden ? 12 : Math.max(footerHeight, 12),
-        }}
+        className="min-h-0 flex-1 space-y-8 overflow-y-auto overflow-x-hidden px-4"
       >
         {isSupplier && profileTab === "payments" ? (
           searchQuery && filteredPaymentCount === 0 ? (
@@ -2370,11 +2356,7 @@ export default function PersonChatPage() {
       {/* Chat Input Bar */}
       <div
         ref={footerRef}
-        className={cn(
-          "fixed bottom-0 left-0 right-0 z-20",
-          chromeTransition,
-          chromeHidden && "translate-y-full pointer-events-none"
-        )}
+        className="fixed bottom-0 left-0 right-0 z-20 will-change-transform"
       >
         <ChatInputBar
           className="!static w-full"

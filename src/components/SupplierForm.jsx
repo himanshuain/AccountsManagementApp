@@ -168,7 +168,8 @@ export function SupplierForm({
   };
 
   const canSubmit = !isSubmitting && isOnline && !uploadingProfile && !uploadingUpiQr;
-  const submitLabel = initialData ? "Save supplier" : "Add supplier";
+  const isEdit = Boolean(initialData?.id);
+  const submitLabel = isEdit ? "Save supplier" : "Add supplier";
 
   return (
     <DragCloseDrawer
@@ -185,7 +186,8 @@ export function SupplierForm({
         onClose={handleClose}
         onSubmit={handleSubmit(handleFormSubmit)}
         isSubmitting={isSubmitting}
-        isEdit={!!initialData}
+        isEdit={isEdit}
+        actionLabel={submitLabel}
         canSubmit={canSubmit}
       />
 

@@ -108,6 +108,7 @@ export function EditPaymentModal({ payment, txn, onClose, onSave, isSubmitting }
         onSubmit={handleFormSubmit}
         isSubmitting={isSubmitting}
         isEdit
+        actionLabel="Save changes"
         canSubmit={canSubmit}
       />
 

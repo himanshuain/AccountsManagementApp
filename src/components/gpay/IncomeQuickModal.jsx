@@ -90,6 +90,7 @@ export function IncomeQuickModal({
         onSubmit={mode === "quick" ? handleSubmit : undefined}
         isSubmitting={submitting}
         canSubmit={mode === "quick" && totalPreview > 0}
+        actionLabel="Add income"
       />
 
       <div

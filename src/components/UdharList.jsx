@@ -813,7 +813,7 @@ export function UdharList({
                           type="button"
                           variant="destructive"
                           size="icon"
-                          className="absolute right-1 top-1 h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
+                          className="absolute right-1 top-1 h-5 w-5 opacity-100 shadow-sm"
                           onClick={e => {
                             e.stopPropagation();
                             handleRemoveReceipt(idx);

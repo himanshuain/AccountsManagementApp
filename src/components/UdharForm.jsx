@@ -293,6 +293,7 @@ export function UdharForm({
           onSubmit={handleSubmit(handleFormSubmit)}
           isSubmitting={isSubmitting}
           isEdit={isEdit}
+          actionLabel={submitLabel}
           canSubmit={canSubmit}
         />
 

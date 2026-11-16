@@ -130,8 +130,12 @@ export function FormDrawerHeader({
   onSubmit,
   isSubmitting,
   isEdit,
+  /** Matches bottom FormSubmitButton when set (e.g. "Save changes", "Add transaction") */
+  actionLabel,
   canSubmit = true,
 }) {
+  const primaryLabel = actionLabel ?? (isEdit ? "Save" : "Add");
+
   return (
     <DrawerHeader className="border-b border-border/50 px-4 pb-3 pt-0">
       <div className="flex w-full items-center justify-between gap-2">
@@ -156,16 +160,25 @@ export function FormDrawerHeader({
             </p>
           )}
         </div>
-        <Button size="sm" onClick={onSubmit} disabled={!canSubmit} className="h-9 shrink-0 px-3">
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <Check className="mr-1 h-4 w-4" />
-              {isEdit ? "Save" : "Add"}
-            </>
-          )}
-        </Button>
+        {onSubmit ? (
+          <Button
+            size="sm"
+            onClick={onSubmit}
+            disabled={!canSubmit || isSubmitting}
+            className="h-9 max-w-[42%] shrink-0 px-2.5 sm:max-w-[50%] sm:px-3"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Check className="mr-1 h-4 w-4 shrink-0" />
+                <span className="truncate text-xs font-medium sm:text-sm">{primaryLabel}</span>
+              </>
+            )}
+          </Button>
+        ) : (
+          <div className="h-9 w-9 shrink-0" aria-hidden />
+        )}
       </div>
     </DrawerHeader>
   );

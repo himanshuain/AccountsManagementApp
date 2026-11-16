@@ -79,6 +79,7 @@ export function PaymentFormModal({ txn, onClose, onSubmit, isSubmitting }) {
         onClose={handleClose}
         onSubmit={handleFormSubmit}
         isSubmitting={isSubmitting}
+        actionLabel="Record payment"
         canSubmit={canSubmit}
       />
 
