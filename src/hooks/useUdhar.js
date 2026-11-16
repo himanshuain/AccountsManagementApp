@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
+import { computePaymentStatus } from "@/lib/computePaymentStatus";
 
 const UDHAR_KEY = ["udhar"];
 const CUSTOMERS_KEY = ["customers"];
@@ -271,7 +272,7 @@ export function useUdhar({ fetchAll = false } = {}) {
         payments: [...(udhar.payments || []), newPayment],
         paidAmount: newPaidAmount,
         paidCash: (udhar.paidCash || 0) + effectiveAmount,
-        paymentStatus: newPaidAmount >= totalAmount ? "paid" : "partial",
+        paymentStatus: computePaymentStatus(newPaidAmount, totalAmount),
       };
 
       return await updateUdhar(id, updates);
@@ -357,13 +358,7 @@ export function useUdhar({ fetchAll = false } = {}) {
       const newPaidAmount = currentPaid + amountDiff;
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
 
-      // Determine new payment status
-      let paymentStatus = "pending";
-      if (newPaidAmount >= totalAmount) {
-        paymentStatus = "paid";
-      } else if (newPaidAmount > 0) {
-        paymentStatus = "partial";
-      }
+      const paymentStatus = computePaymentStatus(newPaidAmount, totalAmount);
 
       return await updateUdhar(udharId, {
         payments: payments,
@@ -396,13 +391,7 @@ export function useUdhar({ fetchAll = false } = {}) {
       const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
       const totalAmount = udhar.amount || (udhar.cashAmount || 0) + (udhar.onlineAmount || 0);
 
-      // Determine new payment status
-      let paymentStatus = "pending";
-      if (newPaidAmount >= totalAmount) {
-        paymentStatus = "paid";
-      } else if (newPaidAmount > 0) {
-        paymentStatus = "partial";
-      }
+      const paymentStatus = computePaymentStatus(newPaidAmount, totalAmount);
 
       return await updateUdhar(udharId, {
         payments: payments,

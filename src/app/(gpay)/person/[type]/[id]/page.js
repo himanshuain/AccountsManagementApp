@@ -46,7 +46,9 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useUdhar } from "@/hooks/useUdhar";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
 import { useProfileScrollChrome } from "@/hooks/useProfileScrollChrome";
+import { useProfilePageUi } from "@/hooks/useProfilePageUi";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
+import { profileOverlayBlocksBackground } from "@/lib/profileOverlayGate";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { recordMatchesBillSearch } from "@/lib/record-search";
 import { mergeTxnImageOcrMaps } from "@/lib/image-ocr-map";
@@ -1141,50 +1143,53 @@ export default function PersonChatPage() {
 
   const scrollRef = useRef(null);
   const txnRefs = useRef({});
-  const [showMenu, setShowMenu] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [editFormOpen, setEditFormOpen] = useState(false);
-  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
-  const [udharFormOpen, setUdharFormOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTransactionDialog, setDeleteTransactionDialog] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState(null);
-  const [editingTransaction, setEditingTransaction] = useState(null);
-  const [draftInitialData, setDraftInitialData] = useState(null);
-  const [quickCaptureData, setQuickCaptureData] = useState(null);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [focusPaymentId, setFocusPaymentId] = useState(null);
+  const { ui, dispatch, overlayGateState, resetOverlays } = useProfilePageUi();
+  const {
+    showMenu,
+    showProfile,
+    editFormOpen,
+    transactionFormOpen,
+    udharFormOpen,
+    deleteDialogOpen,
+    deleteTransactionDialog,
+    transactionToDelete,
+    editingTransaction,
+    draftInitialData,
+    quickCaptureData,
+    selectedTransaction,
+    focusPaymentId,
+    imageViewerOpen,
+    viewerImages,
+    viewerOcrMap,
+    viewerIndex,
+    paymentFormOpen,
+    paymentTransaction,
+    billsGalleryOpen,
+    profileImageViewerOpen,
+    editingPayment,
+    editingPaymentTxn,
+  } = ui;
+
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const [imageViewerOpen, setImageViewerOpen] = useState(false);
-  const [viewerImages, setViewerImages] = useState([]);
-  const [viewerOcrMap, setViewerOcrMap] = useState({});
-  const [viewerIndex, setViewerIndex] = useState(0);
-  const [paymentFormOpen, setPaymentFormOpen] = useState(false);
-  const [paymentTransaction, setPaymentTransaction] = useState(null);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
-  const [billsGalleryOpen, setBillsGalleryOpen] = useState(false);
   const [highlightedTxn, setHighlightedTxn] = useState(null);
-  const [profileImageViewerOpen, setProfileImageViewerOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editingPayment, setEditingPayment] = useState(null);
-  const [editingPaymentTxn, setEditingPaymentTxn] = useState(null);
   const [isSubmittingPaymentEdit, setIsSubmittingPaymentEdit] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [profileTab, setProfileTab] = useState("bills");
   const [billsSortOrder, setBillsSortOrder] = useState("newest");
   const [chatInputValue, setChatInputValue] = useState("");
 
-  // Prevent body scroll when modals/sheets are open
-  usePreventBodyScroll(
-    showProfile ||
-      showMenu ||
-      selectedTransaction ||
-      paymentFormOpen ||
-      billsGalleryOpen ||
-      profileImageViewerOpen
-  );
+  const blocksBackground = profileOverlayBlocksBackground({
+    ...overlayGateState,
+    isDeleting,
+  });
+
+  usePreventBodyScroll(blocksBackground);
 
   const isSupplier = type === "supplier";
+
+  const profileRouteKey = `${type}/${id}`;
 
   // Data hooks - fetchAll: true ensures we load all transactions for accurate filtering
   const {
@@ -1237,16 +1242,6 @@ export default function PersonChatPage() {
     listLoading,
   });
 
-  const modalsBlockChrome =
-    showProfile ||
-    showMenu ||
-    selectedTransaction ||
-    paymentFormOpen ||
-    billsGalleryOpen ||
-    profileImageViewerOpen ||
-    transactionFormOpen ||
-    udharFormOpen;
-  const profileRouteKey = `${type}/${id}`;
   const {
     chromeHidden,
     headerRef,
@@ -1257,7 +1252,7 @@ export default function PersonChatPage() {
     chromeTransition,
     showChrome,
   } = useProfileScrollChrome(scrollRef, {
-    enabled: !modalsBlockChrome && !personLoading && !isDeleting && Boolean(person),
+    enabled: !blocksBackground && !personLoading && !isDeleting && Boolean(person),
     layoutKey: profileRouteKey,
   });
 
@@ -1404,14 +1399,13 @@ export default function PersonChatPage() {
   const scrollToTransaction = useCallback(txnId => {
     setProfileTab("bills");
     setSearchQuery("");
-    setSelectedTransaction(null);
-    setFocusPaymentId(null);
+    dispatch({ type: "CLOSE_TXN_DETAIL" });
     setTimeout(() => {
       txnRefs.current[txnId]?.scrollIntoView({ behavior: "smooth", block: "center" });
       setHighlightedTxn(txnId);
       setTimeout(() => setHighlightedTxn(null), 3000);
     }, 150);
-  }, []);
+  }, [dispatch]);
 
   const openBillDrawerAtPayment = useCallback(
     (txnId, paymentId) => {
@@ -1420,15 +1414,21 @@ export default function PersonChatPage() {
         toast.error("Bill not found");
         return;
       }
-      setFocusPaymentId(paymentId || null);
-      setSelectedTransaction(txn);
+      dispatch({ type: "SET_FOCUS_PAYMENT_ID", payload: paymentId || null });
+      dispatch({ type: "OPEN_TXN_DETAIL", payload: txn });
     },
-    [personTransactions]
+    [personTransactions, dispatch]
   );
 
   // Track if we've already processed the highlight to prevent re-triggering on refresh
   const highlightProcessedRef = useRef(false);
   const editTxnProcessedRef = useRef(false);
+
+  useEffect(() => {
+    resetOverlays();
+    highlightProcessedRef.current = false;
+    editTxnProcessedRef.current = false;
+  }, [profileRouteKey, resetOverlays]);
 
   // Scroll to highlighted transaction or bottom on load
   useEffect(() => {
@@ -1467,18 +1467,17 @@ export default function PersonChatPage() {
     if (!txn) return;
 
     editTxnProcessedRef.current = true;
-    setEditingTransaction(txn);
     if (isSupplier) {
-      setTransactionFormOpen(true);
+      dispatch({ type: "OPEN_TRANSACTION_FORM", payload: { editing: txn } });
     } else {
-      setUdharFormOpen(true);
+      dispatch({ type: "OPEN_UDHAR_FORM", payload: { editing: txn } });
     }
     toast.info("Add bill photos again and save to restore this transaction.");
 
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.delete("editTxn");
     window.history.replaceState({}, "", newUrl.pathname + newUrl.search);
-  }, [editTxnId, personTransactions, isSupplier]);
+  }, [editTxnId, personTransactions, isSupplier, dispatch]);
 
   // Keep selectedTransaction in sync with updated data from personTransactions
   useEffect(() => {
@@ -1505,11 +1504,11 @@ export default function PersonChatPage() {
           getReceiptsHash(updatedTxn) !== getReceiptsHash(selectedTransaction);
 
         if (paymentChanged) {
-          setSelectedTransaction({ ...updatedTxn });
+          dispatch({ type: "UPDATE_SELECTED_TRANSACTION", payload: { ...updatedTxn } });
         }
       }
     }
-  }, [personTransactions, selectedTransaction]);
+  }, [personTransactions, selectedTransaction, dispatch]);
 
   // Handle phone call
   const handleCall = useCallback(() => {
@@ -1526,28 +1525,6 @@ export default function PersonChatPage() {
       window.location.href = upiUrl;
     }
   }, [person, totals.pending]);
-
-  // Handle GPay - Try multiple deep link schemes for better compatibility
-  // const handleGPayChat = useCallback(() => {
-  //   if (person?.phone) {
-  //     const phone = person.phone.replace(/\D/g, "");
-  //     // const formattedPhone = phone.startsWith("91") ? phone : `91${phone}`;
-
-  //     // Try Google Pay deep link schemes
-  //     // First try the newer tez:// scheme, fallback to gpay://
-  //     const gpayUrl = `upi://pay?pa=${person.upiId}&am=${person.pendingAmount}&cu=INR`;
-
-  //     // On Android, try the gpay deep link first
-  //     window.location.href = gpayUrl;
-
-  //     // Fallback after a short delay if the first one doesn't work
-  //     setTimeout(() => {
-  //       // If we're still here, try opening GPay with phone number for chat
-  //       const phonePayUrl = `upi://pay?pa=${person.upiId}`;
-  //       window.location.href = phonePayUrl;
-  //     }, 1000);
-  //   }
-  // }, [person]);
 
   // Copy UPI ID
   const handleCopyUpi = useCallback(async () => {
@@ -1594,7 +1571,7 @@ export default function PersonChatPage() {
     const result = await addTransaction({ ...data, supplierId: id });
     if (result.success) {
       toast.success("Transaction added");
-      setTransactionFormOpen(false);
+      dispatch({ type: "SET_TRANSACTION_FORM_OPEN", payload: { open: false } });
       scrollToNewTransaction();
     } else {
       toast.error(result.error || "Failed to add");
@@ -1606,7 +1583,7 @@ export default function PersonChatPage() {
     const result = await addUdhar({ ...data, customerId: id });
     if (result.success) {
       toast.success("Udhar added");
-      setUdharFormOpen(false);
+      dispatch({ type: "SET_UDHAR_FORM_OPEN", payload: { open: false } });
       scrollToNewTransaction();
     } else {
       toast.error(result.error || "Failed to add");
@@ -1619,7 +1596,7 @@ export default function PersonChatPage() {
     const result = await updateFn(id, data);
     if (result.success) {
       toast.success("Updated successfully");
-      setEditFormOpen(false);
+      dispatch({ type: "SET_EDIT_FORM_OPEN", payload: false });
     } else {
       toast.error(result.error || "Failed to update");
     }
@@ -1648,8 +1625,8 @@ export default function PersonChatPage() {
 
     if (result.success) {
       toast.success("Transaction deleted");
-      setDeleteTransactionDialog(false);
-      setTransactionToDelete(null);
+      dispatch({ type: "SET_DELETE_TRANSACTION_DIALOG", payload: false });
+      dispatch({ type: "SET_TRANSACTION_TO_DELETE", payload: null });
     } else {
       toast.error(result.error || "Failed to delete");
     }
@@ -1657,27 +1634,28 @@ export default function PersonChatPage() {
 
   // Handle transaction edit
   const handleEditTransaction = txn => {
-    setEditingTransaction(txn);
     if (isSupplier) {
-      setTransactionFormOpen(true);
+      dispatch({ type: "OPEN_TRANSACTION_FORM", payload: { editing: txn } });
     } else {
-      setUdharFormOpen(true);
+      dispatch({ type: "OPEN_UDHAR_FORM", payload: { editing: txn } });
     }
   };
 
   // Handle view images
   const handleViewImages = (images, startIndex = 0, ocrMap = {}) => {
-    setViewerImages(images);
-    setViewerOcrMap(ocrMap);
-    setViewerIndex(startIndex);
-    setImageViewerOpen(true);
+    dispatch({
+      type: "OPEN_IMAGE_VIEWER",
+      payload: { images, startIndex, ocrMap },
+    });
   };
 
   // Handle opening payment form
-  const handleOpenPaymentForm = useCallback(txn => {
-    setPaymentTransaction(txn);
-    setPaymentFormOpen(true);
-  }, []);
+  const handleOpenPaymentForm = useCallback(
+    txn => {
+      dispatch({ type: "OPEN_PAYMENT", payload: txn });
+    },
+    [dispatch]
+  );
 
   // Handle lumpsum payment across multiple bills
   const handleLumpsumPay = useCallback(
@@ -1769,8 +1747,7 @@ export default function PersonChatPage() {
 
         if (result.success) {
           toast.success(isFullPayment ? "Marked as fully paid" : "Payment recorded");
-          setPaymentFormOpen(false);
-          setPaymentTransaction(null);
+          dispatch({ type: "CLOSE_PAYMENT" });
           // Keep the detail dialog open - data will refresh from React Query
         } else {
           toast.error(result.error || "Failed to record payment");
@@ -1788,6 +1765,7 @@ export default function PersonChatPage() {
       markTransactionFullPaid,
       recordUdharPayment,
       markUdharFullPaid,
+      dispatch,
     ]
   );
 
@@ -1838,10 +1816,12 @@ export default function PersonChatPage() {
   );
 
   // Handle opening payment edit modal
-  const handleOpenEditPayment = useCallback((payment, txn) => {
-    setEditingPayment(payment);
-    setEditingPaymentTxn(txn);
-  }, []);
+  const handleOpenEditPayment = useCallback(
+    (payment, txn) => {
+      dispatch({ type: "OPEN_EDIT_PAYMENT", payload: { payment, txn } });
+    },
+    [dispatch]
+  );
 
   // Handle saving edited payment
   const handleSavePaymentEdit = useCallback(
@@ -1856,8 +1836,7 @@ export default function PersonChatPage() {
 
         if (result.success) {
           toast.success("Payment updated");
-          setEditingPayment(null);
-          setEditingPaymentTxn(null);
+          dispatch({ type: "CLOSE_EDIT_PAYMENT" });
 
           // Wait a bit for the data to refresh, then update selectedTransaction
           setTimeout(() => {
@@ -1865,7 +1844,7 @@ export default function PersonChatPage() {
             const freshTransactions = isSupplier ? transactions : udharList;
             const updatedTxn = freshTransactions.find(t => t.id === txnId);
             if (updatedTxn && selectedTransaction?.id === txnId) {
-              setSelectedTransaction({ ...updatedTxn });
+              dispatch({ type: "UPDATE_SELECTED_TRANSACTION", payload: { ...updatedTxn } });
             }
           }, 500);
         } else {
@@ -1886,6 +1865,7 @@ export default function PersonChatPage() {
       selectedTransaction,
       transactions,
       udharList,
+      dispatch,
     ]
   );
 
@@ -2021,7 +2001,7 @@ export default function PersonChatPage() {
 
             <div
               className="flex cursor-pointer items-center gap-3 active:scale-[0.98] transition-transform"
-              onClick={() => setShowProfile(true)}
+              onClick={() => dispatch({ type: "SET_SHOW_PROFILE", payload: true })}
             >
               <PersonAvatar
                 name={person.companyName || person.name}
@@ -2057,7 +2037,7 @@ export default function PersonChatPage() {
 
             <div className="relative">
               <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={() => dispatch({ type: "SET_SHOW_MENU", payload: !showMenu })}
                 className="rounded-full p-2.5 transition-colors hover:bg-accent"
               >
                 <MoreVertical className="h-5 w-5" />
@@ -2065,12 +2045,15 @@ export default function PersonChatPage() {
 
               {showMenu && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => dispatch({ type: "SET_SHOW_MENU", payload: false })}
+                  />
                   <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg">
                     <button
                       onClick={() => {
-                        setShowMenu(false);
-                        setEditFormOpen(true);
+                        dispatch({ type: "SET_SHOW_MENU", payload: false });
+                        dispatch({ type: "SET_EDIT_FORM_OPEN", payload: true });
                       }}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent"
                     >
@@ -2079,8 +2062,8 @@ export default function PersonChatPage() {
                     </button>
                     <button
                       onClick={() => {
-                        setShowMenu(false);
-                        setDeleteDialogOpen(true);
+                        dispatch({ type: "SET_SHOW_MENU", payload: false });
+                        dispatch({ type: "SET_DELETE_DIALOG_OPEN", payload: true });
                       }}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-destructive transition-colors hover:bg-destructive/10"
                     >
@@ -2328,11 +2311,10 @@ export default function PersonChatPage() {
                 <p className="mb-4 text-muted-foreground">No transactions yet</p>
                 <button
                   onClick={() => {
-                    setEditingTransaction(null); // Clear any editing state
                     if (isSupplier) {
-                      setTransactionFormOpen(true);
+                      dispatch({ type: "OPEN_TRANSACTION_FORM", payload: {} });
                     } else {
-                      setUdharFormOpen(true);
+                      dispatch({ type: "OPEN_UDHAR_FORM", payload: {} });
                     }
                   }}
                   className="btn-hero"
@@ -2371,8 +2353,8 @@ export default function PersonChatPage() {
                       isPaid={isPaid}
                       isHighlighted={highlightedTxn === txn.id}
                       onTap={txn => {
-                        setFocusPaymentId(null);
-                        setSelectedTransaction(txn);
+                        dispatch({ type: "SET_FOCUS_PAYMENT_ID", payload: null });
+                        dispatch({ type: "OPEN_TXN_DETAIL", payload: txn });
                       }}
                       onPay={handleOpenPaymentForm}
                       onViewImages={handleViewImages}
@@ -2410,18 +2392,19 @@ export default function PersonChatPage() {
             const notes = isNaN(Number(value)) || value.trim() === "" ? value : "";
             const files = attachments.map(item => item.file).filter(Boolean);
 
-            setEditingTransaction(null);
-            setDraftInitialData({ amount, notes });
-            setQuickCaptureData({
-              ...(isSupplier ? { supplierId: id } : { customerId: id }),
-              images: files,
-            });
             setChatInputValue("");
 
+            const payload = {
+              draft: { amount, notes },
+              quickCapture: {
+                ...(isSupplier ? { supplierId: id } : { customerId: id }),
+                images: files,
+              },
+            };
             if (isSupplier) {
-              setTransactionFormOpen(true);
+              dispatch({ type: "OPEN_TRANSACTION_FORM", payload });
             } else {
-              setUdharFormOpen(true);
+              dispatch({ type: "OPEN_UDHAR_FORM", payload });
             }
           }}
           disabled={!isOnline}
@@ -2439,7 +2422,7 @@ export default function PersonChatPage() {
 
           {/* Bills Gallery Button */}
           <button
-            onClick={() => setBillsGalleryOpen(true)}
+            onClick={() => dispatch({ type: "SET_BILLS_GALLERY_OPEN", payload: true })}
             className="flex items-center gap-1.5 rounded-xl bg-muted px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
           >
             <Images className="h-3 w-3" />
@@ -2491,14 +2474,11 @@ export default function PersonChatPage() {
           txn={selectedTransaction}
           isSupplier={isSupplier}
           focusPaymentId={focusPaymentId}
-          onClose={() => {
-            setSelectedTransaction(null);
-            setFocusPaymentId(null);
-          }}
+          onClose={() => dispatch({ type: "CLOSE_TXN_DETAIL" })}
           onEdit={handleEditTransaction}
           onDelete={txn => {
-            setTransactionToDelete(txn);
-            setDeleteTransactionDialog(true);
+            dispatch({ type: "SET_TRANSACTION_TO_DELETE", payload: txn });
+            dispatch({ type: "SET_DELETE_TRANSACTION_DIALOG", payload: true });
           }}
           onViewImages={handleViewImages}
           onRecordPayment={handleOpenPaymentForm}
@@ -2511,10 +2491,7 @@ export default function PersonChatPage() {
       {paymentFormOpen && paymentTransaction && (
         <PaymentFormModal
           txn={paymentTransaction}
-          onClose={() => {
-            setPaymentFormOpen(false);
-            setPaymentTransaction(null);
-          }}
+          onClose={() => dispatch({ type: "CLOSE_PAYMENT" })}
           onSubmit={handleRecordPayment}
           isSubmitting={isSubmittingPayment}
         />
@@ -2525,10 +2502,7 @@ export default function PersonChatPage() {
         <EditPaymentModal
           payment={editingPayment}
           txn={editingPaymentTxn}
-          onClose={() => {
-            setEditingPayment(null);
-            setEditingPaymentTxn(null);
-          }}
+          onClose={() => dispatch({ type: "CLOSE_EDIT_PAYMENT" })}
           onSave={handleSavePaymentEdit}
           isSubmitting={isSubmittingPaymentEdit}
         />
@@ -2537,18 +2511,21 @@ export default function PersonChatPage() {
       {/* Bills Gallery Drawer */}
       <BillsGalleryModal
         open={billsGalleryOpen}
-        onOpenChange={setBillsGalleryOpen}
+        onOpenChange={open => dispatch({ type: "SET_BILLS_GALLERY_OPEN", payload: open })}
         transactions={personTransactions}
         onViewImages={handleViewImages}
         onGoToBill={txnId => {
-          setBillsGalleryOpen(false);
+          dispatch({ type: "SET_BILLS_GALLERY_OPEN", payload: false });
           scrollToTransaction(txnId);
         }}
       />
 
       {/* Profile Sheet */}
       {showProfile && (
-        <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setShowProfile(false)}>
+        <div
+          className="fixed inset-0 z-50 bg-black/60"
+          onClick={() => dispatch({ type: "SET_SHOW_PROFILE", payload: false })}
+        >
           <div
             className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto overflow-x-hidden overscroll-contain rounded-t-3xl bg-card"
             onClick={e => e.stopPropagation()}
@@ -2567,7 +2544,7 @@ export default function PersonChatPage() {
                 )}
                 onClick={() => {
                   if (person.profilePicture) {
-                    setProfileImageViewerOpen(true);
+                    dispatch({ type: "SET_PROFILE_IMAGE_VIEWER_OPEN", payload: true });
                   }
                 }}
               >
@@ -2645,15 +2622,6 @@ export default function PersonChatPage() {
                     Pay via UPI
                   </button>
                 )}
-                {/* {person.phone && (
-                  <button
-                    onClick={handleGPayChat}
-                    className="p-4 bg-muted rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent transition-colors"
-                  >
-                    <Send className="h-5 w-5" />
-                    Open GPay
-                  </button>
-                )} */}
               </div>
             </div>
           </div>
@@ -2665,29 +2633,23 @@ export default function PersonChatPage() {
         <>
           <SupplierForm
             open={editFormOpen}
-            onOpenChange={setEditFormOpen}
+            onOpenChange={open => dispatch({ type: "SET_EDIT_FORM_OPEN", payload: open })}
             onSubmit={handleEditPerson}
             initialData={person}
             title="Edit Supplier"
           />
           <TransactionForm
             open={transactionFormOpen}
-            onOpenChange={open => {
-              setTransactionFormOpen(open);
-              if (!open) {
-                setEditingTransaction(null);
-                setDraftInitialData(null);
-                setQuickCaptureData(null);
-              }
-            }}
+            onOpenChange={open =>
+              dispatch({ type: "SET_TRANSACTION_FORM_OPEN", payload: { open } })
+            }
             onSubmit={
               editingTransaction?.id
                 ? data =>
                     updateTransaction(editingTransaction.id, data).then(r => {
                       if (r.success) {
                         toast.success("Updated");
-                        setTransactionFormOpen(false);
-                        setEditingTransaction(null);
+                        dispatch({ type: "SET_TRANSACTION_FORM_OPEN", payload: { open: false } });
                       }
                       return r;
                     })
@@ -2705,29 +2667,21 @@ export default function PersonChatPage() {
         <>
           <CustomerForm
             open={editFormOpen}
-            onOpenChange={setEditFormOpen}
+            onOpenChange={open => dispatch({ type: "SET_EDIT_FORM_OPEN", payload: open })}
             onSubmit={handleEditPerson}
             initialData={person}
             title="Edit Customer"
           />
           <UdharForm
             open={udharFormOpen}
-            onOpenChange={open => {
-              setUdharFormOpen(open);
-              if (!open) {
-                setEditingTransaction(null);
-                setDraftInitialData(null);
-                setQuickCaptureData(null);
-              }
-            }}
+            onOpenChange={open => dispatch({ type: "SET_UDHAR_FORM_OPEN", payload: { open } })}
             onSubmit={
               editingTransaction?.id
                 ? data =>
                     updateUdhar(editingTransaction.id, data).then(r => {
                       if (r.success) {
                         toast.success("Updated");
-                        setUdharFormOpen(false);
-                        setEditingTransaction(null);
+                        dispatch({ type: "SET_UDHAR_FORM_OPEN", payload: { open: false } });
                       }
                       return r;
                     })
@@ -2746,7 +2700,7 @@ export default function PersonChatPage() {
       {/* Delete Person Confirmation */}
       <DeleteConfirmDialog
         open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
+        onOpenChange={open => dispatch({ type: "SET_DELETE_DIALOG_OPEN", payload: open })}
         onConfirm={handleDeletePerson}
         title={`Delete ${isSupplier ? "Supplier" : "Customer"}`}
         description={`Are you sure you want to delete "${person.companyName || person.name}"? This will also delete all associated transactions.`}
@@ -2755,7 +2709,9 @@ export default function PersonChatPage() {
       {/* Delete Transaction Confirmation */}
       <DeleteConfirmDialog
         open={deleteTransactionDialog}
-        onOpenChange={setDeleteTransactionDialog}
+        onOpenChange={open =>
+          dispatch({ type: "SET_DELETE_TRANSACTION_DIALOG", payload: open })
+        }
         onConfirm={handleDeleteTransaction}
         title="Delete Transaction"
         description={
@@ -2768,7 +2724,7 @@ export default function PersonChatPage() {
       {/* Image Viewer */}
       <ImageGalleryViewer
         open={imageViewerOpen}
-        onOpenChange={setImageViewerOpen}
+        onOpenChange={open => dispatch({ type: "SET_IMAGE_VIEWER_OPEN", payload: open })}
         images={viewerImages}
         imageRefs={viewerImages}
         imageOcrMap={viewerOcrMap}
@@ -2781,7 +2737,9 @@ export default function PersonChatPage() {
           src={resolveImageUrl(person.profilePicture)}
           alt={person.companyName || person.name}
           open={profileImageViewerOpen}
-          onOpenChange={setProfileImageViewerOpen}
+          onOpenChange={open =>
+            dispatch({ type: "SET_PROFILE_IMAGE_VIEWER_OPEN", payload: open })
+          }
         />
       )}
     </div>

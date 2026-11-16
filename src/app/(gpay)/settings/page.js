@@ -51,6 +51,7 @@ import { useCustomers } from "@/hooks/useCustomers";
 import { useStorage } from "@/hooks/useStorage";
 import { useBiometricLock } from "@/hooks/useBiometricLock";
 import { usePreventBodyScroll } from "@/hooks/usePreventBodyScroll";
+import { useAsyncTask } from "@/hooks/useAsyncTask";
 import { exportSupplierTransactionsPDF, exportCustomerTransactionsPDF } from "@/lib/export";
 import { TransactionForm } from "@/components/TransactionForm";
 import JSZip from "jszip";
@@ -610,10 +611,13 @@ const BROKEN_BILLS_CACHE_KEY = "broken_bills_report_v1";
 
 function BackupModal({ open, onClose }) {
   const [loading, setLoading] = useState(false);
-  const [cleanupAnalysis, setCleanupAnalysis] = useState(null);
-  const [cleanupLoading, setCleanupLoading] = useState(false);
-  const [brokenBillsReport, setBrokenBillsReport] = useState(null);
-  const [brokenBillsLoading, setBrokenBillsLoading] = useState(false);
+  const cleanupTask = useAsyncTask();
+  const brokenBillsTask = useAsyncTask();
+  const cleanupAnalysis = cleanupTask.data;
+  const cleanupLoading = cleanupTask.isLoading;
+  const brokenBillsReport = brokenBillsTask.data;
+  const brokenBillsLoading = brokenBillsTask.isLoading;
+  const hydrateBrokenBillsCache = brokenBillsTask.hydrate;
   const [reuploadLoading, setReuploadLoading] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -644,47 +648,50 @@ function BackupModal({ open, onClose }) {
 
       try {
         const cached = sessionStorage.getItem(BROKEN_BILLS_CACHE_KEY);
-        if (cached) setBrokenBillsReport(JSON.parse(cached));
+        if (cached) hydrateBrokenBillsCache(JSON.parse(cached));
       } catch {
         /* ignore */
       }
     }
-  }, [open]);
+  }, [open, hydrateBrokenBillsCache]);
 
-  const persistBrokenBillsReport = useCallback(data => {
-    setBrokenBillsReport(data);
-    try {
-      sessionStorage.setItem(BROKEN_BILLS_CACHE_KEY, JSON.stringify(data));
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const persistBrokenBillsReport = useCallback(
+    data => {
+      brokenBillsTask.hydrate(data);
+      try {
+        sessionStorage.setItem(BROKEN_BILLS_CACHE_KEY, JSON.stringify(data));
+      } catch {
+        /* ignore */
+      }
+    },
+    [brokenBillsTask]
+  );
 
   const handleScanBrokenBills = useCallback(async () => {
     if (brokenBillsScanningRef.current) return;
     brokenBillsScanningRef.current = true;
-    setBrokenBillsLoading(true);
-    try {
+    const outcome = await brokenBillsTask.run(async () => {
       const response = await fetch("/api/images/broken-bills");
       const result = await response.json();
-      if (result.success) {
-        persistBrokenBillsReport(result.data);
-        if (result.data.brokenTransactionCount === 0) {
-          toast.success("All bill images load correctly.");
-        } else {
-          toast.error(
-            `${result.data.brokenTransactionCount} transactions with broken bill photos`
-          );
-        }
-      } else {
-        toast.error(result.error || "Scan failed");
+      if (!result.success) {
+        throw new Error(result.error || "Scan failed");
       }
-    } catch {
-      toast.error("Failed to scan bill images");
-    }
-    setBrokenBillsLoading(false);
+      return result.data;
+    });
     brokenBillsScanningRef.current = false;
-  }, [persistBrokenBillsReport]);
+    if (outcome.success) {
+      persistBrokenBillsReport(outcome.data);
+      if (outcome.data.brokenTransactionCount === 0) {
+        toast.success("All bill images load correctly.");
+      } else {
+        toast.error(
+          `${outcome.data.brokenTransactionCount} transactions with broken bill photos`
+        );
+      }
+    } else {
+      toast.error(outcome.error || "Failed to scan bill images");
+    }
+  }, [brokenBillsTask, persistBrokenBillsReport]);
 
   const handleOpenReupload = useCallback(async item => {
     if (!item?.transactionId || reuploadLoading) return;
@@ -859,22 +866,21 @@ function BackupModal({ open, onClose }) {
   };
 
   const handleAnalyzeStorage = async () => {
-    setCleanupLoading(true);
-    try {
+    const outcome = await cleanupTask.run(async () => {
       const response = await fetch("/api/storage/cleanup");
       const result = await response.json();
-      if (result.success) {
-        setCleanupAnalysis(result);
-        if (result.analysis.orphanedCount === 0) {
-          toast.success("Storage is clean! No unused files found.");
-        }
-      } else {
-        toast.error(result.error || "Analysis failed");
+      if (!result.success) {
+        throw new Error(result.error || "Analysis failed");
       }
-    } catch {
-      toast.error("Failed to analyze storage");
+      return result;
+    });
+    if (outcome.success) {
+      if (outcome.data.analysis.orphanedCount === 0) {
+        toast.success("Storage is clean! No unused files found.");
+      }
+    } else {
+      toast.error(outcome.error || "Failed to analyze storage");
     }
-    setCleanupLoading(false);
   };
 
   const handleCleanupStorage = async () => {
@@ -883,24 +889,24 @@ function BackupModal({ open, onClose }) {
       return;
     }
 
-    setCleanupLoading(true);
-    try {
+    const outcome = await cleanupTask.run(async () => {
       const response = await fetch("/api/storage/cleanup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: true }),
       });
       const result = await response.json();
-      if (result.success) {
-        toast.success(`Deleted ${result.deleted} unused files`);
-        setCleanupAnalysis(null);
-      } else {
-        toast.error(result.error || "Cleanup failed");
+      if (!result.success) {
+        throw new Error(result.error || "Cleanup failed");
       }
-    } catch {
-      toast.error("Failed to cleanup storage");
+      return result;
+    });
+    if (outcome.success) {
+      toast.success(`Deleted ${outcome.data.deleted} unused files`);
+      cleanupTask.reset();
+    } else {
+      toast.error(outcome.error || "Failed to cleanup storage");
     }
-    setCleanupLoading(false);
   };
 
   return (

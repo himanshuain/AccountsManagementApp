@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
+import { computePaymentStatus } from "@/lib/computePaymentStatus";
 
 const TRANSACTIONS_KEY = ["transactions"];
 const STATS_KEY = ["stats"];
@@ -348,7 +349,7 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
       const updates = {
         payments: [...(transaction.payments || []), newPayment],
         paidAmount: newPaidAmount,
-        paymentStatus: newPaidAmount >= totalAmount ? "paid" : "partial",
+        paymentStatus: computePaymentStatus(newPaidAmount, totalAmount),
       };
 
       return await updateTransaction(id, updates);
@@ -433,13 +434,7 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
       const newPaidAmount = (transaction.paidAmount || 0) + amountDiff;
       const totalAmount = transaction.amount || 0;
 
-      // Determine new payment status
-      let paymentStatus = "pending";
-      if (newPaidAmount >= totalAmount) {
-        paymentStatus = "paid";
-      } else if (newPaidAmount > 0) {
-        paymentStatus = "partial";
-      }
+      const paymentStatus = computePaymentStatus(newPaidAmount, totalAmount);
 
       return await updateTransaction(transactionId, {
         payments: payments,
@@ -471,13 +466,7 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
       const newPaidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
       const totalAmount = transaction.amount || 0;
 
-      // Determine new payment status
-      let paymentStatus = "pending";
-      if (newPaidAmount >= totalAmount) {
-        paymentStatus = "paid";
-      } else if (newPaidAmount > 0) {
-        paymentStatus = "partial";
-      }
+      const paymentStatus = computePaymentStatus(newPaidAmount, totalAmount);
 
       return await updateTransaction(transactionId, {
         payments: payments,
