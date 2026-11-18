@@ -10,7 +10,6 @@ import { FormPhotoStrip } from "@/components/form/FormPhotoStrip";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { CustomerForm } from "./CustomerForm";
 import { resolveImageUrl } from "@/lib/image-url";
-import { applyUploadOcrResults, pruneImageOcrMap } from "@/lib/image-ocr-map";
 import { cn } from "@/lib/utils";
 import {
   FormSection,
@@ -49,7 +48,6 @@ export function UdharForm({
   const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [khataPhotos, setKhataPhotos] = useState([]);
-  const [khataImageOcr, setKhataImageOcr] = useState(initialData?.khataImageOcr || {});
   const [pendingFiles, setPendingFiles] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId || "");
   const [customerFormOpen, setCustomerFormOpen] = useState(false);
@@ -106,7 +104,6 @@ export function UdharForm({
       if (initialData.khataPhotos && initialData.khataPhotos.length > 0) {
         setKhataPhotos(initialData.khataPhotos);
       }
-      setKhataImageOcr(initialData.khataImageOcr || {});
       if (initialData.customerId) {
         setSelectedCustomerId(initialData.customerId);
       }
@@ -126,7 +123,6 @@ export function UdharForm({
   useEffect(() => {
     if (open && !initialData && !quickCaptureData?.images?.length) {
       setKhataPhotos([]);
-      setKhataImageOcr({});
       setPendingFiles([]);
       setSelectedCustomerId(defaultCustomerId || "");
       reset(defaultFormValues);
@@ -145,11 +141,6 @@ export function UdharForm({
       u8arr[n] = bstr.charCodeAt(n);
     }
     return new File([u8arr], filename, { type: mime });
-  };
-
-  const captureKhataOcr = (storageKey, ocrText) => {
-    if (!storageKey || !ocrText) return;
-    setKhataImageOcr(prev => applyUploadOcrResults(prev, [storageKey], [ocrText]));
   };
 
   const handleFormSubmit = async data => {
@@ -173,9 +164,7 @@ export function UdharForm({
         if (!response.ok) {
           throw new Error(payload.error || "Khata photo upload failed");
         }
-        const storageKey = payload.storageKey || payload.url;
-        captureKhataOcr(storageKey, payload.ocrText);
-        return storageKey;
+        return payload.storageKey || payload.url;
       };
 
       const uploadedPhotos = [];
@@ -203,7 +192,6 @@ export function UdharForm({
         ...data,
         customerId: selectedCustomerId,
         khataPhotos: uploadedPhotos,
-        khataImageOcr: pruneImageOcrMap(khataImageOcr, uploadedPhotos),
         amount: Number(data.amount) || 0,
         // Keep for backward compatibility
         cashAmount: Number(data.amount) || 0,
@@ -212,7 +200,6 @@ export function UdharForm({
       clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setKhataPhotos([]);
-      setKhataImageOcr({});
       setPendingFiles([]);
       setSelectedCustomerId(defaultCustomerId || "");
       onOpenChange(false);
@@ -235,7 +222,6 @@ export function UdharForm({
     deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
     setKhataPhotos(initialKhata);
-    setKhataImageOcr(initialData?.khataImageOcr || {});
     setPendingFiles([]);
     setSelectedCustomerId(initialData?.customerId || defaultCustomerId || "");
     onOpenChange(false);
@@ -309,7 +295,6 @@ export function UdharForm({
                 value={khataPhotos}
                 onChange={imgs => {
                   setKhataPhotos(imgs);
-                  setKhataImageOcr(prev => pruneImageOcrMap(prev, imgs));
                 }}
                 maxImages={5}
                 disabled={false}
@@ -321,7 +306,6 @@ export function UdharForm({
                   removeSessionStorageKeys(sessionUploadKeysRef, keys)
                 }
                 folder="khata"
-                onImageOcrCaptured={captureKhataOcr}
               />
             ) : (
               <FormPhotoStrip
@@ -330,7 +314,6 @@ export function UdharForm({
                 onChange={({ images, pendingFiles: nextPending }) => {
                   setKhataPhotos(images);
                   setPendingFiles(nextPending);
-                  setKhataImageOcr(prev => pruneImageOcrMap(prev, images));
                 }}
                 maxImages={5}
                 disabled

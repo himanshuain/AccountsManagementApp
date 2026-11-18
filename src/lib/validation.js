@@ -107,20 +107,6 @@ export const transactionBillImagesSchema = z
   .optional()
   .nullable();
 
-const imageOcrEntrySchema = z.union([
-  z.string().max(100_000),
-  z.object({
-    text: z.string().max(100_000),
-    latin: z.string().max(100_000).optional().nullable(),
-  }),
-]);
-
-/** storage key → OCR text from Tesseract (optional romanized `latin` for Hindi search) */
-export const imageOcrMapSchema = z
-  .record(z.string().max(500), imageOcrEntrySchema)
-  .optional()
-  .nullable();
-
 /** Customer / udhar photo arrays (larger limit than transaction bills) */
 export const persistedImageArraySchema = z
   .array(storedImageRefSchema)
@@ -174,9 +160,7 @@ export function validatePersistedImagesOnPutBody(body) {
   }
 
   if (Object.prototype.hasOwnProperty.call(body, "billImageOcr")) {
-    const r = imageOcrMapSchema.safeParse(body.billImageOcr);
-    if (!r.success) return { ok: false, error: formatZodError(r.error) };
-    body.billImageOcr = r.data || {};
+    delete body.billImageOcr;
   }
 
   if (Object.prototype.hasOwnProperty.call(body, "khataPhotos")) {
@@ -186,9 +170,7 @@ export function validatePersistedImagesOnPutBody(body) {
   }
 
   if (Object.prototype.hasOwnProperty.call(body, "khataImageOcr")) {
-    const r = imageOcrMapSchema.safeParse(body.khataImageOcr);
-    if (!r.success) return { ok: false, error: formatZodError(r.error) };
-    body.khataImageOcr = r.data || {};
+    delete body.khataImageOcr;
   }
 
   if (Object.prototype.hasOwnProperty.call(body, "payments")) {
@@ -239,7 +221,6 @@ export const transactionSchema = z.object({
   payments: paymentsArraySchema,
   notes: longTextSchema,
   billImages: transactionBillImagesSchema,
-  billImageOcr: imageOcrMapSchema,
 });
 
 // Customer validation schema
@@ -268,7 +249,6 @@ export const udharSchema = z.object({
   paymentStatus: paymentStatusSchema,
   payments: paymentsArraySchema,
   khataPhotos: persistedImageArraySchema,
-  khataImageOcr: imageOcrMapSchema,
   billImage: persistedSingleImageFieldSchema,
   itemDescription: longTextSchema,
   notes: longTextSchema,

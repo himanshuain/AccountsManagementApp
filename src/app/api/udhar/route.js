@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { udharSchema, validateBody } from "@/lib/validation";
-import { pruneImageOcrMap } from "@/lib/image-ocr-map";
-import { deferUdharKhataOcr } from "@/lib/server/deferred-image-ocr";
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -143,11 +140,10 @@ export async function POST(request) {
     const now = new Date().toISOString();
 
     const khataPhotos = validation.data.khataPhotos || [];
-    const khataImageOcr = pruneImageOcrMap(validation.data.khataImageOcr || {}, khataPhotos);
+    const { khataImageOcr: _dropOcr, ...udharPayload } = validation.data;
 
     const udharData = {
-      ...validation.data,
-      khataImageOcr,
+      ...udharPayload,
       id: validation.data.id || crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
@@ -169,12 +165,6 @@ export async function POST(request) {
     }
 
     const created = toCamelCase(data);
-    deferUdharKhataOcr(
-      created.id,
-      khataPhotos,
-      {},
-      validation.data.khataImageOcr || {}
-    );
 
     // Update customer's total pending
     if (validation.data.customerId) {

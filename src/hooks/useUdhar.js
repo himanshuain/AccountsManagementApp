@@ -5,6 +5,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tansta
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 import { computePaymentStatus } from "@/lib/computePaymentStatus";
 import { buildLumpsumSiblingPaymentUpdates } from "@/lib/lumpsum-reconcile";
+import { planLumpsumReplace, planLumpsumRemoval } from "@/lib/lumpsum-allocate";
 
 const UDHAR_KEY = ["udhar"];
 const CUSTOMERS_KEY = ["customers"];
@@ -439,6 +440,91 @@ export function useUdhar({ fetchAll = false } = {}) {
     [udharList, updateUdhar]
   );
 
+  const replaceLumpsum = useCallback(
+    async ({
+      lumpsumId = null,
+      childPaymentIds = [],
+      lumpsumTotal,
+      paymentDate = null,
+      notes = "",
+      isReturn = false,
+      receiptUrls = null,
+    }) => {
+      const childIds = new Set(childPaymentIds.filter(Boolean).map(String));
+      const getUdharTotal = u =>
+        Number(u.amount) || (Number(u.cashAmount) || 0) + (Number(u.onlineAmount) || 0);
+
+      const { ok, error, updates } = planLumpsumReplace(udharList, {
+        lumpsumId,
+        childPaymentIds: childIds,
+        lumpsumTotal,
+        paymentDate,
+        notes,
+        isReturn,
+        receiptUrls,
+        getTotalAmount: getUdharTotal,
+        getMeta: u => ({
+          description: u.description || u.notes,
+          date: u.date || u.createdAt,
+        }),
+      });
+
+      if (!ok) {
+        return { success: false, error: error || "Failed to plan lumpsum update" };
+      }
+
+      for (const patch of updates) {
+        const result = await updateUdhar(patch.id, {
+          payments: patch.payments,
+          paidAmount: patch.paidAmount,
+          paidCash: patch.paidAmount,
+          paymentStatus: patch.paymentStatus,
+          paidDate: patch.paidDate,
+        });
+        if (!result?.success) {
+          return result;
+        }
+      }
+
+      return { success: true };
+    },
+    [udharList, updateUdhar]
+  );
+
+  const removeLumpsum = useCallback(
+    async ({ lumpsumId = null, childPaymentIds = [] }) => {
+      const childIds = new Set(childPaymentIds.filter(Boolean).map(String));
+      const getUdharTotal = u =>
+        Number(u.amount) || (Number(u.cashAmount) || 0) + (Number(u.onlineAmount) || 0);
+
+      const { ok, error, updates } = planLumpsumRemoval(udharList, {
+        lumpsumId,
+        childPaymentIds: childIds,
+        getTotalAmount: getUdharTotal,
+      });
+
+      if (!ok) {
+        return { success: false, error: error || "Failed to remove lumpsum" };
+      }
+
+      for (const patch of updates) {
+        const result = await updateUdhar(patch.id, {
+          payments: patch.payments,
+          paidAmount: patch.paidAmount,
+          paidCash: patch.paidAmount,
+          paymentStatus: patch.paymentStatus,
+          paidDate: patch.paidDate,
+        });
+        if (!result?.success) {
+          return result;
+        }
+      }
+
+      return { success: true, billCount: updates.length };
+    },
+    [udharList, updateUdhar]
+  );
+
   const getByCustomer = useCallback(
     customerId => {
       return udharList.filter(u => u.customerId === customerId);
@@ -499,6 +585,8 @@ export function useUdhar({ fetchAll = false } = {}) {
     markFullPaid,
     updatePayment,
     deletePayment,
+    replaceLumpsum,
+    removeLumpsum,
     getByCustomer,
     getPending,
     getRecent,

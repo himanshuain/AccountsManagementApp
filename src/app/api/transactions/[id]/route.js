@@ -7,9 +7,6 @@ import {
   isImageRefInIndex,
 } from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
-import { pruneImageOcrMap } from "@/lib/image-ocr-map";
-import { deferTransactionBillOcr } from "@/lib/server/deferred-image-ocr";
-
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
   if (!obj || typeof obj !== "object") return obj;
@@ -83,7 +80,7 @@ export async function PUT(request, { params }) {
     // Get existing transaction to check for image changes
     const { data: existingTransaction } = await supabase
       .from("transactions")
-      .select("bill_images, bill_image_ocr, payments")
+      .select("bill_images, payments")
       .eq("id", id)
       .single();
 
@@ -101,18 +98,11 @@ export async function PUT(request, { params }) {
       updatedAt: new Date().toISOString(),
     };
 
-    let deferOcr = null;
-    if (Object.prototype.hasOwnProperty.call(body, "billImages")) {
-      const billImages = updates.billImages || [];
-      updates.billImageOcr = pruneImageOcrMap(
-        updates.billImageOcr || body.billImageOcr || {},
-        billImages
-      );
-      deferOcr = {
-        billImages,
-        existing: existingTransaction?.bill_image_ocr || {},
-        client: body.billImageOcr || updates.billImageOcr || {},
-      };
+    if (Object.prototype.hasOwnProperty.call(body, "billImageOcr")) {
+      delete updates.billImageOcr;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "bill_image_ocr")) {
+      delete updates.bill_image_ocr;
     }
 
     const record = toSnakeCase(updates);
@@ -127,10 +117,6 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update transaction failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-
-    if (deferOcr) {
-      deferTransactionBillOcr(id, deferOcr.billImages, deferOcr.existing, deferOcr.client);
     }
 
     // Clean up old images that were removed (best-effort, non-blocking).

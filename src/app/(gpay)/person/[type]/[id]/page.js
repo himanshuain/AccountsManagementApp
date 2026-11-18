@@ -51,7 +51,6 @@ import { usePersonProfile } from "@/hooks/usePersonProfile";
 import { profileOverlayBlocksBackground } from "@/lib/profileOverlayGate";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { recordMatchesBillSearch } from "@/lib/record-search";
-import { mergeTxnImageOcrMaps } from "@/lib/image-ocr-map";
 import { PersonAvatar } from "@/components/gpay/PersonAvatar";
 import { PersonProfileSkeleton } from "@/components/gpay/GPaySkeletons";
 import { TransactionForm } from "@/components/TransactionForm";
@@ -63,7 +62,7 @@ import {
   PhotoGalleryViewer as ImageGalleryViewer,
   PhotoViewer as ImageViewer,
 } from "@/components/PhotoViewer";
-import { LumpsumPaymentDrawer } from "@/components/gpay/LumpsumPaymentDrawer";
+import { LumpsumPaymentDrawer, EditLumpsumPaymentDrawer } from "@/components/gpay/LumpsumPaymentDrawer";
 import { ChatInputBar } from "@/components/gpay/ChatInputBar";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { exportSupplierTransactionsPDF } from "@/lib/export";
@@ -272,7 +271,7 @@ function TransactionDetailModal({
       {hasImages ? (
         <SwipeCarousel
           images={resolvedImages}
-          onImageClick={(img, idx) => onViewImages(images, idx, mergeTxnImageOcrMaps(txn))}
+          onImageClick={(img, idx) => onViewImages(images, idx)}
           className="mx-4 mb-4"
           aspectRatio="aspect-[4/3]"
           showGradientEdges={false}
@@ -911,10 +910,9 @@ function PaymentLedgerEntryCard({ entry, onGoToBill }) {
   );
 }
 
-function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndoLumpsum }) {
+function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndoLumpsum, onEditLumpsum }) {
   const [confirmUndo, setConfirmUndo] = useState(false);
   const [isUndoing, setIsUndoing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const billCount = group.children.length;
   const allocatedTotal = group.children.reduce(
     (sum, e) => sum + (Number(e.payment.amount) || 0),
@@ -995,15 +993,17 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndo
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border shadow-sm transition-colors",
+        "relative rounded-2xl border shadow-sm transition-colors",
         expanded
           ? "border-rose-500/20 bg-muted/40 ring-1 ring-rose-500/10 dark:border-rose-400/15 dark:bg-muted/30 dark:ring-rose-400/10"
           : "border-black/[0.1] bg-card dark:border-white/[0.1] dark:shadow-none dark:ring-1 dark:ring-white/[0.06]"
       )}
     >
-      <div
+      <button
+        type="button"
+        onClick={onToggle}
         className={cn(
-          "flex w-full items-start gap-3 p-3.5 transition-colors",
+          "flex w-full items-start gap-3 p-3.5 text-left transition-colors active:scale-[0.995]",
           expanded ? "bg-muted/25 dark:bg-muted/20" : "hover:bg-accent/40"
         )}
       >
@@ -1011,119 +1011,98 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndo
           <Wallet className="h-5 w-5 text-rose-600 dark:text-rose-400" strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-                <span className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
-                  Lumpsum
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+              <span className="shrink-0 rounded-full border border-rose-500/25 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                Lumpsum
+              </span>
+              <span className="shrink-0 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                {billCount} bill{billCount !== 1 ? "s" : ""}
+              </span>
+              {isReturn && (
+                <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                  Goods return
                 </span>
-                <span className="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
-                  {billCount} bill{billCount !== 1 ? "s" : ""}
-                </span>
-                {isReturn && (
-                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-                    Goods return
-                  </span>
-                )}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation();
-                      setMenuOpen(v => !v);
-                    }}
-                    className="-my-1 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    aria-label="Lumpsum options"
-                  >
-                    <MoreVertical className="h-4 w-4" strokeWidth={2} />
-                  </button>
-                  {menuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        aria-hidden
-                        onClick={() => setMenuOpen(false)}
-                      />
-                      <div className="absolute left-0 top-full z-50 mt-1 min-w-[12.75rem] overflow-hidden rounded-xl border border-border/60 bg-card py-1 shadow-lg dark:ring-1 dark:ring-white/[0.06]">
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setMenuOpen(false);
-                            setConfirmUndo(true);
-                          }}
-                          className="flex w-full items-center gap-2.5 whitespace-nowrap px-3 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-                        >
-                          <Undo2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                          Undo lumpsum payment
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onToggle}
-                className="w-full text-left active:scale-[0.995]"
-              >
-                <p className="text-sm font-semibold leading-snug text-foreground">
-                  <DateWithRelative
-                    date={group.date}
-                    dateFormat="dd MMM yyyy"
-                    timeFormat="h:mm a"
-                    timeFrom={group.date}
-                  />
-                </p>
-                {displayNote && (
-                  <p className="mt-2 line-clamp-2 text-[10px] text-muted-foreground">{displayNote}</p>
-                )}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={onToggle}
-              className="flex shrink-0 flex-col items-end gap-0.5 active:scale-[0.995]"
-            >
-              <BillPaidTotalSlash
-                paid={lumpsumPaidShown}
-                total={billsPendingAtPayment > 0 ? billsPendingAtPayment : allocatedTotal}
-                className="text-right"
-                isReturn={isReturn}
-              />
-              {(billsStillPending > 0 || lumpsumUnapplied > 0) && (
-                <p className="text-[10px] font-medium tabular-nums text-amber-800 dark:text-amber-300">
-                  {billsStillPending > 0 && (
-                    <span>
-                      Remaining ₹{billsStillPending.toLocaleString("en-IN")} on these bills
-                    </span>
-                  )}
-                  {billsStillPending > 0 && lumpsumUnapplied > 0 && (
-                    <span className="text-muted-foreground/70"> · </span>
-                  )}
-                  {lumpsumUnapplied > 0 && (
-                    <span className="text-muted-foreground">
-                      ₹{lumpsumUnapplied.toLocaleString("en-IN")} unapplied
-                    </span>
-                  )}
-                </p>
               )}
+            </div>
+            <div className="flex shrink-0 items-start gap-1">
+              <div className="flex flex-col items-end gap-0.5">
+                <BillPaidTotalSlash
+                  paid={lumpsumPaidShown}
+                  total={billsPendingAtPayment > 0 ? billsPendingAtPayment : allocatedTotal}
+                  className="text-right"
+                  isReturn={isReturn}
+                />
+                {(billsStillPending > 0 || lumpsumUnapplied > 0) && (
+                  <p className="max-w-[11.5rem] text-right text-[10px] font-medium tabular-nums text-amber-800 dark:text-amber-300">
+                    {billsStillPending > 0 && (
+                      <span>
+                        Remaining ₹{billsStillPending.toLocaleString("en-IN")} on these bills
+                      </span>
+                    )}
+                    {billsStillPending > 0 && lumpsumUnapplied > 0 && (
+                      <span className="text-muted-foreground/70"> · </span>
+                    )}
+                    {lumpsumUnapplied > 0 && (
+                      <span className="text-muted-foreground">
+                        ₹{lumpsumUnapplied.toLocaleString("en-IN")} unapplied
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 text-muted-foreground transition-transform",
+                  "mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
                   expanded && "rotate-180"
                 )}
                 strokeWidth={2}
               />
-            </button>
+            </div>
           </div>
+          <p className="mt-2 text-sm font-semibold leading-snug text-foreground">
+            <DateWithRelative
+              date={group.date}
+              dateFormat="dd MMM yyyy"
+              timeFormat="h:mm a"
+              timeFrom={group.date}
+            />
+          </p>
+          {displayNote && (
+            <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground">{displayNote}</p>
+          )}
         </div>
-      </div>
+      </button>
+
+      {!confirmUndo && (onEditLumpsum || onUndoLumpsum) && (
+        <div className="flex flex-wrap items-center gap-2 pb-3.5 pl-[4.125rem] pr-3.5 pt-0">
+          {onEditLumpsum && (
+            <button
+              type="button"
+              onClick={() => onEditLumpsum(group)}
+              className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent"
+            >
+              <Pencil className="h-3 w-3" strokeWidth={2} />
+              Edit
+            </button>
+          )}
+          {onUndoLumpsum && (
+            <button
+              type="button"
+              onClick={() => setConfirmUndo(true)}
+              className="flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
+            >
+              <Undo2 className="h-3 w-3" strokeWidth={2} />
+              Undo
+            </button>
+          )}
+        </div>
+      )}
 
       {confirmUndoBlock}
 
       {expanded && (
-        <div className="space-y-2 border-t border-border/50 bg-muted/50 px-3 py-3 dark:bg-muted/40">
+        <div className="space-y-2 overflow-hidden border-t border-border/50 bg-muted/50 px-3 py-3 dark:bg-muted/40">
           {group.children.map(entry => (
             <LumpsumChildRow key={entry.key} entry={entry} onGoToBill={onGoToBill} />
           ))}
@@ -1133,7 +1112,7 @@ function LumpsumPaymentGroupCard({ group, expanded, onToggle, onGoToBill, onUndo
   );
 }
 
-function SupplierPaymentLedger({ groups, onGoToBill, onUndoLumpsum }) {
+function SupplierPaymentLedger({ groups, onGoToBill, onUndoLumpsum, onEditLumpsum }) {
   const [expandedLumpsum, setExpandedLumpsum] = useState(() => new Set());
 
   const toggleLumpsum = useCallback(groupKey => {
@@ -1177,6 +1156,7 @@ function SupplierPaymentLedger({ groups, onGoToBill, onUndoLumpsum }) {
             onToggle={() => toggleLumpsum(group.groupKey)}
             onGoToBill={onGoToBill}
             onUndoLumpsum={onUndoLumpsum}
+            onEditLumpsum={onEditLumpsum}
           />
         );
       })}
@@ -1248,7 +1228,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
               type="button"
               onClick={e => {
                 e.stopPropagation();
-                onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
+                onViewImages(images, 0);
               }}
               className="relative block h-full w-full overflow-hidden rounded-[10px] border border-black/[0.12] bg-muted/50 text-left outline-none transition-opacity hover:opacity-95 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring dark:border-white/[0.12]"
             >
@@ -1354,7 +1334,7 @@ const TransactionBubble = React.forwardRef(function TransactionBubble(
                         type="button"
                         onClick={e => {
                           e.stopPropagation();
-                          onViewImages(images, 0, mergeTxnImageOcrMaps(txn));
+                          onViewImages(images, 0);
                         }}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
@@ -1441,7 +1421,6 @@ export default function PersonChatPage() {
     focusPaymentId,
     imageViewerOpen,
     viewerImages,
-    viewerOcrMap,
     viewerIndex,
     paymentFormOpen,
     paymentTransaction,
@@ -1456,6 +1435,8 @@ export default function PersonChatPage() {
   const [highlightedTxn, setHighlightedTxn] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmittingPaymentEdit, setIsSubmittingPaymentEdit] = useState(false);
+  const [editingLumpsumGroup, setEditingLumpsumGroup] = useState(null);
+  const [isSubmittingLumpsumEdit, setIsSubmittingLumpsumEdit] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [profileTab, setProfileTabState] = useState("bills");
   const [billsSortOrder, setBillsSortOrder] = useState("newest");
@@ -1524,6 +1505,8 @@ export default function PersonChatPage() {
     markFullPaid: markTransactionFullPaid,
     updatePayment: updateTransactionPayment,
     deletePayment: deleteTransactionPayment,
+    replaceLumpsum: replaceTransactionLumpsum,
+    removeLumpsum: removeTransactionLumpsum,
   } = useTransactions(null, { fetchAll: true });
   const {
     udharList,
@@ -1534,6 +1517,8 @@ export default function PersonChatPage() {
     markFullPaid: markUdharFullPaid,
     updatePayment: updateUdharPayment,
     deletePayment: deleteUdharPayment,
+    replaceLumpsum: replaceUdharLumpsum,
+    removeLumpsum: removeUdharLumpsum,
   } = useUdhar({ fetchAll: true });
 
   const listLoading = isSupplier ? suppliersLoading : customersLoading;
@@ -1792,23 +1777,21 @@ export default function PersonChatPage() {
       const updatedTxn = personTransactions.find(t => t.id === selectedTransaction.id);
       if (updatedTxn) {
         // Create a simple hash of receipts to compare
-        const getReceiptsHash = txn => {
+        const getPaymentsFingerprint = txn => {
           const payments = txn.payments || [];
           return payments
             .map(p => {
               const receipts = p.receiptUrls || (p.receiptUrl ? [p.receiptUrl] : []);
-              return `${p.id}:${receipts.length}:${receipts.join(",")}`;
+              return `${p.id}:${p.amount}:${p.date || ""}:${receipts.length}:${receipts.join(",")}`;
             })
             .join("|");
         };
 
-        // Check if payment-related fields changed (including receipts)
         const paymentChanged =
           updatedTxn.paidAmount !== selectedTransaction.paidAmount ||
           updatedTxn.paymentStatus !== selectedTransaction.paymentStatus ||
           updatedTxn.status !== selectedTransaction.status ||
-          (updatedTxn.payments?.length || 0) !== (selectedTransaction.payments?.length || 0) ||
-          getReceiptsHash(updatedTxn) !== getReceiptsHash(selectedTransaction);
+          getPaymentsFingerprint(updatedTxn) !== getPaymentsFingerprint(selectedTransaction);
 
         if (paymentChanged) {
           dispatch({ type: "UPDATE_SELECTED_TRANSACTION", payload: { ...updatedTxn } });
@@ -1974,10 +1957,10 @@ export default function PersonChatPage() {
   };
 
   // Handle view images
-  const handleViewImages = (images, startIndex = 0, ocrMap = {}) => {
+  const handleViewImages = (images, startIndex = 0) => {
     dispatch({
       type: "OPEN_IMAGE_VIEWER",
-      payload: { images, startIndex, ocrMap },
+      payload: { images, startIndex },
     });
   };
 
@@ -2124,27 +2107,45 @@ export default function PersonChatPage() {
 
   const handleUndoLumpsumPayment = useCallback(
     async children => {
-      const deleteFn = isSupplier ? deleteTransactionPayment : deleteUdharPayment;
-      let undone = 0;
-
-      for (const entry of children) {
-        const paymentId = entry.payment?.id;
-        if (!paymentId) {
-          toast.error("Cannot undo: payment record is missing an id");
-          throw new Error("Missing payment id");
-        }
-
-        const result = await deleteFn(entry.txnId, paymentId);
-        if (!result?.success) {
-          toast.error(result?.error || "Failed to undo lumpsum on one of the bills");
-          throw new Error(result?.error || "Undo failed");
-        }
-        undone++;
+      const lumpsumId = children[0]?.payment?.lumpsumId ?? null;
+      const childPaymentIds = children.map(c => c.payment?.id).filter(Boolean);
+      if (!lumpsumId && childPaymentIds.length === 0) {
+        toast.error("Cannot undo: lumpsum record is incomplete");
+        throw new Error("Incomplete lumpsum");
       }
 
-      toast.success(`Undid lumpsum payment on ${undone} bill${undone !== 1 ? "s" : ""}`);
+      const removeFn = isSupplier ? removeTransactionLumpsum : removeUdharLumpsum;
+      const result = await removeFn({ lumpsumId, childPaymentIds });
+      if (!result?.success) {
+        toast.error(result?.error || "Failed to undo lumpsum");
+        throw new Error(result?.error || "Undo failed");
+      }
+
+      const billCount = result.billCount ?? children.length;
+      toast.success(`Undid lumpsum across ${billCount} bill${billCount !== 1 ? "s" : ""}`);
     },
-    [isSupplier, deleteTransactionPayment, deleteUdharPayment]
+    [isSupplier, removeTransactionLumpsum, removeUdharLumpsum]
+  );
+
+  const handleSaveLumpsumEdit = useCallback(
+    async payload => {
+      setIsSubmittingLumpsumEdit(true);
+      try {
+        const replaceFn = isSupplier ? replaceTransactionLumpsum : replaceUdharLumpsum;
+        const result = await replaceFn(payload);
+        if (result?.success) {
+          toast.success("Lumpsum updated");
+          setEditingLumpsumGroup(null);
+        } else {
+          toast.error(result?.error || "Failed to update lumpsum");
+        }
+      } catch {
+        toast.error("Failed to update lumpsum");
+      } finally {
+        setIsSubmittingLumpsumEdit(false);
+      }
+    },
+    [isSupplier, replaceTransactionLumpsum, replaceUdharLumpsum]
   );
 
   // Handle opening payment edit modal
@@ -2550,6 +2551,7 @@ export default function PersonChatPage() {
               groups={filteredPaymentLedger}
               onGoToBill={openBillDrawerAtPayment}
               onUndoLumpsum={handleUndoLumpsumPayment}
+              onEditLumpsum={setEditingLumpsumGroup}
             />
           )
         ) : groupedByDate.length === 0 ? (
@@ -2760,6 +2762,18 @@ export default function PersonChatPage() {
           isSubmitting={isSubmittingPaymentEdit}
         />
       )}
+
+      <EditLumpsumPaymentDrawer
+        open={!!editingLumpsumGroup}
+        onOpenChange={open => {
+          if (!open) setEditingLumpsumGroup(null);
+        }}
+        group={editingLumpsumGroup}
+        type={isSupplier ? "supplier" : "customer"}
+        records={personTransactions}
+        onSave={handleSaveLumpsumEdit}
+        isSubmitting={isSubmittingLumpsumEdit}
+      />
 
       {/* Bills Gallery Drawer */}
       <BillsGalleryModal
@@ -2976,7 +2990,6 @@ export default function PersonChatPage() {
         onOpenChange={open => dispatch({ type: "SET_IMAGE_VIEWER_OPEN", payload: open })}
         images={viewerImages}
         imageRefs={viewerImages}
-        imageOcrMap={viewerOcrMap}
         initialIndex={viewerIndex}
       />
 

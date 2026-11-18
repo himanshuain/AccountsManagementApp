@@ -1,16 +1,7 @@
-import { ocrMapMatchesQuery, textMatchesIndicSearch } from "@/lib/ocr-transliterate";
-
-function billOcrFromRecord(record) {
-  return record?.billImageOcr || record?.bill_image_ocr || {};
-}
-
-function khataOcrFromRecord(record) {
-  return record?.khataImageOcr || record?.khata_image_ocr || {};
-}
+import { textMatchesIndicSearch } from "@/lib/text-search";
 
 /**
  * Match a supplier transaction or customer udhar row against a search query.
- * Includes OCR text from uploaded bill/khata images.
  */
 export function recordMatchesBillSearch(record, query) {
   if (!query?.trim()) return true;
@@ -26,9 +17,6 @@ export function recordMatchesBillSearch(record, query) {
 
   const status = (record?.paymentStatus || "").toLowerCase();
   if (status.includes(q)) return true;
-
-  if (ocrMapMatchesQuery(query, billOcrFromRecord(record))) return true;
-  if (ocrMapMatchesQuery(query, khataOcrFromRecord(record))) return true;
 
   return false;
 }

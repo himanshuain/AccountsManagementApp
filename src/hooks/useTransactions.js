@@ -5,18 +5,11 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tansta
 import { PAGE_SIZE, CACHE_SETTINGS } from "@/lib/constants";
 import { computePaymentStatus } from "@/lib/computePaymentStatus";
 import { buildLumpsumSiblingPaymentUpdates } from "@/lib/lumpsum-reconcile";
+import { planLumpsumReplace, planLumpsumRemoval } from "@/lib/lumpsum-allocate";
 
 const TRANSACTIONS_KEY = ["transactions"];
 const STATS_KEY = ["stats"];
 
-/** Bill OCR runs in the background after save — refetch so ⓘ / search see new text. */
-function scheduleTransactionsOcrRefetch(queryClient) {
-  const refetch = () => {
-    queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
-  };
-  setTimeout(refetch, 12_000);
-  setTimeout(refetch, 35_000);
-}
 
 /**
  * Hook to fetch and manage transactions
@@ -162,9 +155,6 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
     onSettled: (_data, _err, variables) => {
       queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
-      if (variables?.billImages?.length) {
-        scheduleTransactionsOcrRefetch(queryClient);
-      }
     },
   });
 
@@ -205,9 +195,6 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
     onSettled: (_data, _err, variables) => {
       queryClient.refetchQueries({ queryKey: TRANSACTIONS_KEY, type: "all" });
       queryClient.invalidateQueries({ queryKey: STATS_KEY });
-      if (variables?.updates?.billImages?.length) {
-        scheduleTransactionsOcrRefetch(queryClient);
-      }
     },
   });
 
@@ -514,6 +501,83 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
     [transactions, updateTransaction]
   );
 
+  const replaceLumpsum = useCallback(
+    async ({
+      lumpsumId = null,
+      childPaymentIds = [],
+      lumpsumTotal,
+      paymentDate = null,
+      notes = "",
+      isReturn = false,
+      receiptUrls = null,
+    }) => {
+      const childIds = new Set(childPaymentIds.filter(Boolean).map(String));
+      const { ok, error, updates } = planLumpsumReplace(transactions, {
+        lumpsumId,
+        childPaymentIds: childIds,
+        lumpsumTotal,
+        paymentDate,
+        notes,
+        isReturn,
+        receiptUrls,
+        getTotalAmount: t => Number(t.amount) || 0,
+        getMeta: t => ({
+          description: t.itemName || t.description || t.itemDescription || t.notes,
+          date: t.date || t.createdAt,
+        }),
+      });
+
+      if (!ok) {
+        return { success: false, error: error || "Failed to plan lumpsum update" };
+      }
+
+      for (const patch of updates) {
+        const result = await updateTransaction(patch.id, {
+          payments: patch.payments,
+          paidAmount: patch.paidAmount,
+          paymentStatus: patch.paymentStatus,
+          paidDate: patch.paidDate,
+        });
+        if (!result?.success) {
+          return result;
+        }
+      }
+
+      return { success: true };
+    },
+    [transactions, updateTransaction]
+  );
+
+  const removeLumpsum = useCallback(
+    async ({ lumpsumId = null, childPaymentIds = [] }) => {
+      const childIds = new Set(childPaymentIds.filter(Boolean).map(String));
+      const { ok, error, updates } = planLumpsumRemoval(transactions, {
+        lumpsumId,
+        childPaymentIds: childIds,
+        getTotalAmount: t => Number(t.amount) || 0,
+      });
+
+      if (!ok) {
+        return { success: false, error: error || "Failed to remove lumpsum" };
+      }
+
+      for (const patch of updates) {
+        const result = await updateTransaction(patch.id, {
+          payments: patch.payments,
+          paidAmount: patch.paidAmount,
+          paymentStatus: patch.paymentStatus,
+          paidDate: patch.paidDate,
+        });
+        if (!result?.success) {
+          return result;
+        }
+      }
+
+      return { success: true, billCount: updates.length };
+    },
+    [transactions, updateTransaction]
+  );
+
   const getPendingPayments = useCallback(() => {
     return transactions.filter(t => t.paymentStatus === "pending" || t.paymentStatus === "partial");
   }, [transactions]);
@@ -542,6 +606,8 @@ export function useTransactions(supplierId = null, { fetchAll = false } = {}) {
     markFullPaid,
     updatePayment,
     deletePayment,
+    replaceLumpsum,
+    removeLumpsum,
     getPendingPayments,
     getRecentTransactions,
     refresh,

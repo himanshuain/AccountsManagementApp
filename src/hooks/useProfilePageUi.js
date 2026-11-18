@@ -18,7 +18,6 @@ export const initialProfilePageUi = {
   focusPaymentId: null,
   imageViewerOpen: false,
   viewerImages: [],
-  viewerOcrMap: {},
   viewerIndex: 0,
   paymentFormOpen: false,
   paymentTransaction: null,
@@ -158,12 +157,11 @@ export function profilePageUiReducer(state, action) {
       };
 
     case "OPEN_IMAGE_VIEWER": {
-      const { images, startIndex = 0, ocrMap = {} } = action.payload || {};
+      const { images, startIndex = 0 } = action.payload || {};
       return {
         ...state,
         imageViewerOpen: true,
         viewerImages: images ?? [],
-        viewerOcrMap: ocrMap ?? {},
         viewerIndex: startIndex,
       };
     }
@@ -172,7 +170,7 @@ export function profilePageUiReducer(state, action) {
       return {
         ...state,
         imageViewerOpen: Boolean(action.payload),
-        ...(action.payload ? {} : { viewerImages: [], viewerOcrMap: {}, viewerIndex: 0 }),
+        ...(action.payload ? {} : { viewerImages: [], viewerIndex: 0 }),
       };
 
     case "SET_BILLS_GALLERY_OPEN":

@@ -8,8 +8,6 @@ import {
   isSameImageRef,
 } from "@/lib/image-url";
 import { validatePersistedImagesOnPutBody } from "@/lib/validation";
-import { pruneImageOcrMap } from "@/lib/image-ocr-map";
-import { deferUdharKhataOcr } from "@/lib/server/deferred-image-ocr";
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = obj => {
@@ -109,7 +107,7 @@ export async function PUT(request, { params }) {
     // Get the current udhar to find customer ID and check for image changes
     const { data: currentUdhar } = await supabase
       .from("udhar")
-      .select("customer_id, khata_photos, khata_image_ocr, bill_image, payments")
+      .select("customer_id, khata_photos, bill_image, payments")
       .eq("id", id)
       .single();
 
@@ -118,18 +116,11 @@ export async function PUT(request, { params }) {
       updatedAt: new Date().toISOString(),
     };
 
-    let deferOcr = null;
-    if (Object.prototype.hasOwnProperty.call(body, "khataPhotos")) {
-      const khataPhotos = updates.khataPhotos || [];
-      updates.khataImageOcr = pruneImageOcrMap(
-        updates.khataImageOcr || body.khataImageOcr || {},
-        khataPhotos
-      );
-      deferOcr = {
-        khataPhotos,
-        existing: currentUdhar?.khata_image_ocr || {},
-        client: body.khataImageOcr || updates.khataImageOcr || {},
-      };
+    if (Object.prototype.hasOwnProperty.call(body, "khataImageOcr")) {
+      delete updates.khataImageOcr;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, "khata_image_ocr")) {
+      delete updates.khata_image_ocr;
     }
 
     const record = toSnakeCase(updates);
@@ -144,10 +135,6 @@ export async function PUT(request, { params }) {
     if (error) {
       console.error("Update udhar failed:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-
-    if (deferOcr) {
-      deferUdharKhataOcr(id, deferOcr.khataPhotos, deferOcr.existing, deferOcr.client);
     }
 
     // Clean up old images that were removed (best-effort, non-blocking).

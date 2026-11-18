@@ -15,7 +15,6 @@ import { MultiImageUpload } from "./ImageUpload";
 import { FormPhotoStrip } from "@/components/form/FormPhotoStrip";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { resolveImageUrl } from "@/lib/image-url";
-import { applyUploadOcrResults, pruneImageOcrMap } from "@/lib/image-ocr-map";
 import { cn } from "@/lib/utils";
 import {
   FormSection,
@@ -62,7 +61,6 @@ export function TransactionForm({
   const sessionScopeRef = useRef("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [billImages, setBillImages] = useState(initialData?.billImages || []);
-  const [billImageOcr, setBillImageOcr] = useState(initialData?.billImageOcr || {});
   const [pendingFiles, setPendingFiles] = useState([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     initialData?.supplierId || defaultSupplierId || ""
@@ -111,7 +109,6 @@ export function TransactionForm({
       // Reset bill images only if no initialBillImages provided
       if (stableInitialBillImages.length === 0 && !quickCaptureData?.images?.length) {
         setBillImages(initialData?.billImages || []);
-        setBillImageOcr(initialData?.billImageOcr || {});
       }
       if (!quickCaptureData?.images?.length) {
         setPendingFiles([]);
@@ -179,11 +176,6 @@ export function TransactionForm({
       s.startsWith("https://") ||
       (/^[a-zA-Z0-9_\-/.]+$/.test(s) && !s.startsWith("http")));
 
-  const captureBillOcr = (storageKey, ocrText) => {
-    if (!storageKey || !ocrText) return;
-    setBillImageOcr(prev => applyUploadOcrResults(prev, [storageKey], [ocrText]));
-  };
-
   const uploadBillFile = async file => {
     const formData = new FormData();
     formData.append("file", file);
@@ -196,9 +188,7 @@ export function TransactionForm({
     if (!response.ok) {
       throw new Error(payload.error || "Bill photo upload failed");
     }
-    const storageKey = payload.storageKey || payload.url;
-    captureBillOcr(storageKey, payload.ocrText);
-    return storageKey;
+    return payload.storageKey || payload.url;
   };
 
   const handleFormSubmit = async data => {
@@ -261,7 +251,6 @@ export function TransactionForm({
       }
 
       const finalBillImages = billStorageKeys;
-      const finalBillImageOcr = pruneImageOcrMap(billImageOcr, finalBillImages);
 
       // Calculate payment status based on existing payments and new amount
       const newAmount = Number(data.amount) || 0;
@@ -288,7 +277,6 @@ export function TransactionForm({
         paymentStatus: calculatedPaymentStatus,
         paymentMode: isCash ? "cash" : "upi",
         billImages: finalBillImages,
-        billImageOcr: finalBillImageOcr,
         amount: newAmount,
         // Preserve existing payments and paidAmount when editing
         ...(initialData && {
@@ -299,7 +287,6 @@ export function TransactionForm({
       clearSessionStorageKeys(sessionUploadKeysRef);
       reset();
       setBillImages([]);
-      setBillImageOcr({});
       setPendingFiles([]);
       setSelectedSupplierId(defaultSupplierId || "");
       setIsPaid(false);
@@ -323,7 +310,6 @@ export function TransactionForm({
     deleteStorageKeysClient(drainSessionStorageKeysForCancel(sessionUploadKeysRef));
     reset();
     setBillImages(initialData?.billImages || []);
-    setBillImageOcr(initialData?.billImageOcr || {});
     setPendingFiles([]);
     setSelectedSupplierId(initialData?.supplierId || defaultSupplierId || "");
     setIsPaid(initialData?.paymentStatus === "paid" || false);
@@ -394,7 +380,6 @@ export function TransactionForm({
               value={billImages}
               onChange={imgs => {
                 setBillImages(imgs);
-                setBillImageOcr(prev => pruneImageOcrMap(prev, imgs));
               }}
               maxImages={5}
               disabled={false}
@@ -406,7 +391,6 @@ export function TransactionForm({
                 removeSessionStorageKeys(sessionUploadKeysRef, keys)
               }
               folder="bills"
-              onImageOcrCaptured={captureBillOcr}
             />
           ) : (
             <FormPhotoStrip
@@ -415,7 +399,6 @@ export function TransactionForm({
               onChange={({ images, pendingFiles: nextPending }) => {
                 setBillImages(images);
                 setPendingFiles(nextPending);
-                setBillImageOcr(prev => pruneImageOcrMap(prev, images));
               }}
               maxImages={5}
               disabled

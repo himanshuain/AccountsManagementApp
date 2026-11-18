@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { PhotoProvider, PhotoView, PhotoSlider } from "react-photo-view";
 import { motion } from "motion/react";
 import { X, Download, Share2, AlertCircle, Maximize2 } from "lucide-react";
-import { ImageOcrInfoButton } from "@/components/ImageOcrInfoButton";
 import { toast } from "sonner";
 import { resolveImageUrl, getImageUrls, isDataUrl } from "@/lib/image-url";
 import { getImageSizeBytes, formatBytes } from "@/lib/image-size";
@@ -23,7 +22,6 @@ function FloatingToolbar({
   index,
   total,
   sizeLabel,
-  ocrTrailing,
 }) {
   return (
     <>
@@ -49,9 +47,7 @@ function FloatingToolbar({
           </div>
         )}
 
-        <div className="pointer-events-auto flex h-10 w-10 items-center justify-center">
-          {ocrTrailing || null}
-        </div>
+        <div className="pointer-events-auto h-10 w-10 shrink-0" aria-hidden />
       </div>
 
       <div className="pb-safe pointer-events-none fixed bottom-0 left-0 right-0 z-[2147483647] flex justify-center px-4 py-5">
@@ -444,7 +440,6 @@ export function PhotoViewer({ src, alt = "Image", open, onOpenChange }) {
 export function PhotoGalleryViewer({
   images = [],
   imageRefs,
-  imageOcrMap,
   initialIndex = 0,
   open,
   onOpenChange,
@@ -577,11 +572,6 @@ export function PhotoGalleryViewer({
 
   if (!open || normalizedImages.length === 0 || !mounted) return null;
 
-  const currentImage = normalizedImages[currentIndex];
-  const refs = imageRefs?.length ? imageRefs : images;
-  const currentRef = refs[currentIndex];
-  const resolvedOcrMap = imageOcrMap || {};
-
   const viewer = (
     <>
       <PhotoSlider
@@ -640,15 +630,6 @@ export function PhotoGalleryViewer({
         onShare={handleShare}
         onClose={() => onOpenChange(false)}
         sizeLabel={sizeLabel}
-        ocrTrailing={
-          currentRef ? (
-            <ImageOcrInfoButton
-              imageRef={currentRef}
-              imageOcrMap={resolvedOcrMap}
-              size="md"
-            />
-          ) : null
-        }
       />
       <ViewerFilmstrip
         images={normalizedImages}

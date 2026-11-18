@@ -296,8 +296,6 @@ export function ImageUpload({
   onSessionStorageKeysAdded,
   /** Called when a storage key is removed from the field (before R2 delete). */
   onSessionStorageKeysRemoved,
-  /** Called after upload with storage key and OCR text (bill/khata folders). */
-  onImageOcrCaptured,
   folder = "general",
   showHDToggle = true, // Show HD toggle by default
   layout = "grid",
@@ -407,9 +405,6 @@ export function ImageUpload({
       });
 
       const storageKey = result.storageKey || result.url;
-      if (result.ocrText) {
-        onImageOcrCaptured?.(storageKey, result.ocrText);
-      }
       onChange?.(storageKey);
       notifySessionKeysAdded(onSessionStorageKeysAdded, [storageKey]);
       setPreview(storageKey);
@@ -695,7 +690,6 @@ export function MultiImageUpload({
   onUploadingChange,
   onSessionStorageKeysAdded,
   onSessionStorageKeysRemoved,
-  onImageOcrCaptured,
   folder = "general",
   onImageTap, // Optional callback when image is tapped (index) => void
   showHDToggle = true, // Show HD toggle by default
@@ -797,9 +791,6 @@ export function MultiImageUpload({
         });
 
         const storageKey = result.storageKey || result.url;
-        if (result.ocrText) {
-          onImageOcrCaptured?.(storageKey, result.ocrText);
-        }
         newKeys.push(storageKey);
       } catch (error) {
         console.error("Upload failed:", error);

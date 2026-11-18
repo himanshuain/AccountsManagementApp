@@ -48,4 +48,4 @@ export { ChatHeader } from "./ChatHeader";
 export { IncomeQuickModal } from "./IncomeQuickModal";
 
 // Lumpsum Payment
-export { LumpsumPaymentDrawer } from "./LumpsumPaymentDrawer";
+export { LumpsumPaymentDrawer, EditLumpsumPaymentDrawer } from "./LumpsumPaymentDrawer";
