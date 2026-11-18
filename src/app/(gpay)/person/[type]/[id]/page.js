@@ -1622,6 +1622,9 @@ export default function PersonChatPage() {
         return {
           id: t.id,
           description: t.itemName || t.description || t.itemDescription || t.notes,
+          billImages: isSupplier
+            ? t.billImages || []
+            : [...(t.khataPhotos || []), ...(t.billImages || [])],
           totalAmount: amount,
           paidAmount: paid,
           pendingAmount: Math.max(0, amount - paid),

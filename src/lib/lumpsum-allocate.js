@@ -42,6 +42,7 @@ export function buildLumpsumPendingPool(
     items.push({
       id: record.id,
       description: meta.description,
+      billImages: meta.billImages || [],
       totalAmount,
       paidAmount: paidExcludingEdit,
       pendingAmount,

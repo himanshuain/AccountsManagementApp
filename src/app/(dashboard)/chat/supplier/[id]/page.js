@@ -101,6 +101,7 @@ export default function SupplierChatPage({ params }) {
         return {
           id: t.id,
           description: t.itemName || t.description,
+          billImages: t.billImages || [],
           totalAmount: amount,
           paidAmount: paid,
           pendingAmount: Math.max(0, amount - paid),

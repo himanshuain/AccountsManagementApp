@@ -103,6 +103,7 @@ export default function CustomerChatPage({ params }) {
         return {
           id: u.id,
           description: u.description || u.notes || u.itemDescription,
+          billImages: [...(u.khataPhotos || []), ...(u.billImages || [])],
           totalAmount: amount,
           paidAmount: paid,
           pendingAmount: Math.max(0, amount - paid),

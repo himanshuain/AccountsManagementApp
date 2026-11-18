@@ -26,29 +26,110 @@ import {
   buildLumpsumPendingPool,
 } from "@/lib/lumpsum-allocate";
 import { getPaymentDisplayNote, LUMPSUM_NOTE_PREFIX } from "@/lib/payment-ledger";
+import { resolveImageUrl, getImageUrls } from "@/lib/image-url";
+import { PhotoGalleryViewer } from "@/components/PhotoViewer";
 
-function LumpsumCoveredBillsSection({ type, parsedAmount, isOverLimit, previewBills, pendingCount }) {
-  if (parsedAmount <= 0 || isOverLimit || previewBills.length === 0) return null;
+function CoveredBillThumb({ billImages, type, rowIndex, fullyPaid, onView }) {
+  const images = billImages?.length ? billImages : [];
+  const firstRef = images[0];
+  const thumbUrls = firstRef
+    ? getImageUrls(firstRef, { width: 120, height: 120, quality: 75 })
+    : null;
+  const thumbFallback = firstRef ? resolveImageUrl(firstRef) : "";
+  const thumbSrc = thumbUrls?.thumbnail || thumbUrls?.medium || thumbUrls?.src || thumbFallback;
 
+  if (!thumbSrc) {
+    return (
+      <span
+        className={cn(
+          "flex h-14 w-11 shrink-0 items-center justify-center rounded-[10px] border border-black/[0.1] text-[10px] font-bold dark:border-white/[0.1]",
+          fullyPaid
+            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+            : "bg-muted text-muted-foreground"
+        )}
+      >
+        {fullyPaid ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : rowIndex + 1}
+      </span>
+    );
+  }
+
+  const thumbInner = (
+  <>
+      <img
+        src={thumbSrc}
+        alt=""
+        className={cn(
+          "h-full w-full object-cover",
+          type === "supplier" && "mix-blend-multiply dark:mix-blend-normal"
+        )}
+      />
+      {fullyPaid && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-emerald-500/25">
+          <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-300" strokeWidth={2.5} />
+        </span>
+      )}
+      {images.length > 1 && (
+        <span className="pointer-events-none absolute bottom-0.5 right-0.5 rounded bg-black/55 px-1 py-px text-[9px] font-medium text-white tabular-nums">
+          +{images.length - 1}
+        </span>
+      )}
+    </>
+  );
+
+  if (onView && images.length > 0) {
+    return (
+      <button
+        type="button"
+        onClick={() => onView(images, 0)}
+        className="relative h-14 w-11 shrink-0 overflow-hidden rounded-[10px] border border-black/[0.12] bg-muted/50 transition-opacity hover:opacity-90 active:scale-[0.98] dark:border-white/[0.12]"
+      >
+        {thumbInner}
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative h-14 w-11 shrink-0 overflow-hidden rounded-[10px] border border-black/[0.12] bg-muted/50 dark:border-white/[0.12]">
+      {thumbInner}
+    </div>
+  );
+}
+
+function LumpsumCoveredBillsSection({
+  type,
+  parsedAmount,
+  isOverLimit,
+  previewBills,
+  onViewBillImages,
+}) {
   const billLabel = type === "supplier" ? "Bill" : "Udhar";
   const billsBeingPaid = previewBills.filter(b => !b.untouched);
-  const billsUntouched = previewBills.filter(b => b.untouched);
+
+  if (parsedAmount <= 0 || isOverLimit || billsBeingPaid.length === 0) return null;
+
   const totalPayingAmount = billsBeingPaid.reduce((sum, b) => sum + (Number(b.payAmount) || 0), 0);
+
+  const clearedCount = billsBeingPaid.filter(b => b.fullyPaid).length;
+  const partialCount = billsBeingPaid.filter(b => !b.fullyPaid).length;
 
   return (
     <FormSection title={`Covered ${billLabel.toLowerCase()}s`} bodyClassName="p-0">
-      <div className="border-b border-border/40 px-4 py-2">
-        <span className="text-xs text-muted-foreground">
-          {billsBeingPaid.length} of {pendingCount} will be paid
-        </span>
-      </div>
-
-      <div className="max-h-72 overflow-y-auto rounded-xl border border-border bg-muted/20">
+      <div className="rounded-xl border border-border bg-muted/20">
+        <div className="flex items-center justify-between border-b border-border bg-emerald-500/5 px-3 py-2.5">
+          <span className="text-[11px] text-muted-foreground">
+            {clearedCount} cleared
+            {partialCount > 0 && `, ${partialCount} partial`}
+          </span>
+          <span className="font-mono text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
+            ₹{totalPayingAmount.toLocaleString("en-IN")}
+          </span>
+        </div>
         {billsBeingPaid.map((bill, idx) => {
           const pct =
             bill.totalAmount > 0
               ? Math.round(((bill.paidAmount + bill.payAmount) / bill.totalAmount) * 100)
               : 0;
+          const leftAfter = Math.max(0, bill.pendingAmount - bill.payAmount);
 
           return (
             <div
@@ -56,33 +137,27 @@ function LumpsumCoveredBillsSection({ type, parsedAmount, isOverLimit, previewBi
               className={cn("px-3 py-3", idx !== 0 && "border-t border-border/50")}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-2">
-                  <span
-                    className={cn(
-                      "mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                      bill.fullyPaid
-                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {bill.fullyPaid ? <Check className="h-3 w-3" /> : idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium leading-tight">
-                      {bill.description || `${billLabel} #${idx + 1}`}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <CoveredBillThumb
+                    billImages={bill.billImages}
+                    type={type}
+                    rowIndex={idx}
+                    fullyPaid={bill.fullyPaid}
+                    onView={onViewBillImages}
+                  />
+                  <div className="min-w-0 pt-0.5">
+                    <p className="text-[11px] font-medium text-muted-foreground">
                       {bill.date
                         ? new Date(bill.date).toLocaleDateString("en-IN", {
                             day: "2-digit",
                             month: "short",
                             year: "2-digit",
                           })
-                        : ""}
+                        : `${billLabel} #${idx + 1}`}
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 flex-col items-end">
+                <div className="flex shrink-0 flex-col items-end">
                   <span className="font-mono text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
                     +₹{bill.payAmount.toLocaleString("en-IN")}
                   </span>
@@ -98,7 +173,7 @@ function LumpsumCoveredBillsSection({ type, parsedAmount, isOverLimit, previewBi
                 </div>
               </div>
 
-              <div className="mt-2 flex items-center gap-2 pl-7">
+              <div className="mt-2 flex items-center gap-2">
                 <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn(
@@ -108,52 +183,20 @@ function LumpsumCoveredBillsSection({ type, parsedAmount, isOverLimit, previewBi
                     style={{ width: `${Math.min(pct, 100)}%` }}
                   />
                 </div>
-                <span className="text-[10px] tabular-nums text-muted-foreground">
-                  {bill.fullyPaid
-                    ? "₹0"
-                    : `₹${(bill.pendingAmount - bill.payAmount).toLocaleString("en-IN")}`}{" "}
-                  left
+                <span
+                  className={cn(
+                    "shrink-0 text-[10px] font-medium tabular-nums",
+                    leftAfter > 0
+                      ? "text-amber-800 dark:text-amber-300"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  ₹{leftAfter.toLocaleString("en-IN")} left
                 </span>
               </div>
             </div>
           );
         })}
-
-        {billsUntouched.length > 0 && (
-          <div className="border-t border-border bg-muted/10 px-3 py-2.5">
-            <p className="mb-1.5 text-[10px] font-medium text-muted-foreground">
-              Not covered ({billsUntouched.length})
-            </p>
-            <div className="space-y-1">
-              {billsUntouched.map((bill, idx) => (
-                <div
-                  key={bill.id}
-                  className="flex items-center justify-between text-[11px] text-muted-foreground/70"
-                >
-                  <span className="truncate">
-                    {bill.description || `${billLabel} #${billsBeingPaid.length + idx + 1}`}
-                  </span>
-                  <span className="flex-shrink-0 font-mono">
-                    ₹{bill.pendingAmount.toLocaleString("en-IN")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {billsBeingPaid.length > 0 && (
-          <div className="flex items-center justify-between border-t border-border bg-emerald-500/5 px-3 py-2.5">
-            <span className="text-[11px] text-muted-foreground">
-              {billsBeingPaid.filter(b => b.fullyPaid).length} cleared
-              {billsBeingPaid.filter(b => !b.fullyPaid).length > 0 &&
-                `, ${billsBeingPaid.filter(b => !b.fullyPaid).length} partial`}
-            </span>
-            <span className="font-mono text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
-              ₹{totalPayingAmount.toLocaleString("en-IN")}
-            </span>
-          </div>
-        )}
       </div>
     </FormSection>
   );
@@ -177,6 +220,16 @@ export function LumpsumPaymentDrawer({
   const [receiptImages, setReceiptImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [billViewerOpen, setBillViewerOpen] = useState(false);
+  const [billViewerImages, setBillViewerImages] = useState([]);
+  const [billViewerIndex, setBillViewerIndex] = useState(0);
+
+  const handleViewBillImages = useCallback((images, startIndex = 0) => {
+    if (!images?.length) return;
+    setBillViewerImages(images);
+    setBillViewerIndex(startIndex);
+    setBillViewerOpen(true);
+  }, []);
 
   const resetForm = useCallback(() => {
     setAmount("");
@@ -205,27 +258,11 @@ export function LumpsumPaymentDrawer({
   const isOverLimit = parsedAmount > totalPending;
   const isValidAmount = parsedAmount > 0 && !isOverLimit;
 
-  const { preview: previewBills } = useMemo(() => {
+  const previewBills = useMemo(() => {
+    if (parsedAmount <= 0 || isOverLimit) return [];
     const effectiveAmount = Math.min(parsedAmount, totalPending);
-    const withUntouched = [];
-    let remaining = effectiveAmount;
-    for (const item of pendingItems) {
-      if (remaining <= 0) {
-        withUntouched.push({ ...item, payAmount: 0, fullyPaid: false, untouched: true });
-        continue;
-      }
-      if (item.pendingAmount <= 0) continue;
-      const payAmount = Math.min(remaining, item.pendingAmount);
-      remaining -= payAmount;
-      withUntouched.push({
-        ...item,
-        payAmount,
-        fullyPaid: payAmount >= item.pendingAmount,
-        untouched: false,
-      });
-    }
-    return { preview: withUntouched };
-  }, [parsedAmount, totalPending, pendingItems]);
+    return allocateLumpsumAmount(pendingItems, effectiveAmount).preview;
+  }, [parsedAmount, totalPending, isOverLimit, pendingItems]);
 
   const handleSubmit = async () => {
     if (parsedAmount <= 0) {
@@ -410,7 +447,7 @@ export function LumpsumPaymentDrawer({
             parsedAmount={parsedAmount}
             isOverLimit={isOverLimit}
             previewBills={previewBills}
-            pendingCount={pendingItems.length}
+            onViewBillImages={handleViewBillImages}
           />
 
           <FormSection title="Payment date" bodyClassName="py-3">
@@ -453,7 +490,7 @@ export function LumpsumPaymentDrawer({
               value={receiptImages}
               onChange={setReceiptImages}
               maxImages={5}
-              layout="hero"
+              layout={receiptImages.length > 0 ? "grid" : "hero"}
               attachLabel="Attach payment receipts"
               onUploadingChange={setIsUploading}
               folder="payments"
@@ -503,6 +540,14 @@ export function LumpsumPaymentDrawer({
           </div>
         </div>
       </DragCloseDrawer>
+
+      <PhotoGalleryViewer
+        open={billViewerOpen}
+        onOpenChange={setBillViewerOpen}
+        images={billViewerImages}
+        imageRefs={billViewerImages}
+        initialIndex={billViewerIndex}
+      />
     </>
   );
 }
@@ -537,10 +582,12 @@ export function EditLumpsumPaymentDrawer({
         ? {
             description: record.itemName || record.description || record.itemDescription || record.notes,
             date: record.date || record.createdAt,
+            billImages: record.billImages || [],
           }
         : {
             description: record.description || record.notes,
             date: record.date || record.createdAt,
+            billImages: [...(record.khataPhotos || []), ...(record.billImages || [])],
           },
     [type]
   );
@@ -561,6 +608,16 @@ export function EditLumpsumPaymentDrawer({
   const [isReturn, setIsReturn] = useState(false);
   const [receiptImages, setReceiptImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [billViewerOpen, setBillViewerOpen] = useState(false);
+  const [billViewerImages, setBillViewerImages] = useState([]);
+  const [billViewerIndex, setBillViewerIndex] = useState(0);
+
+  const handleViewBillImages = useCallback((images, startIndex = 0) => {
+    if (!images?.length) return;
+    setBillViewerImages(images);
+    setBillViewerIndex(startIndex);
+    setBillViewerOpen(true);
+  }, []);
 
   useEffect(() => {
     if (!open || !group) return;
@@ -693,7 +750,7 @@ export function EditLumpsumPaymentDrawer({
           parsedAmount={parsedAmount}
           isOverLimit={isOverLimit}
           previewBills={previewBills}
-          pendingCount={pendingPool.length}
+          onViewBillImages={handleViewBillImages}
         />
 
         <FormSection title="Payment date" bodyClassName="py-3">
@@ -736,7 +793,7 @@ export function EditLumpsumPaymentDrawer({
             value={receiptImages}
             onChange={setReceiptImages}
             maxImages={5}
-            layout="hero"
+            layout={receiptImages.length > 0 ? "grid" : "hero"}
             attachLabel="Attach payment receipts"
             onUploadingChange={setIsUploading}
             folder="payments"
@@ -768,6 +825,14 @@ export function EditLumpsumPaymentDrawer({
           </Button>
         </div>
       </div>
+
+      <PhotoGalleryViewer
+        open={billViewerOpen}
+        onOpenChange={setBillViewerOpen}
+        images={billViewerImages}
+        imageRefs={billViewerImages}
+        initialIndex={billViewerIndex}
+      />
     </DragCloseDrawer>
   );
 }
