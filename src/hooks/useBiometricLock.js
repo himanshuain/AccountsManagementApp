@@ -8,9 +8,9 @@ import {
   touchUnlockTimestamp,
   isUnlockValid,
   syncUnlockFromSessionOnMount,
+  readBiometricSettingsFromStorage,
+  writeBiometricSettingsToStorage,
 } from "@/lib/biometricSession";
-
-const BIOMETRIC_SETTINGS_KEY = "biometric_lock_settings";
 
 /**
  * Hook for managing biometric lock functionality
@@ -53,15 +53,11 @@ export function useBiometricLock() {
 
   // Load settings from localStorage and check unlock expiry
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(BIOMETRIC_SETTINGS_KEY);
-      if (stored) {
-        setSettings(JSON.parse(stored));
-      }
-      setIsUnlocked(syncUnlockFromSessionOnMount());
-    } catch (error) {
-      console.error("Error loading biometric settings:", error);
+    const stored = readBiometricSettingsFromStorage();
+    if (stored) {
+      setSettings(prev => ({ ...prev, ...stored }));
     }
+    setIsUnlocked(syncUnlockFromSessionOnMount());
   }, []);
 
   // Cleanup timer on unmount
@@ -76,13 +72,9 @@ export function useBiometricLock() {
   // Save settings to localStorage
   const updateSettings = useCallback(
     newSettings => {
-      try {
-        const updated = { ...settings, ...newSettings };
-        setSettings(updated);
-        localStorage.setItem(BIOMETRIC_SETTINGS_KEY, JSON.stringify(updated));
-      } catch (error) {
-        console.error("Error saving biometric settings:", error);
-      }
+      const updated = { ...settings, ...newSettings };
+      setSettings(updated);
+      writeBiometricSettingsToStorage(updated);
     },
     [settings]
   );
@@ -97,15 +89,8 @@ export function useBiometricLock() {
   const requestUnlock = useCallback(
     async (forceCheck = false) => {
       // Check latest settings from localStorage in case state isn't updated yet
-      let currentSettings = settings;
-      try {
-        const stored = localStorage.getItem(BIOMETRIC_SETTINGS_KEY);
-        if (stored) {
-          currentSettings = JSON.parse(stored);
-        }
-      } catch (e) {
-        console.error("Error reading settings:", e);
-      }
+      const stored = readBiometricSettingsFromStorage();
+      const currentSettings = stored ? { ...settings, ...stored } : settings;
 
       // If not forcing check and biometric is not enabled, just unlock
       if (!forceCheck && (!currentSettings.enabled || !isBiometricAvailable)) {
@@ -236,16 +221,8 @@ export function useBiometricLock() {
   // Also checks localStorage to ensure we have the latest settings
   const isProtected = useCallback(
     section => {
-      // Get fresh settings from localStorage
-      let currentSettings = settings;
-      try {
-        const stored = localStorage.getItem(BIOMETRIC_SETTINGS_KEY);
-        if (stored) {
-          currentSettings = JSON.parse(stored);
-        }
-      } catch (e) {
-        console.error("Error reading settings:", e);
-      }
+      const stored = readBiometricSettingsFromStorage();
+      const currentSettings = stored ? { ...settings, ...stored } : settings;
 
       if (!currentSettings.enabled) return false;
 

@@ -1516,6 +1516,7 @@ export default function SettingsPage() {
 
   // Use stable defaults for SSR, then update on client
   const isDark = mounted ? theme === "dark" : false;
+  const incomeProtected = mounted ? isProtected("income") : false;
 
   const menuItems = [
     {
@@ -1524,12 +1525,12 @@ export default function SettingsPage() {
         {
           icon: IndianRupee,
           label: "Income",
-          sublabel: isProtected("income") ? "Protected" : "Track earnings",
+          sublabel: incomeProtected ? "Protected" : "Track earnings",
           iconColor: "text-emerald-600 dark:text-emerald-400",
           bgColor: "bg-emerald-500/10 dark:bg-emerald-500/20",
           borderColor: "border-emerald-500/20",
           onClick: () => handleOpenProtectedModal("income", setIncomeModalOpen),
-          badge: isProtected("income") ? "lock" : null,
+          badge: incomeProtected ? "lock" : null,
         },
         {
           icon: Database,
