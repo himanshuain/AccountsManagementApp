@@ -42,6 +42,29 @@ import { getLocalDate } from "@/lib/date-utils";
 import { getSupplierPurchaseStats } from "@/lib/transaction-amounts";
 import { PersonListCardSkeleton } from "@/components/gpay/GPaySkeletons";
 
+/** Supplier / Customer quick-add — emerald plus matches pay / positive actions. */
+function AddPersonTypeCard({ icon: Icon, title, subtitle, onClick, className }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "theme-card flex flex-col items-start p-4 text-left transition-colors hover:border-emerald-500/35",
+        className
+      )}
+    >
+      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-500/30 dark:bg-emerald-500">
+        <Plus className="h-7 w-7" strokeWidth={2.25} />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+        <p className="font-medium">{title}</p>
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+    </button>
+  );
+}
+
 // Filter Chip Component
 function FilterChip({ active, onClick, children, icon: Icon }) {
   return (
@@ -797,15 +820,15 @@ export default function GPayHomePage() {
               {isLoading ? (
                 <PersonListCardSkeleton rows={4} />
               ) : suppliersList.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border py-8 text-center">
-                  <Store className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
-                  <p className="mb-3 text-sm text-muted-foreground">No suppliers yet</p>
-                  <button
+                <div className="py-2">
+                  <p className="mb-3 text-center text-sm text-muted-foreground">No suppliers yet</p>
+                  <AddPersonTypeCard
+                    icon={Store}
+                    title="Supplier"
+                    subtitle="Add new vendor"
                     onClick={() => setSupplierFormOpen(true)}
-                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-                  >
-                    + Add Supplier
-                  </button>
+                    className="w-full"
+                  />
                 </div>
               ) : (
                 <div className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40">
@@ -863,15 +886,15 @@ export default function GPayHomePage() {
               {isLoading ? (
                 <PersonListCardSkeleton rows={4} />
               ) : customersList.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border py-8 text-center">
-                  <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
-                  <p className="mb-3 text-sm text-muted-foreground">No customers yet</p>
-                  <button
+                <div className="py-2">
+                  <p className="mb-3 text-center text-sm text-muted-foreground">No customers yet</p>
+                  <AddPersonTypeCard
+                    icon={Users}
+                    title="Customer"
+                    subtitle="Add new customer"
                     onClick={() => setCustomerFormOpen(true)}
-                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-                  >
-                    + Add Customer
-                  </button>
+                    className="w-full"
+                  />
                 </div>
               ) : (
                 <div className="rounded-2xl border border-border/50 bg-card/50 divide-y divide-border/40">
@@ -936,29 +959,25 @@ export default function GPayHomePage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <button
+                <AddPersonTypeCard
+                  icon={Store}
+                  title="Supplier"
+                  subtitle="Add new vendor"
                   onClick={() => {
                     setAddMenuOpen(false);
                     setSupplierFormOpen(true);
                   }}
-                  className="theme-card p-4 text-left transition-colors hover:border-primary"
-                >
-                  <Store className="mb-2 h-8 w-8 text-primary" />
-                  <p className="font-medium">Supplier</p>
-                  <p className="text-xs text-muted-foreground">Add new vendor</p>
-                </button>
+                />
 
-                <button
+                <AddPersonTypeCard
+                  icon={Users}
+                  title="Customer"
+                  subtitle="Add new customer"
                   onClick={() => {
                     setAddMenuOpen(false);
                     setCustomerFormOpen(true);
                   }}
-                  className="theme-card p-4 text-left transition-colors hover:border-primary"
-                >
-                  <Users className="mb-2 h-8 w-8 text-primary" />
-                  <p className="font-medium">Customer</p>
-                  <p className="text-xs text-muted-foreground">Add new customer</p>
-                </button>
+                />
 
                 <button
                   onClick={() => {
